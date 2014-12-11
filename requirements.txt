@@ -1,0 +1,4 @@
+psycopg2>=2.5.3
+redis>=2.9.1
+python-dateutil>=2.2
+pyproj>=1.9.3

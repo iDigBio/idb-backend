@@ -75,6 +75,9 @@ class RedisRecordSource(object):
             print t
             return None
 
+    def record_etag(self,rid):
+        return redist.hget("indexer_" + rid,"etag")
+
     def record_value(self,rid):
         rv = self.get_key("indexer_" + rid,force_type="hash")
         rv["uuid"] = rid
@@ -88,11 +91,6 @@ class RedisRecordSource(object):
 def main():
     r = RedisRecordSource(scan_size=100000)
 
-    # ks = r.list_keys(total=100)
-    # print len(ks)
-    # sv = r.list_set_values("mediarecords",total=100)
-    # print len(sv)
-    # print json.dumps(r.record_value(sv.pop()),indent=2)
 
     for t, es in r.list_type_sets():
         print t, len(es)

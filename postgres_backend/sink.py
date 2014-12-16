@@ -1,13 +1,17 @@
 from . import *
 
 import json
+import uuid
 
 class PostgresRecordSink(object):
 
-    def __init__(self,check_first=True,skip_existing=False):
-        self.cursor = pg.cursor()
+    def __init__(self,check_first=True,skip_existing=False,force_update=False):
+        self.cursor = pg.cursor(cursor_factory=DictCursor)
         self.check_first = check_first
         self.skip_existing = skip_existing
+        self.force_update = force_update
+
+        self.pre_check = {}
 
     def __enter__(self):
         self.cursor.execute("BEGIN")
@@ -19,29 +23,71 @@ class PostgresRecordSink(object):
     def __exit__(self, type, value, traceback):
         self.commit()
 
-    def set_record_value(self,rv,tcursor=None):
+    def run_pre_check(self,typ=None):
+        cursor = pg.cursor(str(uuid.uuid4()), cursor_factory=psycopg2.extras.DictCursor)
+        if typ is None:
+            cursor.execute("SELECT id,etag FROM cache")
+        else:
+            cursor.execute("SELECT id,etag FROM cache WHERE type=%s", (typ,))
+
+        count = 0
+        for row in cursor:
+            self.pre_check[row["id"]] = row["etag"]
+            count += 1
+
+        return count
+
+
+    def record_needs_update(self,rv,tcursor=None):
         assert "uuid" in rv
         assert "etag" in rv
         assert "type" in rv
-        assert "data" in rv
 
         cursor = self.cursor
         if tcursor is not None:            
             cursor = tcursor
 
         update = False
+        needs_update = True
         if self.check_first:
-            cursor.execute("SELECT id FROM cache WHERE id=%s", (rv["uuid"],))
-            if cursor.fetchone() is not None:
-                update = True
+            if rv["uuid"] in self.pre_check:
+                row = { "etag": self.pre_check[rv["uuid"]] }
+            else:
+                cursor.execute("SELECT etag FROM cache WHERE id=%s", (rv["uuid"],))
+                row = cursor.fetchone()
 
-        if update and self.skip_existing:
-            return
+            if row is not None:
+                update = True
+                if row["etag"] == rv["etag"]:
+                    needs_update = False
+            else:
+                needs_update = True
+
+        if self.force_update:
+            needs_update = True
+        elif self.skip_existing:
+            needs_update = False
+
+        return (update,needs_update)
+
+    def set_record_value(self,rv,tcursor=None):
+        assert "data" in rv
+
+        update, needs_update = self.record_needs_update(rv,tcursor=tcursor)
+
+        cursor = self.cursor
+        if tcursor is not None:            
+            cursor = tcursor
 
         if update:
-            cursor.execute("UPDATE cache SET id=%s, type=%s, etag=%s, data=%s, updated_at=now() WHERE id=%s", (rv["uuid"],rv["type"],rv["etag"],json.dumps(rv["data"]),rv["uuid"]))
+            if needs_update:
+                cursor.execute("UPDATE cache SET id=%s, type=%s, etag=%s, data=%s, updated_at=now() WHERE id=%s", (rv["uuid"],rv["type"],rv["etag"],json.dumps(rv["data"]).lower(),rv["uuid"]))
+                return "UPDATE"
+            else:
+                return "SKIP"
         else:
-            cursor.execute("INSERT INTO cache (id,type,etag,data) VALUES (%s,%s,%s,%s)", (rv["uuid"],rv["type"],rv["etag"],json.dumps(rv["data"])))
+            cursor.execute("INSERT INTO cache (id,type,etag,data) VALUES (%s,%s,%s,%s)", (rv["uuid"],rv["type"],rv["etag"],json.dumps(rv["data"]).lower()))
+            return "INSERT"
 
 
 def main():

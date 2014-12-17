@@ -6,7 +6,7 @@ import json
 def main():
     cursor = pg.cursor(str(uuid.uuid4()),cursor_factory=DictCursor)
 
-    cursor.execute("select cache2.id as id,min(data::text)::json as data,json_agg(v) as values from cache2 join corrections on data @> k group by cache2.id")
+    cursor.execute("select cache.id as id,min(data::text)::json as data,json_agg(v) as values from cache join corrections on data @> k group by cache.id")
 
     count = 0.0
     startkeys = 0

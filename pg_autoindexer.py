@@ -48,7 +48,7 @@ def main():
         message = p.get_message()
         if message is not None:
             typ = message["channel"][len("pg_incremental_indexer_"):]
-            e = redist.spop("pg_incremental_indexer_" + t + "_queue")
+            e = redist.spop("pg_incremental_indexer_" + typ + "_queue")
             if e is not None:
                 cursor.execute("select id,etag,data::json from cache where type=%s and id=%s", (typ,e))
 

@@ -43,6 +43,8 @@ def main():
 
                         if needs_update:
                             results[prs.set_record_value(rv,tcursor=tcursor)] += 1
+                            redist.sadd("pg_incremental_indexer_" + t + "_queue", e)
+                            redist.publish("pg_incremental_indexer_" + t, e)
                         else:
                             results["SKIP"] += 1
                     except KeyboardInterrupt:

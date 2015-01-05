@@ -1,4 +1,5 @@
 from postgres_backend import pg, DictCursor
+from redis_backend import redist
 
 import uuid
 import json
@@ -72,6 +73,10 @@ def main():
                     i["data"] = r["data"]
 
                     ei.index(typ,i)
+            else:
+                time.sleep(1)
+        else:
+            time.sleep(1)
 
 if __name__ == '__main__':
     main()

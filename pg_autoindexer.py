@@ -6,6 +6,7 @@ import json
 import itertools
 import datetime
 import copy
+import time
 
 from idigbio.lib.indexer.conversions import grabAll
 from idigbio.lib.indexer.elasticsearch import ElasticSearchIndexer

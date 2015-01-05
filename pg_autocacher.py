@@ -48,6 +48,7 @@ def main():
                     except KeyboardInterrupt:
                         break
                     except:
+                        redist.sadd("cacher_" + t + "_queue",e)
                         print e
                         traceback.print_exc()
                 print results

@@ -23,12 +23,14 @@ def main():
 
     p.psubscribe("cacher_*")
 
+    count = 0
     while True:
         message = p.get_message()
         if message is not None:
             t = message["channel"][len("cacher_"):]
             e = redist.spop("cacher_" + t + "_queue")
             if e is not None:
+                count += 1
                 with prs as tcursor:
                     try:
                         rv = {
@@ -51,9 +53,10 @@ def main():
                         break
                     except:
                         redist.sadd("cacher_" + t + "_queue",e)
-                        print e
+                        print t, e
                         traceback.print_exc()
-                print results
+                if count % 1000 == 0:
+                    print results
             else:
                 time.sleep(1)
         else:

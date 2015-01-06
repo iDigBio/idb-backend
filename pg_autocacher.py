@@ -30,6 +30,8 @@ def main():
         message = p.get_message()
         if message is not None:
             t = message["channel"][len("cacher_"):]
+            if message["data"] == "shutdown":
+                break
             e = redist.spop("cacher_" + t + "_queue")
             if e is not None:
                 count += 1

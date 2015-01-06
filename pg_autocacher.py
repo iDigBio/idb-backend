@@ -3,6 +3,8 @@ import requests
 import time
 from collections import defaultdict
 
+import os
+
 from redis_backend import redist
 from postgres_backend import sink
 
@@ -56,7 +58,7 @@ def main():
                         print t, e
                         traceback.print_exc()
                 if count % 1000 == 0:
-                    print results
+                    print os.getpid(), results
             else:
                 time.sleep(1)
         else:

@@ -12,17 +12,13 @@ class RedisQueue(object):
         self.p.psubscribe(queue_prefix + "*")
 
         count = 0
-        while True:
-            message = p.get_message()
-            if message is not None:
-                t = message["channel"][len(queue_prefix):]
-                if message["data"] == "shutdown":
-                    break
-                e = redist.spop(queue_prefix + t + "_queue")
-                if e is not None:
-                    yield (t,e)
-                else:
-                    time.sleep(sleep_time)
+        for message in p.listen():
+            t = message["channel"][len(queue_prefix):]
+            if message["data"] == "shutdown":
+                break
+            e = redist.spop(queue_prefix + t + "_queue")
+            if e is not None:
+                yield (t,e)
             else:
                 time.sleep(sleep_time)
 

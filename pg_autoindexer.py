@@ -1,5 +1,6 @@
 from postgres_backend import pg, DictCursor
 from redis_backend import redist
+from redis_backend.queue import RedisQueue
 
 import uuid
 import json

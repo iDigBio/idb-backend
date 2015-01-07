@@ -4,12 +4,11 @@ import time
 
 class RedisQueue(object):
 
-    def __init__(queue_prefix=""):
+    def __init__(self,queue_prefix=""):
         self.p = redist.pubsub()
         self.queue_prefix = queue_prefix
 
-
-    def listen(sleep_time=1):
+    def listen(self,sleep_time=1):
         self.p.psubscribe(self.queue_prefix + "*")
 
         count = 0
@@ -23,6 +22,6 @@ class RedisQueue(object):
             else:
                 time.sleep(sleep_time)
 
-    def add(t,e):
+    def add(self,t,e):
         redist.sadd(self.queue_prefix + t + "_queue",e)
         redist.publish(self.queue_prefix + t, e)

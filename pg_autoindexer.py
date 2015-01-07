@@ -39,53 +39,40 @@ def main():
 
     print corrections.keys()
 
-    p = redist.pubsub()
-
-    p.psubscribe("pg_incremental_indexer_*")
+    q = RedisQueue(queue_prefix="pg_incremental_indexer_")
 
     cursor = pg.cursor(cursor_factory=DictCursor)
 
-    while True:
-        message = p.get_message()
-        if message is not None:
-            typ = message["channel"][len("pg_incremental_indexer_"):]
-            if message["data"] == "shutdown":
-                break
-            e = redist.spop("pg_incremental_indexer_" + typ + "_queue")
-            if e is not None:
-                cursor.execute("select id,etag,data::json from cache where type=%s and id=%s", (typ,e))
+    for typ,e in q.listen(sleep_time=1):
+        cursor.execute("select id,etag,data::json from cache where type=%s and id=%s", (typ,e))
 
-                for r in cursor:
-                    try:
-                        d = copy.deepcopy(r["data"]["idigbio:data"])
+        for r in cursor:
+            try:
+                d = copy.deepcopy(r["data"]["idigbio:data"])
 
-                        for c in corrections:
-                            l = []
-                            for k in c:
-                                if k in d:
-                                    l.append(d[k])
-                                else:
-                                    break
-                            else: # if we got to the end of the for without breaking
-                                uv = tuple(l)
-                                if uv in corrections[c]:
-                                    d.update(corrections[c][uv])        
+                for c in corrections:
+                    l = []
+                    for k in c:
+                        if k in d:
+                            l.append(d[k])
+                        else:
+                            break
+                    else: # if we got to the end of the for without breaking
+                        uv = tuple(l)
+                        if uv in corrections[c]:
+                            d.update(corrections[c][uv])        
 
-                        d.update(r["data"])
-                        del d["idigbio:data"]
+                d.update(r["data"])
+                del d["idigbio:data"]
 
-                        i =  ei.prepForEs(typ,grabAll(typ,d))
-                        i["data"] = r["data"]
+                i =  ei.prepForEs(typ,grabAll(typ,d))
+                i["data"] = r["data"]
 
-                        ei.index(typ,i)
-                    except:
-                        redist.sadd("pg_incremental_indexer_" + t + "_queue", e)
-                        print typ, e
-                        traceback.print_exc()
-            else:
-                time.sleep(1)
-        else:
-            time.sleep(1)
+                ei.index(typ,i)
+            except:
+                q.add(typ,e)
+                print typ, e
+                traceback.print_exc()
 
 if __name__ == '__main__':
     main()

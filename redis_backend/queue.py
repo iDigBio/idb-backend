@@ -12,7 +12,7 @@ class RedisQueue(object):
         self.p.psubscribe(self.queue_prefix + "*")
 
         count = 0
-        for message in p.listen():
+        for message in self.p.listen():
             t = message["channel"][len(self.queue_prefix):]
             if message["data"] == "shutdown":
                 break

@@ -25,7 +25,7 @@ def main():
     results = defaultdict(int)
 
     count = 0
-    for t,e in q.listen(sleep_time=1):
+    for t,e in q.listen():
         count += 1
         with prs as tcursor:
             try:

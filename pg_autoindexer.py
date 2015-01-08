@@ -44,7 +44,7 @@ def main():
 
     cursor = pg.cursor(cursor_factory=DictCursor)
 
-    for typ,e in q.listen(sleep_time=1):
+    for typ,e in q.listen():
         cursor.execute("select id,etag,data::json from cache where type=%s and id=%s", (typ,e))
 
         for r in cursor:

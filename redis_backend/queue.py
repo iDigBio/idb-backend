@@ -90,7 +90,7 @@ class RedisQueue(object):
         return filled_a
 
     def stats_report(self,t):
-        s = q.get_stats(t)
+        s = self.get_stats(t)
         sv = sorted([x[1] for x in s])
         print "S: ", s[0][0].isoformat()
         print "INT: ", (s[-1][0] - s[0][0]).total_seconds()

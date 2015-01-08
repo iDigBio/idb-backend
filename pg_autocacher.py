@@ -51,7 +51,7 @@ def main():
                 print t, e
                 traceback.print_exc()
         if count % 1000 == 0:
-            print os.getpid(), results
+            print os.getpid(), results, dict(q.hwm)
 
 
 if __name__ == '__main__':

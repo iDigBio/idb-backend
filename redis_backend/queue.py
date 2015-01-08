@@ -31,6 +31,8 @@ class RedisQueue(object):
             t = message["channel"][len(self.queue_prefix):]
             if message["data"] == "shutdown":
                 break
+            elif message["data"] == "dump_stats":
+                self.stats_report(t)
             e = redist.spop(self.queue_prefix + t + "_queue")
             if e is not None:
                 self.__logitem(t)

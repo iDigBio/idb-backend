@@ -23,6 +23,9 @@ class RedisQueue(object):
         if self.stats_duration is not None:
             redist.expireat(k,n+datetime.timedelta(0,self.stats_duration))
 
+    def list_queues(self):
+        return [k[len(self.queue_prefix):-len("_queue")] for k in redist.scan_iter(self.queue_prefix + "*_queue")]
+
     def listen(self):
         self.p.psubscribe(self.queue_prefix + "*")
 
@@ -107,17 +110,20 @@ class RedisQueue(object):
         print "HWM: ", dict(q.hwm)
 
 def main():
-    q = RedisQueue("testing_queue_",1,30)
+    # q = RedisQueue("testing_queue_",1,30)
 
-    tt = "test"
+    # tt = "test"
 
-    for x in xrange(0,100000):
-        q.add(tt,x)
+    # for x in xrange(0,100000):
+    #     q.add(tt,x)
 
-    for v in q.drain(tt):
-        pass
+    # for v in q.drain(tt):
+    #     pass
 
-    s = q.stats_report(tt)
+    # q.stats_report(tt)
+    q = RedisQueue("cacher_")
+    q.stats_report("records")
+    q.stats_report("mediarecords")
 
 
 if __name__ == '__main__':

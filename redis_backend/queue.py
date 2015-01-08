@@ -33,6 +33,7 @@ class RedisQueue(object):
                 break
             elif message["data"] == "dump_stats":
                 self.stats_report(t)
+                continue
             e = redist.spop(self.queue_prefix + t + "_queue")
             if e is not None:
                 self.__logitem(t)

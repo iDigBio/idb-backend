@@ -23,7 +23,7 @@ class RedisQueue(object):
         if self.stats_duration is not None:
             redist.expireat(k,n+datetime.timedelta(0,self.stats_duration))
 
-    def listen(self,sleep_time=1):
+    def listen(self):
         self.p.psubscribe(self.queue_prefix + "*")
 
         count = 0
@@ -35,8 +35,6 @@ class RedisQueue(object):
             if e is not None:
                 self.__logitem(t)
                 yield (t,e)
-            else:
-                time.sleep(sleep_time)
 
     def drain(self,t):
         e = redist.spop(self.queue_prefix + t + "_queue")

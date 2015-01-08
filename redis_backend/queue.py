@@ -107,7 +107,7 @@ class RedisQueue(object):
         else:
             print "MED: ", sv[int(math.floor(len(sv)/2.0)):int(math.ceil(len(sv)/2.0))+1]
 
-        print "HWM: ", dict(q.hwm)
+        print "HWM: ", dict(self.hwm)
 
 def main():
     # q = RedisQueue("testing_queue_",1,30)

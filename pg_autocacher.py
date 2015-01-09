@@ -15,7 +15,7 @@ def get_data(t,e):
     r = s.get("http://api.idigbio.org/v1/{0}/{1}".format(t,e))
     r.raise_for_status()
     o = r.json()
-    return o    
+    return o
 
 def main():
     prs = sink.PostgresRecordSink()

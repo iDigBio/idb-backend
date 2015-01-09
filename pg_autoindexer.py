@@ -16,6 +16,35 @@ from idigbio.lib.indexer.elasticsearch import ElasticSearchIndexer
 types = ["publishers","recordsets","records","mediarecords"]
 indexname = "2.0.0"
 
+def index_item(cursor,typ,e,corrections,q,ei):
+    cursor.execute("select id,etag,data::json from cache where type=%s and id=%s", (typ,e))
+
+    for r in cursor:
+        try:
+            d = copy.deepcopy(r["data"]["idigbio:data"])
+
+            for c in corrections:
+                l = []
+                for k in c:
+                    if k in d:
+                        l.append(d[k])
+                    else:
+                        break
+                else: # if we got to the end of the for without breaking
+                    uv = tuple(l)
+                    if uv in corrections[c]:
+                        d.update(corrections[c][uv])
+            d.update(r["data"])
+            del d["idigbio:data"]
+
+            i =  ei.prepForEs(typ,grabAll(typ,d))
+            i["data"] = r["data"]
+
+            ei.index(typ,i)
+        except:
+            q.add(typ,e)
+            print typ, e
+            traceback.print_exc()
 def main():
     ei = ElasticSearchIndexer(indexname,types,serverlist=[
         "http://c17node52.acis.ufl.edu:9200",
@@ -44,36 +73,12 @@ def main():
 
     cursor = pg.cursor(cursor_factory=DictCursor)
 
+    for typ in types:
+        print "Drain", typ
+        for typ, e in q.drain(typ):
+            index_item(cursor,typ,e,corrections,q,ei)
     for typ,e in q.listen():
-        cursor.execute("select id,etag,data::json from cache where type=%s and id=%s", (typ,e))
-
-        for r in cursor:
-            try:
-                d = copy.deepcopy(r["data"]["idigbio:data"])
-
-                for c in corrections:
-                    l = []
-                    for k in c:
-                        if k in d:
-                            l.append(d[k])
-                        else:
-                            break
-                    else: # if we got to the end of the for without breaking
-                        uv = tuple(l)
-                        if uv in corrections[c]:
-                            d.update(corrections[c][uv])        
-
-                d.update(r["data"])
-                del d["idigbio:data"]
-
-                i =  ei.prepForEs(typ,grabAll(typ,d))
-                i["data"] = r["data"]
-
-                ei.index(typ,i)
-            except:
-                q.add(typ,e)
-                print typ, e
-                traceback.print_exc()
+        index_item(cursor,typ,e,corrections,q,ei)
 
 if __name__ == '__main__':
     main()

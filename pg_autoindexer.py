@@ -77,6 +77,8 @@ def main():
         print "Drain", typ
         for typ, e in q.drain(typ):
             index_item(cursor,typ,e,corrections,q,ei)
+
+    print "Listen"
     for typ,e in q.listen():
         index_item(cursor,typ,e,corrections,q,ei)
 

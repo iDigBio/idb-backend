@@ -1,8 +1,7 @@
-import json
+from pytz import timezone
+
 import elasticsearch.helpers
 from elasticsearch import Elasticsearch
-import pprint
-from pytz import timezone
 
 from helpers.conversions  import fields
 

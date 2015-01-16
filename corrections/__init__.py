@@ -1,1 +1,1 @@
-from .postgre_backend import pg, DictCursor
+from postgres_backend import pg, DictCursor

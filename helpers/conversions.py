@@ -376,11 +376,15 @@ def grabAll(t,d):
     r["scientificname"] = scientificNameFiller(t,r)
 
     r["flags"] = setFlags(r)
-    r["dqs"] = score(t,r)
     for k in r.keys():
-        if k.startswith("flag_"):            
+        if k.startswith("flag_"):
             r["flags"].append("_".join(k.split("_")[1:]))
-            del r[k]    
+            del r[k]
+    for k in d.keys():
+        if k.startswith("flag_"):
+            r["flags"].append("_".join(k.split("_")[1:]))
+
+    r["dqs"] = score(t,r)
     return r
 
 

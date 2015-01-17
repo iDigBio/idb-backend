@@ -7,7 +7,8 @@ def index_record(ei,rc,typ,r,do_index=True):
         d.update(r["data"])
         del d["idigbio:data"]
 
-        i =  prepForEs(typ,grabAll(typ,d))
+        g = grabAll(typ,d)
+        i =  prepForEs(typ,g)
         i["data"] = r["data"]
 
         if do_index:

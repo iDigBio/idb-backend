@@ -43,7 +43,7 @@ query = {
   }
 }
 
-r = requests.post("http://c17node52.acis.ufl.edu:9200/idigbio-2.0.0/records/_search",data=json.dumps(query))
+r = requests.post("http://c17node52.acis.ufl.edu:9200/idigbio/records/_search",data=json.dumps(query))
 r.raise_for_status()
 o = r.json()
 

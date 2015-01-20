@@ -10,7 +10,8 @@ import string
 
 locale.setlocale(locale.LC_ALL, '')
 
-fields = { 
+# [indexname, rawfield, type, include_in_max]
+fields = {
     "records": [
         ["uuid","idigbio:uuid", "text", 0],
         ["datemodified","", "date", 0],
@@ -33,6 +34,7 @@ fields = {
         ["country","dwc:country", "text", 1],
         ["stateprovince","dwc:stateProvince", "text", 1],
         ["county","dwc:county", "text", 1],
+        ["countrycode", "idigbio:isoCountryCode", "text", 1],
         ["municipality","dwc:municipality", "text", 1],
         ["waterbody","dwc:waterBody", "text", 1],
         ["locality","dwc:locality", "longtext", 1],
@@ -61,8 +63,21 @@ fields = {
         ["recordset", "","text", 0],
         ["mediarecords", "", "list", 0],
         ["hasImage", "","boolean", 0],
+        ["bed", "dwc:bed", "text", 1],
+        ["group", "dwc:group", "text", 1],
+        ["member", "dwc:member", "text", 1],
+        ["formation", "dwc:formation", "text", 1],
+        ["lowestbiostratigraphiczone", "dwc:lowestBiostratigraphicZone", "text", 1],
+        ["lithostratigraphicterms", "dwc:lithostratigraphicTerms", "text", 1],
         ["earliestperiodorlowestsystem","dwc:earliestPeriodOrLowestSystem","text", 1],
+        ["earliesteraorlowesterathem", "dwc:earliestEraOrLowestErathem", "text", 1],
+        ["earliestepochorlowestseries", "dwc:earliestEpochOrLowestSeries", "text", 1],
+        ["earliestageorloweststage", "dwc:earliestAgeOrLowestStage", "text", 1],
+        ["latesteraorhighesterathem", "dwc:latestEraOrHighestErathem", "text", 1],
+        ["latestepochorhighestseries", "dwc:latestEpochOrHighestSeries", "text", 1],
+        ["latestageorhigheststage", "dwc:latestAgeOrHighestStage", "text", 1],
         ["latestperiodorhighestsystem","dwc:latestPeriodOrHighestSystem","text", 1],
+        ["individualcount","","float", 0],
         ["flags", "", "list", 0],
         ["dqs", "", "float", 0],
     ],
@@ -140,16 +155,22 @@ def score(t,d):
     scorenum -= len(d["flags"])
     return scorenum/maxscores[t]
 
-def verbatimGrabber(t,d):    
+def getfield(f,d,t="text"):
+    f = f.lower()
+    if f in d:
+        if t == "list":
+            return [x.lower().strip() for x in d[f]]
+        else:
+            if isinstance(d[f],str):
+                return d[f].lower().strip()
+            else:
+                return d[f]
+    else:
+        return None
+def verbatimGrabber(t,d):
     r = {}
     for f in fields[t]:
-        if f[1] in d:
-            if f[2] == "list":
-                r[f[0]] = [x.lower().strip() for x in d[f[1]]]
-            else:
-                r[f[0]] = d[f[1]].lower().strip()
-        else:
-            r[f[0]] = None
+        r[f[0]] = getfield(f[1],d,t=f[2])
     return r
 
 gfn = re.compile("([+-]?[0-9]+(?:[,][0-9]{3})*(?:[\.][0-9]*)?)")
@@ -184,7 +205,7 @@ def grabFirstUUID(f):
 
 def elevGrabber(t,d):
     r = {}
-    ef = { 
+    ef = {
         "records": [
             ["minelevation","dwc:minimumElevationInMeters"],
             ["maxelevation","dwc:maximumElevationInMeters"],
@@ -194,20 +215,21 @@ def elevGrabber(t,d):
     }
     if t in ef:
         for f in ef[t]:
-            if f[1] in d:
+            fv = getfield(f[1],d)
+            if fv is not None:
                 try:
-                    n = grabFirstNumber(d[f[1]])
+                    n = grabFirstNumber(fv)
                     if n != None:
                         r[f[0]] = locale.atof(n)
                 except:
                     pass
             if f[0] not in r:
-                r[f[0]] = None        
+                r[f[0]] = None
     return r
 
 def intGrabber(t,d):
     r = {}
-    ef = { 
+    ef = {
         "records": [
             ["version","idigbio:version"],
         ],
@@ -222,29 +244,59 @@ def intGrabber(t,d):
         ]
     }
     for f in ef[t]:
-        if f[1] in d:
+        fv = getfield(f[1],d)
+        if fv is not None:
             try:
-                n = grabFirstNumber(d[f[1]])
+                n = grabFirstNumber(fv)
                 if n != None:
-                    r[f[0]] = locale.atoi(n)                
+                    r[f[0]] = locale.atoi(n)
             except:
                 pass
         if f[0] not in r:
-            r[f[0]] = None        
+            r[f[0]] = None
+    return r
+
+def floatGrabber(t,d):
+    r = {}
+    ef = {
+        "records": [
+            ["individualcount","dwc:individualCount"],
+        ],
+        "mediarecords": [
+        ],
+        "publishers": [
+        ],
+        "recordsets": [
+        ]
+    }
+    for f in ef[t]:
+        fv = getfield(f[1],d)
+        if fv is not None:
+            try:
+                n = grabFirstNumber(fv)
+                if n != None:
+                    r[f[0]] = locale.atof(n)
+            except:
+                pass
+        if f[0] not in r:
+            r[f[0]] = None
     return r
 
 def geoGrabber(t,d):
     r = {}
-    if "dwc:decimalLatitude" in d and "dwc:decimalLongitude" in d:
+    lat_val = getfield("dwc:decimalLatitude",d)
+    lon_val = getfield("dwc:decimalLongitude",d)
+
+    if lat_val is not None and lon_val is not None:
         try:
-            latexp = getExponent(d["dwc:decimalLatitude"])            
-            lat = float(d["dwc:decimalLatitude"])
+            latexp = getExponent(lat_val)
+            lat = float(lat_val)
             if lat <= -90 or lat >= 90:
                 r["geopoint"] = None
                 r["flag_geopoint_bounds"] = True
                 return r
-            lonexp = getExponent(d["dwc:decimalLongitude"])
-            lon = float(d["dwc:decimalLongitude"])
+            lonexp = getExponent(lon_val)
+            lon = float(lon_val)
             if lon <= -180 or lon >= 180:
                 r["geopoint"] = None
                 r["flag_geopoint_bounds"] = True
@@ -256,8 +308,9 @@ def geoGrabber(t,d):
             r["geopoint"] = None
             #traceback.print_exc()
 
-        if r["geopoint"] is not None and "dwc:geodeticDatum" in d:
-            source_datum = mangleString(d["dwc:geodeticDatum"])
+        datum_val = getfield("dwc:geodeticDatum",d)
+        if r["geopoint"] is not None and datum_val is not None:
+            source_datum = mangleString(datum_val)
             try:
                 p1 = pyproj.Proj(proj="latlon", datum=source_datum)
                 p2 = pyproj.Proj(proj="latlon", datum="WGS84")
@@ -270,7 +323,7 @@ def geoGrabber(t,d):
 
 def dateGrabber(t,d):
     r = {}
-    df = { 
+    df = {
         "records": [
             ["datemodified","idigbio:dateModified"],
             ["datecollected","dwc:eventDate"],
@@ -287,29 +340,27 @@ def dateGrabber(t,d):
         ]
     }
     for f in df[t]:
-        if f[1] in d:
+        fv = getfield(f[1],d)
+        if fv is not None:
             try:
-                r[f[0]] = dateutil.parser.parse(d[f[1]]).date()
+                r[f[0]] = dateutil.parser.parse(fv).date()
             except:
                 pass
         if f[0] not in r:
-            r[f[0]] = None    
+            r[f[0]] = None
 
     if "datecollected" in r and r["datecollected"] == None:
-        year = None
-        month = None
-        day = None        
-        if "dwc:year" in d:
+        year = getfield("dwc:year",d)
+        month = getfield("dwc:month",d)
+        day = getfield("dwc:day",d)
+        sd_of_year = getfield("dwc:startDayOfYear",d)
+        if year is not None:
             try:
-                year = d["dwc:year"]
-                if "dwc:month" in d:
-                    month = d["dwc:month"]
-                    if "dwc:day" in d:                    
-                        day = d["dwc:day"]
+                if month is not None:
+                    if day is not None:
                         r["datecollected"] = dateutil.parser.parse("{0}-{1}-{2}".format(year,month,day)).date()
-                    elif "dwc:startDayOfYear" in d:                    
-                        day = d["dwc:startDayOfYear"]
-                        r["datecollected"] = dateutil.parser.parse("{0}-{1}-{2}".format(year,month,day)).date()
+                    elif sd_of_year is not None:
+                        r["datecollected"] = (datetime.datetime(year, 1, 1) + datetime.timedelta(locale.atoi(sd_of_year) - 1)).date()
                     else:
                         r["datecollected"] = dateutil.parser.parse("{0}-{1}".format(year,month)).date()
                 else:
@@ -320,7 +371,7 @@ def dateGrabber(t,d):
     return r
 
 def relationsGrabber(t,d):
-    df = { 
+    df = {
         "records": [
             ["recordset", "recordset" , "text"],
             ["mediarecords", "mediarecord" , "list"],
@@ -346,17 +397,17 @@ def relationsGrabber(t,d):
                     r[f[0]] = [grabFirstUUID(x) for x in d["idigbio:links"][f[1]] if grabFirstUUID(x) is not None]
             else:
                 r[f[0]] = None
-        
+
     if t == "mediarecords":
         r["hasSpecimen"] = "records" in r and r["records"] != None
     elif t == "records":
         r["hasImage"] = "mediarecords" in r and r["mediarecords"] != None
-    
+
     return r
 
 def scientificNameFiller(t,r):
     sciname = None
-    if "scientificname" not in r or r["scientificname"] is None:        
+    if "scientificname" not in r or r["scientificname"] is None:
         if "genus" in r and r["genus"] is not None:
             sciname = r["genus"]
             if "specificepithet" in r and r["specificepithet"] is not None:
@@ -369,7 +420,8 @@ def grabAll(t,d):
     r = verbatimGrabber(t,d)
     r.update(elevGrabber(t,d))
     r.update(intGrabber(t,d))
-    r.update(geoGrabber(t,d))            
+    r.update(floatGrabber(t,d))
+    r.update(geoGrabber(t,d))
     r.update(dateGrabber(t,d))
     r.update(relationsGrabber(t,d))
     # Done with non-dependant fields.
@@ -380,11 +432,9 @@ def grabAll(t,d):
         if k.startswith("flag_"):
             r["flags"].append("_".join(k.split("_")[1:]))
             del r[k]
-    for k in d.keys():
-        if k.startswith("flag_"):
-            r["flags"].append("_".join(k.split("_")[1:]))
 
     r["dqs"] = score(t,r)
+
     return r
 
 
@@ -401,7 +451,7 @@ if __name__ == '__main__':
     #     ]
     # for n in e:
     #     print n, grabFirstNumber(n), locale.atof(grabFirstNumber(n))
-    
+
     exs = [
         # Zero Coords
         {"dwc:decimalLatitude": "0", "dwc:decimalLongitude": "0"},
@@ -435,7 +485,7 @@ if __name__ == '__main__':
     # pprint.pprint(ro)
     # d = ro["idigbio:data"]
     # d.update(ro)
-    # del d["idigbio:data"]     
+    # del d["idigbio:data"]
     # ga = grabAll("records",d)
     # pprint.pprint(ga)
 

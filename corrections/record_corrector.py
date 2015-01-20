@@ -36,12 +36,14 @@ class RecordCorrector(object):
                         if k in corrected_dict:
                             if corrected_dict[k] != self.corrections[c][uv][k]:
                                 corrected_dict["flag_" + k.replace(":","_").lower() + "_replaced"] = True
+                                corrected_dict[k] = self.corrections[c][uv][k]
                                 corrected_keys.add(k)
                             else:
                                 # match
                                 pass
                         else:
                             corrected_dict["flag_" + k.replace(":","_").lower() + "_added"] = True
+                            corrected_dict[k] = self.corrections[c][uv][k]
                             corrected_keys.add(k)
 
         return (corrected_dict,corrected_keys)

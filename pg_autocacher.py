@@ -57,6 +57,8 @@ def main():
         print "Drain", t
         for t, e in q.drain(t):
             results[cache_item(prs,q,iq,t,e)] += 1
+            if count % 1000 == 0:
+                print os.getpid(), results, dict(q.hwm)            
 
     print "Listen"
     for t,e in q.listen():

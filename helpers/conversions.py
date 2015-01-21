@@ -432,6 +432,9 @@ def grabAll(t,d):
         if k.startswith("flag_"):
             r["flags"].append("_".join(k.split("_")[1:]))
             del r[k]
+    for k in d.keys():
+        if k.startswith("flag_"):
+            r["flags"].append("_".join(k.split("_")[1:]))
 
     r["dqs"] = score(t,r)
 

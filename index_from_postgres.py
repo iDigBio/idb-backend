@@ -9,9 +9,7 @@ from helpers.index_helper import index_record
 from helpers.conversions  import grabAll
 from corrections.record_corrector import RecordCorrector
 from elasticsearch_backend.indexer import ElasticSearchIndexer
-
-types = ["publishers","recordsets","records","mediarecords"]
-indexname = "2.0.0"
+from config import config
 
 def type_yield(ei,rc,typ):
     cursor = pg.cursor(str(uuid.uuid4()),cursor_factory=DictCursor)
@@ -30,22 +28,11 @@ def type_yield(ei,rc,typ):
     print typ, count, datetime.datetime.now() - start_time, count/(datetime.datetime.now() - start_time).total_seconds()
 
 def main():
-    ei = ElasticSearchIndexer(indexname,types,serverlist=[
-        "c17node52.acis.ufl.edu:9200",
-        "c17node53.acis.ufl.edu:9200",
-        "c17node54.acis.ufl.edu:9200",
-        "c17node55.acis.ufl.edu:9200",
-        "c17node56.acis.ufl.edu:9200"
-        # "c18node2.acis.ufl.edu:9200",
-        # "c18node6.acis.ufl.edu:9200",
-        # "c18node10.acis.ufl.edu:9200",
-        # "c18node12.acis.ufl.edu:9200",
-        # "c18node14.acis.ufl.edu:9200"
-    ])
+    ei = ElasticSearchIndexer(config["elasticsearch"]["indexname"],config["elasticsearch"]["types"],serverlist=config["elasticsearch"]["servers"])
 
     rc = RecordCorrector()
 
-    for typ in types:       
+    for typ in config["elasticsearch"]["types"]:
         for ok, item in ei.bulk_index(type_yield(ei,rc,typ)):
             pass
 

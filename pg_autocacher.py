@@ -8,6 +8,7 @@ import os
 from redis_backend import redist
 from redis_backend.queue import RedisQueue
 from postgres_backend import sink
+from config import config
 
 s = requests.Session()
 
@@ -17,6 +18,31 @@ def get_data(t,e):
     o = r.json()
     return o
 
+def cache_item(prs,q,iq,t,e):
+    with prs as tcursor:
+        try:
+            rv = {
+                "uuid": e,
+                "type": t
+            }
+
+            rv["data"] = get_data(t,e)
+            rv["etag"] = rv["data"]["idigbio:etag"]
+
+            _, needs_update = prs.record_needs_update(rv)
+
+            if needs_update:
+                return prs.set_record_value(rv,tcursor=tcursor)
+                iq.add(t,e)
+            else:
+                return "SKIP"
+        except KeyboardInterrupt:
+            return
+        except:
+            q.add(t,e)
+            print t, e
+            traceback.print_exc()    
+
 def main():
     prs = sink.PostgresRecordSink()
     q = RedisQueue(queue_prefix="cacher_")
@@ -25,31 +51,17 @@ def main():
     results = defaultdict(int)
 
     count = 0
+
+    for t in config["elasticsearch"]["types"]:
+        count += 1
+        print "Drain", t
+        for t, e in q.drain(t):
+            results[cache_item(prs,q,iq,t,e)] += 1
+
+    print "Listen"
     for t,e in q.listen():
         count += 1
-        with prs as tcursor:
-            try:
-                rv = {
-                    "uuid": e,
-                    "type": t
-                }
-
-                rv["data"] = get_data(t,e)
-                rv["etag"] = rv["data"]["idigbio:etag"]
-
-                _, needs_update = prs.record_needs_update(rv)
-
-                if needs_update:
-                    results[prs.set_record_value(rv,tcursor=tcursor)] += 1
-                    iq.add(t,e)
-                else:
-                    results["SKIP"] += 1
-            except KeyboardInterrupt:
-                break
-            except:
-                q.add(t,e)
-                print t, e
-                traceback.print_exc()
+        results[cache_item(prs,q,iq,t,e)] += 1
         if count % 1000 == 0:
             print os.getpid(), results, dict(q.hwm)
 

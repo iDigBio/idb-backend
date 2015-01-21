@@ -49,30 +49,23 @@ class ElasticSearchIndexer(object):
             "date_detection": False,
             "properties": {}
         }
-        o = {
-            "type": "object",
-            "properties": {
-            }
-        }
         for f in fields[t]:
             if f[2] == "text":
-                o["properties"][f[0]] = { "type" : "string", "analyzer": "keyword" }
+                m["properties"][f[0]] = { "type" : "string", "analyzer": "keyword" }
             elif f[2] == "longtext":
-                o["properties"][f[0]] = { "type" : "string" }             
+                m["properties"][f[0]] = { "type" : "string" }             
             elif f[2] == "list":
-                o["properties"][f[0]] = { "type" : "string", "analyzer": "keyword" }           
+                m["properties"][f[0]] = { "type" : "string", "analyzer": "keyword" }           
             elif f[2] == "float":
-                o["properties"][f[0]] = { "type" : "float" }
+                m["properties"][f[0]] = { "type" : "float" }
             elif f[2] == "boolean":
-                o["properties"][f[0]] = { "type": "boolean" }
+                m["properties"][f[0]] = { "type": "boolean" }
             elif f[2] == "integer":
-                o["properties"][f[0]] = { "type" : "integer" }
+                m["properties"][f[0]] = { "type" : "integer" }
             elif f[2] == "date":
-                o["properties"][f[0]] = { "type": "date" }
+                m["properties"][f[0]] = { "type": "date" }
             elif f[2] == "point":
-                o["properties"][f[0]] = { "type": "geo_point", "geohash": True, "geohash_prefix": True, "lat_lon": True}
-        for it in ["raw","validated"]:
-            m["properties"][it] = o
+                m["properties"][f[0]] = { "type": "geo_point", "geohash": True, "geohash_prefix": True, "lat_lon": True}
         if t == "mediarecords":
             m["_parent"] = {
                 "type" : "records"
@@ -80,12 +73,12 @@ class ElasticSearchIndexer(object):
         print self.es.indices.put_mapping(index=self.indexName,doc_type=t,body={ t: m })
 
     def index(self,t,i):
-        if t == "mediarecords" and "records" in i["raw"] and len(i["raw"]["records"]) > 0:            
-            self.es.index(index=self.indexName,doc_type=t,id=i["raw"]["uuid"],parent=i["raw"]["records"][0],body=i)
+        if t == "mediarecords" and "records" in i and len(i["records"]) > 0:
+            self.es.index(index=self.indexName,doc_type=t,id=i["uuid"],parent=i["records"][0],body=i)
         elif t == "mediarecords":
-            self.es.index(index=self.indexName,doc_type=t,id=i["raw"]["uuid"],parent=0,body=i)
+            self.es.index(index=self.indexName,doc_type=t,id=i["uuid"],parent=0,body=i)
         else:
-            self.es.index(index=self.indexName,doc_type=t,id=i["raw"]["uuid"],body=i)
+            self.es.index(index=self.indexName,doc_type=t,id=i["uuid"],body=i)
 
     def bulk_formater(self,tups):
         for t,i in tups:

@@ -26,7 +26,7 @@ def prepForEs(t,i):
 
 class ElasticSearchIndexer(object):
     def __init__(self,indexName,types,commitCount=100000,disableRefresh=True,serverlist=["localhost"]):
-        self.es = elasticsearch.Elasticsearch(serverlist)
+        self.es = elasticsearch.Elasticsearch(serverlist, sniff_on_start=True, sniff_on_connection_fail=True)
         self.types = types
         self.indexName = "idigbio-" + indexName
 

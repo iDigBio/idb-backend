@@ -1,5 +1,6 @@
 from postgres_backend import pg as cache_pg, pg_conf, DictCursor, psycopg2
 from redis_backend.queue import RedisQueue
+from config import config
 
 from elasticsearch import Elasticsearch
 import elasticsearch.helpers
@@ -20,15 +21,9 @@ api_pg_conf["database"] = "idb-api-prod"
 
 api_pg = psycopg2.connect(**api_pg_conf)
 
-es = Elasticsearch([
-        "c17node52.acis.ufl.edu:9200",
-        "c17node53.acis.ufl.edu:9200",
-        "c17node54.acis.ufl.edu:9200",
-        "c17node55.acis.ufl.edu:9200",
-        "c17node56.acis.ufl.edu:9200"
-    ], sniff_on_start=True, sniff_on_connection_fail=True)
+es = Elasticsearch(config["elasticsearch"]["servers"], sniff_on_start=True, sniff_on_connection_fail=True)
 
-types = ["publishers","recordsets","mediarecords","records"]
+types = config["elasticsearch"]["types"]
 #types = ["publishers","recordsets"]
 
 cache_q = RedisQueue("cacher_")
@@ -109,7 +104,7 @@ def main():
         es_ids_only = set()
 
         q = {
-            "index": "idigbio",
+            "index": config["elasticsearch"]["indexname"],
             "doc_type": t,
             "_source": ["etag"],
             "size": 10000,

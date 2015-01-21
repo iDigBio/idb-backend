@@ -50,10 +50,13 @@ class RedisQueue(object):
             count += 1
             self.__logitem(t)
             yield (t,e)
-            if limit is not None and count < limit:
-                e = redist.spop(self.queue_prefix + t + "_queue")
+            if limit is not None:
+                if count < limit:
+                    e = redist.spop(self.queue_prefix + t + "_queue")
+                else:
+                    e = None
             else:
-                e = None
+                e = redist.spop(self.queue_prefix + t + "_queue")
 
     def add(self,t,e):
         redist.sadd(self.queue_prefix + t + "_queue",e)

@@ -37,7 +37,7 @@ class RedisQueue(object):
             elif message["data"] == "dump_stats":
                 self.stats_report(t)
                 continue
-            yield drain(t,limit=1000)
+            yield self.drain(t,limit=1000)
 
     def drain(self,t,limit=None):
         e = redist.spop(self.queue_prefix + t + "_queue")

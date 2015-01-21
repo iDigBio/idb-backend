@@ -49,7 +49,7 @@ class RedisQueue(object):
             if limit is not None and count < limit:
                 e = redist.spop(self.queue_prefix + t + "_queue")
             else:
-                return None
+                return
 
     def add(self,t,e):
         redist.sadd(self.queue_prefix + t + "_queue",e)

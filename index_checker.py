@@ -21,7 +21,7 @@ api_pg_conf["database"] = "idb-api-prod"
 
 api_pg = psycopg2.connect(**api_pg_conf)
 
-es = Elasticsearch(config["elasticsearch"]["servers"], sniff_on_start=True, sniff_on_connection_fail=True)
+es = Elasticsearch(config["elasticsearch"]["servers"], sniff_on_start=True, sniff_on_connection_fail=True,retry_on_timeout=True, max_retries=3)
 
 types = config["elasticsearch"]["types"]
 #types = ["publishers","recordsets"]
@@ -104,7 +104,7 @@ def main():
         es_ids_only = set()
 
         q = {
-            "index": config["elasticsearch"]["indexname"],
+            "index": "idigbio-" + config["elasticsearch"]["indexname"],
             "doc_type": t,
             "_source": ["etag"],
             "size": 10000,

@@ -156,17 +156,20 @@ def score(t,d):
     return scorenum/maxscores[t]
 
 def getfield(f,d,t="text"):
-    f = f.lower()
+    fl = f.lower()
+    if fl in d:
+        f = fl
     if f in d:
         if t == "list":
             return [x.lower().strip() for x in d[f]]
         else:
-            if isinstance(d[f],str):
+            if isinstance(d[f],str) or isinstance(d[f],unicode):
                 return d[f].lower().strip()
             else:
                 return d[f]
     else:
         return None
+
 def verbatimGrabber(t,d):
     r = {}
     for f in fields[t]:

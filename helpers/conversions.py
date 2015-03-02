@@ -152,7 +152,8 @@ def score(t,d):
     for f in fields[t]:
         if f[0] in d and d[f[0]] is not None:
             scorenum += f[3]
-    scorenum -= len(d["flags"])
+    if "flags" in d:
+        scorenum -= len(d["flags"])
     return scorenum/maxscores[t]
 
 def getfield(f,d,t="text"):
@@ -249,12 +250,17 @@ def intGrabber(t,d):
     for f in ef[t]:
         fv = getfield(f[1],d)
         if fv is not None:
-            try:
-                n = grabFirstNumber(fv)
-                if n != None:
-                    r[f[0]] = locale.atoi(n)
-            except:
-                pass
+            if isinstance(fv,(str,unicode)):
+                try:
+                    n = grabFirstNumber(fv)
+                    if n != None:
+                        r[f[0]] = locale.atoi(n)
+                except:
+                    pass
+            elif isinstance(fv,int):
+                r[f[0]] = fv
+            elif isinstance(fv,float):
+                r[f[0]] = int(fv)
         if f[0] not in r:
             r[f[0]] = None
     return r

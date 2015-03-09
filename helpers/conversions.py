@@ -351,6 +351,8 @@ def dateGrabber(t,d):
     for f in df[t]:
         fv = getfield(f[1],d)
         if fv is not None:
+            # dates are more sensitivie to lower case then upper.
+            fv = fv.upper()
             try:
                 r[f[0]] = dateutil.parser.parse(fv).date()
             except:

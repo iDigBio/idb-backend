@@ -72,7 +72,15 @@ def type_yield_resume(ei,rc,typ):
 
 
 def main():
-    ei = ElasticSearchIndexer(config["elasticsearch"]["indexname"],config["elasticsearch"]["types"],serverlist=config["elasticsearch"]["servers"])
+    sl = config["elasticsearch"]["servers"]
+    # sl = [
+    #     "c17node52.acis.ufl.edu",
+    #     "c17node53.acis.ufl.edu",
+    #     "c17node54.acis.ufl.edu",
+    #     "c17node55.acis.ufl.edu",
+    #     "c17node56.acis.ufl.edu"
+    # ]
+    ei = ElasticSearchIndexer(config["elasticsearch"]["indexname"],config["elasticsearch"]["types"],serverlist=sl)
 
     rc = RecordCorrector()
 

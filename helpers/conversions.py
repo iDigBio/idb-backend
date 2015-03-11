@@ -293,9 +293,12 @@ def floatGrabber(t,d):
 
 def geoGrabber(t,d):
     r = {}
+    # get the lat and lon values
     lat_val = getfield("dwc:decimalLatitude",d)
     lon_val = getfield("dwc:decimalLongitude",d)
 
+    # TODO: these falgs sould probably be set after the transform, but some of them may lose meaning
+    # Ex. lower precision values may be converted to artifically more precise floats
     if lat_val is not None and lon_val is not None:
         try:
             latexp = getExponent(lat_val)
@@ -312,21 +315,34 @@ def geoGrabber(t,d):
                 return r
             if latexp <= 2 or lonexp <=2:
                 r["flag_geopoint_low_precision"] = True
+            # set the geopoint to a lon,lat tuple
             r["geopoint"] = (lon,lat)
         except:
             r["geopoint"] = None
             #traceback.print_exc()
 
+        # get the datum value
         datum_val = getfield("dwc:geodeticDatum",d)
+
+        # if we got this far with actual values
         if r["geopoint"] is not None and datum_val is not None:
+            # convert datum to a more canonical representation (no whitespace, all uppercase)
             source_datum = mangleString(datum_val)
             try:
+                # source projection
                 p1 = pyproj.Proj(proj="latlon", datum=source_datum)
+
+                # destination projection
                 p2 = pyproj.Proj(proj="latlon", datum="WGS84")
+
+                # do the transform
                 r["geopoint"] = pyproj.transform(p1,p2,r["geopoint"][0],r["geopoint"][1])
             except:
+                # create an error flag on projection creation exception (invalid source datum)
+                # or on transform exception (point out of bounds for source projection)
                 r["flag_geopoint_datum_error"] = True
         elif r["geopoint"] is not None:
+            # note unprojected points (datum_val is None)
             r["flag_geopoint_datum_missing"] = True
     return r
 

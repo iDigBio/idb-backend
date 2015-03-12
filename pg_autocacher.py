@@ -38,10 +38,15 @@ def cache_item(prs,q,iq,t,e):
                 return "SKIP"
         except KeyboardInterrupt:
             return
+        except requests.exceptions.HTTPError, e:
+            if e.response.status_code != 404
+                q.add(t,e)
+                print t, e
+                traceback.print_exc()
         except:
             q.add(t,e)
             print t, e
-            traceback.print_exc()    
+            traceback.print_exc()            
 
 def main():
     prs = sink.PostgresRecordSink()

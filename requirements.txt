@@ -6,3 +6,5 @@ elasticsearch>=1.2.0
 pyproj>=1.9.3
 pytz>=2014.4
 requests>=2.3.0
+flask
+Flask-UUID

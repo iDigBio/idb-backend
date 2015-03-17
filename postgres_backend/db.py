@@ -53,7 +53,7 @@ class PostgresDB:
             uuids_id uuid NOT NULL REFERENCES uuids(id),
             data_etag varchar(41) NOT NULL REFERENCES data(etag),
             modified timestamp NOT NULL DEFAULT now(),
-            version int NOT NULL DEFAULT 1
+            version int NOT NULL DEFAULT 0
         )""")
 
         self._cur.execute("CREATE INDEX uuids_data_uuids_id ON uuids_data (uuids_id)")
@@ -194,36 +194,62 @@ class PostgresDB:
 
     def get_type_list(self, t, limit=100, offset=0):
         cur = self.__get_ss_cursor()
-        cur.execute("""SELECT uuids.id as uuid,type,deleted,data_etag as etag,modified,version,parent FROM uuids
-            LEFT JOIN LATERAL (
-                SELECT * FROM uuids_data
-                WHERE uuids_id=uuids.id
-                ORDER BY modified DESC
-                LIMIT 1
-            ) AS latest
-            ON uuids_id=uuids.id
-            WHERE deleted=false and type=%s
-            ORDER BY uuid
-            LIMIT %s OFFSET %s
-        """, (t,limit,offset))
+        if limit is not None:
+            cur.execute("""SELECT uuids.id as uuid,type,deleted,data_etag as etag,modified,version,parent FROM uuids
+                LEFT JOIN LATERAL (
+                    SELECT * FROM uuids_data
+                    WHERE uuids_id=uuids.id
+                    ORDER BY modified DESC
+                    LIMIT 1
+                ) AS latest
+                ON uuids_id=uuids.id
+                WHERE deleted=false and type=%s
+                ORDER BY uuid
+                LIMIT %s OFFSET %s
+            """, (t,limit,offset))
+        else:
+            cur.execute("""SELECT uuids.id as uuid,type,deleted,data_etag as etag,modified,version,parent FROM uuids
+                LEFT JOIN LATERAL (
+                    SELECT * FROM uuids_data
+                    WHERE uuids_id=uuids.id
+                    ORDER BY modified DESC
+                    LIMIT 1
+                ) AS latest
+                ON uuids_id=uuids.id
+                WHERE deleted=false and type=%s
+                ORDER BY uuid
+            """, (t,))
         for r in cur:
             yield r
 
 
     def get_children_list(self, u, t,limit=100, offset=0):
         cur = self.__get_ss_cursor()
-        cur.execute("""SELECT uuids.id as uuid,type,deleted,data_etag as etag,modified,version,parent FROM uuids
-            LEFT JOIN LATERAL (
-                SELECT * FROM uuids_data
-                WHERE uuids_id=uuids.id
-                ORDER BY modified DESC
-                LIMIT 1
-            ) AS latest
-            ON uuids_id=uuids.id
-            WHERE deleted=false and type=%s and parent=%s
-            ORDER BY uuid
-            LIMIT %s OFFSET %s
-        """,(t,u,limit,offset))
+        if limit is not None:
+            cur.execute("""SELECT uuids.id as uuid,type,deleted,data_etag as etag,modified,version,parent FROM uuids
+                LEFT JOIN LATERAL (
+                    SELECT * FROM uuids_data
+                    WHERE uuids_id=uuids.id
+                    ORDER BY modified DESC
+                    LIMIT 1
+                ) AS latest
+                ON uuids_id=uuids.id
+                WHERE deleted=false and type=%s and parent=%s
+                ORDER BY uuid
+                LIMIT %s OFFSET %s
+            """,(t,u,limit,offset))
+        else:
+            cur.execute("""SELECT uuids.id as uuid,type,deleted,data_etag as etag,modified,version,parent FROM uuids
+                LEFT JOIN LATERAL (
+                    SELECT * FROM uuids_data
+                    WHERE uuids_id=uuids.id
+                    ORDER BY modified DESC
+                    LIMIT 1
+                ) AS latest
+                ON uuids_id=uuids.id
+                WHERE deleted=false and type=%s and parent=%s
+                ORDER BY uuid
+            """,(t,u))
         for r in cur:
             yield r
 
@@ -269,7 +295,7 @@ class PostgresDB:
             SELECT * FROM (
                 SELECT data_etag, version, modified FROM uuids_data WHERE uuids_id=%(uuid)s
                 UNION
-                SELECT NULL as data_etag, 0 as version, NULL as modified
+                SELECT NULL as data_etag, -1 as version, NULL as modified
             ) as sq ORDER BY modified DESC NULLS LAST LIMIT 1
         )
         INSERT INTO uuids_data (uuids_id,data_etag,version)

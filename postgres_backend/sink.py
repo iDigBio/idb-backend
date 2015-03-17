@@ -25,23 +25,21 @@ class PostgresRecordSink(object):
 
     def run_pre_check(self,typ=None):
         cursor = pg.cursor(str(uuid.uuid4()), cursor_factory=psycopg2.extras.DictCursor)
-        if typ is None:
-            cursor.execute("SELECT id,etag FROM cache")
-        else:
-            cursor.execute("SELECT id,etag FROM cache WHERE type=%s", (typ,))
+        cursor.execute("SELECT etag, data IS NULL AS data_empty FROM data")
+
+        if typ is not None:
+            raise NotImplementedError("pre check no longer supports typ parameter")
 
         count = 0
         for row in cursor:
-            self.pre_check[row["id"]] = row["etag"]
+            self.pre_check[row["etag"]] = row["data_empty"]
             count += 1
 
         return count
 
 
     def record_needs_update(self,rv,tcursor=None):
-        assert "uuid" in rv
         assert "etag" in rv
-        assert "type" in rv
 
         cursor = self.cursor
         if tcursor is not None:            
@@ -50,15 +48,17 @@ class PostgresRecordSink(object):
         update = False
         needs_update = True
         if self.check_first:
-            if rv["uuid"] in self.pre_check:
-                row = { "etag": self.pre_check[rv["uuid"]] }
+            if rv["etag"] in self.pre_check:
+                row = { "data_empty": self.pre_check[rv["etag"]] }
             else:
-                cursor.execute("SELECT etag FROM cache WHERE id=%s", (rv["uuid"],))
+                cursor.execute("SELECT etag, data IS NULL AS data_empty FROM data WHERE etag=%s", (rv["etag"],))
                 row = cursor.fetchone()
 
             if row is not None:
                 update = True
-                if row["etag"] == rv["etag"]:
+                if row["data_empty"]:
+                    needs_update = True
+                else:
                     needs_update = False
             else:
                 needs_update = True
@@ -81,12 +81,12 @@ class PostgresRecordSink(object):
 
         if update:
             if needs_update:
-                cursor.execute("UPDATE cache SET id=%s, type=%s, etag=%s, data=%s, updated_at=now() WHERE id=%s", (rv["uuid"],rv["type"],rv["etag"],json.dumps(rv["data"]).lower(),rv["uuid"]))
+                cursor.execute("UPDATE data SET data=%s WHERE etag=%s", (json.dumps(rv["data"]),rv["etag"]))
                 return "UPDATE"
             else:
                 return "SKIP"
         else:
-            cursor.execute("INSERT INTO cache (id,type,etag,data) VALUES (%s,%s,%s,%s)", (rv["uuid"],rv["type"],rv["etag"],json.dumps(rv["data"]).lower()))
+            cursor.execute("INSERT INTO data (etag,data) VALUES (%s,%s)", (rv["etag"],json.dumps(rv["data"])))
             return "INSERT"
 
 

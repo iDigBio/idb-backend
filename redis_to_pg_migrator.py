@@ -19,9 +19,10 @@ def main():
 
     results = defaultdict(int)
 
+    print prs.run_pre_check()
     for t, es in rrs.list_type_sets():
         print t, len(es)
-        print t, prs.run_pre_check(typ=t)
+        
         count = 0
         with prs as tcursor:
             for e in es:   
@@ -38,7 +39,7 @@ def main():
                     _, needs_update = prs.record_needs_update(rv)
 
                     if needs_update:
-                        rv["data"] = rrs.record_value(e)["data"]
+                        rv["data"] = rrs.record_value(e)["data"]["idigbio:data"]
                         results[prs.set_record_value(rv,tcursor=tcursor)] += 1
                     else:
                         results["SKIP"] += 1

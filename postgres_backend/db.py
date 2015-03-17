@@ -169,7 +169,7 @@ class PostgresDB:
     def get_item(self,u,version=None):
         if version is not None:
             # Fetch by version ignores the deleted flag
-            self._cur.execute("""SELECT uuids.id,type,deleted,etag,modified,version,parent,data FROM uuids 
+            self._cur.execute("""SELECT uuids.id as uuid,type,deleted,etag,modified,version,parent,data FROM uuids 
                 LEFT JOIN uuids_data
                 ON uuids_id=uuids.id
                 LEFT JOIN data
@@ -177,7 +177,7 @@ class PostgresDB:
                 WHERE uuids.id=%s and version=%s
             """, (u,version))
         else:
-            self._cur.execute("""SELECT uuids.id,type,deleted,etag,modified,version,parent,data FROM uuids 
+            self._cur.execute("""SELECT uuids.id as uuid,type,deleted,etag,modified,version,parent,data FROM uuids 
                 LEFT JOIN LATERAL (
                     SELECT * FROM uuids_data
                     WHERE uuids_id=uuids.id

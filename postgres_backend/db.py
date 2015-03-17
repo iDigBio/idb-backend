@@ -19,6 +19,8 @@ class PostgresDB:
         # Generic reusable cursor for normal ops
         self._cur = pg.cursor(cursor_factory=DictCursor)
 
+    def commit(self):
+        pg.commit()
 
     def drop_schema(self,commit=True):
         self._cur.execute("DROP VIEW IF EXISTS idigbio_uuids_new")
@@ -28,7 +30,7 @@ class PostgresDB:
         self._cur.execute("DROP TABLE IF EXISTS data")
 
         if commit:
-            pg.commit()
+            self.commit()
 
     def create_schema(self,commit=True):
 
@@ -102,7 +104,7 @@ class PostgresDB:
         """)
 
         if commit:
-            pg.commit()
+            self.commit()
 
     def migrate_data(self,initial=False):
         if initial:
@@ -110,17 +112,17 @@ class PostgresDB:
             self._cur.execute("""INSERT INTO uuids (id,type,parent,deleted)
                 SELECT id,type,parent,deleted FROM idigbio_uuids_bak
             """)
-            pg.commit()
+            self.commit()
 
             self._cur.execute("""INSERT INTO data (etag)
                 SELECT DISTINCT etag FROM idigbio_uuids_bak
             """)
-            pg.commit()
+            self.commit()
 
             self._cur.execute("""INSERT INTO uuids_data (uuids_id,data_etag,version,modified)
                 SELECT id,etag,version,modified FROM idigbio_uuids_bak
             """)
-            pg.commit()
+            self.commit()
 
         else:
             self._cur.execute("""WITH new_ids AS (
@@ -133,7 +135,7 @@ class PostgresDB:
                 INSERT INTO uuids (id,type,parent,deleted)
                 SELECT * FROM new_ids
             """)
-            pg.commit()
+            self.commit()
 
             self._cur.execute("""WITH new_etags AS (
                     SELECT etag as data FROM idigbio_uuids_bak
@@ -143,7 +145,7 @@ class PostgresDB:
                 INSERT INTO data (etag)
                 SELECT * FROM new_etags
             """)
-            pg.commit()
+            self.commit()
 
             self._cur.execute("""WITH new_versions AS (
                     SELECT idlist.id as uuids_id,idlist.etag as data_etag,idlist.version as version,idigbio_uuids_bak.modified as modified FROM (
@@ -155,7 +157,7 @@ class PostgresDB:
                 INSERT INTO uuids_data (uuids_id,data_etag,version,modified)
                 SELECT * FROM new_versions
             """)
-            pg.commit()
+            self.commit()
 
     def __get_ss_cursor(self,name=None):
         """ Get a named server side cursor for large ops"""
@@ -236,12 +238,12 @@ class PostgresDB:
     def __upsert_uuid(self,u,commit=True):
         cur.execute(self.__get_upsert_uuid(), {"uuid": u})
         if commit:
-            pg.commit()
+            self.commit()
 
     def __upsert_uuid_l(self,ul,commit=True):
         cur.executemany(self.__get_upsert_uuid(), [{"uuid": u} for u in ul])
         if commit:
-            pg.commit()
+            self.commit()
 
     # DATA
     def __get_upsert_data(self):
@@ -254,12 +256,12 @@ class PostgresDB:
     def __upsert_data(self,d,commit=True):
         cur.execute(self.__get_upsert_data(), {"etag": calcEtag(d), "data": json.dumps(d) })
         if commit:
-            pg.commit()
+            self.commit()
 
     def __upsert_data_l(self,dl,commit=True):
         cur.executemany(self.__get_upsert_data(), [{"etag": calcEtag(d), "data": json.dumps(d) } for d in dl])
         if commit:
-            pg.commit()
+            self.commit()
 
     # UUID DATA
     def __get_upsert_uuid_data(self):
@@ -279,9 +281,9 @@ class PostgresDB:
     def __upsert_uuid_data(self,ud,commit=True):
         cur.execute(self.__get_upsert_uuid_data(), {"uuid": ud["uuid"], "etag": calcEtag(ud["data"])})
         if commit:
-            pg.commit()
+            self.commit()
 
     def __upsert_uuid_data_l(self,udl,commit=True):
         cur.executemany(self.__get_upsert_uuid_data(), [{"uuid": ud["uuid"], "etag": calcEtag(ud["data"])} for ud in udl])
         if commit:
-            pg.commit()
+            self.commit()

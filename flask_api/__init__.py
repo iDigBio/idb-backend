@@ -6,7 +6,7 @@ from postgres_backend.db import PostgresDB
 app = Flask(__name__)
 FlaskUUID(app)
 
-app.config.from_object('config')
+app.config.from_object('flask_api.config')
 
 app.config["DB"] = PostgresDB()
 
@@ -19,8 +19,8 @@ app.register_blueprint(v2,url_prefix="/v2")
 @app.route('/', methods=['GET'])
 def index():
     r = {
-        "v1": url_for("v1.version_root".format(v),_external=True),
-        "v2": url_for("v2.version_root".format(v),_external=True),
+        "v1": url_for("flask_api.v1.index",_external=True),
+        "v2": url_for("flask_api.v2.index",_external=True),
     }
     return jsonify(r)
 

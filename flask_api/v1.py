@@ -43,7 +43,7 @@ def subitem(t,u,st):
             v["modified"],
             v["version"],
             v["parent"],
-        ) for k,v in current_app.config["DB"].items() if v["parent"] == str(u) and v["type"] == st
+        ) for v in current_app.config["DB"].get_children_list(str(u), "".join(st[:-1]))
     ]
 
     r["idigbio:items"] = l
@@ -56,8 +56,8 @@ def item(t,u):
     if t not in current_app.config["SUPPORTED_TYPES"]:
         abort(404)
 
-    if str(u) in current_app.config["DB"]:
-        v = current_app.config["DB"][str(u)]
+    v = current_app.config["DB"].get_item(str(u))
+    if v is not None:
         r = format_item(
             t,
             v["uuid"],
@@ -87,7 +87,7 @@ def list(t):
             v["modified"],
             v["version"],
             v["parent"],
-        ) for k,v in current_app.config["DB"].items() if v["type"] == t
+        ) for v in current_app.config["DB"].get_type_list("".join(t[:-1]))
     ]
 
     r["idigbio:items"] = l
@@ -95,7 +95,7 @@ def list(t):
     return jsonify(r)
 
 @this_version.route('/', methods=['GET'])
-def version_root():
+def index():
     r = {}
     for t in current_app.config["SUPPORTED_TYPES"]:
         r[t] = url_for(".list",t=t,_external=True)

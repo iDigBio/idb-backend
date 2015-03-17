@@ -4,7 +4,6 @@ import datetime
 import random
 import json
 import hashlib
-import statistics
 from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
 
 TEST_SIZE=10000
@@ -12,19 +11,19 @@ TEST_COUNT=10
 
 from . import *
 
-from ..helpers import calcEtag
+from helpers.etags import calcEtag
 
 class PostgresDB:
     def __init__(self):
 
         # Generic reusable cursor for normal ops
-        self._cur = pg.cursor()
+        self._cur = pg.cursor(cursor_factory=DictCursor)
 
 
     def drop_schema(self,commit=True):
         self._cur.execute("DROP VIEW IF EXISTS idigbio_uuids_new")
         self._cur.execute("DROP VIEW IF EXISTS idigbio_uuids_data")
-        self._cur.execute("DROP TABLE IF EXISTS uuids_data")    
+        self._cur.execute("DROP TABLE IF EXISTS uuids_data")
         self._cur.execute("DROP TABLE IF EXISTS uuids")
         self._cur.execute("DROP TABLE IF EXISTS data")
 
@@ -61,8 +60,8 @@ class PostgresDB:
         self._cur.execute("CREATE INDEX uuids_parent ON uuids (parent)")
         self._cur.execute("CREATE INDEX uuids_type ON uuids (type)")
 
-        self._cur.execute("""CREATE OR REPLACE VIEW idigbio_uuids_new AS 
-            SELECT 
+        self._cur.execute("""CREATE OR REPLACE VIEW idigbio_uuids_new AS
+            SELECT
                 uuids.id as id,
                 type,
                 deleted,
@@ -70,7 +69,7 @@ class PostgresDB:
                 version,
                 modified,
                 parent
-            FROM uuids 
+            FROM uuids
             LEFT JOIN LATERAL (
                 SELECT * FROM uuids_data
                 WHERE uuids_id=uuids.id
@@ -81,7 +80,7 @@ class PostgresDB:
         """)
 
         self._cur.execute("""CREATE OR REPLACE VIEW idigbio_uuids_data AS
-            SELECT 
+            SELECT
                 uuids.id as id,
                 type,
                 deleted,
@@ -90,7 +89,7 @@ class PostgresDB:
                 modified,
                 parent,
                 data
-            FROM uuids 
+            FROM uuids
             LEFT JOIN LATERAL (
                 SELECT * FROM uuids_data
                 WHERE uuids_id=uuids.id
@@ -129,14 +128,14 @@ class PostgresDB:
                         SELECT id FROM idigbio_uuids_bak
                         EXCEPT
                         SELECT id FROM uuids
-                    ) as idlist NATURAL JOIN idigbio_uuids_bak             
+                    ) as idlist NATURAL JOIN idigbio_uuids_bak
                 )
                 INSERT INTO uuids (id,type,parent,deleted)
                 SELECT * FROM new_ids
             """)
             pg.commit()
 
-            self._cur.execute("""WITH new_etags AS (           
+            self._cur.execute("""WITH new_etags AS (
                     SELECT etag as data FROM idigbio_uuids_bak
                     EXCEPT
                     SELECT etag as data FROM data
@@ -156,20 +155,20 @@ class PostgresDB:
                 INSERT INTO uuids_data (uuids_id,data_etag,version,modified)
                 SELECT * FROM new_versions
             """)
-            pg.commit()            
+            pg.commit()
 
     def __get_ss_cursor(self,name=None):
         """ Get a named server side cursor for large ops"""
 
         if name is None:
-            return pg.cursor(str(uuid.uuid4()))
+            return pg.cursor(str(uuid.uuid4()),cursor_factory=DictCursor)
         else:
-            return pg.cursor(name)
+            return pg.cursor(name,cursor_factory=DictCursor)
 
     def get_item(self,u,version=None):
         if version is not None:
             # Fetch by version ignores the deleted flag
-            self._cur.execute("""SELECT uuids.id as uuid,type,deleted,etag,modified,version,parent,data FROM uuids 
+            self._cur.execute("""SELECT uuids.id as uuid,type,deleted,etag,modified,version,parent,data FROM uuids
                 LEFT JOIN uuids_data
                 ON uuids_id=uuids.id
                 LEFT JOIN data
@@ -177,7 +176,7 @@ class PostgresDB:
                 WHERE uuids.id=%s and version=%s
             """, (u,version))
         else:
-            self._cur.execute("""SELECT uuids.id as uuid,type,deleted,etag,modified,version,parent,data FROM uuids 
+            self._cur.execute("""SELECT uuids.id as uuid,type,deleted,etag,modified,version,parent,data FROM uuids
                 LEFT JOIN LATERAL (
                     SELECT * FROM uuids_data
                     WHERE uuids_id=uuids.id
@@ -191,9 +190,9 @@ class PostgresDB:
             """, (u,))
         return self._cur.fetchone()
 
-    def get_type_list(self,t):
+    def get_type_list(self, t, limit=100, offset=0):
         cur = self.__get_ss_cursor()
-        cur.execute("""SELECT uuids.id as uuid,type,deleted,data_etag as etag,modified,version,parent FROM uuids 
+        cur.execute("""SELECT uuids.id as uuid,type,deleted,data_etag as etag,modified,version,parent FROM uuids
             LEFT JOIN LATERAL (
                 SELECT * FROM uuids_data
                 WHERE uuids_id=uuids.id
@@ -202,14 +201,16 @@ class PostgresDB:
             ) AS latest
             ON uuids_id=uuids.id
             WHERE deleted=false and type=%s
-        """, (t,))
+            ORDER BY uuid
+            LIMIT %s OFFSET %s
+        """, (t,limit,offset))
         for r in cur:
             yield r
 
 
-    def get_children_list(self,u,t):
+    def get_children_list(self, u, t,limit=100, offset=0):
         cur = self.__get_ss_cursor()
-        cur.execute("""SELECT uuids.id as uuid,type,deleted,data_etag as etag,modified,version,parent FROM uuids 
+        cur.execute("""SELECT uuids.id as uuid,type,deleted,data_etag as etag,modified,version,parent FROM uuids
             LEFT JOIN LATERAL (
                 SELECT * FROM uuids_data
                 WHERE uuids_id=uuids.id
@@ -218,13 +219,15 @@ class PostgresDB:
             ) AS latest
             ON uuids_id=uuids.id
             WHERE deleted=false and type=%s and parent=%s
-        """,(t,u))
+            ORDER BY uuid
+            LIMIT %s OFFSET %s
+        """,(t,u,limit,offset))
         for r in cur:
             yield r
 
     # UUID
     def __get_upsert_uuid(self):
-        return """INSERT INTO uuids (id,type) 
+        return """INSERT INTO uuids (id,type)
             SELECT %(uuid)s as id, 'records' as type WHERE NOT EXISTS (
                 SELECT 1 FROM uuids WHERE id=%(uuid)s
             )
@@ -248,7 +251,7 @@ class PostgresDB:
             )
         """
 
-    def __upsert_data(self,d,commit=True):    
+    def __upsert_data(self,d,commit=True):
         cur.execute(self.__get_upsert_data(), {"etag": calcEtag(d), "data": json.dumps(d) })
         if commit:
             pg.commit()
@@ -262,8 +265,8 @@ class PostgresDB:
     def __get_upsert_uuid_data(self):
         return """WITH v AS (
             SELECT * FROM (
-                SELECT data_etag, version, modified FROM uuids_data WHERE uuids_id=%(uuid)s 
-                UNION 
+                SELECT data_etag, version, modified FROM uuids_data WHERE uuids_id=%(uuid)s
+                UNION
                 SELECT NULL as data_etag, 0 as version, NULL as modified
             ) as sq ORDER BY modified DESC NULLS LAST LIMIT 1
         )

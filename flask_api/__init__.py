@@ -1,11 +1,14 @@
-#!flask/bin/python
 from flask import Flask, jsonify, request, abort, url_for
 from flask.ext.uuid import FlaskUUID
+
+from postgres_backend.db import PostgresDB
 
 app = Flask(__name__)
 FlaskUUID(app)
 
 app.config.from_object('config')
+
+app.config["DB"] = PostgresDB()
 
 from v1 import this_version as v1
 from v2 import this_version as v2

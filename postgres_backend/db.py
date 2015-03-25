@@ -262,12 +262,12 @@ class PostgresDB:
         """
 
     def __upsert_uuid(self,u,commit=True):
-        cur.execute(self.__get_upsert_uuid(), {"uuid": u})
+        self._cur.execute(self.__get_upsert_uuid(), {"uuid": u})
         if commit:
             self.commit()
 
     def __upsert_uuid_l(self,ul,commit=True):
-        cur.executemany(self.__get_upsert_uuid(), [{"uuid": u} for u in ul])
+        self._cur.executemany(self.__get_upsert_uuid(), [{"uuid": u} for u in ul])
         if commit:
             self.commit()
 
@@ -280,12 +280,21 @@ class PostgresDB:
         """
 
     def __upsert_data(self,d,commit=True):
-        cur.execute(self.__get_upsert_data(), {"etag": calcEtag(d), "data": json.dumps(d) })
+        self._cur.execute(self.__get_upsert_data(), {"etag": calcEtag(d), "data": json.dumps(d) })
         if commit:
             self.commit()
 
     def __upsert_data_l(self,dl,commit=True):
-        cur.executemany(self.__get_upsert_data(), [{"etag": calcEtag(d), "data": json.dumps(d) } for d in dl])
+        self._cur.executemany(self.__get_upsert_data(), [{"etag": calcEtag(d), "data": json.dumps(d) } for d in dl])
+        if commit:
+            self.commit()
+
+    def _upsert_etag_l(self,el,commit=True):
+        self._cur.executemany("""INSERT INTO data (etag)
+            SELECT %(etag)s as etag WHERE NOT EXISTS (
+                SELECT 1 FROM data WHERE etag=%(etag)s
+            )
+        """, el)
         if commit:
             self.commit()
 
@@ -305,11 +314,11 @@ class PostgresDB:
         """
 
     def __upsert_uuid_data(self,ud,commit=True):
-        cur.execute(self.__get_upsert_uuid_data(), {"uuid": ud["uuid"], "etag": calcEtag(ud["data"])})
+        self._cur.execute(self.__get_upsert_uuid_data(), {"uuid": ud["uuid"], "etag": calcEtag(ud["data"])})
         if commit:
             self.commit()
 
     def __upsert_uuid_data_l(self,udl,commit=True):
-        cur.executemany(self.__get_upsert_uuid_data(), [{"uuid": ud["uuid"], "etag": calcEtag(ud["data"])} for ud in udl])
+        self._cur.executemany(self.__get_upsert_uuid_data(), [{"uuid": ud["uuid"], "etag": calcEtag(ud["data"])} for ud in udl])
         if commit:
             self.commit()

@@ -9,4 +9,4 @@ from config import config
 
 # pg = psycopg2.connect(**pg_conf)
 
-pg = psycopg2.connect(host="localhost",user="test",password="test",dbname="prod_copy")
+pg = psycopg2.connect(host="localhost",user="test",password="test",dbname="test")

@@ -11,7 +11,7 @@ def format_list_item(t,uuid,etag,modified,version,parent):
     return {
         "idigbio:uuid": uuid,
         "idigbio:etag": etag,
-        "idigbio:dateModified": modified,
+        "idigbio:dateModified": modified.isoformat(),
         "idigbio:version": version,
         "idigbio:links": links,
     }

@@ -1,4 +1,4 @@
-from flask import current_app, Blueprint, jsonify, abort, url_for
+from flask import current_app, Blueprint, jsonify, abort, url_for, request
 
 from .common import load_data_from_riak
 
@@ -7,8 +7,8 @@ this_version = Blueprint(__name__,__name__)
 def format_list_item(t,uuid,etag,modified,version,parent):
     links = {}
     if t in current_app.config["PARENT_MAP"] and parent is not None:
-        links[current_app.config["PARENT_MAP"][t]] = url_for(".item",t=current_app.config["PARENT_MAP"][t],u=parent,_external=True)
-    links[t] = url_for(".item",t=t,u=uuid,_external=True)
+        links["".join(current_app.config["PARENT_MAP"][t][:-1])] = url_for(".item",t=current_app.config["PARENT_MAP"][t],u=parent,_external=True)
+    links["".join(t[:-1])] = url_for(".item",t=t,u=uuid,_external=True)
 
     return {
         "idigbio:uuid": uuid,
@@ -18,8 +18,11 @@ def format_list_item(t,uuid,etag,modified,version,parent):
         "idigbio:links": links,
     }
 
-def format_item(t,uuid,etag,modified,version,parent,data,siblings):
+def format_item(t,uuid,etag,modified,version,parent,data,siblings,ids):
     r = format_list_item(t,uuid,etag,modified,version,parent)
+    del r["idigbio:links"]["".join(t[:-1])]
+    for l in r["idigbio:links"]:
+        r["idigbio:links"][l] = [r["idigbio:links"][l]]
     l = {}
     if siblings is not None:
         for k in siblings:
@@ -29,6 +32,7 @@ def format_item(t,uuid,etag,modified,version,parent,data,siblings):
 
     r["idigbio:data"] = data
     r["idigbio:links"].update(l)
+    r["idigbio:recordIds"] = ids
     return r
 
 @this_version.route('/<string:t>/<uuid:u>/<string:st>/', methods=['GET'])
@@ -58,7 +62,9 @@ def item(t,u):
     if t not in current_app.config["SUPPORTED_TYPES"]:
         abort(404)
 
-    v = current_app.config["DB"].get_item(str(u))
+    version = request.args.get("version")
+
+    v = current_app.config["DB"].get_item(str(u),version=version)
     if v is not None:
         if v["data"] is None:
             v["data"] = load_data_from_riak("".join(t[:-1]),u,v["riak_etag"])
@@ -70,7 +76,8 @@ def item(t,u):
             v["version"],
             v["parent"],
             v["data"],
-            v["siblings"] if "siblings" in v else None
+            v["siblings"],
+            v["recordids"]
         )
         return jsonify(r)
     else:

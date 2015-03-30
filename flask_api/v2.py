@@ -1,4 +1,4 @@
-from flask import current_app, Blueprint, jsonify, abort, url_for
+from flask import current_app, Blueprint, jsonify, abort, url_for, request
 
 from .common import load_data_from_riak
 
@@ -18,17 +18,22 @@ def format_list_item(t,uuid,etag,modified,version,parent):
         "links": links,
     }
 
-def format_item(t,uuid,etag,modified,version,parent,data,siblings):
+def format_item(t,uuid,etag,modified,version,parent,data,siblings,ids):
     r = format_list_item(t,uuid,etag,modified,version,parent)
+    del r["links"][t]
+    for l in r["links"]:
+        r["links"][l] = [r["links"][l]]
+
     l = {}
     if siblings is not None:
         for k in siblings:
-            l[k] = []
+            l[k + "s"] = []
             for i in siblings[k]:
-                l[k].append(url_for(".item",t=k,u=i,_external=True))
+                l[k + "s"].append(url_for(".item",t=k,u=i,_external=True))
 
     r["data"] = data
     r["links"].update(l)
+    r["recordIds"] = ids
     return r
 
 @this_version.route('/view/<string:t>/<uuid:u>/<string:st>/', methods=['GET'])
@@ -57,7 +62,9 @@ def item(t,u):
     if t not in current_app.config["SUPPORTED_TYPES"]:
         abort(404)
     
-    v = current_app.config["DB"].get_item(str(u))
+    version = request.args.get("version")
+
+    v = current_app.config["DB"].get_item(str(u),version=version)
     if v is not None:
         if v["data"] is None:
             v["data"] = load_data_from_riak("".join(t[:-1]),u,v["riak_etag"])
@@ -69,7 +76,8 @@ def item(t,u):
             v["version"],
             v["parent"],
             v["data"],
-            v["siblings"] if "siblings" in v else None
+            v["siblings"],
+            v["recordids"]
         )
         return jsonify(r)
     else:

@@ -15,7 +15,7 @@ from . import *
 from helpers.etags import calcEtag
 
 class PostgresDB:
-    __item_master_query_from = """FROM uuids
+    __join_uuids_etags_latest_version = """
         LEFT JOIN LATERAL (
             SELECT * FROM uuids_data
             WHERE uuids_id=uuids.id
@@ -23,6 +23,14 @@ class PostgresDB:
             LIMIT 1
         ) AS latest
         ON latest.uuids_id=uuids.id
+    """
+
+    __join_uuids_etags_all_versions = """
+            LEFT JOIN uuids_data as latest
+            ON latest.uuids_id=uuids.id
+    """
+
+    __join_uuids_identifiers = """
         LEFT JOIN LATERAL (
             SELECT uuids_id, array_agg(identifier) as recordids
             FROM uuids_identifier
@@ -30,7 +38,10 @@ class PostgresDB:
             GROUP BY id
         ) as ids
         ON ids.uuids_id=uuids.id
-        LEFT JOIN LATERAL (
+    """
+
+    __join_uuids_siblings = """
+            LEFT JOIN LATERAL (
             SELECT subject, json_object_agg(rel,array_agg) as siblings
             FROM (
                 SELECT subject, rel, array_agg(object)
@@ -58,7 +69,18 @@ class PostgresDB:
         ON sibs.subject=uuids.id
     """
 
-    __item_master_query = """ SELECT
+    __join_uuids_data = """
+        LEFT JOIN data
+        ON data_etag = etag
+    """
+
+    __item_master_query_from = """FROM uuids
+    """ + \
+    __join_uuids_etags_latest_version + \
+    __join_uuids_identifiers + \
+    __join_uuids_siblings
+
+    __columns_master_query = """ SELECT
             uuids.id as uuid,
             type,
             deleted,
@@ -68,24 +90,19 @@ class PostgresDB:
             parent,
             recordids,
             siblings
-    """ + __item_master_query_from
+    """
 
-    __item_master_query_data = """ SELECT
-            uuids.id as uuid,
-            type,
-            deleted,
-            data_etag as etag,
-            version,
-            modified,
-            parent,
-            recordids,
-            siblings,
+    __columns_master_query_data = __columns_master_query + \
+    """,
             data,
             riak_etag
-    """ + __item_master_query_from + """
-        LEFT JOIN data
-        ON data_etag = etag
     """
+
+    __item_master_query = __columns_master_query + __item_master_query_from
+
+    __item_master_query_data = __columns_master_query_data + \
+    __item_master_query_from + \
+    __join_uuids_data
 
     __upsert_uuid_query = """INSERT INTO uuids (id,type,parent)
         SELECT %(uuid)s, %(type)s, %(parent)s WHERE NOT EXISTS (
@@ -226,7 +243,13 @@ class PostgresDB:
     def get_item(self,u,version=None):
         if version is not None:
             # Fetch by version ignores the deleted flag
-            self._cur.execute(self.__item_master_query_data + """
+            self._cur.execute(self.__columns_master_query_data + \
+            """ FROM uuids """ + \
+            self.__join_uuids_etags_all_versions + \
+            self.__join_uuids_identifiers + \
+            self.__join_uuids_siblings + \
+            self.__join_uuids_data + \
+            """
                 WHERE uuids.id=%s and version=%s
             """, (u,version))
         else:

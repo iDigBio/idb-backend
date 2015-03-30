@@ -4,6 +4,7 @@ import datetime
 import random
 import json
 import hashlib
+import sys
 from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
 
 TEST_SIZE=10000
@@ -47,6 +48,7 @@ class PostgresDB:
                     ) as rel_union
                     JOIN uuids
                     ON r2=id
+                    WHERE uuids.deleted = false
                 ) as rel_table
                 WHERE subject=uuids.id
                 GROUP BY subject, rel
@@ -78,7 +80,8 @@ class PostgresDB:
             parent,
             recordids,
             siblings,
-            data
+            data,
+            riak_etag
     """ + __item_master_query_from + """
         LEFT JOIN data
         ON data_etag = etag
@@ -129,6 +132,9 @@ class PostgresDB:
     def commit(self):
         pg.commit()
 
+    def rollback(self):
+        pg.rollback()
+
     def drop_schema(self,commit=True):
         self._cur.execute("DROP VIEW IF EXISTS idigbio_uuids_new")
         self._cur.execute("DROP VIEW IF EXISTS idigbio_uuids_data")
@@ -154,6 +160,7 @@ class PostgresDB:
 
         self._cur.execute("""CREATE TABLE IF NOT EXISTS data (
             etag varchar(41) NOT NULL PRIMARY KEY,
+            riak_etag varchar(41),
             data jsonb
         )""")
 
@@ -244,6 +251,14 @@ class PostgresDB:
         for r in cur:
             yield r
 
+    def get_type_count(self, t):
+        cur = self.__get_ss_cursor()
+        cur.execute(""" SELECT
+            count(*) as count FROM uuids
+            WHERE deleted=false and type=%s
+        """, (t,))
+        return cur.fetchone()["count"]
+
 
     def get_children_list(self, u, t, limit=100, offset=0):
         cur = self.__get_ss_cursor()
@@ -261,6 +276,14 @@ class PostgresDB:
         for r in cur:
             yield r
 
+    def get_children_count(self, u, t):
+        cur = self.__get_ss_cursor()
+        cur.execute(""" SELECT
+            count(*) as count FROM uuids
+            WHERE deleted=false and type=%s and parent=%s
+        """, (t,u))
+        return cur.fetchone()["count"]
+
     def _id_precheck(self, u, ids):
         self._cur.execute("""SELECT
             identifier,
@@ -268,25 +291,67 @@ class PostgresDB:
             FROM uuids_identifier
             WHERE uuids_id=%s OR identifier = ANY(%s)
         """, (u,ids))
+        consistent = False
+        for row in self._cur:
+            if row["uuids_id"] != u:
+                break
+        else:
+            consistent = True
+        return consistent
+
+    def get_uuid(self, ids):
+        self._cur.execute("""SELECT
+            identifier,
+            uuids_id
+            FROM uuids_identifier
+            WHERE identifier = ANY(%s)
+        """, (ids,))
+        rid = None
+        for row in self._cur:
+            if rid is None:
+                rid = r["uuids_id"]
+            elif rid == r["uuids_id"]:
+                pass
+            else:
+                return None
+        if rid is None:
+            return uuid.uuid4()
+        else:
+            return rid
 
     def set_record(self, u, t, p, d, ids, siblings, commit=True):
-        e = calcEtag(d)
-        self.__upsert_uuid(u, t, p, commit=commit)
-        self.__upsert_data(e, d, commit=commit)
-        self.__upsert_uuid_data(u, e, commit=commit)
-        self.__upsert_uuid_id_l([(u,i) for i in ids], commit=commit)
-        self.__upsert_uuid_sibling_l([(u,s) for s in siblings], commit=commit)
-
-    def set_records(self, record_list, commit=True):
-        for u, t, p, d, ids, siblings in record_list:
+        try:
+            assert self._id_precheck(u, ids)
             e = calcEtag(d)
             self.__upsert_uuid(u, t, p, commit=False)
             self.__upsert_data(e, d, commit=False)
             self.__upsert_uuid_data(u, e, commit=False)
             self.__upsert_uuid_id_l([(u,i) for i in ids], commit=False)
             self.__upsert_uuid_sibling_l([(u,s) for s in siblings], commit=False)
-        if commit:
-            self.commit()
+            if commit:
+                self.commit()
+        except:
+            e = sys.exc_info()
+            self.rollback()
+            raise e[1], None, e[2]
+
+
+    def set_records(self, record_list, commit=True):
+        try:
+            for u, t, p, d, ids, siblings in record_list:
+                assert self._id_precheck(u, ids)
+                e = calcEtag(d)
+                self.__upsert_uuid(u, t, p, commit=False)
+                self.__upsert_data(e, d, commit=False)
+                self.__upsert_uuid_data(u, e, commit=False)
+                self.__upsert_uuid_id_l([(u,i) for i in ids], commit=False)
+                self.__upsert_uuid_sibling_l([(u,s) for s in siblings], commit=False)
+            if commit:
+                self.commit()
+        except:
+            e = sys.exc_info()
+            self.rollback()
+            raise e[1], None, e[2]
 
     # UUID
 

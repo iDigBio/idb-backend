@@ -1,5 +1,7 @@
 from flask import current_app, Blueprint, jsonify, abort, url_for
 
+from .common import load_data_from_riak
+
 this_version = Blueprint(__name__,__name__)
 
 def format_list_item(t,uuid,etag,modified,version,parent):
@@ -47,7 +49,7 @@ def subitem(t,u,st):
     ]
 
     r["idigbio:items"] = l
-    r["idigbio:itemCount"] = len(l)    
+    r["idigbio:itemCount"] = current_app.config["DB"].get_children_count(str(u), "".join(st[:-1]))
     return jsonify(r)
 
 
@@ -58,6 +60,8 @@ def item(t,u):
 
     v = current_app.config["DB"].get_item(str(u))
     if v is not None:
+        if v["data"] is None:
+            v["data"] = load_data_from_riak("".join(t[:-1]),u,v["riak_etag"])
         r = format_item(
             t,
             v["uuid"],
@@ -91,7 +95,7 @@ def list(t):
     ]
 
     r["idigbio:items"] = l
-    r["idigbio:itemCount"] = len(l)
+    r["idigbio:itemCount"] = current_app.config["DB"].get_type_count("".join(t[:-1]))
     return jsonify(r)
 
 @this_version.route('/', methods=['GET'])

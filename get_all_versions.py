@@ -1,7 +1,7 @@
 import sys
 import json
 
-from riak import RiakClient, RiakObject, RiakBucket
+from riak import RiakClient
 from postgres_backend.db import PostgresDB
 from helpers.etags import calcEtag
 

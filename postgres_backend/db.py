@@ -35,7 +35,7 @@ class PostgresDB:
             SELECT uuids_id, array_agg(identifier) as recordids
             FROM uuids_identifier
             WHERE uuids_id=uuids.id
-            GROUP BY id
+            GROUP BY uuids_id
         ) as ids
         ON ids.uuids_id=uuids.id
     """
@@ -104,19 +104,19 @@ class PostgresDB:
     __item_master_query_from + \
     __join_uuids_data
 
-    __upsert_uuid_query = """INSERT INTO uuids (id,type,parent)
+    _upsert_uuid_query = """INSERT INTO uuids (id,type,parent)
         SELECT %(uuid)s, %(type)s, %(parent)s WHERE NOT EXISTS (
             SELECT 1 FROM uuids WHERE id=%(uuid)s
         )
     """
 
-    __upsert_data_query = """INSERT INTO data (etag,data)
+    _upsert_data_query = """INSERT INTO data (etag,data)
         SELECT %(etag)s, %(data)s WHERE NOT EXISTS (
             SELECT 1 FROM data WHERE etag=%(etag)s
         )
     """
 
-    __upsert_uuid_data_query = """WITH v AS (
+    _upsert_uuid_data_query = """WITH v AS (
             SELECT * FROM (
                 SELECT data_etag, version, modified FROM uuids_data WHERE uuids_id=%(uuid)s
                 UNION
@@ -129,13 +129,13 @@ class PostgresDB:
             )
     """
 
-    __upsert_uuid_id_query = """INSERT INTO uuids_identifier (uuids_id, identifier)
+    _upsert_uuid_id_query = """INSERT INTO uuids_identifier (uuids_id, identifier)
         SELECT %(uuid)s, %(id)s WHERE NOT EXISTS (
             SELECT 1 FROM uuids_identifier WHERE identifier=%(id)s
         )
     """
 
-    __upsert_uuid_sibling_query = """INSERT INTO uuids_siblings (r1,r2)
+    _upsert_uuid_sibling_query = """INSERT INTO uuids_siblings (r1,r2)
         SELECT %(uuid)s, %(sibling)s WHERE NOT EXISTS (
             SELECT 1 FROM uuids_siblings WHERE (r1=%(uuid)s and r2=%(sibling)s) or (r2=%(uuid)s and r1=%(sibling)s)
         )
@@ -145,6 +145,7 @@ class PostgresDB:
 
         # Generic reusable cursor for normal ops
         self._cur = pg.cursor(cursor_factory=DictCursor)
+        self._pg = pg
 
     def commit(self):
         pg.commit()
@@ -164,6 +165,29 @@ class PostgresDB:
 
         if commit:
             self.commit()
+
+    def create_views(self,commit=True):
+        self._cur.execute("CREATE OR REPLACE VIEW idigbio_uuids_new AS" + self.__item_master_query)
+        self._cur.execute("CREATE OR REPLACE VIEW idigbio_uuids_data AS" + self.__item_master_query_data)
+
+        self._cur.execute("""CREATE OR REPLACE VIEW idigbio_relations AS
+            SELECT
+                r1 as subject,
+                type as rel,
+                r2 as object
+            FROM (
+                SELECT r1,r2
+                FROM uuids_siblings
+                UNION
+                SELECT r2,r1
+                FROM uuids_siblings
+            ) as a
+            JOIN uuids
+            ON r2=id
+        """)
+
+        if commit:
+            self.commit()        
 
     def create_schema(self,commit=True):
 
@@ -210,29 +234,13 @@ class PostgresDB:
         self._cur.execute("CREATE INDEX uuids_siblings_r1 ON uuids_siblings (r1)")
         self._cur.execute("CREATE INDEX uuids_siblings_r2 ON uuids_siblings (r2)")
         self._cur.execute("CREATE INDEX uuids_identifier_uuids_id ON uuids_identifier (uuids_id)")
-        self._cur.execute("CREATE OR REPLACE VIEW idigbio_uuids_new AS" + self.__item_master_query)
-        self._cur.execute("CREATE OR REPLACE VIEW idigbio_uuids_data AS" + self.__item_master_query_data)
 
-        self._cur.execute("""CREATE OR REPLACE VIEW idigbio_relations AS
-            SELECT
-                r1 as subject,
-                type as rel,
-                r2 as object
-            FROM (
-                SELECT r1,r2
-                FROM uuids_siblings
-                UNION
-                SELECT r2,r1
-                FROM uuids_siblings
-            ) as a
-            JOIN uuids
-            ON r2=id
-        """)
+        self.create_views(commit=False)
 
         if commit:
             self.commit()
 
-    def __get_ss_cursor(self,name=None):
+    def _get_ss_cursor(self,name=None):
         """ Get a named server side cursor for large ops"""
 
         if name is None:
@@ -243,15 +251,29 @@ class PostgresDB:
     def get_item(self,u,version=None):
         if version is not None:
             # Fetch by version ignores the deleted flag
-            self._cur.execute(self.__columns_master_query_data + \
-            """ FROM uuids """ + \
-            self.__join_uuids_etags_all_versions + \
-            self.__join_uuids_identifiers + \
-            self.__join_uuids_siblings + \
-            self.__join_uuids_data + \
-            """
-                WHERE uuids.id=%s and version=%s
-            """, (u,version))
+            if version == "all":
+                self._cur.execute(self.__columns_master_query_data + \
+                """ FROM uuids """ + \
+                self.__join_uuids_etags_all_versions + \
+                self.__join_uuids_identifiers + \
+                self.__join_uuids_siblings + \
+                self.__join_uuids_data + \
+                """
+                    WHERE uuids.id=%s
+                    ORDER BY version ASC
+                """, (u,))
+                return self._cur.fetchall()
+            else:
+                # Fetch by version ignores the deleted flag
+                self._cur.execute(self.__columns_master_query_data + \
+                """ FROM uuids """ + \
+                self.__join_uuids_etags_all_versions + \
+                self.__join_uuids_identifiers + \
+                self.__join_uuids_siblings + \
+                self.__join_uuids_data + \
+                """
+                    WHERE uuids.id=%s and version=%s
+                """, (u,version))
         else:
             self._cur.execute(self.__item_master_query_data + """
                 WHERE deleted=false and uuids.id=%s
@@ -259,7 +281,7 @@ class PostgresDB:
         return self._cur.fetchone()
 
     def get_type_list(self, t, limit=100, offset=0):
-        cur = self.__get_ss_cursor()
+        cur = self._get_ss_cursor()
         if limit is not None:
             cur.execute(self.__item_master_query + """
                 WHERE deleted=false and type=%s
@@ -275,7 +297,7 @@ class PostgresDB:
             yield r
 
     def get_type_count(self, t):
-        cur = self.__get_ss_cursor()
+        cur = self._get_ss_cursor()
         cur.execute(""" SELECT
             count(*) as count FROM uuids
             WHERE deleted=false and type=%s
@@ -284,7 +306,7 @@ class PostgresDB:
 
 
     def get_children_list(self, u, t, limit=100, offset=0):
-        cur = self.__get_ss_cursor()
+        cur = self._get_ss_cursor()
         if limit is not None:
             cur.execute(self.__item_master_query + """
                 WHERE deleted=false and type=%s and parent=%s
@@ -300,7 +322,7 @@ class PostgresDB:
             yield r
 
     def get_children_count(self, u, t):
-        cur = self.__get_ss_cursor()
+        cur = self._get_ss_cursor()
         cur.execute(""" SELECT
             count(*) as count FROM uuids
             WHERE deleted=false and type=%s and parent=%s
@@ -346,11 +368,11 @@ class PostgresDB:
         try:
             assert self._id_precheck(u, ids)
             e = calcEtag(d)
-            self.__upsert_uuid(u, t, p, commit=False)
-            self.__upsert_data(e, d, commit=False)
-            self.__upsert_uuid_data(u, e, commit=False)
-            self.__upsert_uuid_id_l([(u,i) for i in ids], commit=False)
-            self.__upsert_uuid_sibling_l([(u,s) for s in siblings], commit=False)
+            self._upsert_uuid(u, t, p, commit=False)
+            self._upsert_data(e, d, commit=False)
+            self._upsert_uuid_data(u, e, commit=False)
+            self._upsert_uuid_id_l([(u,i) for i in ids], commit=False)
+            self._upsert_uuid_sibling_l([(u,s) for s in siblings], commit=False)
             if commit:
                 self.commit()
         except:
@@ -364,11 +386,11 @@ class PostgresDB:
             for u, t, p, d, ids, siblings in record_list:
                 assert self._id_precheck(u, ids)
                 e = calcEtag(d)
-                self.__upsert_uuid(u, t, p, commit=False)
-                self.__upsert_data(e, d, commit=False)
-                self.__upsert_uuid_data(u, e, commit=False)
-                self.__upsert_uuid_id_l([(u,i) for i in ids], commit=False)
-                self.__upsert_uuid_sibling_l([(u,s) for s in siblings], commit=False)
+                self._upsert_uuid(u, t, p, commit=False)
+                self._upsert_data(e, d, commit=False)
+                self._upsert_uuid_data(u, e, commit=False)
+                self._upsert_uuid_id_l([(u,i) for i in ids], commit=False)
+                self._upsert_uuid_sibling_l([(u,s) for s in siblings], commit=False)
             if commit:
                 self.commit()
         except:
@@ -378,8 +400,8 @@ class PostgresDB:
 
     # UUID
 
-    def __upsert_uuid(self, u, t, p, commit=True):
-        self._cur.execute(self.__upsert_uuid_query, {
+    def _upsert_uuid(self, u, t, p, commit=True):
+        self._cur.execute(self._upsert_uuid_query, {
             "uuid": u,
             "type": t,
             "parent": p
@@ -387,8 +409,8 @@ class PostgresDB:
         if commit:
             self.commit()
 
-    def __upsert_uuid_l(self, utpl, commit=True):
-        self._cur.executemany(self.__upsert_uuid_query, [
+    def _upsert_uuid_l(self, utpl, commit=True):
+        self._cur.executemany(self._upsert_uuid_query, [
             {
             "uuid": u,
             "type": t,
@@ -399,16 +421,16 @@ class PostgresDB:
             self.commit()
 
     # DATA
-    def __upsert_data(self, e, d, commit=True):
-        self._cur.execute(self.__upsert_data_query, {
+    def _upsert_data(self, e, d, commit=True):
+        self._cur.execute(self._upsert_data_query, {
             "etag": e,
             "data": json.dumps(d)
         })
         if commit:
             self.commit()
 
-    def __upsert_data_l(self, edl, commit=True):
-        self._cur.executemany(self.__upsert_data_query, [
+    def _upsert_data_l(self, edl, commit=True):
+        self._cur.executemany(self._upsert_data_query, [
             {
             "etag": e,
             "data": json.dumps(d)
@@ -428,16 +450,16 @@ class PostgresDB:
             self.commit()
 
     # UUID DATA
-    def __upsert_uuid_data(self, u, e, commit=True):
-        self._cur.execute(self.__upsert_uuid_data_query, {
+    def _upsert_uuid_data(self, u, e, commit=True):
+        self._cur.execute(self._upsert_uuid_data_query, {
             "uuid": u,
             "etag": e
         })
         if commit:
             self.commit()
 
-    def __upsert_uuid_data_l(self, uel, commit=True):
-        self._cur.executemany(self.__upsert_uuid_data_query, [
+    def _upsert_uuid_data_l(self, uel, commit=True):
+        self._cur.executemany(self._upsert_uuid_data_query, [
             {
                 "uuid": u,
                 "etag": e
@@ -447,16 +469,16 @@ class PostgresDB:
             self.commit()
 
     # UUID ID
-    def __upsert_uuid_id(self, u, i, commit=True):
-        self._cur.execute(self.__upsert_uuid_id_query, {
+    def _upsert_uuid_id(self, u, i, commit=True):
+        self._cur.execute(self._upsert_uuid_id_query, {
             "uuid": u,
             "id": i
         })
         if commit:
             self.commit()
 
-    def __upsert_uuid_id_l(self, uil, commit=True):
-        self._cur.executemany(self.__upsert_uuid_id_query, [
+    def _upsert_uuid_id_l(self, uil, commit=True):
+        self._cur.executemany(self._upsert_uuid_id_query, [
             {
                 "uuid": u,
                 "id": i
@@ -466,16 +488,16 @@ class PostgresDB:
             self.commit()
 
     # UUID ID
-    def __upsert_uuid_sibling(self, u, s, commit=True):
-        self._cur.execute(self.__upsert_uuid_sibling_query, {
+    def _upsert_uuid_sibling(self, u, s, commit=True):
+        self._cur.execute(self._upsert_uuid_sibling_query, {
             "uuid": u,
             "sibling": s
         })
         if commit:
             self.commit()
 
-    def __upsert_uuid_sibling_l(self, usl, commit=True):
-        self._cur.executemany(self.__upsert_uuid_sibling_query, [
+    def _upsert_uuid_sibling_l(self, usl, commit=True):
+        self._cur.executemany(self._upsert_uuid_sibling_query, [
             {
                 "uuid": u,
                 "sibling": s

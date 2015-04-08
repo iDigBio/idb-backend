@@ -8,6 +8,8 @@ import datetime
 import pyproj
 import string
 
+from data_tables.rights_strings import acceptable_licenses_trans, licenses
+
 locale.setlocale(locale.LC_ALL, '')
 
 # [indexname, rawfield, type, include_in_max]
@@ -89,6 +91,14 @@ fields = {
         ["version", "", "integer", 0],
         ["recordset", "","text", 0],
         ["records", "", "list", 0],
+        ["format", "dc:format", "text", 1],
+        ["type", "dc:type", "text", 1],
+        ["tag", "ac:tag", "longtext", 1],
+        ["xpixels","","integer",1],
+        ["ypixels","","integer",1],
+        ["rights", "", "text", 1],
+        ["logourl", "", "text", 1],
+        ["webstatement", "", "text", 1],        
         ["hasSpecimen", "","boolean", 0],
         ["flags", "", "list", 0],
         ["dqs", "", "float", 0],
@@ -160,7 +170,7 @@ def getfield(f,d,t="text"):
     fl = f.lower()
     if fl in d:
         f = fl
-    if f in d:
+    if f in d and d[f] is not None:
         if t == "list":
             return [x.lower().strip() for x in d[f]]
         else:
@@ -239,6 +249,8 @@ def intGrabber(t,d):
         ],
         "mediarecords": [
             ["version","idigbio:version"],
+            ["xpixels","exif:PixelYDimension"],
+            ["ypixels","exif:PixelXDimension"],
         ],
         "publishers": [
             ["version","idigbio:version"],
@@ -424,6 +436,15 @@ def relationsGrabber(t,d):
                     r[f[0]] = [grabFirstUUID(x) for x in d["idigbio:links"][f[1]] if grabFirstUUID(x) is not None]
             else:
                 r[f[0]] = None
+    elif "idigbio:siblings" in d:
+        for f in df[t]:
+            if f[1] in d["idigbio:siblings"]:
+                if f[2] == "text":
+                    r[f[0]] = d["idigbio:siblings"][f[1]][0]
+                elif f[2] == "list":
+                    r[f[0]] = [x for x in d["idigbio:siblings"][f[1]]]
+            else:
+                r[f[0]] = None
 
     if t == "mediarecords":
         r["hasSpecimen"] = "records" in r and r["records"] != None
@@ -431,6 +452,32 @@ def relationsGrabber(t,d):
         r["hasImage"] = "mediarecords" in r and r["mediarecords"] != None
 
     return r
+
+def getLicense(t,d):
+    df = {
+        "records": [
+        ],
+        "mediarecords": [
+            "dcterms:rights",
+            "dc:rights",
+            "xmprights:usageterms",
+            "xmprights:webstatement",
+            "dcterms:license"
+        ],
+        "publishers": [
+        ],
+        "recordsets": [
+        ]
+    }
+    l = []
+    for f in df[t]:
+        if f in d:
+            if d[f] in acceptable_licenses_trans:
+                l.append(acceptable_licenses_trans[d[f]])
+    most_common_lic = max(set(l), key=l.count)
+    return licenses[most_common_lic]
+
+
 
 def scientificNameFiller(t,r):
     sciname = None
@@ -451,6 +498,7 @@ def grabAll(t,d):
     r.update(geoGrabber(t,d))
     r.update(dateGrabber(t,d))
     r.update(relationsGrabber(t,d))
+    r.update(getLicense(t,d))
     # Done with non-dependant fields.
     r["scientificname"] = scientificNameFiller(t,r)
 

@@ -98,7 +98,7 @@ fields = {
         ["xpixels","","integer",1],
         ["ypixels","","integer",1],
         ["rights", "", "text", 1],
-        ["logourl", "", "text", 1],
+        ["licenselogourl", "", "text", 1],
         ["webstatement", "", "text", 1],        
         ["hasSpecimen", "","boolean", 0],
         ["flags", "", "list", 0],
@@ -465,8 +465,8 @@ def getLicense(t,d):
         "mediarecords": [
             "dcterms:rights",
             "dc:rights",
-            "xmprights:usageterms",
-            "xmprights:webstatement",
+            "xmpRights:UsageTerms",
+            "xmpRights:WebStatement",
             "dcterms:license"
         ],
         "publishers": [
@@ -522,3 +522,22 @@ def grabAll(t,d):
     r["dqs"] = score(t,r)
 
     return r
+
+def main():
+    d = {
+        "xmpRights:WebStatement": "http://creativecommons.org/licenses/by-nc/4.0/",
+        "ac:hashValue": "265a83b255bf0eca18e45aa5b6876c13",
+        "dc:type": "StillImage",
+        "idigbio:associatedRecordsetReference": "285a4be0-5cfe-4d4f-9c8b-b0f0f3571079",
+        "xmpRights:UsageTerms": "CC BY-NC",
+        "idigbio:recordId": "TTD_TCN_MICH_1361582.jpg",
+        "ac:licenseLogoURL": "http://mirrors.creativecommons.org/presskit/buttons/80x15/png/by-nc.png",
+        "ac:hashFunction": "MD5",
+        "dcterms:format": "image/jpeg",
+        "ac:accessURI": "http://media.idigbio.org/lookup/images/265a83b255bf0eca18e45aa5b6876c13",
+        "dcterms:modified": "2014-09-09 19:02:50.640000"
+    }
+    print getLicense("mediarecords",d)
+
+if __name__ == '__main__':
+    main()

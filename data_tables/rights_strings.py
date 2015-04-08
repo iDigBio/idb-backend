@@ -92,67 +92,67 @@ acceptable_licenses_trans = {
 licenses = {
     "CC4 BY-NC-ND": {
         "rights": "BY-NC-ND",
-        "logourl": "https://i.creativecommons.org/l/by-nc-nd/4.0/88x31.png",
+        "licenselogourl": "https://i.creativecommons.org/l/by-nc-nd/4.0/88x31.png",
         "webstatement": "http://creativecommons.org/licenses/by-nc-nd/4.0/",
     },
     "CC4 BY-ND": {
         "rights": "BY-ND",
-        "logourl": "https://i.creativecommons.org/l/by-nd/4.0/88x31.png",
+        "licenselogourl": "https://i.creativecommons.org/l/by-nd/4.0/88x31.png",
         "webstatement": "http://creativecommons.org/licenses/by-nd/4.0/",
     },    
     "CC4 BY-NC-SA": {
         "rights": "BY-NC-SA",
-        "logourl": "https://i.creativecommons.org/l/by-nc-sa/4.0/88x31.png",
+        "licenselogourl": "https://i.creativecommons.org/l/by-nc-sa/4.0/88x31.png",
         "webstatement": "http://creativecommons.org/licenses/by-nc-sa/4.0/",
     },
     "CC4 BY-SA": {
         "rights": "BY-SA",
-        "logourl": "https://i.creativecommons.org/l/by-sa/4.0/88x31.png",
+        "licenselogourl": "https://i.creativecommons.org/l/by-sa/4.0/88x31.png",
         "webstatement": "http://creativecommons.org/licenses/by-sa/4.0/",
     },
     "CC4 BY-NC": {
         "rights": "BY-NC",
-        "logourl": "https://i.creativecommons.org/l/by-nc/4.0/88x31.png",
+        "licenselogourl": "https://i.creativecommons.org/l/by-nc/4.0/88x31.png",
         "webstatement": "http://creativecommons.org/licenses/by-nc/4.0/",
     },
     "CC4 BY": {
         "rights": "BY",
-        "logourl": "https://i.creativecommons.org/l/by/4.0/88x31.png",
+        "licenselogourl": "https://i.creativecommons.org/l/by/4.0/88x31.png",
         "webstatement": "http://creativecommons.org/licenses/by/4.0/",
     },
     "CC3 BY-NC-ND": {
         "rights": "BY-NC-ND",
-        "logourl": "https://i.creativecommons.org/l/by-nc-nd/4.0/88x31.png",
+        "licenselogourl": "https://i.creativecommons.org/l/by-nc-nd/4.0/88x31.png",
         "webstatement": "http://creativecommons.org/licenses/by-nc-nd/4.0/",
     },
     "CC3 BY-ND": {
         "rights": "BY-ND",
-        "logourl": "https://i.creativecommons.org/l/by-nd/4.0/88x31.png",
+        "licenselogourl": "https://i.creativecommons.org/l/by-nd/4.0/88x31.png",
         "webstatement": "http://creativecommons.org/licenses/by-nd/4.0/",
     },    
     "CC3 BY-NC-SA": {
         "rights": "BY-NC-SA",
-        "logourl": "http://i.creativecommons.org/l/by-nc-sa/3.0/88x31.png",
+        "licenselogourl": "http://i.creativecommons.org/l/by-nc-sa/3.0/88x31.png",
         "webstatement": "http://creativecommons.org/licenses/by-nc-sa/3.0/",
     },
     "CC3 BY-SA": {
         "rights": "BY-SA",
-        "logourl": "http://i.creativecommons.org/l/by-sa/3.0/88x31.png",
+        "licenselogourl": "http://i.creativecommons.org/l/by-sa/3.0/88x31.png",
         "webstatement": "http://creativecommons.org/licenses/by-sa/3.0/",
     },
     "CC3 BY-NC": {
         "rights": "BY-NC",
-        "logourl": "http://i.creativecommons.org/l/by-nc/3.0/88x31.png",
+        "licenselogourl": "http://i.creativecommons.org/l/by-nc/3.0/88x31.png",
         "webstatement": "http://creativecommons.org/licenses/by-nc/3.0/",
     },
     "CC3 BY": {
         "rights": "BY-NC-SA",
-        "logourl": "http://i.creativecommons.org/l/by/3.0/88x31.png",
+        "licenselogourl": "http://i.creativecommons.org/l/by/3.0/88x31.png",
         "webstatement": "http://creativecommons.org/licenses/by/3.0/",
     },
     "CC0": {
         "rights": "CC0",
-        "logourl": "http://i.creativecommons.org/p/zero/1.0/88x31.png",
+        "licenselogourl": "http://i.creativecommons.org/p/zero/1.0/88x31.png",
         "webstatement": "http://creativecommons.org/publicdomain/zero/1.0/",
     },
     "Public Domain": {

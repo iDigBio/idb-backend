@@ -2,10 +2,15 @@ from conversions import grabAll
 from elasticsearch_backend.indexer import prepForEs
 
 def index_record(ei,rc,typ,r,do_index=True):
-        d,ck = rc.correct_record(r["data"]["idigbio:data"])
+        d,ck = rc.correct_record(r["data"])
 
-        d.update(r["data"])
-        del d["idigbio:data"]
+        d.update({
+            "idigbio:uuid": r["uuid"],
+            "idigbio:etag": r["etag"],
+            "idigbio:siblings": r["siblings"] if "siblings" in r and r["siblings"] is not None else {},
+            "idigbio:recordIds": r["recordids"],
+            "idigbio:dateModified": r["modified"].isoformat()
+        })
 
         g = grabAll(typ,d)
         i =  prepForEs(typ,g)

@@ -22,7 +22,7 @@ class CorrectionsLoader(object):
         self.commit()
 
     def add_corrections(self,k,v,source,approved=False):
-        self.corrections.append((json.dumps({"idigbio:data": k}).lower(),json.dumps(v).lower(),approved,source))
+        self.corrections.append((json.dumps(k).lower(),json.dumps(v).lower(),approved,source))
 
     def clear_source(self,source):
         self.cursor.execute("DELETE from corrections WHERE source=%s", (source,))

@@ -1,4 +1,4 @@
-from idigbio.lib.data.importers.dwca import Dwca
+from idb.lib.data.importers.dwca import Dwca
 
 whitelist = [
     #"description.txt",

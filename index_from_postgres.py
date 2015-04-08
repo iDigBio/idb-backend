@@ -17,7 +17,7 @@ import elasticsearch.helpers
 def type_yield(ei,rc,typ):
     cursor = pg.cursor(str(uuid.uuid4()),cursor_factory=DictCursor)
 
-    cursor.execute("select id,etag,data::json from cache where type=%s", (typ,))
+    cursor.execute("select * from idigbio_uuids_data where type=%s", ("".join(typ[:-1]),))
 
     start_time = datetime.datetime.now()
     count = 0.0
@@ -35,13 +35,15 @@ def type_yield_resume(ei,rc,typ):
 
     print "Building Resume Cache", typ
     q = {
-        "index": config["elasticsearch"]["indexname"],
-        "doc_type": t,
+        "index": ei.indexName,
+        "doc_type": typ,
         "_source": ["etag"],
         "size": 10000,
         "scroll": "10m"
     }
+    cache_count = 0.0
     for r in elasticsearch.helpers.scan(ei.es,**q):
+        cache_count += 1.0
         k = r["_id"]
         etag = None
         if "etag" in r["_source"]:
@@ -51,10 +53,13 @@ def type_yield_resume(ei,rc,typ):
 
         es_ids[k] = etag
 
+        if cache_count % 10000 = 0:
+            print cache_count
+
     print "Indexing", typ
     cursor = pg.cursor(str(uuid.uuid4()),cursor_factory=DictCursor)
 
-    cursor.execute("select id,etag,data::json from cache where type=%s", (typ,))
+    cursor.execute("select * from idigbio_uuids_data where type=%s", (typ,))
 
     start_time = datetime.datetime.now()
     count = 0.0
@@ -72,24 +77,26 @@ def type_yield_resume(ei,rc,typ):
 
 
 def main():
-    sl = config["elasticsearch"]["servers"]
-    # sl = [
-    #     "c17node52.acis.ufl.edu",
-    #     "c17node53.acis.ufl.edu",
-    #     "c17node54.acis.ufl.edu",
-    #     "c17node55.acis.ufl.edu",
-    #     "c17node56.acis.ufl.edu"
-    # ]
-    ei = ElasticSearchIndexer(config["elasticsearch"]["indexname"],config["elasticsearch"]["types"],serverlist=sl)
+    # sl = config["elasticsearch"]["servers"]
+    sl = [
+        "c17node52.acis.ufl.edu",
+        "c17node53.acis.ufl.edu",
+        "c17node54.acis.ufl.edu",
+        "c17node55.acis.ufl.edu",
+        "c17node56.acis.ufl.edu"
+    ]
+    #ei = ElasticSearchIndexer(config["elasticsearch"]["indexname"],config["elasticsearch"]["types"],serverlist=sl)
+    ei = ElasticSearchIndexer(config["elasticsearch"]["indexname"],["records"],serverlist=sl)
 
     rc = RecordCorrector()
 
     if len(sys.argv) > 1 and sys.argv[1] == "resume":
-        for typ in config["elasticsearch"]["types"]:
+        for typ in ei.types:
             for ok, item in ei.bulk_index(type_yield_resume(ei,rc,typ)):
                 pass
     else:
-        for typ in config["elasticsearch"]["types"]:
+        #for typ in config["elasticsearch"]["types"]:
+        for typ in ["records"]:
             for ok, item in ei.bulk_index(type_yield(ei,rc,typ)):
                 pass
 

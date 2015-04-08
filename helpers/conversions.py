@@ -9,6 +9,7 @@ import pyproj
 import string
 
 from data_tables.rights_strings import acceptable_licenses_trans, licenses
+from flask_api.config import PARENT_MAP
 
 locale.setlocale(locale.LC_ALL, '')
 
@@ -446,6 +447,10 @@ def relationsGrabber(t,d):
             else:
                 r[f[0]] = None
 
+    if "idigbio:parent" in d:
+        if t in PARENT_MAP:
+            r["".join(PARENT_MAP[t][:-1])] = d["idigbio:parent"]
+
     if t == "mediarecords":
         r["hasSpecimen"] = "records" in r and r["records"] != None
     elif t == "records":
@@ -474,8 +479,11 @@ def getLicense(t,d):
         if f in d:
             if d[f] in acceptable_licenses_trans:
                 l.append(acceptable_licenses_trans[d[f]])
-    most_common_lic = max(set(l), key=l.count)
-    return licenses[most_common_lic]
+    if len(l) > 0:
+        most_common_lic = max(set(l), key=l.count)
+        return licenses[most_common_lic]
+    else:
+        return {}
 
 
 
@@ -514,68 +522,3 @@ def grabAll(t,d):
     r["dqs"] = score(t,r)
 
     return r
-
-
-
-if __name__ == '__main__':
-    # number Grab Testing
-    # e = ["2050", "2050 m",
-    #      "2050.0", "2050.0 m",
-    #      "2,050", "2,050 m",
-    #      "2,050.0", "2,050.0 m",
-    #      "100000", "1000000",
-    #      "100,000", "1,000,000",
-    #      "100,000.0", "1,000,000.0"
-    #     ]
-    # for n in e:
-    #     print n, grabFirstNumber(n), locale.atof(grabFirstNumber(n))
-
-    exs = [
-        # Zero Coords
-        {"dwc:decimalLatitude": "0", "dwc:decimalLongitude": "0"},
-        {"dwc:decimalLatitude": "1", "dwc:decimalLongitude": "0"},
-        {"dwc:decimalLatitude": "0", "dwc:decimalLongitude": "1"},
-        # Bounds Errors
-        {"dwc:decimalLatitude": "91.00001", "dwc:decimalLongitude": "1.00001"},
-        {"dwc:decimalLatitude": "-91.00001", "dwc:decimalLongitude": "1.00001"},
-        {"dwc:decimalLatitude": "1.00001", "dwc:decimalLongitude": "181.00001"},
-        {"dwc:decimalLatitude": "1.00001", "dwc:decimalLongitude": "-181.00001"},
-        # Similar coords
-        {"dwc:decimalLatitude": "1.00001", "dwc:decimalLongitude": "1.00001"},
-        {"dwc:decimalLatitude": "1.00001", "dwc:decimalLongitude": "-1.00001"},
-        {"dwc:decimalLatitude": "-1.00001", "dwc:decimalLongitude": "1.00001"},
-        {"dwc:decimalLatitude": "-1.00001", "dwc:decimalLongitude": "-1.00001"},
-        # Low Precision
-        {"dwc:decimalLatitude": "30.1", "dwc:decimalLongitude": "60.2"},
-        # Date Bounds
-        {"dwc:eventDate": "1600-01-01"},
-        {"dwc:eventDate": "2100-01-01"},
-    ]
-
-    for e in exs:
-        r = grabAll("records",e)
-        print r["flags"], r["dqs"], r["geopoint"], r["datecollected"]
-
-    # test a full record
-    # import requests
-    # r = requests.get("http://api.idigbio.org/v1/records/d79c3b29-06b9-4a68-b13e-112a91847765")
-    # ro = r.json()
-    # pprint.pprint(ro)
-    # d = ro["idigbio:data"]
-    # d.update(ro)
-    # del d["idigbio:data"]
-    # ga = grabAll("records",d)
-    # pprint.pprint(ga)
-
-    # test the first 1000 records.
-    import requests
-    r = requests.get("http://api.idigbio.org/v1/records?limit=1000")
-    ro = r.json()
-    for rec in ro["idigbio:items"]:
-        recr = requests.get("http://api.idigbio.org/v1/records/" + rec["idigbio:uuid"])
-        recro = recr.json()
-        d = recro["idigbio:data"]
-        d.update(recro)
-        del d["idigbio:data"]
-        ga = grabAll("records",d)
-        print ga["flags"], ga["dqs"], ga["geopoint"], ga["datecollected"]

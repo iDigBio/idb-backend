@@ -53,7 +53,7 @@ def type_yield_resume(ei,rc,typ):
 
         es_ids[k] = etag
 
-        if cache_count % 10000 = 0:
+        if cache_count % 10000 == 0:
             print cache_count
 
     print "Indexing", typ
@@ -85,8 +85,7 @@ def main():
         "c17node55.acis.ufl.edu",
         "c17node56.acis.ufl.edu"
     ]
-    #ei = ElasticSearchIndexer(config["elasticsearch"]["indexname"],config["elasticsearch"]["types"],serverlist=sl)
-    ei = ElasticSearchIndexer(config["elasticsearch"]["indexname"],["records"],serverlist=sl)
+    ei = ElasticSearchIndexer(config["elasticsearch"]["indexname"],config["elasticsearch"]["types"],serverlist=sl)
 
     rc = RecordCorrector()
 
@@ -95,8 +94,7 @@ def main():
             for ok, item in ei.bulk_index(type_yield_resume(ei,rc,typ)):
                 pass
     else:
-        #for typ in config["elasticsearch"]["types"]:
-        for typ in ["records"]:
+        for typ in ei.types:
             for ok, item in ei.bulk_index(type_yield(ei,rc,typ)):
                 pass
 

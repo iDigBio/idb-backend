@@ -250,7 +250,6 @@ class TestGrabAll(unittest.TestCase):
           "idigbio:etag": "cb7d64ec3aef36fa4dec6a028b818e331a67aacc",
           "idigbio:dateModified": "2015-01-17T08:35:59.395Z",
           "idigbio:version": 5,
-          "idigbio:createdBy": "872733a2-67a3-4c54-aa76-862735a5f334",
           "idigbio:data": {
             "dwc:startDayOfYear": "233",
             "dwc:specificEpithet": "monticola",
@@ -295,13 +294,11 @@ class TestGrabAll(unittest.TestCase):
             "dwc:day": "21",
             "dwc:year": "1987"
           },
-          "idigbio:links": {
-            "recordset": [
-              "http://api.idigbio.org/v1/recordsets/40250f4d-7aa6-4fcc-ac38-2868fa4846bd"
-            ],
+          "idigbio:parent": "40250f4d-7aa6-4fcc-ac38-2868fa4846bd",
+          "idigbio:siblings": {
             "mediarecord": [
-              "http://api.idigbio.org/v1/mediarecords/ae175cc6-82f4-456b-910c-34da322e768d",
-              "http://api.idigbio.org/v1/mediarecords/d0ca23cd-d4eb-43b5-aaba-cb75f8aef9e3"
+              "ae175cc6-82f4-456b-910c-34da322e768d",
+              "d0ca23cd-d4eb-43b5-aaba-cb75f8aef9e3"
             ]
           },
           "idigbio:recordIds": [

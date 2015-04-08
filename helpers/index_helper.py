@@ -9,6 +9,7 @@ def index_record(ei,rc,typ,r,do_index=True):
             "idigbio:etag": r["etag"],
             "idigbio:siblings": r["siblings"] if "siblings" in r and r["siblings"] is not None else {},
             "idigbio:recordIds": r["recordids"],
+            "idigbio:parent": r["parent"],
             "idigbio:dateModified": r["modified"].isoformat()
         })
 

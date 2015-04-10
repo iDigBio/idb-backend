@@ -21,7 +21,9 @@ def prepForEs(t,i):
         elif f[2] == "date":
             value[f[0]] = i[f[0]].isoformat()
         else:
-            value[f[0]] = i[f[0]]
+            # Skip empty values
+            if len(i[f[0]]) > 0:
+                value[f[0]] = i[f[0]]
     return value
 
 class ElasticSearchIndexer(object):

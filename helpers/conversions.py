@@ -9,7 +9,11 @@ import pyproj
 import string
 
 from data_tables.rights_strings import acceptable_licenses_trans, licenses
-from flask_api.config import PARENT_MAP
+PARENT_MAP = {
+    "records": "recordsets",
+    "mediarecords": "recordsets",
+    "recordsets": "publishers",
+}
 
 locale.setlocale(locale.LC_ALL, '')
 
@@ -383,7 +387,7 @@ def dateGrabber(t,d):
             # dates are more sensitivie to lower case then upper.
             fv = fv.upper()
             try:
-                r[f[0]] = dateutil.parser.parse(fv).date()
+                r[f[0]] = dateutil.parser.parse(fv)
             except:
                 pass
         if f[0] not in r:

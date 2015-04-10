@@ -109,6 +109,8 @@ def get_riak_data(t,i,riak_etag):
 
 def update_record(r):
     try:
+        default_return = ([],[],[],[],[])
+
         data_list = []
         uuid_list = []
         version_list = []
@@ -118,12 +120,19 @@ def update_record(r):
         ro = bucket.get(r["id"])
         riak_etags = ro.data["idigbio:etags"]
         local_versions = db.get_item(r["id"],version="all")
+        lv_ids = set()
+        lv_sibs = set()
         if len(local_versions) == 1 and local_versions[0]["etag"] is None:
             # There are no local versions, just an entry in the uuid table.
             pass
         else:
             try:
                 for i,v in enumerate(local_versions):
+                    if "recordids" in v and v["recordids"] is not None:
+                        lv_ids.update(v["recordids"])
+                    if "siblings" in v and v["siblings"] is not None:
+                        for k in v["siblings"]:
+                            lv_sibs.update(v["siblings"][k])
                     if riak_etags[i] not in [v["riak_etag"], v["etag"]]:
                         (real_riak_etag,_,_) = get_riak_data(r["type"],r["id"],riak_etags[i])
                         if real_riak_etag not in [v["riak_etag"], v["etag"]]:
@@ -131,7 +140,7 @@ def update_record(r):
             except:
                 traceback.print_exc()
                 print "PROBLEM WITH HISTORY FOR", r["type"], r["id"], "SKIPPING"
-                return ([],[],[])
+                return default_return
         for j, riak_etag in enumerate(riak_etags[i+1:]):
             (etag,dm,data) = get_riak_data(r["type"],r["id"],riak_etag)
             data_list.append({
@@ -154,16 +163,33 @@ def update_record(r):
                 "deleted": r["deleted"]
             })
 
-        return (data_list,uuid_list,version_list)
+        r_ids = set(r["recordids"]) if r["recordids"] is not None else set()
+        r_sibs = set(r["siblings"]) if r["siblings"] is not None else set()
+
+        ids_list = [
+            {
+                "uuid": r["id"],
+                "identifier": i
+            } for i in r_ids - lv_ids if i is not None
+        ]
+
+        sibs_list = [
+            {
+                "uuid": r["id"] if r["id"] < x else x ,
+                "sibling": r["id"] if r["id"] > x else x
+            } for x in r_sibs - lv_sibs if x is not None
+        ]
+
+        return (data_list,uuid_list,version_list, ids_list, sibs_list)
     except KeyboardInterrupt:
         raise KeyboardInterrupt
     except:
         print "Exception in record", r["id"]
         traceback.print_exc()
-        return ([],[],[])
+        return default_return
 
-def run_transaction(data_list,uuid_list,version_list):
-    print len(data_list), len(uuid_list), len(version_list)
+def run_transaction(data_list,uuid_list,version_list,ids_list):
+    print len(data_list), len(uuid_list), len(version_list), len(ids_list)
     local_cursor.executemany("""INSERT INTO uuids (id,type,parent,deleted)
         SELECT %(uuid)s, %(type)s, %(parent)s, %(deleted)s WHERE NOT EXISTS (
             SELECT 1 FROM uuids WHERE id=%(uuid)s
@@ -179,15 +205,29 @@ def run_transaction(data_list,uuid_list,version_list):
             SELECT 1 FROM uuids_data WHERE uuids_id=%(uuid)s AND version=%(version)s
         )
     """, version_list)
+    local_cursor.executemany("""INSERT INTO uuids_identifier (uuids_id,identifier)
+        SELECT %(uuid)s, %(identifier)s WHERE NOT EXISTS (
+            SELECT 1 FROM uuids_identifier WHERE identifier=%(identifier)s
+        )
+    """, ids_list)
+    db.commit()
+
+def update_siblings(siblings_list):
+    print len(siblings_list)
+    local_cursor.executemany("""INSERT INTO uuids_siblings (r1,r2)
+        SELECT %(uuid)s, %(sibling)s WHERE NOT EXISTS (
+            SELECT 1 FROM uuids_siblings WHERE (r1=%(uuid)s and r2=%(sibling)s) or (r2=%(uuid)s and r1=%(sibling)s)
+        )
+    """, siblings_list)
     db.commit()
 
 def full_sync():
     print "Running Full Sync"
     uc = remote_pg.cursor("data sync get all", cursor_factory=RealDictCursor)
-    uc.execute("select id,type,parent,version,etag,modified,deleted from idigbio_uuids order by id")
+    uc.execute("select a.id, etag, modified, parent, type, a.deleted, json_agg(object) as siblings, json_agg(provider_id) as recordids from idigbio_uuids as a left join idigbio_relations as b on a.id=b.subject left join idigbio_id_list as c on c.id=a.id group by a.id order by a.id")
 
     local_ss_cursor = db._pg.cursor("data sync get all",cursor_factory=RealDictCursor)
-    local_ss_cursor.execute("select uuid as id,type,parent,version,etag,modified,deleted from idigbio_uuids_new order by uuid")
+    local_ss_cursor.execute("select uuid as id,type,parent,version,etag,modified,deleted,siblings,recordids from idigbio_uuids_new order by uuid")
 
     lr = None
     rr = None
@@ -217,19 +257,31 @@ def full_sync():
     data_list = []
     uuid_list = []
     version_list = []
+    ids_list = []
+
+    # wait to the end to insert siblings to make sure we get both sides of the table in uuids
+    siblings_list = []
+
     for r,d in different.iteritems():
-        rdl, rul, rvl = update_record(d)
+        rdl, rul, rvl, ris, rss = update_record(d)
         data_list.extend(rdl)
         uuid_list.extend(rul)
         version_list.extend(rvl)
+        ids_list.extend(ris)
+        siblings_list.extend(rss)
 
-        if (len(data_list) + len(uuid_list) + len(version_list)) > 1000:
-            run_transaction(data_list,uuid_list,version_list)
+        if len(data_list) >= 1000 or len(version_list) >= 1000:
+            run_transaction(data_list,uuid_list,version_list,ids_list)
             data_list = []
             uuid_list = []
             version_list = []
+            ids_list = []
+            # dont clear siblings
 
-    run_transaction(data_list,uuid_list,version_list)
+    run_transaction(data_list,uuid_list,version_list,ids_list)
+
+    # wait to the end to insert siblings to make sure we get both sides of the table in uuids
+    update_siblings(siblings_list)
 
 def incremental_sync():
     print "Running Incemental Sync"
@@ -250,24 +302,30 @@ def incremental_sync():
 
     if remote_mod_since_count > 0:
         uc = remote_pg.cursor("data sync get modified", cursor_factory=RealDictCursor)
-        uc.execute("select * from idigbio_uuids where modified > %s order by modified", (local_last_mod,))
+        uc.execute("select a.id, etag, modified, parent, type, a.deleted, json_agg(object) as siblings, json_agg(provider_id) as ids from idigbio_uuids as a left join idigbio_relations as b on a.id=b.subject left join idigbio_id_list as c on c.id=a.id where modified > %s group by a.id order by modified", (local_last_mod,))
 
         data_list = []
         uuid_list = []
         version_list = []
+        ids_list = []
+        siblings_list = []
         for r in uc:
-            rdl, rul, rvl = update_record(r)
+            rdl, rul, rvl, ris, rss = update_record(r)
             data_list.extend(rdl)
             uuid_list.extend(rul)
             version_list.extend(rvl)
+            ids_list.extend(ris)
+            siblings_list.extend(rss)
 
-            if (len(data_list) + len(uuid_list) + len(version_list)) > 1000:
-                run_transaction(data_list,uuid_list,version_list)
+            if len(data_list) >= 1000 or len(version_list) >= 1000:
+                run_transaction(data_list,uuid_list,version_list,ids_list)
                 data_list = []
                 uuid_list = []
                 version_list = []
+                ids_list = []
 
-        run_transaction(data_list,uuid_list,version_list)
+        run_transaction(data_list,uuid_list,version_list,ids_list)
+        update_siblings(siblings_list)
 
 def sync_deletes():
     print "Syncing Deletes"

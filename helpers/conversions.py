@@ -5,6 +5,7 @@ import traceback
 import locale
 import decimal
 import datetime
+import pytz
 import pyproj
 import string
 
@@ -136,13 +137,21 @@ for t in fields:
     if maxscores[t] == 0.0:
         maxscores[t] = 1.0
 
+def checkBounds(x):
+    lowerBound = datetime.datetime(1700,1,2,tzinfo=pytz.utc)
+    upperBound = datetime.datetime.now(pytz.utc)
+    if isinstance(x,datetime.datetime):
+        return x < lowerBound or x > upperBound
+    else:
+        return x < lowerBound.date() or x > upperBound.date()
+
 flags = {
     "geopoint": {
         "0_coord": lambda x: x[0] == 0 or x[1] == 0,
         "similar_coord": lambda x: abs(x[0]) == abs(x[1]),
     },
     "datecollected": {
-        "bounds": lambda x: x < datetime.date(1700,1,2) or x > datetime.date.today()
+        "bounds": checkBounds
     }
 }
 
@@ -387,7 +396,14 @@ def dateGrabber(t,d):
             # dates are more sensitivie to lower case then upper.
             fv = fv.upper()
             try:
-                r[f[0]] = dateutil.parser.parse(fv)
+                x = dateutil.parser.parse(fv)
+                if x.tzinfo is None:
+                    x = x.replace(tzinfo=pytz.utc)
+                try:
+                    x < datetime.datetime.now(pytz.utc)
+                except:
+                    x = x.replace(tzinfo=pytz.utc)
+                r[f[0]] = x
             except:
                 pass
         if f[0] not in r:

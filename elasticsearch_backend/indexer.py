@@ -22,7 +22,10 @@ def prepForEs(t,i):
             value[f[0]] = i[f[0]].isoformat()
         else:
             # Skip empty values
-            if len(i[f[0]]) > 0:
+            try:
+                if len(i[f[0]]) > 0:
+                    value[f[0]] = i[f[0]]
+            except:
                 value[f[0]] = i[f[0]]
     return value
 

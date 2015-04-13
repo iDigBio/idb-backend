@@ -56,7 +56,7 @@ class RecordCorrector(object):
             l = []
             for k in c:
                 if k in cd_keys:
-                    l.append(corrected_dict[cd_keys[k]])
+                    l.append(corrected_dict[cd_keys[k]].lower())
                 else:
                     break
             else: # if we got to the end of the for without breaking

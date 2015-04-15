@@ -3,6 +3,7 @@ import sys
 import json
 import traceback
 import datetime
+import time
 
 import psycopg2
 from psycopg2.extras import RealDictCursor
@@ -26,6 +27,10 @@ local_cursor = db._cur
 
 remote_pg = psycopg2.connect(host="c18node8.acis.ufl.edu",user="idigbio-api",password=IDB_DBPASS,dbname="idb-api-prod")
 remote_cursor = remote_pg.cursor(cursor_factory=RealDictCursor)
+
+# Maximum number of seconds to sleep
+MAX_SLEEP = 60
+MIN_SLEEP = 0
 
 def output_line(*l):
     sys.stdout.write(" ".join([repr(p) for p in l]))
@@ -217,6 +222,8 @@ def update_siblings(siblings_list):
     local_cursor.executemany("""INSERT INTO uuids_siblings (r1,r2)
         SELECT %(uuid)s, %(sibling)s WHERE NOT EXISTS (
             SELECT 1 FROM uuids_siblings WHERE (r1=%(uuid)s and r2=%(sibling)s) or (r2=%(uuid)s and r1=%(sibling)s)
+        ) AND EXISTS (
+            SELECT 1 FROM uuids WHERE id=%(uuid)s or id=%(sibling)s
         )
     """, siblings_list)
     db.commit()
@@ -290,19 +297,8 @@ def incremental_sync():
 
     print local_last_mod
 
-    remote_cursor.execute("select modified from idigbio_uuids order by modified DESC limit 1")
-    remote_last_mod = remote_cursor.fetchone()["modified"]
-
-    print remote_last_mod
-
-    remote_cursor.execute("select count(*) as count from idigbio_uuids where modified > %s", (local_last_mod,))
-    remote_mod_since_count = remote_cursor.fetchone()["count"]
-
-    print remote_mod_since_count
-
-    if remote_mod_since_count > 0:
-        uc = remote_pg.cursor("data sync get modified", cursor_factory=RealDictCursor)
-        uc.execute("select a.id, etag, modified, parent, type, a.deleted, json_agg(object) as siblings, json_agg(provider_id) as ids from idigbio_uuids as a left join idigbio_relations as b on a.id=b.subject left join idigbio_id_list as c on c.id=a.id where modified > %s group by a.id order by modified", (local_last_mod,))
+    with remote_pg.cursor("data sync get modified", cursor_factory=RealDictCursor) as uc:
+        uc.execute("select a.id, etag, modified, parent, type, a.deleted, json_agg(object) as siblings, json_agg(provider_id) as recordids from idigbio_uuids as a left join idigbio_relations as b on a.id=b.subject left join idigbio_id_list as c on c.id=a.id where modified > %s group by a.id order by modified", (local_last_mod,))
 
         data_list = []
         uuid_list = []
@@ -486,39 +482,55 @@ def sync_siblings():
     local_cursor.executemany("INSERT INTO uuids_siblings (r1,r2) VALUES (%s,%s)", to_insert)
     db.commit()
 
+def continuous_incremental():
+    while True:
+        t_start = datetime.datetime.now()
+        print "Starting Incremental Run at", t_start.isoformat()
+        incremental_sync()
+        t_end = datetime.datetime.now()
+        print "Ending Incremental Run from", t_start.isoformat(), "at", t_end
+        sleep_duration = max([MAX_SLEEP - (t_end - t_start).total_seconds(),MIN_SLEEP])
+        print "Sleeping for", sleep_duration, "seconds"
+        time.sleep(sleep_duration)
+
+
 def main():
     import argparse
 
     parser = argparse.ArgumentParser(description='Synchronize the old and new database')
-    parser.add_argument('-d','--deletes', dest='deletes', action='store_true', help='synchronize deletes')
-    parser.add_argument('-i','--incremental', dest='incremental', action='store_true', help='run incremental sync')
+    parser.add_argument('-d', '--deletes', dest='deletes', action='store_true', help='synchronize deletes')
+    parser.add_argument('-i', '--incremental', dest='incremental', action='store_true', help='run incremental sync')
     parser.add_argument('-f', '--full', dest='full', action='store_true', help='run full sync')
     parser.add_argument('-n', '--fixnull', dest='fixnull', action='store_true', help='fix null current data')
-    parser.add_argument('-r', '--recordids', dest='recordids', action='store_true', help='fix null current data')
-    parser.add_argument('-s', '--siblings', dest='siblings', action='store_true', help='fix null current data')
+    parser.add_argument('-r', '--recordids', dest='recordids', action='store_true', help='sync recordids')
+    parser.add_argument('-s', '--siblings', dest='siblings', action='store_true', help='sync siblings')
+    parser.add_argument('-c', '--continuous', dest='continuous', action='store_true', help='run incemental continously (implies -i)')
 
     args = parser.parse_args()
 
-    if args.full:
-        full_sync()
-        sync_deletes()
-        sync_identifiers()
-        sync_siblings()
+    if args.continuous:
+        continuous_incremental()
+    else:
+        if args.full:
+            full_sync()
+            sync_deletes()
+            sync_identifiers()
+            sync_siblings()
 
-    if args.incremental:
-        incremental_sync()
+        if args.incremental:
+            incremental_sync()
 
-    if args.deletes:
-        sync_deletes()
+        if args.deletes:
+            sync_deletes()
 
-    if args.fixnull:
-        load_null_data()
+        if args.fixnull:
+            load_null_data()
 
-    if args.recordids:
-        sync_identifiers()
+        if args.recordids:
+            sync_identifiers()
 
-    if args.siblings:
-        sync_siblings()
+        if args.siblings:
+            sync_siblings()
 
     if not any(args.__dict__.values()):
         parser.print_help()

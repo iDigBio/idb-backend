@@ -2,6 +2,7 @@ import uuid
 import json
 import itertools
 import datetime
+import time
 import copy
 import sys
 
@@ -14,12 +15,18 @@ from config import config
 
 import elasticsearch.helpers
 
+last_afters = {}
+
+# Maximum number of seconds to sleep
+MAX_SLEEP = 600
+MIN_SLEEP = 120
+
 def type_yield(ei,rc,typ):
     pg_typ = "".join(typ[:-1])
 
     cursor = pg.cursor(str(uuid.uuid4()),cursor_factory=DictCursor)
 
-    cursor.execute("select * from idigbio_uuids_data where type=%s", (pg_typ,))
+    cursor.execute("select * from idigbio_uuids_data where type=%s and deleted=false", (pg_typ,))
 
     start_time = datetime.datetime.now()
     count = 0.0
@@ -54,6 +61,15 @@ def type_yield_modified(ei,rc,typ):
     o = ei.es.search(**q)
 
     after = datetime.datetime.utcfromtimestamp(o["aggregations"]["mm"]["value"]/1000)
+
+    if typ in last_afters:
+        if after == last_afters[typ]:
+            print typ, "after value", after, "same as last run, skipping"
+            return
+        else:
+            last_afters[typ] = after
+    else:
+        last_afters[typ] = after
 
     print "Indexing", typ, "after", after.isoformat()
     cursor = pg.cursor(str(uuid.uuid4()),cursor_factory=DictCursor)
@@ -111,7 +127,7 @@ def type_yield_modified(ei,rc,typ):
             GROUP BY subject
         ) as sibs
         ON sibs.subject=uuids.id
-        WHERE type=%s and modified>%s
+        WHERE type=%s and modified>%s and deleted=false
         ORDER BY modified ASC;
         """, (pg_typ,after))
 
@@ -158,7 +174,7 @@ def type_yield_resume(ei,rc,typ):
     print "Indexing", typ
     cursor = pg.cursor(str(uuid.uuid4()),cursor_factory=DictCursor)
 
-    cursor.execute("select * from idigbio_uuids_data where type=%s", (pg_typ,))
+    cursor.execute("select * from idigbio_uuids_data where type=%s and deleted=false", (pg_typ,))
 
     start_time = datetime.datetime.now()
     count = 0.0
@@ -174,31 +190,66 @@ def type_yield_resume(ei,rc,typ):
 
     print typ, count, datetime.datetime.now() - start_time, count/(datetime.datetime.now() - start_time).total_seconds()
 
+def incremental(ei,rc):
+    for typ in ei.types:
+        for ok, item in ei.bulk_index(type_yield_modified(ei,rc,typ)):
+            pass
+    try:
+        ei.optimize()
+    except:
+        pass
+
+def continuous_incremental(ei,rc):
+    while True:
+        t_start = datetime.datetime.now()
+        print "Starting Incremental Run at", t_start.isoformat()
+        incremental(ei,rc)
+        t_end = datetime.datetime.now()
+        print "Ending Incremental Run from", t_start.isoformat(), "at", t_end
+        sleep_duration = max([MAX_SLEEP - (t_end - t_start).total_seconds(),MIN_SLEEP])
+        print "Sleeping for", sleep_duration, "seconds"
+        time.sleep(sleep_duration)
+
 def main():
-    # sl = config["elasticsearch"]["servers"]
-    sl = [
-        "c17node52.acis.ufl.edu",
-        "c17node53.acis.ufl.edu",
-        "c17node54.acis.ufl.edu",
-        "c17node55.acis.ufl.edu",
-        "c17node56.acis.ufl.edu"
-    ]
-    ei = ElasticSearchIndexer(config["elasticsearch"]["indexname"],config["elasticsearch"]["types"],serverlist=sl)
+    import argparse
 
-    rc = RecordCorrector()
+    parser = argparse.ArgumentParser(description='Index data from new database to elasticsearch')
+    parser.add_argument('-i', '--incremental', dest='incremental', action='store_true', help='run incremental index')
+    parser.add_argument('-f', '--full', dest='full', action='store_true', help='run full sync')
+    parser.add_argument('-r', '--resume', dest='resume', action='store_true', help='resume a full sync (full + etag compare)')
+    parser.add_argument('-c', '--continuous', dest='continuous', action='store_true', help='run incemental continously (implies -i)')
 
-    if len(sys.argv) > 1 and sys.argv[1] == "resume":
-        for typ in ei.types:
-            for ok, item in ei.bulk_index(type_yield_resume(ei,rc,typ)):
-                pass
-    elif len(sys.argv) > 1 and sys.argv[1] == "incremental":
-        for typ in ei.types:
-            for ok, item in ei.bulk_index(type_yield_modified(ei,rc,typ)):
-                pass
+    args = parser.parse_args()
+
+    if any(args.__dict__.values()):
+        # sl = config["elasticsearch"]["servers"]
+        sl = [
+            "c17node52.acis.ufl.edu",
+            "c17node53.acis.ufl.edu",
+            "c17node54.acis.ufl.edu",
+            "c17node55.acis.ufl.edu",
+            "c17node56.acis.ufl.edu"
+        ]
+        ei = ElasticSearchIndexer(config["elasticsearch"]["indexname"],config["elasticsearch"]["types"],serverlist=sl)
+
+        rc = RecordCorrector()
+
+        if args.continuous:
+            continuous_incremental(ei,rc)
+
+        elif args.incremental:
+            incremental(ei,rc)
+
+        elif args.resume:
+            for typ in ei.types:
+                for ok, item in ei.bulk_index(type_yield_resume(ei,rc,typ)):
+                    pass
+        elif args.full:
+            for typ in ei.types:
+                for ok, item in ei.bulk_index(type_yield(ei,rc,typ)):
+                    pass
     else:
-        for typ in ei.types:
-            for ok, item in ei.bulk_index(type_yield(ei,rc,typ)):
-                pass
+        parser.print_help()
 
 if __name__ == '__main__':
     main()

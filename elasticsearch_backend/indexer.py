@@ -85,6 +85,9 @@ class ElasticSearchIndexer(object):
         else:
             self.es.index(index=self.indexName,doc_type=t,id=i["uuid"],body=i)
 
+    def optimize(self):
+        self.es.indices.optimize(index=self.indexName, max_num_segments=5)
+
     def bulk_formater(self,tups):
         for t,i in tups:
             meta = {
@@ -110,4 +113,4 @@ class ElasticSearchIndexer(object):
                     "refresh_interval" : "1s"
                 }
             })            
-        self.es.indices.optimize(index=self.indexName,max_num_segments=5)
+        self.optimize()

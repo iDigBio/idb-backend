@@ -144,7 +144,7 @@ def type_yield_modified(ei,rc,typ):
     print typ, count, datetime.datetime.now() - start_time, count/(datetime.datetime.now() - start_time).total_seconds()
 
 
-def type_yield_resume(ei,rc,typ):
+def type_yield_resume(ei,rc,typ,also_delete=False):
     pg_typ = "".join(typ[:-1])
     es_ids = {}
 
@@ -168,8 +168,10 @@ def type_yield_resume(ei,rc,typ):
 
         es_ids[k] = etag
 
-        if cache_count % 10000 == 0:
-            print cache_count
+    #     if cache_count % 10000 == 0:
+    #         print cache_count
+
+    # print cache_count
 
     print "Indexing", typ
     cursor = pg.cursor(str(uuid.uuid4()),cursor_factory=DictCursor)
@@ -180,8 +182,11 @@ def type_yield_resume(ei,rc,typ):
     count = 0.0
     for r in cursor:
         count += 1.0
-        if r["id"] in es_ids and es_ids[r["id"]] == r["etag"]:
-            continue
+        if r["uuid"] in es_ids:
+            etag = es_ids[r["uuid"]]
+            del es_ids[r["uuid"]]
+            if etag == r["etag"]:
+                continue
 
         yield index_record(ei,rc,typ,r,do_index=False)
 
@@ -189,6 +194,25 @@ def type_yield_resume(ei,rc,typ):
             print typ, count, datetime.datetime.now() - start_time, count/(datetime.datetime.now() - start_time).total_seconds()
 
     print typ, count, datetime.datetime.now() - start_time, count/(datetime.datetime.now() - start_time).total_seconds()
+
+    if also_delete and len(es_ids) > 0:
+        print "Deleting", len(es_ids), "extra", typ
+        for r in es_ids:
+            ei.es.delete_by_query(**{
+                "index": ei.indexName,
+                "doc_type": typ,
+                "body": {
+                    "query": {
+                        "filtered": {
+                            "filter": {
+                                "term":{
+                                    "uuid": r
+                                }
+                            }
+                        }
+                    }
+                }
+            })
 
 def incremental(ei,rc):
     for typ in ei.types:
@@ -210,6 +234,49 @@ def continuous_incremental(ei,rc):
         print "Sleeping for", sleep_duration, "seconds"
         time.sleep(sleep_duration)
 
+def delete(ei):
+    print "Running deletes"
+    cursor = pg.cursor(str(uuid.uuid4()),cursor_factory=DictCursor)
+
+    count = 0
+    cursor.execute("SELECT id,type FROM uuids WHERE deleted=true")
+    for r in cursor:
+        count += 1
+        ei.es.delete_by_query(**{
+            "index": ei.indexName,
+            "doc_type": r["type"],
+            "body": {
+                "query": {
+                    "filtered": {
+                        "filter": {
+                            "term":{
+                                "uuid": r["id"]
+                            }
+                        }
+                    }
+                }
+            }
+        })
+
+        if count % 10000 == 0:
+            print count
+
+    print count
+    try:
+        ei.optimize()
+    except:
+        pass
+
+def resume(ei,rc,also_delete=False):
+    for typ in ei.types:
+        for ok, item in ei.bulk_index(type_yield_resume(ei,rc,typ,also_delete=also_delete)):
+            pass
+
+def full(ei,rc):
+    for typ in ei.types:
+        for ok, item in ei.bulk_index(type_yield(ei,rc,typ)):
+            pass
+
 def main():
     import argparse
 
@@ -218,6 +285,8 @@ def main():
     parser.add_argument('-f', '--full', dest='full', action='store_true', help='run full sync')
     parser.add_argument('-r', '--resume', dest='resume', action='store_true', help='resume a full sync (full + etag compare)')
     parser.add_argument('-c', '--continuous', dest='continuous', action='store_true', help='run incemental continously (implies -i)')
+    parser.add_argument('-d', '--delete', dest='delete', action='store_true', help='delete records from index that are deleted in api')
+    parser.add_argument('-k', '--check', dest='check', action='store_true', help='run a full check (delete + resume)')
 
     args = parser.parse_args()
 
@@ -239,15 +308,16 @@ def main():
 
         elif args.incremental:
             incremental(ei,rc)
-
         elif args.resume:
-            for typ in ei.types:
-                for ok, item in ei.bulk_index(type_yield_resume(ei,rc,typ)):
-                    pass
+            resume(ei,rc)
         elif args.full:
-            for typ in ei.types:
-                for ok, item in ei.bulk_index(type_yield(ei,rc,typ)):
-                    pass
+            full(ei,rc)
+        elif args.delete:
+            delete(ei)
+        elif args.check:
+            resume(ei,rc,also_delete=True)
+        else:
+            parser.print_help()
     else:
         parser.print_help()
 

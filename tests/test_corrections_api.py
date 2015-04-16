@@ -7,10 +7,12 @@ import json
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(__file__)))))
 
+print sys.path
+
 from corrections.api import app
 
 class TestAnnotationsAPI(unittest.TestCase):
-    def setUp(self):        
+    def setUp(self):
         app.config["TESTING"] = True
         self.app = app.test_client()
 
@@ -55,8 +57,15 @@ class TestAnnotationsAPI(unittest.TestCase):
         obj = json.loads(resp.data)
         assert obj["approved"] == False
 
+    def test_get_annotation(self):
+        resp = self.app.post("/v2/annotations", data=json.dumps({"uuid": "0000012b-9bb8-42f4-ad3b-c958cb22ae45", "values": {"blah": "blah"}}), content_type="application/json", headers=self.getAuthHeader())
+        self.assertEqual(resp.status_code, 200)
+        obj = json.loads(resp.data)
+        resp = self.app.get("/v2/annotations/" + repr(obj["id"]))
+        self.assertEqual(resp.status_code, 200)
+
 class TestCorrectionsAPI(unittest.TestCase):
-    def setUp(self):        
+    def setUp(self):
         app.config["TESTING"] = True
         self.app = app.test_client()
 
@@ -100,6 +109,13 @@ class TestCorrectionsAPI(unittest.TestCase):
         self.assertEqual(resp.status_code, 200)
         obj = json.loads(resp.data)
         assert obj["approved"] == False
+
+    def test_get_correction(self):
+        resp = self.app.post("/v2/corrections", data=json.dumps({"keys": {"blah": "blah"}, "values": {"blah": "blah"}}), content_type="application/json", headers=self.getAuthHeader())
+        self.assertEqual(resp.status_code, 200)
+        obj = json.loads(resp.data)
+        resp = self.app.get("/v2/corrections/" + repr(obj["id"]))
+        self.assertEqual(resp.status_code, 200)
 
 
 if __name__ == '__main__':

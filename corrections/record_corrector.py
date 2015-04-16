@@ -23,19 +23,19 @@ class RecordCorrector(object):
         cur = pg.cursor(cursor_factory=DictCursor)
         cur.execute(""" CREATE TABLE IF NOT EXISTS corrections (
                 id bigserial PRIMARY KEY,
-                k jsonb,
-                v jsonb,
-                approved boolean,
-                source varchar(50),
+                k jsonb NOT NULL,
+                v jsonb NOT NULL,
+                approved boolean NOT NULL DEFAULT false,
+                source varchar(50) NOT NULL,
                 updated_at timestamp DEFAULT now()
             )
         """)
         cur.execute(""" CREATE TABLE IF NOT EXISTS annotations (
                 id bigserial PRIMARY KEY,
-                k jsonb,
-                v jsonb,
-                approved boolean,
-                source varchar(50),
+                uuids_id uuid NOT NULL REFERENCES uuids(id),
+                v jsonb NOT NULL,
+                approved boolean NOT NULL DEFAULT false,
+                source varchar(50) NOT NULL,
                 updated_at timestamp DEFAULT now()
             )
         """)

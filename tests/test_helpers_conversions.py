@@ -2,6 +2,7 @@ import unittest
 
 import os
 import sys
+import pytz
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(__file__)))))
 
@@ -175,12 +176,12 @@ class TestDateGrabber(unittest.TestCase):
             "dcterms:modified": "2014-01-10",
         }
         self.assertEqual({
-            "datemodified": datetime.date(2014,01,10),
-            "datecollected": datetime.date(2014,01,10),
+            "datemodified": datetime.datetime(2014, 1, 10, tzinfo=pytz.utc),
+            "datecollected": datetime.datetime(2014, 1, 10, tzinfo=pytz.utc),
         }, dateGrabber("records", r))
         self.assertEqual({
-            "datemodified": datetime.date(2014,01,10),
-            "modified": datetime.date(2014,01,10),
+            "datemodified": datetime.datetime(2014, 1, 10, tzinfo=pytz.utc),
+            "modified": datetime.datetime(2014, 1, 10, tzinfo=pytz.utc),
         }, dateGrabber("mediarecords", mr))
 
     def test_date_grabber_year_month_day_fallback(self):
@@ -191,7 +192,7 @@ class TestDateGrabber(unittest.TestCase):
             "dwc:day": "10",
         }
         self.assertEqual({
-            "datemodified": datetime.date(2014,01,10),
+            "datemodified": datetime.datetime(2014, 1, 10, tzinfo=pytz.utc),
             "datecollected": datetime.date(2014,01,10),
         }, dateGrabber("records", r))
 
@@ -245,6 +246,7 @@ class TestScientificNameFiller(unittest.TestCase):
 
 class TestGrabAll(unittest.TestCase):
     def test_grab_all(self):
+        self.maxDiff = 5000
         r = {
           "idigbio:uuid": "0000012b-9bb8-42f4-ad3b-c958cb22ae45",
           "idigbio:etag": "cb7d64ec3aef36fa4dec6a028b818e331a67aacc",
@@ -320,8 +322,8 @@ class TestGrabAll(unittest.TestCase):
             'country': 'u.s. virgin islands',
             'countrycode': None,
             'county': None,
-            'datecollected': datetime.date(1987, 8, 21),
-            'datemodified': datetime.date(2015, 1, 17),
+            'datecollected': datetime.datetime(1987, 8, 21, tzinfo=pytz.utc),
+            'datemodified': datetime.datetime(2015, 1, 17, 8, 35, 59, 395000, tzinfo=pytz.utc),
             'dqs': 0.35714285714285715,
             'earliestageorloweststage': None,
             'earliestepochorlowestseries': None,

@@ -153,6 +153,12 @@ class PostgresDB:
     def rollback(self):
         pg.rollback()
 
+    def cursor(self,ss=False,ss_name=None):
+        if ss:
+            return self._get_ss_cursor(name=ss_name)
+        else:
+            return self._cur
+
     def drop_schema(self,commit=True):
         self._cur.execute("DROP VIEW IF EXISTS idigbio_uuids_new")
         self._cur.execute("DROP VIEW IF EXISTS idigbio_uuids_data")

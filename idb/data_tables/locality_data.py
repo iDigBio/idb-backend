@@ -2224,10 +2224,14 @@ implied_parent = {
     "continent":{}
 }
 
-for k,v in kl["continent"].iteritems():
-    if v not in real_continents and v != "None":
-        print k,v
+def main():
+    for k,v in kl["continent"].iteritems():
+        if v not in real_continents and v != "None":
+            print k,v
 
-for k,v in kl["country"].iteritems():
-    if v not in iso_countries and v != "None":
-        print k,v        
+    for k,v in kl["country"].iteritems():
+        if v not in iso_countries and v != "None":
+            print k,v        
+
+if __name__ == '__main__':
+    main()

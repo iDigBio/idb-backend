@@ -1,6 +1,11 @@
+import gevent
+import gevent.monkey
+gevent.monkey.patch_socket()
+
 import uuid
 import json
 import itertools
+import functools
 import datetime
 import time
 import copy
@@ -21,7 +26,7 @@ last_afters = {}
 MAX_SLEEP = 600
 MIN_SLEEP = 120
 
-def type_yield(ei,rc,typ):
+def type_yield(ei,rc,typ,yield_record=False):
     pg_typ = "".join(typ[:-1])
 
     cursor = pg.cursor(str(uuid.uuid4()),cursor_factory=DictCursor)
@@ -32,14 +37,17 @@ def type_yield(ei,rc,typ):
     count = 0.0
     for r in cursor:
         count += 1.0
-        yield index_record(ei,rc,typ,r,do_index=False)
+        if yield_record:
+            yield r
+        else:
+            yield index_record(ei,rc,typ,r,do_index=False)
 
         if count % 10000 == 0:
             print typ, count, datetime.datetime.now() - start_time, count/(datetime.datetime.now() - start_time).total_seconds()
 
     print typ, count, datetime.datetime.now() - start_time, count/(datetime.datetime.now() - start_time).total_seconds()
 
-def type_yield_modified(ei,rc,typ):
+def type_yield_modified(ei,rc,typ,yield_record=False):
     pg_typ = "".join(typ[:-1])
     es_ids = {}
 
@@ -136,7 +144,10 @@ def type_yield_modified(ei,rc,typ):
     for r in cursor:
         count += 1.0
 
-        yield index_record(ei,rc,typ,r,do_index=False)
+        if yield_record:
+            yield r
+        else:
+            yield index_record(ei,rc,typ,r,do_index=False)
 
         if count % 10000 == 0:
             print typ, count, datetime.datetime.now() - start_time, count/(datetime.datetime.now() - start_time).total_seconds()
@@ -144,7 +155,7 @@ def type_yield_modified(ei,rc,typ):
     print typ, count, datetime.datetime.now() - start_time, count/(datetime.datetime.now() - start_time).total_seconds()
 
 
-def type_yield_resume(ei,rc,typ,also_delete=False):
+def type_yield_resume(ei,rc,typ,also_delete=False,yield_record=False):
     pg_typ = "".join(typ[:-1])
     es_ids = {}
 
@@ -188,7 +199,10 @@ def type_yield_resume(ei,rc,typ,also_delete=False):
             if etag == r["etag"]:
                 continue
 
-        yield index_record(ei,rc,typ,r,do_index=False)
+        if yield_record:
+            yield r
+        else:
+            yield index_record(ei,rc,typ,r,do_index=False)
 
         if count % 10000 == 0:
             print typ, count, datetime.datetime.now() - start_time, count/(datetime.datetime.now() - start_time).total_seconds()
@@ -213,26 +227,6 @@ def type_yield_resume(ei,rc,typ,also_delete=False):
                     }
                 }
             })
-
-def incremental(ei,rc):
-    for typ in ei.types:
-        for ok, item in ei.bulk_index(type_yield_modified(ei,rc,typ)):
-            pass
-    try:
-        ei.optimize()
-    except:
-        pass
-
-def continuous_incremental(ei,rc):
-    while True:
-        t_start = datetime.datetime.now()
-        print "Starting Incremental Run at", t_start.isoformat()
-        incremental(ei,rc)
-        t_end = datetime.datetime.now()
-        print "Ending Incremental Run from", t_start.isoformat(), "at", t_end
-        sleep_duration = max([MAX_SLEEP - (t_end - t_start).total_seconds(),MIN_SLEEP])
-        print "Sleeping for", sleep_duration, "seconds"
-        time.sleep(sleep_duration)
 
 def delete(ei):
     print "Running deletes"
@@ -267,15 +261,39 @@ def delete(ei):
     except:
         pass
 
-def resume(ei,rc,also_delete=False):
-    for typ in ei.types:
-        for ok, item in ei.bulk_index(type_yield_resume(ei,rc,typ,also_delete=also_delete)):
-            pass
+def resume(ei, rc, also_delete=False):
+    # Create a partial application to add in the keyword argument
+    f = functools.partial(type_yield_resume,also_delete=also_delete)
+    consume(ei, rc, f)
 
-def full(ei,rc):
+def full(ei, rc):
+    consume(ei, rc, type_yield)
+
+def incremental(ei,rc):
+    consume(ei, rc, type_yield_modified)    
+    try:
+        ei.optimize()
+    except:
+        pass
+
+def consume(ei, rc, iter_func):
+    p = gevent.pool.Pool(10)
     for typ in ei.types:
-        for ok, item in ei.bulk_index(type_yield(ei,rc,typ)):
-            pass
+        # Construct a version of index record that can be just called with the record
+        index_func = functools.partial(index_record, ei, rc, typ, do_index=False)
+        for ok, item in ei.bulk_index(p.imap(index_func,iter_func(ei, rc, typ, yield_record=True))):
+            pass    
+
+def continuous_incremental(ei,rc):
+    while True:
+        t_start = datetime.datetime.now()
+        print "Starting Incremental Run at", t_start.isoformat()
+        incremental(ei,rc)
+        t_end = datetime.datetime.now()
+        print "Ending Incremental Run from", t_start.isoformat(), "at", t_end
+        sleep_duration = max([MAX_SLEEP - (t_end - t_start).total_seconds(),MIN_SLEEP])
+        print "Sleeping for", sleep_duration, "seconds"
+        time.sleep(sleep_duration)
 
 def main():
     import argparse

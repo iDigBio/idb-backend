@@ -10,3 +10,4 @@ Flask-UUID
 riak
 coverage
 reverse_geocoder
+gevent

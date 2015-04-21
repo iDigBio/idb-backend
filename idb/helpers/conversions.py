@@ -8,8 +8,17 @@ import datetime
 import pytz
 import pyproj
 import string
+from reverse_geocoder import RGeocoder
+
+rg = RGeocoder(verbose=False,mode=1)
 
 from data_tables.rights_strings import acceptable_licenses_trans, licenses
+from data_tables.locality_data import iso_two_to_three
+
+from .biodiversity_socket_connector import Biodiversity
+
+b = Biodiversity()
+
 PARENT_MAP = {
     "records": "recordsets",
     "mediarecords": "recordsets",
@@ -351,25 +360,32 @@ def geoGrabber(t,d):
         datum_val = getfield("dwc:geodeticDatum",d)
 
         # if we got this far with actual values
-        if r["geopoint"] is not None and datum_val is not None:
-            # convert datum to a more canonical representation (no whitespace, all uppercase)
-            source_datum = mangleString(datum_val)
-            try:
-                # source projection
-                p1 = pyproj.Proj(proj="latlon", datum=source_datum)
+        if r["geopoint"] is not None:
+            if datum_val is not None:
+                # convert datum to a more canonical representation (no whitespace, all uppercase)
+                source_datum = mangleString(datum_val)
+                try:
+                    # source projection
+                    p1 = pyproj.Proj(proj="latlon", datum=source_datum)
 
-                # destination projection
-                p2 = pyproj.Proj(proj="latlon", datum="WGS84")
+                    # destination projection
+                    p2 = pyproj.Proj(proj="latlon", datum="WGS84")
 
-                # do the transform
-                r["geopoint"] = pyproj.transform(p1,p2,r["geopoint"][0],r["geopoint"][1])
-            except:
-                # create an error flag on projection creation exception (invalid source datum)
-                # or on transform exception (point out of bounds for source projection)
-                r["flag_geopoint_datum_error"] = True
-        elif r["geopoint"] is not None:
-            # note unprojected points (datum_val is None)
-            r["flag_geopoint_datum_missing"] = True
+                    # do the transform
+                    # (lon, lat)
+                    r["geopoint"] = pyproj.transform(p1,p2,r["geopoint"][0],r["geopoint"][1])
+                except:
+                    # traceback.print_exc()
+                    # create an error flag on projection creation exception (invalid source datum)
+                    # or on transform exception (point out of bounds for source projection)
+                    r["flag_geopoint_datum_error"] = True
+            else:
+                # note unprojected points (datum_val is None)
+                r["flag_geopoint_datum_missing"] = True
+
+            results = rg.query([(r["geopoint"][1],r["geopoint"][0])])[0]
+            if "idigbio:isoCountryCode" in d and iso_two_to_three[results["cc"]] != d["countrycode"]:
+                r["flag_rev_geocode_mismatch"] = True
     return r
 
 def dateGrabber(t,d):
@@ -505,17 +521,19 @@ def getLicense(t,d):
     else:
         return {}
 
+def filled(k,d):
+    return k in d and d[k] is not None
 
+def genusSpeciesFiller(t,r):
+    gs = b.get_genus_species(r["scientificname"])
+    return gs
 
 def scientificNameFiller(t,r):
     sciname = None
-    if "scientificname" not in r or r["scientificname"] is None:
-        if "genus" in r and r["genus"] is not None:
-            sciname = r["genus"]
-            if "specificepithet" in r and r["specificepithet"] is not None:
-                sciname += " " + r["specificepithet"]
-    elif "scientificname" in r:
-        sciname = r["scientificname"]
+    if filled("genus",r):
+        sciname = r["genus"]
+        if filled("specificepithet",r):
+            sciname += " " + r["specificepithet"]
     return sciname
 
 def grabAll(t,d):
@@ -528,7 +546,15 @@ def grabAll(t,d):
     r.update(relationsGrabber(t,d))
     r.update(getLicense(t,d))
     # Done with non-dependant fields.
-    r["scientificname"] = scientificNameFiller(t,r)
+    if filled(t,"genus"):
+        r["scientificname"] = scientificNameFiller(t,r)
+        r["flag_scientificname_added"] = True
+    elif filled(t,"scientificname"):
+        gs = genusSpeciesFiller(t,r)
+        for k, indk in [("genus","genus"), ("species","specificepithet")]:
+            if filled(k,gs) and not filled(indk,r):
+                r[indk] = gs[k]
+                r["flag_" + indk + "_added"] = True
 
     r["flags"] = setFlags(r)
     for k in r.keys():

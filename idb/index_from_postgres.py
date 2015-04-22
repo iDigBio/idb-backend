@@ -1,6 +1,13 @@
-import gevent
-import gevent.monkey
-gevent.monkey.patch_socket()
+# import gevent.monkey
+# gevent.monkey.patch_socket()
+
+MULTIPROCESS = False
+
+if MULTIPROCESS:
+    from multiprocessing import Pool    
+else:
+    from gevent.pool import Pool
+
 
 import uuid
 import json
@@ -10,6 +17,7 @@ import datetime
 import time
 import copy
 import sys
+import gc
 
 from postgres_backend import pg, DictCursor
 from helpers.index_helper import index_record
@@ -278,7 +286,7 @@ def incremental(ei,rc, no_index=False):
         pass
 
 def consume(ei, rc, iter_func, no_index=False):
-    p = gevent.pool.Pool(10)
+    p = Pool(10)
     for typ in ei.types:
         # Construct a version of index record that can be just called with the record
         index_func = functools.partial(index_record, ei, rc, typ, do_index=False)
@@ -288,6 +296,7 @@ def consume(ei, rc, iter_func, no_index=False):
         else:
             for ok, item in ei.bulk_index(p.imap(index_func,iter_func(ei, rc, typ, yield_record=True))):
                 pass
+        gc.collect()
 
 def continuous_incremental(ei,rc, no_index=False):
     while True:

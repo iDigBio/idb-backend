@@ -83,7 +83,7 @@ def get_data(path_to_checklist):
         if len(names[(g, s)]) > 1:
             multiname += 1
 
-        gibf_t = {}
+        gbif_t = {}
         for n in names[(g, s)]:
             try:
                 gbif_t.update({

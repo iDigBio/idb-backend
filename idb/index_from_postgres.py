@@ -228,7 +228,7 @@ def type_yield_resume(ei,rc,typ,also_delete=False,yield_record=False):
                 }
             })
 
-def delete(ei):
+def delete(ei, no_index=False):
     print "Running deletes"
     cursor = pg.cursor(str(uuid.uuid4()),cursor_factory=DictCursor)
 
@@ -236,21 +236,22 @@ def delete(ei):
     cursor.execute("SELECT id,type FROM uuids WHERE deleted=true")
     for r in cursor:
         count += 1
-        ei.es.delete_by_query(**{
-            "index": ei.indexName,
-            "doc_type": r["type"],
-            "body": {
-                "query": {
-                    "filtered": {
-                        "filter": {
-                            "term":{
-                                "uuid": r["id"]
+        if not no_index:
+            ei.es.delete_by_query(**{
+                "index": ei.indexName,
+                "doc_type": r["type"],
+                "body": {
+                    "query": {
+                        "filtered": {
+                            "filter": {
+                                "term":{
+                                    "uuid": r["id"]
+                                }
                             }
                         }
                     }
                 }
-            }
-        })
+            })
 
         if count % 10000 == 0:
             print count
@@ -261,34 +262,38 @@ def delete(ei):
     except:
         pass
 
-def resume(ei, rc, also_delete=False):
+def resume(ei, rc, also_delete=False, no_index=False):
     # Create a partial application to add in the keyword argument
     f = functools.partial(type_yield_resume,also_delete=also_delete)
-    consume(ei, rc, f)
+    consume(ei, rc, f, no_index=no_index)
 
-def full(ei, rc):
-    consume(ei, rc, type_yield)
+def full(ei, rc, no_index=False):
+    consume(ei, rc, type_yield, no_index=no_index)
 
-def incremental(ei,rc):
-    consume(ei, rc, type_yield_modified)    
+def incremental(ei,rc, no_index=False):
+    consume(ei, rc, type_yield_modified, no_index=no_index)
     try:
         ei.optimize()
     except:
         pass
 
-def consume(ei, rc, iter_func):
+def consume(ei, rc, iter_func, no_index=False):
     p = gevent.pool.Pool(10)
     for typ in ei.types:
         # Construct a version of index record that can be just called with the record
         index_func = functools.partial(index_record, ei, rc, typ, do_index=False)
-        for ok, item in ei.bulk_index(p.imap(index_func,iter_func(ei, rc, typ, yield_record=True))):
-            pass    
+        if no_index:
+            for _ in p.imap(index_func,iter_func(ei, rc, typ, yield_record=True)):
+                pass
+        else:
+            for ok, item in ei.bulk_index(p.imap(index_func,iter_func(ei, rc, typ, yield_record=True))):
+                pass
 
-def continuous_incremental(ei,rc):
+def continuous_incremental(ei,rc, no_index=False):
     while True:
         t_start = datetime.datetime.now()
         print "Starting Incremental Run at", t_start.isoformat()
-        incremental(ei,rc)
+        incremental(ei,rc, no_index=no_index)
         t_end = datetime.datetime.now()
         print "Ending Incremental Run from", t_start.isoformat(), "at", t_end
         sleep_duration = max([MAX_SLEEP - (t_end - t_start).total_seconds(),MIN_SLEEP])
@@ -305,6 +310,7 @@ def main():
     parser.add_argument('-c', '--continuous', dest='continuous', action='store_true', help='run incemental continously (implies -i)')
     parser.add_argument('-d', '--delete', dest='delete', action='store_true', help='delete records from index that are deleted in api')
     parser.add_argument('-k', '--check', dest='check', action='store_true', help='run a full check (delete + resume)')
+    parser.add_argument('-n', '--noindex', dest='no_index', action='store_true', help="don't actually index records")
 
     args = parser.parse_args()
 
@@ -325,15 +331,15 @@ def main():
             continuous_incremental(ei,rc)
 
         elif args.incremental:
-            incremental(ei,rc)
+            incremental(ei,rc,no_index=args.no_index)
         elif args.resume:
-            resume(ei,rc)
+            resume(ei,rc,no_index=args.no_index)
         elif args.full:
-            full(ei,rc)
+            full(ei,rc,no_index=args.no_index)
         elif args.delete:
-            delete(ei)
+            delete(ei,no_index=args.no_index)
         elif args.check:
-            resume(ei,rc,also_delete=True)
+            resume(ei,rc,also_delete=True,no_index=args.no_index)
         else:
             parser.print_help()
     else:

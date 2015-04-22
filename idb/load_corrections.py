@@ -1,3 +1,5 @@
+import os
+
 from corrections.loader import CorrectionsLoader
 
 from data_tables import locality, taxon
@@ -16,7 +18,7 @@ def main():
         for dr in locality.get_data():
             loader.add_corrections(dr[0],dr[1],dr[2],approved=dr[3])
 
-        for dr in taxon.get_data("/home/godfoder/taxon/checklist1.zip"):
+        for dr in taxon.get_data(os.path.expanduser("~/taxon/checklist1.zip")):
             loader.add_corrections(dr[0],dr[1],dr[2],approved=dr[3])            
 
 if __name__ == '__main__':

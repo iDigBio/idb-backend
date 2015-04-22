@@ -95,6 +95,7 @@ def get_data(path_to_checklist):
                 })
                 for ht in higher_taxons + ["dwc:family"]:
                     if ht in n:
+                        # Trap for garbage values
                         if ht in gbif_t and gbif_t[ht] != n[ht].lower().split(" ")[0]:
                             print ht, names[(f, g, s)]
                         gbif_t[ht] = n[ht].lower().split(" ")[0]

@@ -320,6 +320,7 @@ def main():
     parser.add_argument('-d', '--delete', dest='delete', action='store_true', help='delete records from index that are deleted in api')
     parser.add_argument('-k', '--check', dest='check', action='store_true', help='run a full check (delete + resume)')
     parser.add_argument('-n', '--noindex', dest='no_index', action='store_true', help="don't actually index records")
+    parser.add_argument('-t', '--types', dest='types', nargs='+', type=str, default=config["elasticsearch"]["types"])
 
     args = parser.parse_args()
 
@@ -332,7 +333,7 @@ def main():
             "c17node55.acis.ufl.edu",
             "c17node56.acis.ufl.edu"
         ]
-        ei = ElasticSearchIndexer(config["elasticsearch"]["indexname"],config["elasticsearch"]["types"],serverlist=sl)
+        ei = ElasticSearchIndexer(config["elasticsearch"]["indexname"],args.types,serverlist=sl)
 
         rc = RecordCorrector()
 

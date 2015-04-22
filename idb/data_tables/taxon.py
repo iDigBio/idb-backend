@@ -119,7 +119,7 @@ def get_sources():
 
 def main():
     count = 0
-    for dr in get_data(os.path.abspath("~/taxon/checklist1.zip")):
+    for dr in get_data(os.path.expanduser("~/taxon/checklist1.zip")):
         count += 1
         # print dr
     print count

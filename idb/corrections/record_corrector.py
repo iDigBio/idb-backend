@@ -7,6 +7,9 @@ class RecordCorrector(object):
 
     def __init__(self):
         self.create_schema()
+        self.reload()
+
+    def reload(self):
         cursor = pg.cursor(str(uuid.uuid4()),cursor_factory=DictCursor)
         cursor.execute("select k::json,v::json from corrections")
 

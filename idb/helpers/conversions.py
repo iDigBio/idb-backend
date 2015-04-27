@@ -388,7 +388,7 @@ def geoGrabber(t,d):
                 r["flag_geopoint_datum_missing"] = True
 
             results = rg.query([(r["geopoint"][1],r["geopoint"][0])])[0]
-            if "idigbio:isocountrycode" in d and iso_two_to_three[results["cc"]] != d["idigbio:isocountrycode"]:
+            if "idigbio:isocountrycode" in d and results["cc"] in iso_tow_to_three and iso_two_to_three[results["cc"]] != d["idigbio:isocountrycode"]:
                 r["flag_rev_geocode_mismatch"] = True
     return r
 

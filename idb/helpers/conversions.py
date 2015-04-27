@@ -388,7 +388,7 @@ def geoGrabber(t,d):
                 r["flag_geopoint_datum_missing"] = True
 
             results = rg.query([(r["geopoint"][1],r["geopoint"][0])])[0]
-            if "idigbio:isoCountryCode" in d and iso_two_to_three[results["cc"]] != d["countrycode"]:
+            if "idigbio:isocountrycode" in d and iso_two_to_three[results["cc"]] != d["idigbio:isocountrycode"]:
                 r["flag_rev_geocode_mismatch"] = True
     return r
 
@@ -574,20 +574,30 @@ def grabAll(t,d):
     return r
 
 def main():
-    d = {
-        "xmpRights:WebStatement": "http://creativecommons.org/licenses/by-nc/4.0/",
-        "ac:hashValue": "265a83b255bf0eca18e45aa5b6876c13",
-        "dc:type": "StillImage",
-        "idigbio:associatedRecordsetReference": "285a4be0-5cfe-4d4f-9c8b-b0f0f3571079",
-        "xmpRights:UsageTerms": "CC BY-NC",
-        "idigbio:recordId": "TTD_TCN_MICH_1361582.jpg",
-        "ac:licenseLogoURL": "http://mirrors.creativecommons.org/presskit/buttons/80x15/png/by-nc.png",
-        "ac:hashFunction": "MD5",
-        "dcterms:format": "image/jpeg",
-        "ac:accessURI": "http://media.idigbio.org/lookup/images/265a83b255bf0eca18e45aa5b6876c13",
-        "dcterms:modified": "2014-09-09 19:02:50.640000"
-    }
-    print getLicense("mediarecords",d)
+    def dt_serial(obj):
+        if isinstance(obj,datetime.datetime):
+            return obj.isoformat()
+        else:
+            return obj
+
+    import sys
+    import requests
+    import copy
+    import json
+    from corrections.record_corrector import RecordCorrector
+
+    rc = RecordCorrector()
+
+    t = sys.argv[1]
+    u = sys.argv[2]
+    r = requests.get("http://api.idigbio.org/v1/{0}/{1}".format(t,u))
+    r.raise_for_status()
+    o = r.json()
+    d,_ = rc.correct_record(o["idigbio:data"])
+    d.update(o)
+    del d["idigbio:data"]
+    print json.dumps(d,indent=2)
+    print json.dumps(grabAll(t,d),default=dt_serial,indent=2)
 
 if __name__ == '__main__':
     main()

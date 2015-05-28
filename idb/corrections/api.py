@@ -8,10 +8,16 @@ from flask.ext.uuid import FlaskUUID
 from helpers.idb_flask_authn import requires_auth
 from postgres_backend.db import PostgresDB
 
+from corrections.record_corrector import RecordCorrector
+from helpers.conversions import grabAll, index_field_to_longname
+from elasticsearch_backend.indexer import prepForEs
+
 app = Flask(__name__)
 FlaskUUID(app)
 
 app.config["DB"] = PostgresDB()
+
+rc = RecordCorrector()
 
 @app.route('/', methods=['GET'])
 def index():
@@ -19,6 +25,41 @@ def index():
         "v2": url_for("v2_index",_external=True),
     }
     return jsonify(r)
+
+@app.route('/v2/correct_record', methods=['GET','POST'])
+def correct_record():
+    data = None
+    t = None
+    if request.json is not None:
+        if "data" in request.json:
+            data = request.json["data"]
+        if "t" in request.json:
+            t = request.json["t"]
+    else:
+        t = request.args.get("t")
+        try:
+            data = json.loads(request.args.get("data"))
+        except:
+            resp = jsonify({"error": "Unable to parse json value in data."})
+            resp.status_code = 400
+            return resp
+
+    if t is None:
+        t = "records"
+
+    if data is None:
+        resp = jsonify({"error": "Must supply a value for data."})
+        resp.status_code = 400
+        return resp
+    else:
+        d,ck = rc.correct_record(data)
+
+        g = grabAll(t,d)
+        i =  prepForEs(t,g)
+        dwc_rec = {}
+        for k in i:
+            dwc_rec[index_field_to_longname[t][k]] = i[k]
+        return jsonify(dwc_rec)
 
 @app.route('/v2', methods=['GET'])
 def v2_index():

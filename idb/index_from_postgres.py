@@ -21,7 +21,6 @@ import gc
 
 from postgres_backend import pg, DictCursor
 from helpers.index_helper import index_record
-from helpers.conversions  import grabAll
 from corrections.record_corrector import RecordCorrector
 from elasticsearch_backend.indexer import ElasticSearchIndexer
 from config import config

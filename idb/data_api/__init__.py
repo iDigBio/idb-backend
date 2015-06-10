@@ -22,8 +22,8 @@ app.register_blueprint(v2,url_prefix="/v2")
 @app.route('/', methods=['GET'])
 def index():
     r = {
-        "v1": url_for("flask_api.v1.index",_external=True),
-        "v2": url_for("flask_api.v2.index",_external=True),
+        "v1": url_for("data_api.v1.index",_external=True),
+        "v2": url_for("data_api.v2.index",_external=True),
     }
     return jsonify(r)
 

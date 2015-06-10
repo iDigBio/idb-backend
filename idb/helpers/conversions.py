@@ -400,9 +400,29 @@ def geoGrabber(t,d):
                 # note unprojected points (datum_val is None)
                 r["flag_geopoint_datum_missing"] = True
 
+            # Query takes tuples in lat, lon
             results = rg.query([(r["geopoint"][1],r["geopoint"][0])])[0]
             if "idigbio:isocountrycode" in d and results["cc"] in iso_two_to_three and iso_two_to_three[results["cc"]].lower() != d["idigbio:isocountrycode"]:
                 r["flag_rev_geocode_mismatch"] = True
+                flip_queries = [ # Point, "Distance" from original coords, Flag
+                    [(r["geopoint"][1],-r["geopoint"][0]),   1, "rev_geocode_lon_sign"],
+                    [(-r["geopoint"][1],r["geopoint"][0]),   1, "rev_geocode_lat_sign"],
+                    [(-r["geopoint"][1],-r["geopoint"][0]),  2, "rev_geocode_both_sign"],
+                ]
+                if r["geopoint"][0] <= 90.0:
+                    flip_queries.extend([
+                        [(r["geopoint"][0],r["geopoint"][1]),    2, "rev_geocode_flip"],
+                        [(r["geopoint"][0],-r["geopoint"][1]),   3, "rev_geocode_flip_lat_sign"],
+                        [(-r["geopoint"][0],r["geopoint"][1]),   3, "rev_geocode_flip_lon_sign"],
+                        [(-r["geopoint"][0],-r["geopoint"][1]),  4, "rev_geocode_flip_both_sign"]
+                    ])
+                for i, f in enumerate(rg.query([f[0] for f in flip_queries])):
+                    if f["cc"] in iso_two_to_three and iso_two_to_three[f["cc"]].lower() == d["idigbio:isocountrycode"]:
+                        # Flip back to lon, lat
+                        r["geopoint"] = (flip_queries[i][0][1], flip_queries[i][0][0])
+                        # Set flag
+                        r[flip_queries[i][2]] = True
+                        break
     return r
 
 def dateGrabber(t,d):

@@ -1,11 +1,10 @@
-# import gevent.monkey
-# gevent.monkey.patch_all()
-
 MULTIPROCESS = False
 
 if MULTIPROCESS:
     from multiprocessing import Pool    
 else:
+    import gevent.monkey
+    gevent.monkey.patch_all()
     from gevent.pool import Pool
 
 
@@ -34,6 +33,7 @@ MAX_SLEEP = 600
 MIN_SLEEP = 120
 
 def type_yield(ei,rc,typ,yield_record=False):
+    # drop the trailing s
     pg_typ = "".join(typ[:-1])
 
     cursor = pg.cursor(str(uuid.uuid4()),cursor_factory=DictCursor)

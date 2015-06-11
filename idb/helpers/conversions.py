@@ -421,7 +421,7 @@ def geoGrabber(t,d):
                         # Flip back to lon, lat
                         r["geopoint"] = (flip_queries[i][0][1], flip_queries[i][0][0])
                         # Set flag
-                        r[flip_queries[i][2]] = True
+                        r["flag_" + flip_queries[i][2]] = True
                         break
     return r
 

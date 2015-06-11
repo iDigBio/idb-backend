@@ -3,8 +3,8 @@ MULTIPROCESS = False
 if MULTIPROCESS:
     from multiprocessing import Pool    
 else:
-    import gevent.monkey
-    gevent.monkey.patch_all()
+    # import gevent.monkey
+    # gevent.monkey.patch_all()
     from gevent.pool import Pool
 
 

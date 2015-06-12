@@ -1,16 +1,16 @@
 import requests
 import json
-import csv
+import unicodecsv as csv
 
-search_server = "http://c17node52.acis.ufl.edu:9200"
-index = "idigbio-2.0.0"
+search_server = "http://c18node2.acis.ufl.edu:9200"
+index = "idigbio-2.4.0"
 pattern = "{0}/{1}/{2}/_search"
 
 s = requests.Session()
 
 pub_query = {
     "size": 1000,
-    "_source": ["data.idigbio:data.name"]
+    "_source": ["data.name"]
 }
 
 rp = s.post(pattern.format(search_server,index,"publishers"), data=json.dumps(pub_query))
@@ -20,11 +20,14 @@ op = rp.json()
 pubs = {}
 
 for h in op["hits"]["hits"]:
-    pubs[h["_id"]] = h["_source"]["data"]["idigbio:data"]["name"]
+    try:
+        pubs[h["_id"]] = h["_source"]["data"]["name"]
+    except:
+        print "skip pub", h["_id"]
 
 rs_query = {
     "size": 1000,
-    "_source": ["publisher","data.idigbio:data.collection_name"]
+    "_source": ["publisher","data.collection_name"]
 }
 
 rs = s.post(pattern.format(search_server,index,"recordsets"), data=json.dumps(rs_query))
@@ -34,7 +37,10 @@ os = rs.json()
 rsp = {}
 
 for h in os["hits"]["hits"]:
-    rsp[h["_id"]] = { "pub": h["_source"]["publisher"], "pub_name": pubs[h["_source"]["publisher"]], "name": h["_source"]["data"]["idigbio:data"]["collection_name"]}
+    try:
+        rsp[h["_id"]] = { "pub": h["_source"]["publisher"], "pub_name": pubs[h["_source"]["publisher"]], "name": h["_source"]["data"]["collection_name"]}
+    except:
+        print "skip rs", h["_id"]
 
 query = {
     "aggs": {

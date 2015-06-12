@@ -62,6 +62,7 @@ fields = {
         ["mindepth","", "float", 1, "dwc:minimumDepthInMeters"],
         ["maxdepth","", "float", 1, "dwc:maximumDepthInMeters"],
         ["datecollected","", "date", 1, "dwc:eventDate"],
+        ["startdayofyear", "", "integer", 1, "dwc:startDayOfYear"],
         ["institutionname","idigbio:institutionName", "text", 1, None],
         ["institutioncode","dwc:institutionCode", "text", 1, None],
         ["institutionid","dwc:institutionID", "text", 1, None],
@@ -480,6 +481,9 @@ def dateGrabber(t,d):
                     r["datecollected"] = dateutil.parser.parse(year).date()
             except:
                 pass
+
+    if "datecollected" in r and r["datecollected"] == None:
+        r["startdayofyear"] = r["datecollected"].timetuple().tm_yday
 
     return r
 

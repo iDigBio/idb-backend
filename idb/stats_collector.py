@@ -15,7 +15,7 @@ def json_serial(obj):
         return serial
     raise TypeError ("Type not serializable")
 
-indexName = "stats-2.4.0"
+indexName = "stats-2.5.0"
 typeName = "search"
 
 sl = config["elasticsearch"]["servers"]
@@ -139,7 +139,7 @@ def collect_stats(collect_datetime):
     for recordset_key in recordset_stats:
         recordset_data = {
             "recordset_id": recordset_key,
-            "harvest_date": datetime.now().isoformat()
+            "harvest_date": collect_datetime.date().isoformat()
         }
         for record_type in record_types:
             recordset_data[record_type] = {}

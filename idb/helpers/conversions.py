@@ -25,6 +25,10 @@ PARENT_MAP = {
     "recordsets": "publishers",
 }
 
+REVERSE_GEOCODE_BLACKLIST = {
+    "gin"
+}
+
 locale.setlocale(locale.LC_ALL, '')
 
 # [indexname, rawfield, type, include_in_max]
@@ -354,15 +358,25 @@ def geoGrabber(t,d):
     # Ex. lower precision values may be converted to artifically more precise floats
     if lat_val is not None and lon_val is not None:
         try:
-            latexp = getExponent(lat_val)
             lat = float(lat_val)
-            if lat <= -90 or lat >= 90:
+            lon = float(lon_val)
+
+            latexp = getExponent(lat_val)
+            lonexp = getExponent(lon_val)
+
+            if (
+                 (-180 <= lat < -90 or 90 < lat <= 180 ) and
+                 (-90 <= lon <= 90)
+            ):
+                lat, lon = lon, lat
+                r["flag_geopoint_pre_flip"] = True
+
+            if not (-90 <= lat <= 90):
                 r["geopoint"] = None
                 r["flag_geopoint_bounds"] = True
                 return r
-            lonexp = getExponent(lon_val)
-            lon = float(lon_val)
-            if lon <= -180 or lon >= 180:
+
+            if not (-180 <= lon <= 180):
                 r["geopoint"] = None
                 r["flag_geopoint_bounds"] = True
                 return r
@@ -403,7 +417,12 @@ def geoGrabber(t,d):
 
             # Query takes tuples in lat, lon
             results = rg.query([(r["geopoint"][1],r["geopoint"][0])])[0]
-            if "idigbio:isocountrycode" in d and results["cc"] in iso_two_to_three and iso_two_to_three[results["cc"]].lower() != d["idigbio:isocountrycode"]:
+            if (
+                "idigbio:isocountrycode" in d and
+                d["idigbio:isocountrycode"] not in REVERSE_GEOCODE_BLACKLIST and
+                results["cc"] in iso_two_to_three and
+                iso_two_to_three[results["cc"]].lower() != d["idigbio:isocountrycode"]
+            ):
                 r["flag_rev_geocode_mismatch"] = True
                 flip_queries = [ # Point, "Distance" from original coords, Flag
                     [(r["geopoint"][1],-r["geopoint"][0]),   1, "rev_geocode_lon_sign"],

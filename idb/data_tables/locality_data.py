@@ -1893,7 +1893,6 @@ real_continents = {
     "north america",
     "south america",
     "antarctica",
-    "africa"
     "oceania"
 }
 

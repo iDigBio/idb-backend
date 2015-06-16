@@ -90,7 +90,7 @@ def new_stats_dict():
 
 def get_stats_dates():
     dates_cur = pg.cursor("stats_collector_dates",cursor_factory=DictCursor)
-    dates_cur.execute("select date_trunc('day', date) from stats where group by date_trunc('day', date) order by date_trunc('day', date)")
+    dates_cur.execute("select date_trunc('day', date) from stats group by date_trunc('day', date) order by date_trunc('day', date)")
     return [r[0] for r in dates_cur]
 
 def collect_stats(collect_datetime):

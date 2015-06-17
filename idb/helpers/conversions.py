@@ -501,7 +501,7 @@ def dateGrabber(t,d):
             except:
                 pass
 
-    if "datecollected" in r and r["datecollected"] == None:
+    if "datecollected" in r and r["datecollected"] is not None:
         r["startdayofyear"] = r["datecollected"].timetuple().tm_yday
 
     return r

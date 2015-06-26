@@ -17,6 +17,7 @@ import time
 import copy
 import sys
 import gc
+import os
 
 from postgres_backend import pg, DictCursor
 from helpers.index_helper import index_record
@@ -324,14 +325,15 @@ def main():
     args = parser.parse_args()
 
     if any(args.__dict__.values()):
-        #sl = config["elasticsearch"]["servers"]
-        sl = [
-            "c17node52.acis.ufl.edu",
-            "c17node53.acis.ufl.edu",
-            "c17node54.acis.ufl.edu",
-            "c17node55.acis.ufl.edu",
-            "c17node56.acis.ufl.edu"
-        ]
+        sl = config["elasticsearch"]["servers"]
+        if os.environ["ENV"] == "beta":
+            sl = [
+                "c17node52.acis.ufl.edu",
+                "c17node53.acis.ufl.edu",
+                "c17node54.acis.ufl.edu",
+                "c17node55.acis.ufl.edu",
+                "c17node56.acis.ufl.edu"
+            ]
         ei = ElasticSearchIndexer(config["elasticsearch"]["indexname"],args.types,serverlist=sl)
 
         rc = RecordCorrector()

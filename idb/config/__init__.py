@@ -29,4 +29,5 @@ for p in conf_paths:
 
 if "env" in config:
     for k in config["env"]:
-        os.environ[k] = config["env"][k]
+        if k not in os.environ:
+            os.environ[k] = config["env"][k]

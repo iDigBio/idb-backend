@@ -79,6 +79,14 @@ def geoDistance(k, shimK):
     }
 
 
+def geoShape(k, shimK):
+    return typeWrapper(k, "geo_shape", {"shape": shimK})
+
+
+def geoPolygon(k, shimK):
+    return typeWrapper(k, "geo_polygon", {"points": shimK})
+
+
 def termFilter(k, shimK):
     if isString(shimK):
         return {
@@ -125,6 +133,10 @@ def objectType(k, shimK):
         return shimK["value"].lower()
     elif shimK["type"] == "prefix":
         return prefixFilter(k, shimK)
+    elif shimK["type"] == "geo_shape":
+        return geoShape(k, shimK)
+    elif shimK["type"] == "geo_polygon":
+        return geoPolygon(k, shimK)
     else:
         raise UnknownTypeException(shimK["type"])
 

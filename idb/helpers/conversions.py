@@ -9,11 +9,17 @@ import pytz
 import pyproj
 import string
 from reverse_geocoder import RGeocoder
-from shapely.geos import ReadingError
 from shapely import wkt
 from shapely.geometry import Polygon, mapping
 
 rg = RGeocoder(verbose=False, mode=1)
+
+import logging
+
+# Mute Shapely logging
+l = logging.getLogger("shapely")
+l.setLevel(logging.CRITICAL)
+
 
 from data_tables.rights_strings import acceptable_licenses_trans, licenses
 from data_tables.locality_data import iso_two_to_three
@@ -653,7 +659,8 @@ def scientificNameFiller(t, r):
             sciname += " " + r["specificepithet"]
     return sciname
 
-def gs_sn_crossfill(t,r):
+
+def gs_sn_crossfill(t, r):
     if filled("genus", r):
         r["scientificname"] = scientificNameFiller(t, r)
         r["flag_scientificname_added"] = True
@@ -664,11 +671,13 @@ def gs_sn_crossfill(t,r):
                 r[indk] = gs[k]
                 r["flag_" + indk + "_added"] = True
 
+
 def generate_geoshape_from_wkt(t, d):
+    r = {}
     poly = None
     try:
         poly = wkt.loads(d["dwc:footprintWKT"])
-    except ReadingError:
+    except:
         try:
             wkta = [float(c) for c in d["dwc:footprintWKT"].split(",")]
             if len(wkta) > 1 and len(wkta) % 2 == 0:
@@ -680,47 +689,87 @@ def generate_geoshape_from_wkt(t, d):
             r["flag_geoshape_invalid_wkt"] = True
         except:
             r["flag_geoshape_invalid_wkt"] = True
+
     if poly is not None:
-        return mapping(poly)
-    else:
-        return None
+        r["geoshape"] = mapping(poly)
+    return r
 
 
 def generate_geoshape_from_point_radius(t, r):
     return {
-        "type": "circle",
-        "coordinates": r["geopoint"],
-        "radius": str(r["coordinateuncertainty"])
+        "geoshape": {
+            "type": "circle",
+            "coordinates": r["geopoint"],
+            "radius": str(r["coordinateuncertainty"])
+        }
     }
 
+
 def geoshape_fill(t, d, r):
+    resp = {}
     if filled("dwc:footprintWKT", d):
-        p = generate_geoshape_from_wkt(t, d)
-        if p is not None:
-            r["geoshape"] = p
+        resp.update(generate_geoshape_from_wkt(t, d))
 
     if (
-        "geoshape" not in r and
+        "geoshape" not in resp and
         filled("geopoint", r) and
         filled("coordinateuncertainty", r)
     ):
-        r["geoshape"] = generate_geoshape_from_point_radius(t, r)
+        resp.update(generate_geoshape_from_point_radius(t, r))
 
+    return resp
+
+
+def fixBOR(t, r):
+    if filled("basisofrecord", r):
+        if "preserved" in r["basisofrecord"]:
+            r["basisofrecord"] = "preservedspecimen"
+        elif "fossil" in r["basisofrecord"]:
+            r["basisofrecord"] = "fossilspecimen"
+        elif "living" in r["basisofrecord"]:
+            r["basisofrecord"] = "livingspecimen"
+        elif "specimen" in r["basisofrecord"]:
+            r["basisofrecord"] = "preservedspecimen"
+        elif "observation" in r["basisofrecord"]:
+            r["basisofrecord"] = "humanobservation"
+        else:
+            r["basisofrecord"] = None
+            r["flag_dwc_basisofrecord_invalid"] = True
+
+
+# Step, count, ms, ms/count     action
+# rc 1000 354.179 0.354179      record corrector
+# 0 1000 44.898 0.044898        r = verbatimGrabber(t, d)
+# 1 1000 18.476 0.018476        r.update(elevGrabber(t, d))
+# 2 1000 28.539 0.028539        r.update(intGrabber(t, d))
+# 3 1000 12.228 0.012228        r.update(floatGrabber(t, d))
+# 4 1000 285.278 0.285278       r.update(geoGrabber(t, d)) # 4
+# 5 1000 397.866 0.397866       r.update(dateGrabber(t, d)) # 5
+# 6 1000 55.907 0.055907        r.update(relationsGrabber(t, d))
+# 7 1000 14.834 0.014834        r.update(getLicense(t, d))
+# 8 1000 10.355 0.010355        gs_sn_crossfill(t, r)
+# 9 1000 11.182 0.011182        r.update(geoshape_fill(t, d, r))
+# 10 1000 14.917 0.014917       r["flags"] = setFlags(r)
+# 11 1000 16.59 0.01659         r flag loop
+# 12 1000 54.133 0.054133       d flag loop
+# 13 1000 15.618 0.015618       r["dqs"] = score(t, r)
 
 def grabAll(t, d):
     r = verbatimGrabber(t, d)
     r.update(elevGrabber(t, d))
     r.update(intGrabber(t, d))
     r.update(floatGrabber(t, d))
-    r.update(geoGrabber(t, d))
-    r.update(dateGrabber(t, d))
+    r.update(geoGrabber(t, d))  # 4
+    r.update(dateGrabber(t, d))  # 5
     r.update(relationsGrabber(t, d))
     r.update(getLicense(t, d))
     # Done with non-dependant fields.
 
     gs_sn_crossfill(t, r)
+    fixBOR(t, r)
 
-    geoshape_fill(t, d, r)
+    # Disable geoshape for now, it uses a ton of space
+    # r.update(geoshape_fill(t, d, r))
 
     r["flags"] = setFlags(r)
     for k in r.keys():
@@ -730,7 +779,6 @@ def grabAll(t, d):
     for k in d.keys():
         if k.startswith("flag_"):
             r["flags"].append("_".join(k.split("_")[1:]))
-
     r["dqs"] = score(t, r)
 
     return r
@@ -751,16 +799,64 @@ def main():
 
     rc = RecordCorrector()
 
-    t = sys.argv[1]
-    u = sys.argv[2]
-    r = requests.get("http://api.idigbio.org/v1/{0}/{1}".format(t, u))
-    r.raise_for_status()
-    o = r.json()
-    d, _ = rc.correct_record(o["idigbio:data"])
-    d.update(o)
-    del d["idigbio:data"]
-    print json.dumps(d, indent=2)
-    print json.dumps(grabAll(t, d), default=dt_serial, indent=2)
+    s = requests.Session()
+
+    retry_count = 3
+    obj = None
+    while retry_count > 0:
+        try:
+            resp = s.get("http://api.idigbio.org/v1/records/?limit=10000")
+            resp.raise_for_status()
+        except:
+            retry_count -= 1
+            continue
+        break
+    obj = resp.json()
+
+    recs = []
+    for li in obj["idigbio:items"]:
+        retry_count = 3
+        while retry_count > 0:
+            try:
+                rec_resp = s.get(
+                    "http://api.idigbio.org/v1/{0}/{1}".format("records", li["idigbio:uuid"]))
+                rec_resp.raise_for_status()
+                recs.append(rec_resp.json())
+            except:
+                retry_count -= 1
+                continue
+            break
+
+    print "records ready"
+
+    interations = 1
+
+    total_time = 0.0
+    count = 0
+
+    for _ in range(0, interations):
+        for rec in recs:
+            t1 = datetime.datetime.now()
+            d, _ = rc.correct_record(rec["idigbio:data"])
+            d.update(rec)
+            del d["idigbio:data"]
+            r = grabAll(t, d)
+            t2 = datetime.datetime.now()
+            total_time += (t2 - t1).total_seconds()
+            count += 1
+
+    print count, total_time, total_time / count
+
+    # t = sys.argv[1]
+    # u = sys.argv[2]
+    # r = requests.get("http://api.idigbio.org/v1/{0}/{1}".format(t, u))
+    # r.raise_for_status()
+    # o = r.json()
+    # d, _ = rc.correct_record(o["idigbio:data"])
+    # d.update(o)
+    # del d["idigbio:data"]
+    # print json.dumps(d, indent=2)
+    # print json.dumps(grabAll(t, d), default=dt_serial, indent=2)
 
 if __name__ == '__main__':
     main()

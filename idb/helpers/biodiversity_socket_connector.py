@@ -19,7 +19,7 @@ class Biodiversity(object):
 
     def _sendOne(self,namestr):
         if self.sock is not None:
-            self.sock.send(namestr + "\n")
+            self.sock.send(namestr.encode("utf-8") + "\n")
 
     def _sendMany(self,namestr_list):
         if self.sock is not None:

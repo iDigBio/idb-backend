@@ -18,6 +18,7 @@ def task(partition):
         db._cur.executemany("UPDATE data SET data=%s WHERE riak_etag=%s", data_items)
         db.commit()
         total_count += len(data_items)
+        count = len(data_items)
         print partition, total_count
 
 def main():

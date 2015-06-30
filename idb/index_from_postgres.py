@@ -328,7 +328,7 @@ def main():
         sl = config["elasticsearch"]["servers"]
         indexname = config["elasticsearch"]["indexname"]
         if os.environ["ENV"] == "beta":
-            indexname = "idigbio-2.5.0"
+            indexname = "2.5.0"
             sl = [
                 "c17node52.acis.ufl.edu",
                 "c17node53.acis.ufl.edu",

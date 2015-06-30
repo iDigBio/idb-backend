@@ -326,7 +326,9 @@ def main():
 
     if any(args.__dict__.values()):
         sl = config["elasticsearch"]["servers"]
+        indexname = config["elasticsearch"]["indexname"]
         if os.environ["ENV"] == "beta":
+            indexname = "idigbio-2.5.0"
             sl = [
                 "c17node52.acis.ufl.edu",
                 "c17node53.acis.ufl.edu",
@@ -334,7 +336,7 @@ def main():
                 "c17node55.acis.ufl.edu",
                 "c17node56.acis.ufl.edu"
             ]
-        ei = ElasticSearchIndexer(config["elasticsearch"]["indexname"],args.types,serverlist=sl)
+        ei = ElasticSearchIndexer(indexname,args.types,serverlist=sl)
 
         rc = RecordCorrector()
 

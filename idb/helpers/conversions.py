@@ -394,9 +394,6 @@ def geoGrabber(t, d):
     lat_val = getfield("dwc:decimalLatitude", d)
     lon_val = getfield("dwc:decimalLongitude", d)
 
-    # TODO: these falgs sould probably be set after the transform, but some of them may lose meaning
-    # Ex. lower precision values may be converted to artifically more precise
-    # floats
     if lat_val is not None and lon_val is not None:
         try:
             lat = float(lat_val)

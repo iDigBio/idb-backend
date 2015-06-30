@@ -5,7 +5,7 @@ if MULTIPROCESS:
 else:
     # import gevent.monkey
     # gevent.monkey.patch_all()
-    from gevent.pool import Pool
+    from gevent.pool import Pool, Timeout
 
 
 import uuid
@@ -289,7 +289,11 @@ def consume(ei, rc, iter_func, no_index=False):
     p = Pool(10)
     for typ in ei.types:
         # Construct a version of index record that can be just called with the record
-        index_func = functools.partial(index_record, ei, rc, typ, do_index=False)
+        def index_func(rec):
+            with Timeout(5) as timeout:
+                real_index_func = functools.partial(index_record, ei, rc, typ, do_index=False)
+                resp = real_index_func(rec)
+            return resp
         if no_index:
             for _ in p.imap(index_func,iter_func(ei, rc, typ, yield_record=True)):
                 pass

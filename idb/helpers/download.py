@@ -27,11 +27,24 @@ sl = [
     "c17node56.acis.ufl.edu"
 ]
 
-es = elasticsearch.Elasticsearch(
-    sl, sniff_on_start=True, sniff_on_connection_fail=True, retry_on_timeout=True, max_retries=10)
-indexName = "idigbio-2.3.0"
 
 use_string_io = False
+
+sl = config["elasticsearch"]["servers"]
+indexname = config["elasticsearch"]["indexname"]
+if os.environ["ENV"] == "beta":
+    indexname = "2.5.0"
+    sl = [
+        "c17node52.acis.ufl.edu",
+        "c17node53.acis.ufl.edu",
+        "c17node54.acis.ufl.edu",
+        "c17node55.acis.ufl.edu",
+        "c17node56.acis.ufl.edu"
+    ]
+
+indexName = "idigbio-" + indexname
+es = elasticsearch.Elasticsearch(
+    sl, sniff_on_start=True, sniff_on_connection_fail=True, retry_on_timeout=True, max_retries=10)
 
 
 def count_query(t, query):
@@ -45,16 +58,31 @@ def query_to_uniquevals(outf, t, body, val_field, tabs, val_func):
     else:
         cw = csv.writer(outf)
 
+    ifn = None
+    if val_field.startswith("data."):
+        ifn = val_field.split(".")[-1]
+    else:
+        ifn = index_field_to_longname[t][val_field]
+
     cw.writerow(
-        ["id", index_field_to_longname[t][val_field], "idigbio:itemCount"])
+        ["id", ifn, "idigbio:itemCount"])
 
     values = Counter()
     for r in elasticsearch.helpers.scan(es, query=body, size=1000, doc_type=t):
+        source = r["_source"]      
         try:
-            v = r["_source"][val_field]
-            if val_field == "scientificname":
-                v = v.capitalize()
-            values[v] += 1
+            for vf in val_field.split("."):
+                if vf in source:
+                    source = source[vf]
+                else:
+                    values[""] += 1
+                    break
+            else:
+                if source is not None:
+                    v = source
+                    if val_field.lower().endswith("scientificname"):
+                        v = v.capitalize()
+                    values[v] += 1
         except:
             traceback.print_exc()
 
@@ -172,45 +200,37 @@ def make_file(t, query, raw=False, tabs=False, fields=None, core=True, id_func=l
                 query_to_csv(
                     outf, t, body, converted_fields, fields, id_field, raw, tabs, id_func)
             return (outfile_name, final_filename + file_extension, meta_block)
-    elif t == "uniquelocality":
+    elif t.startswith("unique"):
+        if t == "uniquelocality":
+            unique_field = "locality"
+            if raw:
+                unique_field = "data.dwc:locality"
+        elif t == "uniquenames":
+            unique_field = "scientificname"
+            if raw:
+                unique_field = "data.dwc:scientificName"
+
         body = {
-            "_source": ["locality"],
+            "_source": [unique_field],
             "query": query
         }
 
         if use_string_io:
             sio = StringIO()
             query_to_uniquevals(
-                sio, "records", body, "locality", tabs, identifiy_locality)
+                sio, "records", body, unique_field, tabs, identifiy_locality)
             sio.seek(0)
             return (sio, final_filename + file_extension, "")
         else:
             with open(outfile_name, "wb") as outf:
                 query_to_uniquevals(
-                    outf, "records", body, "locality", tabs, identifiy_locality)
-            return (outfile_name, final_filename + file_extension, "")
-
-    elif t == "uniquenames":
-        body = {
-            "_source": ["scientificname"],
-            "query": query
-        }
-
-        if use_string_io:
-            sio = StringIO()
-            query_to_uniquevals(
-                sio, "records", body, "scientificname", tabs, identifiy_scientificname)
-            sio.seek(0)
-            return (sio, final_filename + file_extension, "")
-        else:
-            with open(outfile_name, "wb") as outf:
-                query_to_uniquevals(
-                    outf, "records", body, "scientificname", tabs, identifiy_scientificname)
+                    outf, "records", body, unique_field, tabs, identifiy_locality)
             return (outfile_name, final_filename + file_extension, "")
 
 
-def generate_files(core_type="records", core_source="indexterms", record_query=None, mediarecord_query=None,
-                   form="csv", filename="dump", record_fields=None, mediarecord_fields=None):
+def generate_queries(record_query=None, mediarecord_query=None):
+    rq = None
+    mq = None
 
     rq_and = []
     mq_and = []
@@ -233,13 +253,13 @@ def generate_files(core_type="records", core_source="indexterms", record_query=N
             "filtered": {
                 "filter": {
                     "and": [
-                        {
-                            "match_all": {}
-                        }
                     ]
                 }
             }
         }
+        rq_and.append({
+            "match_all": {}
+        })
 
     if mediarecord_query is not None:
         if "filtered" in mediarecord_query:
@@ -256,16 +276,24 @@ def generate_files(core_type="records", core_source="indexterms", record_query=N
             "filtered": {
                 "filter": {
                     "and": [
-                        {
-                            "match_all": {}
-                        }
                     ]
                 }
             }
         }
+        mq_and.append({
+            "match_all": {}
+        })
 
     rq["filtered"]["filter"]["and"] = rq_and
     mq["filtered"]["filter"]["and"] = mq_and
+
+    return (rq, mq)
+
+
+def generate_files(core_type="records", core_source="indexterms", record_query=None, mediarecord_query=None,
+                   form="csv", filename="dump", record_fields=None, mediarecord_fields=None):
+
+    rq, mq = generate_queries(record_query, mediarecord_query)
 
     if form in ["csv", "tsv"]:
         q = None
@@ -278,26 +306,10 @@ def generate_files(core_type="records", core_source="indexterms", record_query=N
         elif core_type == "mediarecords":
             q = mq
             fields = mediarecord_fields
+        elif core_type.startswith("unique"):
+            q = rq
 
-        if core_type in ["records", "mediarecords"]:
-            if core_source == "indexterms":
-                return make_file(core_type, q, tabs=tabs, core=True, file_prefix=filename + ".", fields=fields)
-            elif core_source == "raw":
-                return make_file(core_type, q, raw=True, tabs=tabs, core=True, file_prefix=filename + ".", fields=fields)
-        elif core_type == "uniquenames":
-            rq["filtered"]["filter"]["and"].append({
-                "exists": {
-                    "field": "scientificname"
-                }
-            })
-            return make_file(core_type, rq, tabs=tabs, core=True, file_prefix=filename + ".", fields=fields)
-        elif core_type == "uniquelocality":
-            rq["filtered"]["filter"]["and"].append({
-                "exists": {
-                    "field": "locality"
-                }
-            })            
-            return make_file(core_type, rq, tabs=tabs, core=True, file_prefix=filename + ".", fields=fields)
+        return make_file(core_type, q, raw=core_source=="raw", tabs=tabs, core=True, file_prefix=filename + ".", fields=fields)
 
     elif form.startswith("dwca"):
         tabs = False
@@ -383,17 +395,13 @@ def main():
 
     mediarecord_query = None
 
-    core_types = ["records", "mediarecords"]
+    #core_types = ["records", "mediarecords", "uniquelocality", "uniquenames"]
+    core_types = ["uniquelocality", "uniquenames"]
     core_sources = ["indexterms", "raw"]
-    forms = ["csv", "tsv", "dwca-csv", "dwca-tsv"]
+    forms = ["csv", "tsv"]
+#    forms = ["csv", "tsv", "dwca-csv", "dwca-tsv"]
 
     combos = itertools.product(core_types, core_sources, forms)
-
-    # core_types = ["uniquenames", "uniquelocality"]
-    # core_sources = ["indexterms"]
-    # forms = ["csv", "tsv"]
-
-    # combos = itertools.product(core_types, core_sources, forms)
 
     for t, s, f in combos:
         try:

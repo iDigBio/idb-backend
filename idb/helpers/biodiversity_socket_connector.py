@@ -32,11 +32,11 @@ class Biodiversity(object):
     def _recvOne(self):
         if self.sock is not None:
             try:
-                while "\n" not in self.__recvBuf:
-                    # Don't wait for a response longer than a second
-                    ready = select.select([self.sock], [], [], 1)
-                    if ready[0]:
-                        self.__recvBuf +=  self.sock.recv(2048)
+                # while "\n" not in self.__recvBuf:
+                #     # Don't wait for a response longer than a second
+                #     ready = select.select([self.sock], [], [], 1)
+                #     if ready[0]:
+                self.__recvBuf +=  self.sock.recv(2048)
 
                 resp, self.__recvBuf = self.__recvBuf.split("\n")
 

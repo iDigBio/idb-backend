@@ -1,4 +1,3 @@
-import select
 import socket
 import json
 import logging
@@ -9,11 +8,12 @@ from config import logger
 class Biodiversity(object):
 
     def __init__(self,host="localhost",port=4334):
+        self.host = host
+        self.port = port
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
         try:
             self.sock.connect((host,port))
-            self.sock.setblocking(0)
         except:
             logger.error("Biodiversity socket server unavailable")
             self.sock = None
@@ -22,7 +22,16 @@ class Biodiversity(object):
 
     def _sendOne(self,namestr):
         if self.sock is not None:
-            self.sock.send(namestr.encode("utf-8") + "\n")
+            try:
+                self.sock.send(namestr.encode("utf-8") + "\n")
+            except:
+                logger.warn("Socket send error" + traceback.format_exc())
+                try:
+                    self.sock.connect((self.host,self.port))
+                    self.sock.send(namestr.encode("utf-8") + "\n")
+                except:
+                    logger.error("Biodiversity socket server unavailable")
+                    self.sock = None
 
     def _sendMany(self,namestr_list):
         if self.sock is not None:
@@ -32,13 +41,9 @@ class Biodiversity(object):
     def _recvOne(self):
         if self.sock is not None:
             try:
-                # while "\n" not in self.__recvBuf:
-                #     # Don't wait for a response longer than a second
-                #     ready = select.select([self.sock], [], [], 1)
-                #     if ready[0]:
                 self.__recvBuf +=  self.sock.recv(2048)
 
-                resp, self.__recvBuf = self.__recvBuf.split("\n")
+                resp, self.__recvBuf = self.__recvBuf.split("\n",1)
 
                 return json.loads(resp)
             except:

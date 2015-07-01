@@ -137,7 +137,7 @@ fields = {
         ["version", "", "integer", 0, "idigbio:version"],
         ["recordset", "", "text", 0, "idigbio:recordsets"],
         ["records", "", "list", 0, "idigbio:records"],
-        ["format", "dc:format", "text", 1, None],
+        ["format", "dcterms:format", "text", 1, None],
         ["type", "dc:type", "text", 1, None],
         ["tag", "ac:tag", "longtext", 1, None],
         ["xpixels", "", "integer", 1, "exif:PixelXDimension"],

@@ -1,6 +1,8 @@
+import select
 import socket
 import json
 import logging
+import traceback
 
 from config import logger
 
@@ -11,6 +13,7 @@ class Biodiversity(object):
 
         try:
             self.sock.connect((host,port))
+            self.sock.setblocking(0)
         except:
             logger.error("Biodiversity socket server unavailable")
             self.sock = None
@@ -28,12 +31,19 @@ class Biodiversity(object):
 
     def _recvOne(self):
         if self.sock is not None:
-            while "\n" not in self.__recvBuf:
-                self.__recvBuf +=  self.sock.recv(2048)            
+            try:
+                while "\n" not in self.__recvBuf:
+                    # Don't wait for a response longer than a second
+                    ready = select.select([self.sock], [], [], 1)
+                    if ready[0]:
+                        self.__recvBuf +=  self.sock.recv(2048)
 
-            resp, self.__recvBuf = self.__recvBuf.split("\n")
+                resp, self.__recvBuf = self.__recvBuf.split("\n")
 
-            return json.loads(resp)
+                return json.loads(resp)
+            except:
+                # traceback.print_exc()
+                return { "scientificName": {"parsed": False }}
         else:
             return { "scientificName": {"parsed": False }}
 

@@ -1,4 +1,4 @@
-from fieldnames import namespaces_rev
+from idb.helpers.fieldnames import namespaces_rev
 
 meta = """
 <archive xmlns="http://rs.tdwg.org/dwc/text/">

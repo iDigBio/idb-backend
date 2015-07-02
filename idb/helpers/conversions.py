@@ -21,8 +21,8 @@ l = logging.getLogger("shapely")
 l.setLevel(logging.CRITICAL)
 
 
-from data_tables.rights_strings import acceptable_licenses_trans, licenses
-from data_tables.locality_data import iso_two_to_three
+from ..data_tables.rights_strings import acceptable_licenses_trans, licenses
+from ..data_tables.locality_data import iso_two_to_three
 
 from .biodiversity_socket_connector import Biodiversity
 

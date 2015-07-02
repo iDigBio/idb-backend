@@ -258,8 +258,6 @@ def generate_queries(record_query=None, mediarecord_query=None):
     rq_and = []
     mq_and = []
 
-    print record_query, mediarecord_query
-
     if record_query is not None:
         if "and" in record_query["filtered"]["filter"]:
             rq_and.extend(record_query["filtered"]["filter"]["and"])

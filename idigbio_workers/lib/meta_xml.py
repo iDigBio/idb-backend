@@ -52,6 +52,11 @@ def make_file_block(filename="occurence.csv",fields=[],core=True,tabs=False,t="r
         f_opts["row_type"] = "http://rs.tdwg.org/dwc/terms/Occurrence"
     elif t == "mediarecords":
         f_opts["row_type"] = "http://rs.tdwg.org/ac/terms/multimedia"
+    elif t == "uniquelocality":
+        f_opts["row_type"] = "http://rs.tdwg.org/dwc/terms/Location"
+    elif t == "uniquenames":
+        f_opts["row_type"] = "http://rs.tdwg.org/dwc/terms/Taxon"
+
 
     f_string = ""
     if fields is not None:

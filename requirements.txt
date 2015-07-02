@@ -10,4 +10,9 @@ Flask-UUID
 riak
 coverage
 reverse_geocoder
+numpy
+scipy
 gevent
+unicodecsv
+shapely
+celery

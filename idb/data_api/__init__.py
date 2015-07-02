@@ -15,9 +15,11 @@ app.config["DB"] = PostgresDB()
 
 from v1 import this_version as v1
 from v2 import this_version as v2
+from v2_download import this_version as v2_download
 
 app.register_blueprint(v1,url_prefix="/v1")
 app.register_blueprint(v2,url_prefix="/v2")
+app.register_blueprint(v2_download,url_prefix="/v2")
 
 @app.route('/', methods=['GET'])
 def index():

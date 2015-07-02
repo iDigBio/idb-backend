@@ -1,5 +1,8 @@
 import copy
 
+import traceback
+import logging
+logger = logging.getLogger()
 
 class UnknownTypeException(Exception):
     pass
@@ -117,6 +120,17 @@ def termsFilter(k, shimK):
         }
     }
 
+def queryFilter(k, shimK):
+    return {
+        "query": {
+            "match": {
+                k: {
+                    "query": shimK["value"].lower(),
+                    "operator": "and"
+                }
+            }
+        }
+    }
 
 def objectType(k, shimK):
     if shimK["type"] == "exists":
@@ -130,7 +144,7 @@ def objectType(k, shimK):
     elif shimK["type"] == "geo_distance":
         return geoDistance(k, shimK)
     elif shimK["type"] == "fulltext":
-        return shimK["value"].lower()
+        return queryFilter(k, shimK)
     elif shimK["type"] == "prefix":
         return prefixFilter(k, shimK)
     elif shimK["type"] == "geo_shape":
@@ -140,6 +154,30 @@ def objectType(k, shimK):
     else:
         raise UnknownTypeException(shimK["type"])
 
+def singleFilter(k, shimK):
+    if isString(shimK) or isinstance(shimK, bool) or isinstance(shimK, int) or isinstance(shimK, float):
+        return termFilter(k, shimK)
+    elif isinstance(shimK, list):
+        return termsFilter(k, shimK)
+    else:
+        try:
+            if "type" in shimK:
+                return objectType(k, shimK)
+            else:
+                raise QueryParseExcpetion("unable to get type")
+        except:
+            logger.error(traceback.format_exc())
+            logger.error(k + " " + repr(shimK))
+
+def andFilter(shim):
+    and_array = []
+
+    for k in shim:
+        and_array.append(singleFilter(k, shim[k]))
+
+    return {
+        "and": and_array
+    }
 
 def queryFromShim(shim, term_type=None):
     if term_type is not None:
@@ -149,44 +187,12 @@ def queryFromShim(shim, term_type=None):
     query = {
         "query": {
             "filtered": {
-                "filter": {}
+                "filter": andFilter(shim)
             }
         }
     }
 
-    fulltext = None
-    and_array = []
-
-    for k in shim:
-        if isString(shim[k]) or isinstance(shim[k], bool) or isinstance(shim[k], int) or isinstance(shim[k], float):
-            and_array.append(termFilter(k, shim[k]))
-        elif isinstance(shim[k], list):
-            and_array.append(termsFilter(k, shim[k]))
-        else:
-            try:
-                if "type" in shim[k]:
-                    f = objectType(k, shim[k])
-                    if isString(f):
-                        fulltext = f
-                    else:
-                        and_array.append(f)
-                else:
-                    raise QueryParseExcpetion("unable to get type")
-            except:
-                logger.error(traceback.format_exc())
-                logger.error(k + " " + shim[k])
-
-    if fulltext is not None:
-        query["query"]["filtered"]["query"] = {
-            "match": {
-                "_all": {
-                    "query": fulltext,
-                    "operator": "and"
-                }
-            }
-        }
-
-    if len(and_array) > 0:
-        query["query"]["filtered"]["filter"]["and"] = and_array
+    if len(query["query"]["filtered"]["filter"]["and"]) == 0:
+        query["query"]["filtered"]["filter"] = {}
 
     return query

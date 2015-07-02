@@ -3,6 +3,7 @@ import sys
 import traceback
 import json
 import requests
+import uuid
 
 mybase = os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
 if mybase not in sys.path:
@@ -60,7 +61,20 @@ The iDigBio Team
 
 @app.task(bind=True)
 def downloader(self, params, email=None, ip=None, source=None):
-    params["filename"] = self.request.id
+    for rename in [("rq","record_query"),("mq","mediarecord_query")]:
+        if params[rename[0]] is not None:
+            if rename[1].endswith("query"):
+                params[rename[1]] = queryFromShim(params[rename[0]])["query"]
+            else:
+                params[rename[1]] = params[rename[0]]
+        else:
+            params[rename[1]] = params[rename[0]]
+        del params[rename[0]]
+
+    if self.request.id is not None:
+        params["filename"] = self.request.id
+    else:
+        params["filename"] = str(uuid.uuid4())
     tid = generate_files(**params)[0]
     # link = upload_download_file_to_ceph(tid)
     # try:

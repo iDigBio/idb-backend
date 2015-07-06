@@ -39,6 +39,52 @@ indexName = "idigbio-" + indexname
 es = elasticsearch.Elasticsearch(
     sl, sniff_on_start=True, sniff_on_connection_fail=True, retry_on_timeout=True, max_retries=10)
 
+def get_recordsets(params):
+    record_query = None
+    mediarecord_query = None
+
+    if params["rq"] is not None:
+        record_query = queryFromShim(params["rq"])["query"]
+
+    if params["mq"] is not None:
+        mediarecord_query = queryFromShim(params["mq"])["query"]
+
+    rq, mq = generate_queries(record_query,mediarecord_query)
+
+    q = None
+    t = None
+    if params["core_type"] == "mediarecords":
+        t = "mediarecords"
+        q = {
+            "query": mq,
+            "aggs": {
+                "recordsets": {
+                    "terms": {
+                        "field": "recordset",
+                        "size": 1000
+                    }
+                }
+            }
+        }
+    else:
+        t = "records"
+        q = {
+            "query": rq,
+            "aggs": {
+                "recordsets": {
+                    "terms": {
+                        "field": "recordset",
+                        "size": 1000
+                    }
+                }
+            }
+        }
+
+    ro = es.search(index=indexName, doc_type=t, body=q)
+    recsets = {}
+    for b in ro["aggregations"]["recordsets"]["buckets"]:
+        recsets[b["key"]] = b["doc_count"]
+    return (q, recsets)
 
 def count_query(t, query):
     return es.count(index=indexName, doc_type=t, body=query)["count"]

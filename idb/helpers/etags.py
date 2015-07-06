@@ -44,7 +44,8 @@ def objectHasher(hash_type,data,sort_arrays=False,sort_keys=True):
 
         for k in ks:
             s += k + objectHasher(hash_type,data[k],sort_arrays=False,sort_keys=True)
-
+    elif data is None:
+        pass
     else:
         print type(data);
 

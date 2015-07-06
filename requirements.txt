@@ -16,3 +16,4 @@ gevent
 unicodecsv
 shapely
 celery
+boto

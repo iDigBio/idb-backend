@@ -1,5 +1,5 @@
-BROKER_URL = 'redis://idb-redis-celery.acis.ufl.edu:6379/0'
-CELERY_RESULT_BACKEND = 'redis://idb-redis-celery.acis.ufl.edu:6379/0'
+BROKER_URL = 'redis://idb-redis-celery-beta.acis.ufl.edu:6379/0'
+CELERY_RESULT_BACKEND = 'redis://idb-redis-celery-beta.acis.ufl.edu:6379/0'
 
 CELERYD_CONCURRENCY=4
 CELERY_TASK_SERIALIZER = 'json'

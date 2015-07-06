@@ -9,7 +9,7 @@ flask
 Flask-UUID
 riak
 coverage
-reverse_geocoder
+-e git://github.com/thampiman/reverse-geocoder#egg=reverse_geocoder
 numpy
 scipy
 gevent

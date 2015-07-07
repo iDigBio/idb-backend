@@ -35,7 +35,10 @@ def download():
 
     for k in params.keys():
         if k in o:
-            params[k] = o[k]
+            if isinstance(o[k],str) or isinstance(o[k],unicode) and (o[k].startswith("{") or o[k].startswith("[")):
+                params[k] = json.loads(o[k])
+            else:
+                params[k] = o[k]
 
     h = objectHasher("sha1",params,sort_arrays=True,sort_keys=True)
 

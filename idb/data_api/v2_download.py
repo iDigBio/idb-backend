@@ -9,7 +9,7 @@ import datetime
 
 from idigbio_workers import downloader, send_download_email
 
-from helpers.etags import objectHasher
+from idb.helpers.etags import objectHasher
 
 from .common import json_error
 

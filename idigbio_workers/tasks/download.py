@@ -5,10 +5,6 @@ import json
 import requests
 import uuid
 
-mybase = os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
-if mybase not in sys.path:
-    sys.path.append(mybase)
-
 from ..lib.download import generate_files, get_recordsets, generate_queries
 from ..lib.query_shim import queryFromShim
 from ..lib.mailer import send_mail

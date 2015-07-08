@@ -4,13 +4,13 @@ import psycopg2
 
 from flask import current_app, Blueprint, jsonify, url_for, request
 
-from helpers.idb_flask_authn import requires_auth
-from postgres_backend.db import PostgresDB
+from idb.helpers.idb_flask_authn import requires_auth
+from idb.postgres_backend.db import PostgresDB
 from idb.data_api.common import json_error
 
-from corrections.record_corrector import RecordCorrector
-from helpers.conversions import grabAll, index_field_to_longname
-from elasticsearch_backend.indexer import prepForEs
+from idb.corrections.record_corrector import RecordCorrector
+from idb.helpers.conversions import grabAll, index_field_to_longname
+from idb.elasticsearch_backend.indexer import prepForEs
 
 this_version = Blueprint(__name__,__name__)
 

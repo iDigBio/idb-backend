@@ -12,7 +12,7 @@ TEST_COUNT=10
 
 from . import *
 
-from helpers.etags import calcEtag
+from idb.helpers.etags import calcEtag
 
 class PostgresDB:
     __join_uuids_etags_latest_version = """

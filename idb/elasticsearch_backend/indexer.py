@@ -3,7 +3,7 @@ from pytz import timezone
 import elasticsearch.helpers
 from elasticsearch import Elasticsearch
 
-from helpers.conversions import fields
+from idb.helpers.conversions import fields
 
 local_tz = timezone('US/Eastern')
 

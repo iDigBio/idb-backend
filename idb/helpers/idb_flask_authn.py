@@ -3,9 +3,9 @@ from flask import request, Response, jsonify, current_app
 import os
 import traceback
 
-from helpers.encryption import _encrypt
-from config import config
-from postgres_backend.db import PostgresDB
+from .encryption import _encrypt
+from idb.config import config
+from idb.postgres_backend.db import PostgresDB
 
 db = PostgresDB()
 cur = db.cursor()

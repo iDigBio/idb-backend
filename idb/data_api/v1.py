@@ -1,7 +1,7 @@
 from flask import current_app, Blueprint, jsonify, url_for, request
 
 from .common import load_data_from_riak, json_error
-from helpers.idb_flask_authn import requires_auth
+from idb.helpers.idb_flask_authn import requires_auth
 
 this_version = Blueprint(__name__,__name__)
 

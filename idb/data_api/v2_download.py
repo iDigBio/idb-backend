@@ -1,4 +1,4 @@
-from flask import current_app, Blueprint, jsonify, abort, url_for, request
+from flask import current_app, Blueprint, jsonify, url_for, request
 
 this_version = Blueprint(__name__,__name__)
 
@@ -10,6 +10,8 @@ import datetime
 from idigbio_workers import downloader, send_download_email
 
 from helpers.etags import objectHasher
+
+from .common import json_error
 
 expire_time_in_seconds = 23 * 60 * 60
 
@@ -39,6 +41,9 @@ def download():
                 params[k] = json.loads(o[k])
             else:
                 params[k] = o[k]
+
+    if params["rq"] is None and params["mq"] is None:
+        json_error(400,"Please supply at least one query paramter (rq,mq)")
 
     h = objectHasher("sha1",params,sort_arrays=True,sort_keys=True)
 
@@ -123,4 +128,4 @@ def status(u):
 
         return jsonify(params)
     else:
-        abort(404)
+        return json_error(404)

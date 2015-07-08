@@ -2,31 +2,30 @@ import json
 import uuid
 import psycopg2
 
-from flask import Flask, jsonify, request, abort, url_for, current_app
-from flask.ext.uuid import FlaskUUID
+from flask import current_app, Blueprint, jsonify, url_for, request
 
 from helpers.idb_flask_authn import requires_auth
 from postgres_backend.db import PostgresDB
+from idb.data_api.common import json_error
 
 from corrections.record_corrector import RecordCorrector
 from helpers.conversions import grabAll, index_field_to_longname
 from elasticsearch_backend.indexer import prepForEs
 
-app = Flask(__name__)
-FlaskUUID(app)
+this_version = Blueprint(__name__,__name__)
 
-app.config["DB"] = PostgresDB()
+# current_app.config["DB"] = PostgresDB()
 
 rc = RecordCorrector()
 
-@app.route('/', methods=['GET'])
-def index():
-    r = {
-        "v2": url_for("v2_index",_external=True),
-    }
-    return jsonify(r)
+# @app.route('/', methods=['GET'])
+# def index():
+#     r = {
+#         "v2": url_for("v2_index",_external=True),
+#     }
+#     return jsonify(r)
 
-@app.route('/v2/correct_record', methods=['GET','POST'])
+@this_version.route('/correct_record', methods=['GET','POST'])
 def correct_record():
     data = None
     t = None
@@ -40,17 +39,13 @@ def correct_record():
         try:
             data = json.loads(request.args.get("data"))
         except:
-            resp = jsonify({"error": "Unable to parse json value in data."})
-            resp.status_code = 400
-            return resp
+            return json_error(400, {"error": "Unable to parse json value in data."})
 
     if t is None:
         t = "records"
 
     if data is None:
-        resp = jsonify({"error": "Must supply a value for data."})
-        resp.status_code = 400
-        return resp
+        return json_error(400, {"error": "Must supply a value for data."})
     else:
         d,ck = rc.correct_record(data)
 
@@ -61,15 +56,15 @@ def correct_record():
             dwc_rec[index_field_to_longname[t][k]] = i[k]
         return jsonify(dwc_rec)
 
-@app.route('/v2', methods=['GET'])
-def v2_index():
-    r = {
-        "annotations": url_for("get_annotations",_external=True),
-        "corrections": url_for("get_corrections",_external=True),
-    }
-    return jsonify(r)
+# @app.route('/v2', methods=['GET'])
+# def v2_index():
+#     r = {
+#         "annotations": url_for("get_annotations",_external=True),
+#         "corrections": url_for("get_corrections",_external=True),
+#     }
+#     return jsonify(r)
 
-@app.route('/v2/annotations', methods=['GET'])
+@this_version.route('/annotations', methods=['GET'])
 def get_annotations():
     limit = request.args.get("limit")
     if limit is None:
@@ -119,7 +114,7 @@ def get_annotations():
         ret["links"]["_prev"] = url_for("get_annotations",limit=limit,offset=offset-limit,approved=approved,_external=True)
     return jsonify(ret)
 
-@app.route('/v2/annotations', methods=['POST'])
+@this_version.route('/annotations', methods=['POST'])
 @requires_auth
 def add_annotations():
     try:
@@ -129,22 +124,18 @@ def add_annotations():
         try:
             uuid.UUID(request.json["uuid"])
         except:
-            resp = jsonify({"error": "Invalid UUID"})
-            resp.status_code = 400
-            return resp
+            return json_error(400, {"error": "Invalid UUID"})
 
         try:
             assert isinstance(request.json["values"],dict)
             assert len(request.json["values"])
         except:
-            resp = jsonify({"error": "Values must be a non-empty dictionary"})
-            resp.status_code = 400
-            return resp
+            return json_error(400, {"error": "Values must be a non-empty dictionary"})
 
         try:
             cur = current_app.config["DB"].cursor()
             cur.execute("INSERT INTO annotations (uuids_id,v,source) VALUES (%s,%s,%s) RETURNING *", (request.json["uuid"],json.dumps(request.json["values"]),request.authorization.username))
-            app.config["DB"].commit()
+            current_app.config["DB"].commit()
             
             r = cur.fetchone()
             o = {
@@ -162,21 +153,16 @@ def add_annotations():
             return jsonify(o)
         except psycopg2.IntegrityError as e:
             current_app.config["DB"].rollback()
-            resp = jsonify({"error": "uuid must be a valid reference to an object in idigbio"})
-            resp.status_code = 400
-            return resp
+            return json_error(400, {"error": "uuid must be a valid reference to an object in idigbio"})
 
         except Exception as e:
             current_app.config["DB"].rollback()
-            resp = jsonify({"error": repr(e)})
-            resp.status_code = 500
-            return resp
-    except AssertionError:
-        resp = jsonify({"error": "Missing required parameter from (uuid, values)"})
-        resp.status_code = 400
-        return resp
+            return json_error(500, {"error": repr(e)})
 
-@app.route('/v2/annotations/<int:id>', methods=['GET'])
+    except AssertionError:
+        return json_error(400, {"error": "Missing required parameter from (uuid, values)"})
+
+@this_version.route('/annotations/<int:id>', methods=['GET'])
 def view_annotation(id):
     cur = current_app.config["DB"].cursor()
     cur.execute("SELECT * FROM annotations WHERE id=%s", (id,))
@@ -195,25 +181,25 @@ def view_annotation(id):
         o["links"]["approve"] = url_for("approve_annotation",id=r["id"],_external=True)
     return jsonify(o)
 
-@app.route('/v2/annotations/<int:id>', methods=['PUT','POST'])
+@this_version.route('/annotations/<int:id>', methods=['PUT','POST'])
 @requires_auth
 def edit_annotation(id):
     #TODO
     return jsonify({})
 
-@app.route('/v2/annotations/<int:id>/approve', methods=['PUT','POST'])
+@this_version.route('/annotations/<int:id>/approve', methods=['PUT','POST'])
 @requires_auth
 def approve_annotation(id):
     #TODO
     return jsonify({})
 
-@app.route('/v2/annotations/<int:id>/approve', methods=['DELETE'])
+@this_version.route('/annotations/<int:id>/approve', methods=['DELETE'])
 @requires_auth
 def revoke_annotation(id):
     #TODO
     return jsonify({})
 
-@app.route('/v2/corrections', methods=['GET'])
+@this_version.route('/corrections', methods=['GET'])
 def get_corrections():
     limit = request.args.get("limit")
     if limit is None:
@@ -265,7 +251,7 @@ def get_corrections():
         ret["links"]["_prev"] = url_for("get_corrections",limit=limit,offset=offset-limit,approved=approved,_external=True)
     return jsonify(ret)
 
-@app.route('/v2/corrections', methods=['POST'])
+@this_version.route('/corrections', methods=['POST'])
 @requires_auth
 def add_corrections():
     try:
@@ -276,22 +262,18 @@ def add_corrections():
             assert isinstance(request.json["keys"],dict)
             assert len(request.json["keys"])
         except:
-            resp = jsonify({"error": "Keys must be a non-empty dictionary"})
-            resp.status_code = 400
-            return resp
+            return json_error(400, {"error": "Keys must be a non-empty dictionary"})
 
         try:
             assert isinstance(request.json["values"],dict)
             assert len(request.json["values"])
         except:
-            resp = jsonify({"error": "Values must be a non-empty dictionary"})
-            resp.status_code = 400
-            return resp
+            return json_error(400, {"error": "Values must be a non-empty dictionary"})
 
         try:
             cur = current_app.config["DB"].cursor()
             cur.execute("INSERT INTO corrections (k,v,source) VALUES (%s,%s,%s) RETURNING *", (json.dumps(request.json["keys"]),json.dumps(request.json["values"]),request.authorization.username))
-            app.config["DB"].commit()
+            current_app.config["DB"].commit()
             
             r = cur.fetchone()
             o = {
@@ -310,15 +292,11 @@ def add_corrections():
 
         except Exception as e:
             current_app.config["DB"].rollback()
-            resp = jsonify({"error": repr(e)})
-            resp.status_code = 500
-            return resp
+            return json_error(500, {"error": repr(e)})
     except AssertionError:
-        resp = jsonify({"error": "Missing required parameter from (keys, values)"})
-        resp.status_code = 400
-        return resp
+        return json_error(400, {"error": "Missing required parameter from (keys, values)"})
 
-@app.route('/v2/corrections/<int:id>', methods=['GET'])
+@this_version.route('/corrections/<int:id>', methods=['GET'])
 def view_correction(id):
     cur = current_app.config["DB"].cursor()
     cur.execute("SELECT * FROM corrections WHERE id=%s", (id,))
@@ -337,24 +315,20 @@ def view_correction(id):
         o["links"]["approve"] = url_for("approve_correction",id=r["id"],_external=True)    
     return jsonify(o)
 
-@app.route('/v2/corrections/<int:id>', methods=['PUT','POST'])
+@this_version.route('/corrections/<int:id>', methods=['PUT','POST'])
 @requires_auth
 def edit_correction(id):
     #TODO
     return jsonify({})
 
-@app.route('/v2/corrections/<int:id>/approve', methods=['PUT','POST'])
+@this_version.route('/corrections/<int:id>/approve', methods=['PUT','POST'])
 @requires_auth
 def approve_correction(id):
     #TODO
     return jsonify({})
 
-@app.route('/v2/corrections/<int:id>/approve', methods=['DELETE'])
+@this_version.route('/corrections/<int:id>/approve', methods=['DELETE'])
 @requires_auth
 def revoke_correction(id):
     #TODO
     return jsonify({})
-
-
-if __name__ == '__main__':
-    app.run(debug=True)

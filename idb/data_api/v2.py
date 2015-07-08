@@ -1,6 +1,7 @@
-from flask import current_app, Blueprint, jsonify, abort, url_for, request
+from flask import current_app, Blueprint, jsonify, url_for, request
 
-from .common import load_data_from_riak
+from .common import load_data_from_riak, json_error
+from helpers.idb_flask_authn import requires_auth
 
 this_version = Blueprint(__name__,__name__)
 
@@ -36,10 +37,10 @@ def format_item(t,uuid,etag,modified,version,parent,data,siblings,ids):
     r["recordIds"] = ids
     return r
 
-@this_version.route('/view/<string:t>/<uuid:u>/<string:st>/', methods=['GET'])
+@this_version.route('/view/<string:t>/<uuid:u>/<string:st>', methods=['GET'])
 def subitem(t,u,st):
     if not (t in current_app.config["SUPPORTED_TYPES"] and st in current_app.config["SUPPORTED_TYPES"]):
-        abort(404)
+        return json_error(404)
 
     r = {}
     l = [
@@ -57,10 +58,10 @@ def subitem(t,u,st):
     r["itemCount"] = current_app.config["DB"].get_children_count(str(u), "".join(st[:-1]))
     return jsonify(r)
 
-@this_version.route('/view/<string:t>/<uuid:u>/', methods=['GET'])
+@this_version.route('/view/<string:t>/<uuid:u>', methods=['GET'])
 def item(t,u):
     if t not in current_app.config["SUPPORTED_TYPES"]:
-        abort(404)
+        return json_error(404)
     
     version = request.args.get("version")
 
@@ -81,12 +82,12 @@ def item(t,u):
         )
         return jsonify(r)
     else:
-        abort(404)
+        return json_error(404)
 
-@this_version.route('/view/<string:t>/', methods=['GET'])
+@this_version.route('/view/<string:t>', methods=['GET'])
 def list(t):
     if t not in current_app.config["SUPPORTED_TYPES"]:
-        abort(404)
+        return json_error(404)
 
     r = {}
     l = [
@@ -104,15 +105,16 @@ def list(t):
     r["itemCount"] = current_app.config["DB"].get_type_count("".join(t[:-1]))
     return jsonify(r)
 
-@this_version.route('/view/', methods=['GET'])
+@this_version.route('/view', methods=['GET'])
 def view():
     r = {}
     for t in current_app.config["SUPPORTED_TYPES"]:
         r[t] = url_for(".list",t=t,_external=True)
     return jsonify(r)
 
-@this_version.route('/', methods=['GET'])
-def index():
-    return jsonify({
-        "view": url_for(".view",_external=True),
-    })
+# Index will be handled at root for component assembly
+# @this_version.route('/', methods=['GET'])
+# def index():
+#     return jsonify({
+#         "view": url_for(".view",_external=True),
+#     })

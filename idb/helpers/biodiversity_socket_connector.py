@@ -3,7 +3,7 @@ import json
 import logging
 import traceback
 
-from ..config import logger
+from idb.config import logger
 
 class Biodiversity(object):
 

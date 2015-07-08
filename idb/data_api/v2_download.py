@@ -43,7 +43,7 @@ def download():
                 params[k] = o[k]
 
     if params["rq"] is None and params["mq"] is None:
-        json_error(400,"Please supply at least one query paramter (rq,mq)")
+        return json_error(400,"Please supply at least one query paramter (rq,mq)")
 
     h = objectHasher("sha1",params,sort_arrays=True,sort_keys=True)
 

@@ -1,7 +1,7 @@
 import os
 
 if __name__ == '__main__':
-    from data_api import app
+    from data_api.api import app
 
     if "ENV" in os.environ and (os.environ["ENV"] == "beta" or os.environ["ENV"] == "prod"):
         from gevent.pool import Pool

@@ -14,16 +14,7 @@ from idb.elasticsearch_backend.indexer import prepForEs
 
 this_version = Blueprint(__name__,__name__)
 
-# current_app.config["DB"] = PostgresDB()
-
 rc = RecordCorrector()
-
-# @app.route('/', methods=['GET'])
-# def index():
-#     r = {
-#         "v2": url_for("v2_index",_external=True),
-#     }
-#     return jsonify(r)
 
 @this_version.route('/correct_record', methods=['GET','POST'])
 def correct_record():
@@ -39,13 +30,13 @@ def correct_record():
         try:
             data = json.loads(request.args.get("data"))
         except:
-            return json_error(400, {"error": "Unable to parse json value in data."})
+            return json_error(400, "Unable to parse json value in data.")
 
     if t is None:
         t = "records"
 
     if data is None:
-        return json_error(400, {"error": "Must supply a value for data."})
+        return json_error(400, "Must supply a value for data.")
     else:
         d,ck = rc.correct_record(data)
 
@@ -55,14 +46,6 @@ def correct_record():
         for k in i:
             dwc_rec[index_field_to_longname[t][k]] = i[k]
         return jsonify(dwc_rec)
-
-# @app.route('/v2', methods=['GET'])
-# def v2_index():
-#     r = {
-#         "annotations": url_for("get_annotations",_external=True),
-#         "corrections": url_for("get_corrections",_external=True),
-#     }
-#     return jsonify(r)
 
 @this_version.route('/annotations', methods=['GET'])
 def get_annotations():
@@ -124,13 +107,13 @@ def add_annotations():
         try:
             uuid.UUID(request.json["uuid"])
         except:
-            return json_error(400, {"error": "Invalid UUID"})
+            return json_error(400, "Invalid UUID")
 
         try:
             assert isinstance(request.json["values"],dict)
             assert len(request.json["values"])
         except:
-            return json_error(400, {"error": "Values must be a non-empty dictionary"})
+            return json_error(400, "Values must be a non-empty dictionary")
 
         try:
             cur = current_app.config["DB"].cursor()
@@ -153,14 +136,14 @@ def add_annotations():
             return jsonify(o)
         except psycopg2.IntegrityError as e:
             current_app.config["DB"].rollback()
-            return json_error(400, {"error": "uuid must be a valid reference to an object in idigbio"})
+            return json_error(400, "uuid must be a valid reference to an object in idigbio")
 
         except Exception as e:
             current_app.config["DB"].rollback()
             return json_error(500, {"error": repr(e)})
 
     except AssertionError:
-        return json_error(400, {"error": "Missing required parameter from (uuid, values)"})
+        return json_error(400, "Missing required parameter from (uuid, values)")
 
 @this_version.route('/annotations/<int:id>', methods=['GET'])
 def view_annotation(id):
@@ -262,13 +245,13 @@ def add_corrections():
             assert isinstance(request.json["keys"],dict)
             assert len(request.json["keys"])
         except:
-            return json_error(400, {"error": "Keys must be a non-empty dictionary"})
+            return json_error(400, "Keys must be a non-empty dictionary")
 
         try:
             assert isinstance(request.json["values"],dict)
             assert len(request.json["values"])
         except:
-            return json_error(400, {"error": "Values must be a non-empty dictionary"})
+            return json_error(400, "Values must be a non-empty dictionary")
 
         try:
             cur = current_app.config["DB"].cursor()
@@ -292,9 +275,9 @@ def add_corrections():
 
         except Exception as e:
             current_app.config["DB"].rollback()
-            return json_error(500, {"error": repr(e)})
+            return json_error(500, repr(e))
     except AssertionError:
-        return json_error(400, {"error": "Missing required parameter from (keys, values)"})
+        return json_error(400, "Missing required parameter from (keys, values)")
 
 @this_version.route('/corrections/<int:id>', methods=['GET'])
 def view_correction(id):

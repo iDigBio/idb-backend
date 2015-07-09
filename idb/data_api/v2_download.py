@@ -6,6 +6,7 @@ import uuid
 import redis
 import json
 import datetime
+import traceback
 
 from idigbio_workers import downloader, send_download_email
 
@@ -104,28 +105,38 @@ def download():
 @this_version.route('/download/<uuid:u>', methods=['GET'])
 def status(u):
     u = str(u)
-    r = downloader.AsyncResult(u)
-    h = redist.get(u)
-    if h is not None:
-        params_string = redist.hget(h,"query")
-        params = json.loads(params_string)
-        dt = datetime.datetime.now() + datetime.timedelta(0,redist.ttl(h))
-        if r.ready():
-            params.update({
-                "complete": True,
-                "task_status": r.state,
-                "status_url": url_for(".status",u=r.id,_external=True),
-                "expires": dt.isoformat(),
-                "download_url": r.get()
-            })
-        else:
-            params.update({
-                "complete": False,
-                "task_status": r.state,
-                "status_url": url_for(".status",u=r.id,_external=True),
-                "expires": dt.isoformat()
-            })
+    try:
+        r = downloader.AsyncResult(u)
+        h = redist.get(u)
+        if h is not None:
+            params_string = redist.hget(h,"query")
+            params = json.loads(params_string)
+            dt = datetime.datetime.now() + datetime.timedelta(0,redist.ttl(h))
+            if r.ready():
+                params.update({
+                    "complete": True,
+                    "task_status": r.state,
+                    "status_url": url_for(".status",u=r.id,_external=True),
+                    "expires": dt.isoformat(),
+                    "download_url": r.get()
+                })
+            else:
+                params.update({
+                    "complete": False,
+                    "task_status": r.state,
+                    "status_url": url_for(".status",u=r.id,_external=True),
+                    "expires": dt.isoformat()
+                })
 
+            return jsonify(params)
+        else:
+            return json_error(404)
+    except Exception as e:
+        traceback.print_exc()
+        params.update({
+            "complete": False,
+            "task_status": r.state,
+            "status_url": url_for(".status",u=r.id,_external=True),
+            "expires": dt.isoformat()
+        })
         return jsonify(params)
-    else:
-        return json_error(404)

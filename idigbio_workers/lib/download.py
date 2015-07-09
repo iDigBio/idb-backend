@@ -26,14 +26,15 @@ use_string_io = False
 sl = config["elasticsearch"]["servers"]
 indexname = config["elasticsearch"]["indexname"]
 if os.environ["ENV"] == "beta":
-    indexname = "2.5.0"
-    sl = [
-        "c17node52.acis.ufl.edu",
-        "c17node53.acis.ufl.edu",
-        "c17node54.acis.ufl.edu",
-        "c17node55.acis.ufl.edu",
-        "c17node56.acis.ufl.edu"
-    ]
+    # indexname = "2.5.0"
+    # sl = [
+    #     "c17node52.acis.ufl.edu",
+    #     "c17node53.acis.ufl.edu",
+    #     "c17node54.acis.ufl.edu",
+    #     "c17node55.acis.ufl.edu",
+    #     "c17node56.acis.ufl.edu"
+    # ]
+    pass
 
 indexName = "idigbio-" + indexname
 es = elasticsearch.Elasticsearch(
@@ -530,11 +531,14 @@ def main():
 
     # Form Testing
 
-    # rq = {"genus": "acer", "stateprovince": "florida"}
+    #rq = {"genus": "acer", "stateprovince": "florida"}
+    rq = {"recordset":"e8c1413c-4e2e-46d7-9b6e-df0e416e3786"}
 
-    # record_query = queryFromShim(rq, "records")["query"]
+    record_query = queryFromShim(rq, "records")["query"]
 
-    # mediarecord_query = None
+    mediarecord_query = None
+
+    print generate_files(core_type="records", core_source="indexterms", form="dwca-csv", record_query=record_query, mediarecord_query=mediarecord_query, filename=str(uuid.uuid4()))[0]
 
     # core_types = ["records", "mediarecords", "uniquelocality", "uniquenames"]    
     # core_sources = ["indexterms", "raw"]
@@ -551,43 +555,43 @@ def main():
 
     # load testing
 
-    record_query_components = [
-        {"family": "asteraceae"},
-        {"hasImage": True},
-        {"data": {"type": "fulltext", "value": "aster"}},
-        {"scientificname": {"type": "exists"}},
-        {"minelevation": {"type": "range", "gte": "100", "lte": "200"}},
-        {"geopoint": {"type": "geo_bounding_box", "top_left": {
-            "lat": 19.23, "lon": -130}, "bottom_right": {"lat": -45.1119, "lon": 179.99999}}},
-    ]
-    # mediarecord_query_components = [
-    #     {""}
+    # record_query_components = [
+    #     {"family": "asteraceae"},
+    #     {"hasImage": True},
+    #     {"data": {"type": "fulltext", "value": "aster"}},
+    #     {"scientificname": {"type": "exists"}},
+    #     {"minelevation": {"type": "range", "gte": "100", "lte": "200"}},
+    #     {"geopoint": {"type": "geo_bounding_box", "top_left": {
+    #         "lat": 19.23, "lon": -130}, "bottom_right": {"lat": -45.1119, "lon": 179.99999}}},
     # ]
-    queries = []
-    for c in range(0, len(record_query_components) + 1):
-        a = itertools.combinations(record_query_components, c)
-        for qcs in a:
-            q = {}
-            for qc in qcs:
-                q.update(qc)
+    # # mediarecord_query_components = [
+    # #     {""}
+    # # ]
+    # queries = []
+    # for c in range(0, len(record_query_components) + 1):
+    #     a = itertools.combinations(record_query_components, c)
+    #     for qcs in a:
+    #         q = {}
+    #         for qc in qcs:
+    #             q.update(qc)
 
-            record_query = queryFromShim(q)
-            qc = count_query("records", record_query)
-            queries.append((qc, q))
+    #         record_query = queryFromShim(q)
+    #         qc = count_query("records", record_query)
+    #         queries.append((qc, q))
 
-    for qt in sorted(queries, key=lambda x: x[0]):
-        record_query = queryFromShim(qt[1])
-        mediarecord_query = None
-        if qt[0] < 100000000:
-            try:
-                t = datetime.datetime.now()
-                print qt[0], "\"" + repr(generate_files(core_type="records", core_source="indexterms",
-                                            record_query=record_query[
-                                                "query"], mediarecord_query=None,
-                                            form="dwca-csv", filename=str(uuid.uuid4()))[0]) + "\"", "geopoint" in qt[1], (datetime.datetime.now() - t).total_seconds()
-            except:
-                print qt
-                traceback.print_exc()
+    # for qt in sorted(queries, key=lambda x: x[0]):
+    #     record_query = queryFromShim(qt[1])
+    #     mediarecord_query = None
+    #     if qt[0] < 100000000:
+    #         try:
+    #             t = datetime.datetime.now()
+    #             print qt[0], "\"" + repr(generate_files(core_type="records", core_source="indexterms",
+    #                                         record_query=record_query[
+    #                                             "query"], mediarecord_query=None,
+    #                                         form="dwca-csv", filename=str(uuid.uuid4()))[0]) + "\"", "geopoint" in qt[1], (datetime.datetime.now() - t).total_seconds()
+    #         except:
+    #             print qt
+    #             traceback.print_exc()
 
 if __name__ == '__main__':
     main()

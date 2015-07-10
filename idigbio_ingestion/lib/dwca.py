@@ -50,24 +50,30 @@ class Dwca(object):
             self.logger = getIDigBioLogger(logname + "." + name.split(".")[0])
             self.logname = logname + "." + name.split(".")[0]
 
-        schema_parser = etree.XMLParser(no_network=False)
-        schema = etree.XMLSchema(etree.parse("http://rs.tdwg.org/dwc/text/tdwg_dwc_text.xsd", parser=schema_parser))
-        parser = etree.XMLParser(schema=schema, no_network=False)
-            
-        rdict = {}
+        root=None
         meta_filename = self.path + "/" + archiveFile(self.archive,"meta.xml")
-        with open(meta_filename,'r') as meta:
-            try:
-                root = etree.parse(meta, parser=parser).getroot()
-            except:
-                self.logger.info("Schema validation failed, continuing unvalidated")
-                self.logger.debug(traceback.format_exc())
-                meta.seek(0)
-                # print meta.read()
-                # meta.seek(0)
+        try:
+            schema_parser = etree.XMLParser(no_network=False)
+            schema = etree.XMLSchema(etree.parse("http://rs.tdwg.org/dwc/text/tdwg_dwc_text.xsd", parser=schema_parser))
+            parser = etree.XMLParser(schema=schema, no_network=False)
+
+            with open(meta_filename,'r') as meta:
+                try:
+                    root = etree.parse(meta, parser=parser).getroot()
+                except:
+                    self.logger.info("Schema validation failed, continuing unvalidated")
+                    self.logger.debug(traceback.format_exc())
+                    meta.seek(0)
+                    # print meta.read()
+                    # meta.seek(0)
+                    root = etree.parse(meta).getroot()
+        except:
+            self.logger.info("Failed to fetch schema, continuing unvalidated")
+            self.logger.debug(traceback.format_exc())
+            with open(meta_filename,'r') as meta:
                 root = etree.parse(meta).getroot()
-            rdict = xml2d(root)
-                
+        rdict = xml2d(root)
+
         self.archdict = rdict["archive"]
 
         if not skipeml and "#metadata" in self.archdict:

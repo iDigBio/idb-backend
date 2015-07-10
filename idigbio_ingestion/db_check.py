@@ -13,8 +13,6 @@ import json
 
 import logging
 from lib.log import getIDigBioLogger, formatter
-logger = getIDigBioLogger()
-# logger.setLevel(logging.DEBUG)
 
 from idb.postgres_backend.db import PostgresDB
 from idb.helpers.etags import calcEtag, calcFileHash
@@ -29,7 +27,7 @@ bad_chars = u"\ufeff"
 bad_char_re = re.compile("[%s]" % re.escape(bad_chars))
 
 logger = getIDigBioLogger("idigbio")
-logger.setLevel(logging.ERROR)
+logger.setLevel(logging.WARNING)
 
 class RecordException(Exception):
     pass

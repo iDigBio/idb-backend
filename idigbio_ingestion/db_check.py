@@ -224,7 +224,6 @@ def process_subfile(rf, rsid, rs_uuid_etag, rs_id_uuid):
 
     eu_set = existing_etags.viewkeys()
     nu_set = seen_uuids.viewkeys()
-    print len(nu_set)
 
     deletes = len(eu_set - nu_set)
 
@@ -259,7 +258,7 @@ def process_file(fname, mime, rsid, existing_etags, existing_ids):
         dwcaobj.close()
     elif mime == "text/plain":
         commas = False
-        with open("fname", "rb") as testf:
+        with open(fname, "rb") as testf:
             commas = "," in testf.readline()
 
         if commas:

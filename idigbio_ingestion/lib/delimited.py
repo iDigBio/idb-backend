@@ -3,6 +3,7 @@ import traceback
 
 from collections import defaultdict
 
+import logging
 from .log import getIDigBioLogger
 from .fieldnames import get_canonical_name,types
 

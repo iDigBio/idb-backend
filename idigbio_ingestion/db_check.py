@@ -11,8 +11,9 @@ import shutil
 import magic
 import json
 
-# import logging
-# logger = logging.getLogger()
+import logging
+from lib.log import getIDigBioLogger, formatter
+logger = getIDigBioLogger()
 # logger.setLevel(logging.DEBUG)
 
 from idb.postgres_backend.db import PostgresDB
@@ -27,10 +28,10 @@ magic = magic.Magic(mime=True)
 bad_chars = u"\ufeff"
 bad_char_re = re.compile("[%s]" % re.escape(bad_chars))
 
+logger = getIDigBioLogger("idigbio")
 
 class RecordException(Exception):
     pass
-
 
 def mungeid(s):
     return bad_char_re.sub('', s).strip()
@@ -247,7 +248,7 @@ def process_file(fname, mime, rsid, existing_etags, existing_ids):
     filehash = calcFileHash(fname)
 
     if mime == "application/zip":
-        dwcaobj = Dwca(fname, skipeml=True)
+        dwcaobj = Dwca(fname, skipeml=True, logname="idigbio")
         for dwcrf in dwcaobj.extensions:
             counts[dwcrf.name] = process_subfile(
                 dwcrf, rsid, existing_etags, existing_ids)
@@ -262,11 +263,11 @@ def process_file(fname, mime, rsid, existing_etags, existing_ids):
             commas = "," in testf.readline()
 
         if commas:
-            csvrf = DelimitedFile(fname)
+            csvrf = DelimitedFile(fname, logname="idigbio")
             counts[fname] = process_subfile(
                 csvrf, rsid, existing_etags, existing_ids)
         else:
-            tsvrf = DelimitedFile(fname, delimiter="\t", fieldenc=None)
+            tsvrf = DelimitedFile(fname, delimiter="\t", fieldenc=None, logname="idigbio")
             counts[fname] = self.processRecordFile(tsvrf)
 
     # Clear after processing an archive
@@ -335,6 +336,12 @@ def metadataToSummaryJSON(rsid, metadata, writeFile=True):
 
 def main():
     rsid = sys.argv[1]
+
+    fh = logging.FileHandler(rsid + ".log")
+    fh.setLevel(logging.INFO)
+    fh.setFormatter(formatter)
+    logger.addHandler(fh)
+
     name, mime = get_file(rsid)
     if os.path.exists(rsid + "_uuids.json") and os.path.exists(rsid + "_ids.json"):
         with open(rsid + "_uuids.json", "rb") as uuidf:

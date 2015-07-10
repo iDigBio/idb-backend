@@ -27,10 +27,12 @@ bad_chars = u"\ufeff"
 bad_char_re = re.compile("[%s]" % re.escape(bad_chars))
 
 logger = getIDigBioLogger("idigbio")
-logger.setLevel(logging.WARNING)
+logger.setLevel(logging.ERROR)
+
 
 class RecordException(Exception):
     pass
+
 
 def mungeid(s):
     return bad_char_re.sub('', s).strip()
@@ -91,14 +93,14 @@ def get_db_dicts(rsid):
     id_uuid = {}
     uuid_etag = {}
     for t in ["record", "mediarecord"]:
-        id_uuid[t+"s"] = {}
-        uuid_etag[t+"s"] = {}
+        id_uuid[t + "s"] = {}
+        uuid_etag[t + "s"] = {}
         for c in db.get_children_list(rsid, t, limit=None):
             u = c["uuid"]
             e = c["etag"]
-            uuid_etag[t+"s"][u] = e
+            uuid_etag[t + "s"][u] = e
             for i in c["recordids"]:
-                id_uuid[t+"s"][i] = u
+                id_uuid[t + "s"][i] = u
     return (uuid_etag, id_uuid)
 
 
@@ -118,9 +120,10 @@ def identifyRecord(t, etag, r, rsid):
     return idents
 
 unconsumed_extensions = {}
+core_siblings = {}
 
 
-def process_subfile(rf, rsid, rs_uuid_etag, rs_id_uuid):
+def process_subfile(rf, rsid, rs_uuid_etag, rs_id_uuid, ingest=False):
     count = 0
     no_recordid_count = 0
     duplicate_record_count = 0
@@ -136,19 +139,31 @@ def process_subfile(rf, rsid, rs_uuid_etag, rs_id_uuid):
     found = 0
     match = 0
 
+    typ = None
+
     if rf.rowtype in ingestion_types:
-        existing_etags = rs_uuid_etag[ingestion_types[rf.rowtype]]
-        existing_ids = rs_id_uuid[ingestion_types[rf.rowtype]]
+        typ = ingestion_types[rf.rowtype]
+        existing_etags = rs_uuid_etag[typ]
+        existing_ids = rs_id_uuid[typ]
     else:
         existing_etags = {}
         existing_ids = {}
+        ingest = False
 
     t = datetime.datetime.now()
     for r in rf:
+        ids_to_add = {}
+        uuids_to_add = {}
+        siblings = []
         try:
-            if "id" in r and r["id"] in unconsumed_extensions:
-                r.update(unconsumed_extensions[r["id"]])
-                del unconsumed_extensions[r["id"]]
+            if "id" in r:
+                if r["id"] in unconsumed_extensions:
+                    r.update(unconsumed_extensions[r["id"]])
+                    del unconsumed_extensions[r["id"]]
+
+                if r["id"] in core_siblings:
+                    siblings = core_siblings[r["id"]]
+
 
             if rf.rowtype == "dwc:Occurrence" and "dwc:occurrenceID" not in r and "id" in r:
                 r["dwc:occurrenceID"] = r["id"]
@@ -168,64 +183,98 @@ def process_subfile(rf, rsid, rs_uuid_etag, rs_id_uuid):
                 no_recordid_count += 1
                 raise RecordException("No Record ID")
             elif len(proposed_idents) > 0:
-                my_ids = set()
                 for ident in proposed_idents:
-                    if ident[2] in my_ids:
-                        # Skip duplicate ids within a single record without
-                        # error.
-                        continue
-                    elif ident[2] in seen_ids:
+                    if ident[2] in seen_ids:
                         dupe_ids.add(ident[2])
                         duplicate_id_count += 1
                         raise RecordException("Duplicate ID Detected")
                     else:
-                        my_ids.add(ident[2])
-                        seen_ids[ident[2]] = True
+                        ids_to_add[ident[2]] = True
                         idents.append(ident)
 
             u = None
-            found_ind = 0
-            for ind, v in enumerate(idents):
-                _, _, i = v
+            matched = False
+            for _, _, i in idents:
                 if i in existing_ids:
                     if u is None:
                         found += 1
-                        found_ind = ind
                         u = existing_ids[i]
                         if existing_etags[u] == etag:
                             match += 1
-                        seen_uuids[u] = etag
-                        seen_ids[i] = u
+                            matched = True
                     else:
-                        if existing_ids[i] == u:
-                            seen_ids[i] == u
-                        else:
-                            raise Exception("Cross record ID violation")
-            if u is not None:
-                for _, _, i in idents[:found_ind]:
-                    seen_ids[i] == u
+                        if existing_ids[i] != u:
+                            raise RecordException("Cross record ID violation")
 
-            if "coreid" in r and rf.rowtype not in ingestion_types:
-                if r["coreid"] not in unconsumed_extensions:
-                    unconsumed_extensions[r["coreid"]] = {}
+            if u is None:
+                u = str(uuid.uuid4())
 
-                if rf.rowtype not in unconsumed_extensions[r["coreid"]]:
-                    unconsumed_extensions[r["coreid"]][rf.rowtype] = []
+            for _, _, i in idents:
+                ids_to_add[i] = u
+            uuids_to_add[u] = etag
 
-                unconsumed_extensions[r["coreid"]][rf.rowtype].append(r)
+            if ingest and not matched:
+                #             u, t,        p,    d, ids,               siblings, commit
+                db.set_record(u, typ[:-1], rsid, r, ids_to_add.keys(), siblings, commit=False)
+
+
+            if "coreid" in r:
+                if rf.rowtype in ingestion_types:
+                    if r["coreid"] in core_siblings:
+                        core_siblings[r["coreid"]].append(u)
+                    else:
+                        core_siblings[r["coreid"]] = [u]
+                else:
+                    if r["coreid"] not in unconsumed_extensions:
+                        unconsumed_extensions[r["coreid"]] = {}
+
+                    if rf.rowtype not in unconsumed_extensions[r["coreid"]]:
+                        unconsumed_extensions[r["coreid"]][rf.rowtype] = []
+
+                    unconsumed_extensions[r["coreid"]][rf.rowtype].append(r)
 
             count += 1
         except RecordException as e:
+            ids_to_add = {}
+            uuids_to_add = {}
             #logger.error(str(e) + ", File: " + rf.name + " Line: " + str(rf.lineCount))
             # logger.debug(traceback.format_exc())
+            # traceback.print_exc()
             pass
         except Exception as e:
+            ids_to_add = {}
+            uuids_to_add = {}
             traceback.print_exc()
+
+        seen_ids.update(ids_to_add)
+        seen_uuids.update(uuids_to_add)
 
     eu_set = existing_etags.viewkeys()
     nu_set = seen_uuids.viewkeys()
 
     deletes = len(eu_set - nu_set)
+
+    # ei_set = existing_ids.viewkeys()
+    # ni_set = seen_ids.viewkeys()
+
+    # ee_set = set(existing_etags.values())
+
+
+
+    # if ingest:
+    #     print typ, "Create UUIDS", len(nu_set), len(eu_set), len(nu_set - eu_set)
+    #     for nu in nu_set - eu_set:
+    #         print "MOCK INSERT INTO uuids (id, type, parent, deleted) VALUES ({0},{1},{2},{3})".format(nu, typ[:-1], rsid, False)
+
+    #     print typ, "Create Idents", len(ni_set), len(ei_set), len(ni_set - ei_set)
+    #     for ni in ni_set - ei_set:
+    #         print "MOCK INSERT INTO uuids_identifier (identifier, uuids_id) VALUES ({0},{1})".format(ni, seen_ids[ni])
+
+    #     print typ, "Create Etags", len(seen_etags), len(ee_set), len(seen_etags - ee_set), len(etags_to_ingest)
+    #     # for ne in etags_to_ingest:
+    #     #     print "MOCK INSERT INTO data (etag, data) VALUES ({0},{1})".format(ne,etags_to_ingest[ne][1])
+    #     # print "MOCK INSERT INTO uuids_data (uuids_id,data_etag) VALUES
+    #     # ({0},{1})".format(etags_to_ingest[ne][0],ne)
 
     return {
         "create": count - found,
@@ -241,7 +290,7 @@ def process_subfile(rf, rsid, rs_uuid_etag, rs_id_uuid):
     }
 
 
-def process_file(fname, mime, rsid, existing_etags, existing_ids):
+def process_file(fname, mime, rsid, existing_etags, existing_ids, ingest=False, commit_force=False):
     counts = {}
     t = datetime.datetime.now()
     filehash = calcFileHash(fname)
@@ -250,10 +299,10 @@ def process_file(fname, mime, rsid, existing_etags, existing_ids):
         dwcaobj = Dwca(fname, skipeml=True, logname="idigbio")
         for dwcrf in dwcaobj.extensions:
             counts[dwcrf.name] = process_subfile(
-                dwcrf, rsid, existing_etags, existing_ids)
+                dwcrf, rsid, existing_etags, existing_ids, ingest=ingest)
             dwcrf.close()
         counts[dwcaobj.core.name] = process_subfile(
-            dwcaobj.core, rsid, existing_etags, existing_ids)
+            dwcaobj.core, rsid, existing_etags, existing_ids, ingest=ingest)
         dwcaobj.core.close()
         dwcaobj.close()
     elif mime == "text/plain":
@@ -264,13 +313,41 @@ def process_file(fname, mime, rsid, existing_etags, existing_ids):
         if commas:
             csvrf = DelimitedFile(fname, logname="idigbio")
             counts[fname] = process_subfile(
-                csvrf, rsid, existing_etags, existing_ids)
+                csvrf, rsid, existing_etags, existing_ids, ingest=ingest)
         else:
-            tsvrf = DelimitedFile(fname, delimiter="\t", fieldenc=None, logname="idigbio")
-            counts[fname] = self.processRecordFile(tsvrf)
+            tsvrf = DelimitedFile(
+                fname, delimiter="\t", fieldenc=None, logname="idigbio")
+            counts[fname] = process_subfile(
+                tsvrf, rsid, existing_etags, existing_ids, ingest=ingest)
+
+    commited = False
+    if ingest:
+        commit_ok = commit_force
+
+        type_commits = []
+        for k in counts:
+            if k not in ingestion_types:
+                continue
+            if (
+                counts[k]["create"]/float(counts[k]["processed_line_count"]) >= 0.5 and
+                counts[k]["delete"]/float(counts[k]["processed_line_count"]) >= 0.5
+            ):
+                type_commits.append(True)
+            else:
+                type_commits.append(False)
+
+        commit_ok = all(type_commits)
+
+        if commit_ok:
+            print "Ready to Commit"
+            db.commit()
+            commited = True
+        else:
+            db.rollback()
 
     # Clear after processing an archive
     unconsumed_extensions = {}
+    core_siblings = {}
 
     return {
         "name": fname,
@@ -278,7 +355,8 @@ def process_file(fname, mime, rsid, existing_etags, existing_ids):
         "recordset_id": rsid,
         "counts": counts,
         "processing_start_datetime": t.isoformat(),
-        "total_processing_time": (datetime.datetime.now() - t).total_seconds()
+        "total_processing_time": (datetime.datetime.now() - t).total_seconds(),
+        "commited": commited,
     }
 
 
@@ -302,6 +380,7 @@ def metadataToSummaryJSON(rsid, metadata, writeFile=True):
         "mediarecords_update": 0,
         "mediarecords_delete": 0,
         "datafile_ok": True,
+        "commited": metadata["commited"],
     }
 
     csv_line_count = 0
@@ -335,6 +414,11 @@ def metadataToSummaryJSON(rsid, metadata, writeFile=True):
 
 def main():
     rsid = sys.argv[1]
+    ingest = False
+    if len(sys.argv) > 2:
+        # RSID is always last for xargs support
+        rsid = sys.argv[-1]
+        ingest = sys.argv[1] == "ingest"
 
     fh = logging.FileHandler(rsid + ".log")
     fh.setLevel(logging.INFO)
@@ -353,7 +437,7 @@ def main():
             json.dump(db_u_d, uuidf)
         with open(rsid + "_ids.json", "wb") as idf:
             json.dump(db_i_d, idf)
-    metadata = process_file(name, mime, rsid, db_u_d, db_i_d)
+    metadata = process_file(name, mime, rsid, db_u_d, db_i_d, ingest=ingest)
     metadataToSummaryJSON(rsid, metadata)
 
 if __name__ == '__main__':

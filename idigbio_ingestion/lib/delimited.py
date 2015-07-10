@@ -127,16 +127,16 @@ class DelimitedFile(object):
             except UnicodeDecodeError:
                 lineDict = None
                 self.lineCount += 1
-                self.logger.error("Unicode Decode Exception: {0} Line {1}".format(self.name,self.lineCount))
+                self.logger.warn("Unicode Decode Exception: {0} Line {1}".format(self.name,self.lineCount))
                 self.logger.debug(traceback.format_exc())                
             except MissingFieldsException:
                 lineDict = None
-                self.logger.error("Missing Fields Exception: {0} Line {1}".format(self.name,self.lineCount))
+                self.logger.warn("Missing Fields Exception: {0} Line {1}".format(self.name,self.lineCount))
                 self.logger.debug(lineArr)
                 self.logger.debug(traceback.format_exc())
             except LineLengthException:
                 lineDict = None
-                self.logger.error("LineLengthException: {0} Line {1} ({2},{3})".format(self.name,self.lineCount,self.lineLength,len(lineArr)))
+                self.logger.warn("LineLengthException: {0} Line {1} ({2},{3})".format(self.name,self.lineCount,self.lineLength,len(lineArr)))
                 self.logger.debug(lineArr)
                 self.logger.debug(traceback.format_exc())
         return lineDict

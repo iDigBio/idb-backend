@@ -60,7 +60,7 @@ class Dwca(object):
             try:
                 root = etree.parse(meta, parser=parser).getroot()
             except:
-                self.logger.warn("Schema validation failed, continuing unvalidated")
+                self.logger.info("Schema validation failed, continuing unvalidated")
                 self.logger.debug(traceback.format_exc())
                 meta.seek(0)
                 # print meta.read()

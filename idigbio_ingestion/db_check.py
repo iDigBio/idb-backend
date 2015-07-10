@@ -24,13 +24,13 @@ from lib.delimited import DelimitedFile
 db = PostgresDB()
 magic = magic.Magic(mime=True)
 
-INGESTION_TYPES = ["record", "mediarecord"]
-
 bad_chars = u"\ufeff"
 bad_char_re = re.compile("[%s]" % re.escape(bad_chars))
 
+
 class RecordException(Exception):
     pass
+
 
 def mungeid(s):
     return bad_char_re.sub('', s).strip()
@@ -90,14 +90,15 @@ def get_file(rsid):
 def get_db_dicts(rsid):
     id_uuid = {}
     uuid_etag = {}
-    for t in INGESTION_TYPES:
-        print t
+    for t in ["record", "mediarecord"]:
+        id_uuid[t+"s"] = {}
+        uuid_etag[t+"s"] = {}
         for c in db.get_children_list(rsid, t, limit=None):
             u = c["uuid"]
             e = c["etag"]
-            uuid_etag[u] = e
+            uuid_etag[t+"s"][u] = e
             for i in c["recordids"]:
-                id_uuid[i] = u
+                id_uuid[t+"s"][i] = u
     return (uuid_etag, id_uuid)
 
 
@@ -119,20 +120,28 @@ def identifyRecord(t, etag, r, rsid):
 unconsumed_extensions = {}
 
 
-def process_subfile(rf, rsid, existing_etags, existing_ids):
+def process_subfile(rf, rsid, rs_uuid_etag, rs_id_uuid):
     count = 0
     no_recordid_count = 0
     duplicate_record_count = 0
     duplicate_id_count = 0
 
     seen_etags = set()
-    seen_ids = set()
+    seen_ids = {}
+    seen_uuids = {}
 
     dupe_ids = set()
     dupe_etags = set()
 
     found = 0
     match = 0
+
+    if rf.rowtype in ingestion_types:
+        existing_etags = rs_uuid_etag[ingestion_types[rf.rowtype]]
+        existing_ids = rs_id_uuid[ingestion_types[rf.rowtype]]
+    else:
+        existing_etags = {}
+        existing_ids = {}
 
     t = datetime.datetime.now()
     for r in rf:
@@ -171,20 +180,30 @@ def process_subfile(rf, rsid, existing_etags, existing_ids):
                         raise RecordException("Duplicate ID Detected")
                     else:
                         my_ids.add(ident[2])
-                        seen_ids.add(ident[2])
+                        seen_ids[ident[2]] = True
                         idents.append(ident)
 
             u = None
-            for _, _, i in idents:
+            found_ind = 0
+            for ind, v in enumerate(idents):
+                _, _, i = v
                 if i in existing_ids:
                     if u is None:
                         found += 1
+                        found_ind = ind
                         u = existing_ids[i]
                         if existing_etags[u] == etag:
                             match += 1
+                        seen_uuids[u] = etag
+                        seen_ids[i] = u
                     else:
-                        if existing_ids[i] != u:
+                        if existing_ids[i] == u:
+                            seen_ids[i] == u
+                        else:
                             raise Exception("Cross record ID violation")
+            if u is not None:
+                for _, _, i in idents[:found_ind]:
+                    seen_ids[i] == u
 
             if "coreid" in r and rf.rowtype not in ingestion_types:
                 if r["coreid"] not in unconsumed_extensions:
@@ -198,13 +217,21 @@ def process_subfile(rf, rsid, existing_etags, existing_ids):
             count += 1
         except RecordException as e:
             #logger.error(str(e) + ", File: " + rf.name + " Line: " + str(rf.lineCount))
-            #logger.debug(traceback.format_exc())
+            # logger.debug(traceback.format_exc())
             pass
-        except Exception as e:            
+        except Exception as e:
             traceback.print_exc()
+
+    eu_set = existing_etags.viewkeys()
+    nu_set = seen_uuids.viewkeys()
+    print len(nu_set)
+
+    deletes = len(eu_set - nu_set)
+
     return {
-        "found": found,
-        "match": match,
+        "create": count - found,
+        "update": found - match,
+        "delete": deletes,
         "processed_line_count": count,
         "total_line_count": rf.lineCount,
         "type": rf.rowtype,
@@ -217,6 +244,8 @@ def process_subfile(rf, rsid, existing_etags, existing_ids):
 
 def process_file(fname, mime, rsid, existing_etags, existing_ids):
     counts = {}
+    t = datetime.datetime.now()
+    filehash = calcFileHash(fname)
 
     if mime == "application/zip":
         dwcaobj = Dwca(fname, skipeml=True)
@@ -244,11 +273,66 @@ def process_file(fname, mime, rsid, existing_etags, existing_ids):
     # Clear after processing an archive
     unconsumed_extensions = {}
 
-    return counts
+    return {
+        "name": fname,
+        "filemd5": filehash,
+        "recordset_id": rsid,
+        "counts": counts,
+        "processing_start_datetime": t.isoformat(),
+        "total_processing_time": (datetime.datetime.now() - t).total_seconds()
+    }
 
-def save_summary_json(rsid,counts):
+
+def save_summary_json(rsid, counts):
     with open(rsid + ".summary.json", "wb") as sumf:
         json.dump(counts, sumf, indent=2)
+
+
+def metadataToSummaryJSON(rsid, metadata, writeFile=True):
+    summary = {
+        "recordset_id": rsid,
+        "filename": metadata["name"],
+        "filemd5": metadata["filemd5"],
+        "harvest_date": metadata["processing_start_datetime"],
+        "records_count": 0,
+        "records_create": 0,
+        "records_update": 0,
+        "records_delete": 0,
+        "mediarecords_count": 0,
+        "mediarecords_create": 0,
+        "mediarecords_update": 0,
+        "mediarecords_delete": 0,
+        "datafile_ok": True,
+    }
+
+    csv_line_count = 0
+    no_recordid_count = 0
+    duplicate_record_count = 0
+    duplicate_id_count = 0
+    for t in metadata["counts"].values():
+        csv_line_count += t["total_line_count"]
+        no_recordid_count += t["no_recordid_count"]
+        duplicate_record_count += t["duplicate_record_count"]
+        duplicate_id_count += t["duplicate_id_count"]
+        if t["type"] in ingestion_types:
+            typ = ingestion_types[t["type"]]
+            summary[typ + "_count"] += t["processed_line_count"]
+
+            for op in ["create", "update", "delete"]:
+                if op in t:
+                    summary[typ + "_" + op] += t[op]
+
+    summary["csv_line_count"] = csv_line_count
+    summary["no_recordid_count"] = no_recordid_count
+    summary["duplicate_occurence_count"] = duplicate_record_count
+    summary["dublicate_occurence_ids"] = duplicate_id_count
+
+    if writeFile:
+        with open(rsid + ".summary.json", "wb") as jf:
+            json.dump(summary, jf, indent=2)
+    else:
+        return summary
+
 
 def main():
     rsid = sys.argv[1]
@@ -264,8 +348,8 @@ def main():
             json.dump(db_u_d, uuidf)
         with open(rsid + "_ids.json", "wb") as idf:
             json.dump(db_i_d, idf)
-    counts = process_file(name, mime, rsid, db_u_d, db_i_d)
-    save_summary_json(rsid,counts)
+    metadata = process_file(name, mime, rsid, db_u_d, db_i_d)
+    metadataToSummaryJSON(rsid, metadata)
 
 if __name__ == '__main__':
     main()

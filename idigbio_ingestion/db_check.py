@@ -241,6 +241,11 @@ def process_subfile(rf, rsid, rs_uuid_etag, rs_id_uuid, ingest=False):
             # logger.debug(traceback.format_exc())
             # traceback.print_exc()
             pass
+        except AssertionError as e:
+            ids_to_add = {}
+            uuids_to_add = {}
+            traceback.print_exc()
+            assertions += 1
         except Exception as e:
             ids_to_add = {}
             uuids_to_add = {}

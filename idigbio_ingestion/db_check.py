@@ -138,6 +138,7 @@ def process_subfile(rf, rsid, rs_uuid_etag, rs_id_uuid, ingest=False):
 
     found = 0
     match = 0
+    ingestions = 0
 
     typ = None
 
@@ -216,6 +217,7 @@ def process_subfile(rf, rsid, rs_uuid_etag, rs_id_uuid, ingest=False):
             if ingest and not matched:
                 #             u, t,        p,    d, ids,               siblings, commit
                 db.set_record(u, typ[:-1], rsid, r, ids_to_add.keys(), siblings, commit=False)
+                ingestions += 1
 
 
             if "coreid" in r:
@@ -248,6 +250,9 @@ def process_subfile(rf, rsid, rs_uuid_etag, rs_id_uuid, ingest=False):
 
         seen_ids.update(ids_to_add)
         seen_uuids.update(uuids_to_add)
+
+        if ingestions % 10000 == 0:
+            db.commit()
 
     eu_set = existing_etags.viewkeys()
     nu_set = seen_uuids.viewkeys()

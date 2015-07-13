@@ -139,6 +139,7 @@ def process_subfile(rf, rsid, rs_uuid_etag, rs_id_uuid, ingest=False):
     found = 0
     match = 0
     ingestions = 0
+    assertions = 0
 
     typ = None
 
@@ -290,6 +291,8 @@ def process_subfile(rf, rsid, rs_uuid_etag, rs_id_uuid, ingest=False):
         "create": count - found,
         "update": found - match,
         "delete": deletes,
+        "ingestions": ingestions,
+        "assertions": assertions,
         "processed_line_count": count,
         "total_line_count": rf.lineCount,
         "type": rf.rowtype,
@@ -418,6 +421,8 @@ def metadataToSummaryJSON(rsid, metadata, writeFile=True):
     if writeFile:
         with open(rsid + ".summary.json", "wb") as jf:
             json.dump(summary, jf, indent=2)
+        with open(rsid + ".metadata.json", "wb") as jf:
+            json.dump(metadata, jf, indent=2)
     else:
         return summary
 

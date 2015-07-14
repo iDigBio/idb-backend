@@ -1,7 +1,18 @@
 import requests
 import json
 
-def main():
+
+from idb.postgres_backend.db import PostgresDB
+
+def main2():
+    db = PostgresDB()
+    for r in db.get_type_list("recordset", limit=None):
+        try:
+            print r["uuid"]
+        except:
+            traceback.print_exc()
+
+def main1():
     r = requests.get("http://search.idigbio.org/v2/search/recordsets/", params={"rsq":json.dumps({"data.ingest":True}),"fields":json.dumps(["uuid"])})
     r.raise_for_status()
     o = r.json()
@@ -10,4 +21,4 @@ def main():
         print rs["uuid"]
 
 if __name__ == '__main__':
-    main()
+    main2()

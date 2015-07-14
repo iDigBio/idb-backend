@@ -286,19 +286,32 @@ class PostgresDB:
             """, (u,))
         return self._cur.fetchone()
 
-    def get_type_list(self, t, limit=100, offset=0):
+    def get_type_list(self, t, limit=100, offset=0, data=False):
         cur = self._get_ss_cursor()
-        if limit is not None:
-            cur.execute(self.__item_master_query + """
-                WHERE deleted=false and type=%s
-                ORDER BY uuid
-                LIMIT %s OFFSET %s
-            """, (t,limit,offset))
+        if data:
+            if limit is not None:
+                cur.execute(self.__item_master_query_data + """
+                    WHERE deleted=false and type=%s
+                    ORDER BY uuid
+                    LIMIT %s OFFSET %s
+                """, (t,limit,offset))
+            else:
+                cur.execute(self.__item_master_query_data + """
+                    WHERE deleted=false and type=%s
+                    ORDER BY uuid
+                """, (t,))
         else:
-            cur.execute(self.__item_master_query + """
-                WHERE deleted=false and type=%s
-                ORDER BY uuid
-            """, (t,))
+            if limit is not None:
+                cur.execute(self.__item_master_query + """
+                    WHERE deleted=false and type=%s
+                    ORDER BY uuid
+                    LIMIT %s OFFSET %s
+                """, (t,limit,offset))
+            else:
+                cur.execute(self.__item_master_query + """
+                    WHERE deleted=false and type=%s
+                    ORDER BY uuid
+                """, (t,))
         for r in cur:
             yield r
 
@@ -311,19 +324,32 @@ class PostgresDB:
         return cur.fetchone()["count"]
 
 
-    def get_children_list(self, u, t, limit=100, offset=0):
+    def get_children_list(self, u, t, limit=100, offset=0, data=False):
         cur = self._get_ss_cursor()
-        if limit is not None:
-            cur.execute(self.__item_master_query + """
-                WHERE deleted=false and type=%s and parent=%s
-                ORDER BY uuid
-                LIMIT %s OFFSET %s
-            """,(t,u,limit,offset))
+        if data:
+            if limit is not None:
+                cur.execute(self.__item_master_query_data + """
+                    WHERE deleted=false and type=%s and parent=%s
+                    ORDER BY uuid
+                    LIMIT %s OFFSET %s
+                """,(t,u,limit,offset))
+            else:
+                cur.execute(self.__item_master_query_data + """
+                    WHERE deleted=false and type=%s and parent=%s
+                    ORDER BY uuid
+                """,(t,u))            
         else:
-            cur.execute(self.__item_master_query + """
-                WHERE deleted=false and type=%s and parent=%s
-                ORDER BY uuid
-            """,(t,u))
+            if limit is not None:
+                cur.execute(self.__item_master_query + """
+                    WHERE deleted=false and type=%s and parent=%s
+                    ORDER BY uuid
+                    LIMIT %s OFFSET %s
+                """,(t,u,limit,offset))
+            else:
+                cur.execute(self.__item_master_query + """
+                    WHERE deleted=false and type=%s and parent=%s
+                    ORDER BY uuid
+                """,(t,u))
         for r in cur:
             yield r
 
@@ -335,6 +361,7 @@ class PostgresDB:
         """, (t,u))
         return cur.fetchone()["count"]
 
+# New ingestion throwing assertion error on precheck
     def _id_precheck(self, u, ids):
         self._cur.execute("""SELECT
             identifier,
@@ -496,8 +523,8 @@ class PostgresDB:
     # UUID ID
     def _upsert_uuid_sibling(self, u, s, commit=True):
         self._cur.execute(self._upsert_uuid_sibling_query, {
-            "uuid": u,
-            "sibling": s
+            "uuid": sorted([u,s])[0],
+            "sibling": sorted([u,s])[1]
         })
         if commit:
             self.commit()

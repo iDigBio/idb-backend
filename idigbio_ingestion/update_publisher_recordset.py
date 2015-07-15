@@ -96,6 +96,8 @@ def update_db_from_rss():
             if "\\x" in name:
                 name = name.decode("utf8")
 
+            auto_publish = r["auto_publish"]
+
             logger.info("Update Publisher " + pub_uuid + " " + name + " " + str(r["id"]))
 
             pub_date = None
@@ -126,7 +128,7 @@ def update_db_from_rss():
                 recordid = id_func(e)
 
                 rsid = None
-                ingest = False
+                ingest = auto_publish
                 recordids = [recordid]
                 recordset = None           
                 if recordid in existing_recordsets:

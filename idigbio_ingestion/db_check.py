@@ -375,7 +375,7 @@ def save_summary_json(rsid, counts):
         json.dump(counts, sumf, indent=2)
 
 
-def metadataToSummaryJSON(rsid, metadata, writeFile=True):
+def metadataToSummaryJSON(rsid, metadata, writeFile=True, doStats=True):
     summary = {
         "recordset_id": rsid,
         "filename": metadata["name"],
@@ -414,6 +414,9 @@ def metadataToSummaryJSON(rsid, metadata, writeFile=True):
     summary["no_recordid_count"] = no_recordid_count
     summary["duplicate_occurence_count"] = duplicate_record_count
     summary["dublicate_occurence_ids"] = duplicate_id_count
+
+    if doStats:
+        es.index(index=indexName,doc_type="digest",body=summary)
 
     if writeFile:
         with open(rsid + ".summary.json", "wb") as jf:

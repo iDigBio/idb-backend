@@ -16,6 +16,8 @@ from idb.helpers.etags import calcFileHash
 from lib.eml import parseEml
 from lib.log import logger
 
+from idb.stats_collection import es, indexName
+
 def struct_to_datetime(s):
     return datetime.datetime.fromtimestamp(time.mktime(s))
 
@@ -234,15 +236,18 @@ def harvest_eml():
             u = r["uuid"]
             if u is None:
                 u = str(uuid.uuid4())
+            desc = {}
             if etag != r["eml_harvest_etag"]:
                 with open(fname,"rb") as inf:
                     desc = parseEml(r["recordids"][0], inf.read())
-                    desc["ingest"] = r["ingest"]
-                    desc["link"] = r["file_link"]
-                    desc["eml_link"] = r["eml_link"]
-                    desc["update"] = r["pub_date"].isoformat()
-                    parent = r["publisher_uuid"]
-                    db.set_record(u,"recordset",parent,desc,r["recordids"],[],commit=False)
+            else:
+                desc = db.get_item(u)["data"]
+            desc["ingest"] = r["ingest"]
+            desc["link"] = r["file_link"]
+            desc["eml_link"] = r["eml_link"]
+            desc["update"] = r["pub_date"].isoformat()
+            parent = r["publisher_uuid"]
+            db.set_record(u,"recordset",parent,desc,r["recordids"],[],commit=False)
             db._cur.execute("UPDATE recordsets SET eml_harvest_etag=%s, eml_harvest_date=%s,uuid=%s WHERE id=%s", (etag,datetime.datetime.now(),u,r["id"]))
             db.commit()
         except:

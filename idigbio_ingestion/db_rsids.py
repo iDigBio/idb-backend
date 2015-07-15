@@ -13,7 +13,7 @@ def main2():
             traceback.print_exc()
 
 def main1():
-    r = requests.get("http://search.idigbio.org/v2/search/recordsets/", params={"rsq":json.dumps({"data.ingest":True}),"fields":json.dumps(["uuid"])})
+    r = requests.get("http://search.idigbio.org/v2/search/recordsets/", params={"rsq":json.dumps({"data.ingest":True}),"fields":json.dumps(["uuid"]),"limit":5000})
     r.raise_for_status()
     o = r.json()
 
@@ -21,4 +21,4 @@ def main1():
         print rs["uuid"]
 
 if __name__ == '__main__':
-    main2()
+    main1()

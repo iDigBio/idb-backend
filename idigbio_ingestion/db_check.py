@@ -19,6 +19,7 @@ from idb.helpers.etags import calcEtag, calcFileHash
 
 from lib.dwca import Dwca
 from lib.delimited import DelimitedFile
+from lib.util import download_file
 
 db = PostgresDB()
 magic = magic.Magic(mime=True)
@@ -79,12 +80,8 @@ def idFromRR(r, rs=None):
 def get_file(rsid):
     fname = rsid
     if not os.path.exists(fname):
-        r = requests.get("https://media.idigbio.org/lookup/datasets", params={
-                         "filereference": "http://api.idigbio.org/v1/recordsets/" + rsid}, stream=True)
-        r.raise_for_status()
-        with open(fname, 'wb') as f:
-            r.raw.decode_content = True
-            shutil.copyfileobj(r.raw, f)
+        download_file("https://media.idigbio.org/lookup/datasets", fname, params={
+                         "filereference": "http://api.idigbio.org/v1/recordsets/" + rsid})
     m = magic.from_file(fname)
     return (fname, m)
 

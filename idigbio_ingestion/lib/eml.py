@@ -1,11 +1,11 @@
 from pyquery import PyQuery as pq
 
-from ..validation.rights_strings import acceptable_licenses_trans
+from idb.data_tables.rights_strings import acceptable_licenses_trans
 
 import logging
-from ....lib.log import logger
+from .log import logger
 logger.setLevel(logging.DEBUG)
-logger.addHandler(logging.FileHandler("update_pubs.log"))
+# logger.addHandler(logging.FileHandler("update_pubs.log"))
 
 def getElement(root,name):
     return root.find(name)

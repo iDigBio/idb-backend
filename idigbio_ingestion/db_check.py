@@ -21,6 +21,9 @@ from lib.dwca import Dwca
 from lib.delimited import DelimitedFile
 from lib.util import download_file
 
+
+from idb.stats_collector import es, indexName
+
 db = PostgresDB()
 magic = magic.Magic(mime=True)
 

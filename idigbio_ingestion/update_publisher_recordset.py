@@ -16,8 +16,6 @@ from idb.helpers.etags import calcFileHash
 from lib.eml import parseEml
 from lib.log import logger
 
-from idb.stats_collection import es, indexName
-
 def struct_to_datetime(s):
     return datetime.datetime.fromtimestamp(time.mktime(s))
 

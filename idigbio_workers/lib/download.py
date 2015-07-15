@@ -461,7 +461,9 @@ def generate_files(core_type="records", core_source="indexterms", record_query=N
             type_source_options[("records","raw")][1]["fields"] = []
             type_source_options[("records","indexterms")][1]["fields"] = []
             for f in record_fields:
-                if f.startswith("data."):
+                if f.startswith("\""):
+                    continue
+                elif f.startswith("data."):
                     type_source_options[("records","raw")][1]["fields"].append(f)
                 else:
                     type_source_options[("records","indexterms")][1]["fields"].append(f)
@@ -470,7 +472,9 @@ def generate_files(core_type="records", core_source="indexterms", record_query=N
             type_source_options[("mediarecords","raw")][1]["fields"] = []
             type_source_options[("mediarecords","indexterms")][1]["fields"] = []
             for f in mediarecord_fields:
-                if f.startswith("data."):
+                if f.startswith("\""):
+                    continue
+                elif f.startswith("data."):
                     type_source_options[("mediarecords","raw")][1]["fields"].append(f)
                 else:
                     type_source_options[("mediarecords","indexterms")][1]["fields"].append(f)

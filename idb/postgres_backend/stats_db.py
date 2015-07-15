@@ -3,7 +3,7 @@ import os
 import copy
 from psycopg2.extras import DictCursor
 
-from config import config
+from idb.config import config
 
 prefix = config["postgres"]["db_prefix"] if "db_prefix" in config["postgres"] else ""
 suffix = config["postgres"]["db_suffix"] if "db_suffix" in config["postgres"] else ""

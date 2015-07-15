@@ -3,6 +3,8 @@ import dateutil.parser
 from postgres_backend.stats_db import pg, DictCursor
 import elasticsearch
 
+from idb.postgres_backend.db import PostgresDB
+
 from collections import defaultdict
 from datetime import datetime, timedelta
 from config import config
@@ -169,6 +171,30 @@ def collect_stats(collect_datetime):
 
         es.index(index=indexName,doc_type=typeName,body=recordset_data)
 
+def api_stats():
+    db = PostgresDB()
+
+    now = datetime.utcnow().isoformat()
+
+    rstc = defaultdict(lambda: defaultdict(int))
+
+    db._cur.execute("SELECT parent,type,count(id) FROM uuids WHERE deleted=false and (type='record' or type='mediarecord') GROUP BY parent,type")
+    for r in db._cur:
+        rstc[r[0]][r[1]+"s_count"]=r[2]
+
+    rstc=dict(rstc)
+
+    for k in rstc:
+        rsc = rstc[k]
+        if "records_count" not in rsc:
+            rsc["records_count"] = 0
+        if "mediarecords_count" not in rsc:
+            rsc["mediarecords_count"] = 0
+        rsc["harvest_date"] = now
+        rsc["recordset_id"] = k
+
+        es.index(index=indexName,doc_type="api",body=rsc)  
+
 def main():
     import argparse
 
@@ -176,20 +202,24 @@ def main():
     parser.add_argument('-d', '--date', dest='collect_date_str', type=str, default=datetime.now().isoformat())    
     parser.add_argument('-m', '--mapping', dest='mapping', action='store_true', help='write mapping')
     parser.add_argument('-a', '--alldates', dest='alldates', action='store_true', help='write stats for all dates in the db')
+    parser.add_argument('-p', '--api', dest='api', action='store_true', help="write out the api stats")
 
     args = parser.parse_args()
 
     if args.mapping:
         es.indices.put_mapping(index=indexName,doc_type=typeName,body={ typeName: search_stats_mapping })
 
-    if args.alldates:
-        for d in get_stats_dates():
-            print "Running stats for", d
-            collect_stats(d)
+    if args.api:
+        api_stats()
     else:
-        collect_datetime = dateutil.parser.parse(args.collect_date_str)
+        if args.alldates:
+            for d in get_stats_dates():
+                print "Running stats for", d
+                collect_stats(d)
+        else:
+            collect_datetime = dateutil.parser.parse(args.collect_date_str)
 
-        collect_stats(collect_datetime)
+            collect_stats(collect_datetime)
 
 if __name__ == '__main__':
     main()

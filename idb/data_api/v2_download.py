@@ -88,7 +88,7 @@ def download():
         params.update({
             "complete": True,
             "task_status": r.state,
-            "status_url": url_for(".status",u=r.id,_external=True),
+            "status_url": url_for(".status",u=r.id,_external=True, _scheme='https'),
             "expires": dt.isoformat(),
             "download_url": r.get()
         })
@@ -96,7 +96,7 @@ def download():
         params.update({
             "complete": False,
             "task_status": r.state,
-            "status_url": url_for(".status",u=r.id,_external=True),
+            "status_url": url_for(".status",u=r.id,_external=True, _scheme='https'),
             "expires": dt.isoformat()
         })
 
@@ -116,7 +116,7 @@ def status(u):
                 params.update({
                     "complete": True,
                     "task_status": r.state,
-                    "status_url": url_for(".status",u=r.id,_external=True),
+                    "status_url": url_for(".status",u=r.id,_external=True, _scheme='https'),
                     "expires": dt.isoformat(),
                     "download_url": r.get()
                 })
@@ -124,7 +124,7 @@ def status(u):
                 params.update({
                     "complete": False,
                     "task_status": r.state,
-                    "status_url": url_for(".status",u=r.id,_external=True),
+                    "status_url": url_for(".status",u=r.id,_external=True, _scheme='https'),
                     "expires": dt.isoformat()
                 })
 
@@ -136,7 +136,7 @@ def status(u):
         params.update({
             "complete": False,
             "task_status": r.state,
-            "status_url": url_for(".status",u=r.id,_external=True),
+            "status_url": url_for(".status",u=r.id,_external=True, _scheme='https'),
             "expires": dt.isoformat()
         })
         return jsonify(params)

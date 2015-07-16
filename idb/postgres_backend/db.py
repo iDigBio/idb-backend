@@ -10,6 +10,9 @@ from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
 TEST_SIZE = 10000
 TEST_COUNT = 10
 
+#tombstone_etag = calcEtag({"deleted":True})
+tombstone_etag = "9a4e35834eb80d9af64bcd07ed996b9ec0e60d92"
+
 from . import *
 
 from idb.helpers.etags import calcEtag
@@ -294,6 +297,12 @@ class PostgresDB:
             """, (u,))
         return self._cur.fetchone()
 
+    def delete_item(self, u, commit=True):
+        self._upsert_uuid_data(u, tombstone_etag, commit=False) 
+        self._cur.execute("UPDATE uuids SET deleted=true WHERE id=%s", (u,))
+        if commit:
+            self.commit()
+
     def get_type_list(self, t, limit=100, offset=0, data=False):
         cur = self._get_ss_cursor()
         if data:
@@ -549,65 +558,67 @@ class PostgresDB:
 
 
 def main():
-    if os.environ["ENV"] == "test":
-        import requests
-        ses = requests.Session()
+    db = PostgresDB()
+    print db.delete_item("00000000-0000-0000-0000-000000000000")
+    # if os.environ["ENV"] == "test":
+    #     import requests
+    #     ses = requests.Session()
 
-        print("Creating test schema")
-        db = PostgresDB()
-        db.drop_schema()
-        db.create_schema()
+    #     print("Creating test schema")
+    #     db = PostgresDB()
+    #     db.drop_schema()
+    #     db.create_schema()
 
-        r = ses.get("http://api.idigbio.org/v1/records/")
-        r.raise_for_status()
-        ro = r.json()
+    #     r = ses.get("http://api.idigbio.org/v1/records/")
+    #     r.raise_for_status()
+    #     ro = r.json()
 
-        reccount = 0
-        mediarecords = set()
-        for rec in ro["idigbio:items"]:
-            print "record", rec["idigbio:uuid"]
-            rr = ses.get(
-                "http://api.idigbio.org/v1/records/{0}".format(rec["idigbio:uuid"]))
-            rr.raise_for_status()
-            rro = rr.json()
-            mrs = []
-            if "mediarecord" in rro["idigbio:links"]:
-                mrs = [s.split("/")[-1]
-                       for s in rro["idigbio:links"]["mediarecord"]]
-            mediarecords.update(mrs)
-            db.set_record(
-                rro["idigbio:uuid"],
-                "record",
-                rro["idigbio:links"]["recordset"][0].split("/")[-1],
-                rro["idigbio:data"],
-                rro["idigbio:recordIds"],
-                [],
-                commit=False
-            )
-            reccount += 1
+    #     reccount = 0
+    #     mediarecords = set()
+    #     for rec in ro["idigbio:items"]:
+    #         print "record", rec["idigbio:uuid"]
+    #         rr = ses.get(
+    #             "http://api.idigbio.org/v1/records/{0}".format(rec["idigbio:uuid"]))
+    #         rr.raise_for_status()
+    #         rro = rr.json()
+    #         mrs = []
+    #         if "mediarecord" in rro["idigbio:links"]:
+    #             mrs = [s.split("/")[-1]
+    #                    for s in rro["idigbio:links"]["mediarecord"]]
+    #         mediarecords.update(mrs)
+    #         db.set_record(
+    #             rro["idigbio:uuid"],
+    #             "record",
+    #             rro["idigbio:links"]["recordset"][0].split("/")[-1],
+    #             rro["idigbio:data"],
+    #             rro["idigbio:recordIds"],
+    #             [],
+    #             commit=False
+    #         )
+    #         reccount += 1
 
-        for mrid in mediarecords:
-            print "mediarecord", mrid
-            rr = ses.get(
-                "http://api.idigbio.org/v1/mediarecords/{0}".format(mrid))
-            rr.raise_for_status()
-            rro = rr.json()
-            recs = [s.split("/")[-1] for s in rro["idigbio:links"]["record"]]
-            mediarecords.update(mrs)
-            db.set_record(
-                rro["idigbio:uuid"],
-                "mediarecord",
-                rro["idigbio:links"]["recordset"][0].split("/")[-1],
-                rro["idigbio:data"],
-                rro["idigbio:recordIds"],
-                recs,
-                commit=False
-            )
+    #     for mrid in mediarecords:
+    #         print "mediarecord", mrid
+    #         rr = ses.get(
+    #             "http://api.idigbio.org/v1/mediarecords/{0}".format(mrid))
+    #         rr.raise_for_status()
+    #         rro = rr.json()
+    #         recs = [s.split("/")[-1] for s in rro["idigbio:links"]["record"]]
+    #         mediarecords.update(mrs)
+    #         db.set_record(
+    #             rro["idigbio:uuid"],
+    #             "mediarecord",
+    #             rro["idigbio:links"]["recordset"][0].split("/")[-1],
+    #             rro["idigbio:data"],
+    #             rro["idigbio:recordIds"],
+    #             recs,
+    #             commit=False
+    #         )
 
-        db.commit()
-        print "Imported ", reccount, "records and ", len(mediarecords), "mediarecords."
-    else:
-        print "ENV not test, refusing to run"
+    #     db.commit()
+    #     print "Imported ", reccount, "records and ", len(mediarecords), "mediarecords."
+    # else:
+    #     print "ENV not test, refusing to run"
 
 if __name__ == '__main__':
     main()

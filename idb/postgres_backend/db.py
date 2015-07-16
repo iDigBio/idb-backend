@@ -7,12 +7,13 @@ import hashlib
 import sys
 from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
 
-TEST_SIZE=10000
-TEST_COUNT=10
+TEST_SIZE = 10000
+TEST_COUNT = 10
 
 from . import *
 
 from idb.helpers.etags import calcEtag
+
 
 class PostgresDB:
     __join_uuids_etags_latest_version = """
@@ -76,9 +77,9 @@ class PostgresDB:
 
     __item_master_query_from = """FROM uuids
     """ + \
-    __join_uuids_etags_latest_version + \
-    __join_uuids_identifiers + \
-    __join_uuids_siblings
+        __join_uuids_etags_latest_version + \
+        __join_uuids_identifiers + \
+        __join_uuids_siblings
 
     __columns_master_query = """ SELECT
             uuids.id as uuid,
@@ -93,7 +94,7 @@ class PostgresDB:
     """
 
     __columns_master_query_data = __columns_master_query + \
-    """,
+        """,
             data,
             riak_etag
     """
@@ -101,8 +102,8 @@ class PostgresDB:
     __item_master_query = __columns_master_query + __item_master_query_from
 
     __item_master_query_data = __columns_master_query_data + \
-    __item_master_query_from + \
-    __join_uuids_data
+        __item_master_query_from + \
+        __join_uuids_data
 
     _upsert_uuid_query = """INSERT INTO uuids (id,type,parent)
         SELECT %(uuid)s, %(type)s, %(parent)s WHERE NOT EXISTS (
@@ -153,13 +154,13 @@ class PostgresDB:
     def rollback(self):
         pg.rollback()
 
-    def cursor(self,ss=False,ss_name=None):
+    def cursor(self, ss=False, ss_name=None):
         if ss:
             return self._get_ss_cursor(name=ss_name)
         else:
             return self._cur
 
-    def drop_schema(self,commit=True):
+    def drop_schema(self, commit=True):
         self._cur.execute("DROP VIEW IF EXISTS idigbio_uuids_new")
         self._cur.execute("DROP VIEW IF EXISTS idigbio_uuids_data")
         self._cur.execute("DROP VIEW IF EXISTS idigbio_relations")
@@ -172,9 +173,11 @@ class PostgresDB:
         if commit:
             self.commit()
 
-    def create_views(self,commit=True):
-        self._cur.execute("CREATE OR REPLACE VIEW idigbio_uuids_new AS" + self.__item_master_query)
-        self._cur.execute("CREATE OR REPLACE VIEW idigbio_uuids_data AS" + self.__item_master_query_data)
+    def create_views(self, commit=True):
+        self._cur.execute(
+            "CREATE OR REPLACE VIEW idigbio_uuids_new AS" + self.__item_master_query)
+        self._cur.execute(
+            "CREATE OR REPLACE VIEW idigbio_uuids_data AS" + self.__item_master_query_data)
 
         self._cur.execute("""CREATE OR REPLACE VIEW idigbio_relations AS
             SELECT
@@ -193,9 +196,9 @@ class PostgresDB:
         """)
 
         if commit:
-            self.commit()        
+            self.commit()
 
-    def create_schema(self,commit=True):
+    def create_schema(self, commit=True):
 
         self._cur.execute("""CREATE TABLE IF NOT EXISTS uuids (
             id uuid NOT NULL PRIMARY KEY,
@@ -203,7 +206,6 @@ class PostgresDB:
             parent uuid,
             deleted boolean NOT NULL DEFAULT false
         )""")
-
 
         self._cur.execute("""CREATE TABLE IF NOT EXISTS data (
             etag varchar(41) NOT NULL PRIMARY KEY,
@@ -231,55 +233,61 @@ class PostgresDB:
             r2 uuid NOT NULL REFERENCES uuids(id)
         )""")
 
-        self._cur.execute("CREATE INDEX uuids_data_uuids_id ON uuids_data (uuids_id)")
-        self._cur.execute("CREATE INDEX uuids_data_modified ON uuids_data (modified)")
-        self._cur.execute("CREATE INDEX uuids_data_version ON uuids_data (version)")
+        self._cur.execute(
+            "CREATE INDEX uuids_data_uuids_id ON uuids_data (uuids_id)")
+        self._cur.execute(
+            "CREATE INDEX uuids_data_modified ON uuids_data (modified)")
+        self._cur.execute(
+            "CREATE INDEX uuids_data_version ON uuids_data (version)")
         self._cur.execute("CREATE INDEX uuids_deleted ON uuids (deleted)")
         self._cur.execute("CREATE INDEX uuids_parent ON uuids (parent)")
         self._cur.execute("CREATE INDEX uuids_type ON uuids (type)")
-        self._cur.execute("CREATE INDEX uuids_siblings_r1 ON uuids_siblings (r1)")
-        self._cur.execute("CREATE INDEX uuids_siblings_r2 ON uuids_siblings (r2)")
-        self._cur.execute("CREATE INDEX uuids_identifier_uuids_id ON uuids_identifier (uuids_id)")
+        self._cur.execute(
+            "CREATE INDEX uuids_siblings_r1 ON uuids_siblings (r1)")
+        self._cur.execute(
+            "CREATE INDEX uuids_siblings_r2 ON uuids_siblings (r2)")
+        self._cur.execute(
+            "CREATE INDEX uuids_identifier_uuids_id ON uuids_identifier (uuids_id)")
 
         self.create_views(commit=False)
 
         if commit:
             self.commit()
 
-    def _get_ss_cursor(self,name=None):
+    def _get_ss_cursor(self, name=None):
         """ Get a named server side cursor for large ops"""
 
         if name is None:
-            return pg.cursor(str(uuid.uuid4()),cursor_factory=DictCursor)
+            return pg.cursor(str(uuid.uuid4()), cursor_factory=DictCursor)
         else:
-            return pg.cursor(name,cursor_factory=DictCursor)
+            return pg.cursor(name, cursor_factory=DictCursor)
 
-    def get_item(self,u,version=None):
+    def get_item(self, u, version=None):
         if version is not None:
             # Fetch by version ignores the deleted flag
             if version == "all":
-                self._cur.execute(self.__columns_master_query_data + \
-                """ FROM uuids """ + \
-                self.__join_uuids_etags_all_versions + \
-                self.__join_uuids_identifiers + \
-                self.__join_uuids_siblings + \
-                self.__join_uuids_data + \
-                """
+                self._cur.execute(self.__columns_master_query_data +
+                                  """ FROM uuids """ +
+                                  self.__join_uuids_etags_all_versions +
+                                  self.__join_uuids_identifiers +
+                                  self.__join_uuids_siblings +
+                                  self.__join_uuids_data +
+                                  """
                     WHERE uuids.id=%s
                     ORDER BY version ASC
                 """, (u,))
                 return self._cur.fetchall()
             else:
                 # Fetch by version ignores the deleted flag
-                self._cur.execute(self.__columns_master_query_data + \
-                """ FROM uuids """ + \
-                self.__join_uuids_etags_all_versions + \
-                self.__join_uuids_identifiers + \
-                self.__join_uuids_siblings + \
-                self.__join_uuids_data + \
-                """
+                self._cur.execute(self.__columns_master_query_data +
+                                  """ FROM uuids """ +
+                                  self.__join_uuids_etags_all_versions +
+                                  self.__join_uuids_identifiers +
+                                  self.__join_uuids_siblings +
+                                  self.__join_uuids_data +
+                                  """
                     WHERE uuids.id=%s and version=%s
-                """, (u,version))
+                """, (u, version))
         else:
             self._cur.execute(self.__item_master_query_data + """
                 WHERE deleted=false and uuids.id=%s
@@ -294,7 +302,7 @@ class PostgresDB:
                     WHERE deleted=false and type=%s
                     ORDER BY uuid
                     LIMIT %s OFFSET %s
-                """, (t,limit,offset))
+                """, (t, limit, offset))
             else:
                 cur.execute(self.__item_master_query_data + """
                     WHERE deleted=false and type=%s
@@ -306,7 +314,7 @@ class PostgresDB:
                     WHERE deleted=false and type=%s
                     ORDER BY uuid
                     LIMIT %s OFFSET %s
-                """, (t,limit,offset))
+                """, (t, limit, offset))
             else:
                 cur.execute(self.__item_master_query + """
                     WHERE deleted=false and type=%s
@@ -323,7 +331,6 @@ class PostgresDB:
         """, (t,))
         return cur.fetchone()["count"]
 
-
     def get_children_list(self, u, t, limit=100, offset=0, data=False):
         cur = self._get_ss_cursor()
         if data:
@@ -332,24 +339,24 @@ class PostgresDB:
                     WHERE deleted=false and type=%s and parent=%s
                     ORDER BY uuid
                     LIMIT %s OFFSET %s
-                """,(t,u,limit,offset))
+                """, (t, u, limit, offset))
             else:
                 cur.execute(self.__item_master_query_data + """
                     WHERE deleted=false and type=%s and parent=%s
                     ORDER BY uuid
-                """,(t,u))            
+                """, (t, u))
         else:
             if limit is not None:
                 cur.execute(self.__item_master_query + """
                     WHERE deleted=false and type=%s and parent=%s
                     ORDER BY uuid
                     LIMIT %s OFFSET %s
-                """,(t,u,limit,offset))
+                """, (t, u, limit, offset))
             else:
                 cur.execute(self.__item_master_query + """
                     WHERE deleted=false and type=%s and parent=%s
                     ORDER BY uuid
-                """,(t,u))
+                """, (t, u))
         for r in cur:
             yield r
 
@@ -358,7 +365,7 @@ class PostgresDB:
         cur.execute(""" SELECT
             count(*) as count FROM uuids
             WHERE deleted=false and type=%s and parent=%s
-        """, (t,u))
+        """, (t, u))
         return cur.fetchone()["count"]
 
 # New ingestion throwing assertion error on precheck
@@ -368,7 +375,7 @@ class PostgresDB:
             uuids_id
             FROM uuids_identifier
             WHERE uuids_id=%s OR identifier = ANY(%s)
-        """, (u,ids))
+        """, (u, ids))
         consistent = False
         for row in self._cur:
             if row["uuids_id"] != u:
@@ -404,15 +411,15 @@ class PostgresDB:
             self._upsert_uuid(u, t, p, commit=False)
             self._upsert_data(e, d, commit=False)
             self._upsert_uuid_data(u, e, commit=False)
-            self._upsert_uuid_id_l([(u,i) for i in ids], commit=False)
-            self._upsert_uuid_sibling_l([(u,s) for s in siblings], commit=False)
+            self._upsert_uuid_id_l([(u, i) for i in ids], commit=False)
+            self._upsert_uuid_sibling_l(
+                [(u, s) for s in siblings], commit=False)
             if commit:
                 self.commit()
         except:
             e = sys.exc_info()
             self.rollback()
             raise e[1], None, e[2]
-
 
     def set_records(self, record_list, commit=True):
         try:
@@ -422,8 +429,9 @@ class PostgresDB:
                 self._upsert_uuid(u, t, p, commit=False)
                 self._upsert_data(e, d, commit=False)
                 self._upsert_uuid_data(u, e, commit=False)
-                self._upsert_uuid_id_l([(u,i) for i in ids], commit=False)
-                self._upsert_uuid_sibling_l([(u,s) for s in siblings], commit=False)
+                self._upsert_uuid_id_l([(u, i) for i in ids], commit=False)
+                self._upsert_uuid_sibling_l(
+                    [(u, s) for s in siblings], commit=False)
             if commit:
                 self.commit()
         except:
@@ -445,9 +453,9 @@ class PostgresDB:
     def _upsert_uuid_l(self, utpl, commit=True):
         self._cur.executemany(self._upsert_uuid_query, [
             {
-            "uuid": u,
-            "type": t,
-            "parent": p
+                "uuid": u,
+                "type": t,
+                "parent": p
             } for u, t, p in utpl
         ])
         if commit:
@@ -465,15 +473,15 @@ class PostgresDB:
     def _upsert_data_l(self, edl, commit=True):
         self._cur.executemany(self._upsert_data_query, [
             {
-            "etag": e,
-            "data": json.dumps(d)
+                "etag": e,
+                "data": json.dumps(d)
             } for e, d in edl
         ])
         if commit:
             self.commit()
 
     # ETAGS ONLY
-    def _upsert_etag_l(self, el,commit=True):
+    def _upsert_etag_l(self, el, commit=True):
         self._cur.executemany("""INSERT INTO data (etag)
             SELECT %(etag)s as etag WHERE NOT EXISTS (
                 SELECT 1 FROM data WHERE etag=%(etag)s
@@ -523,8 +531,8 @@ class PostgresDB:
     # UUID ID
     def _upsert_uuid_sibling(self, u, s, commit=True):
         self._cur.execute(self._upsert_uuid_sibling_query, {
-            "uuid": sorted([u,s])[0],
-            "sibling": sorted([u,s])[1]
+            "uuid": sorted([u, s])[0],
+            "sibling": sorted([u, s])[1]
         })
         if commit:
             self.commit()
@@ -538,6 +546,7 @@ class PostgresDB:
         ])
         if commit:
             self.commit()
+
 
 def main():
     if os.environ["ENV"] == "test":
@@ -557,12 +566,14 @@ def main():
         mediarecords = set()
         for rec in ro["idigbio:items"]:
             print "record", rec["idigbio:uuid"]
-            rr = ses.get("http://api.idigbio.org/v1/records/{0}".format(rec["idigbio:uuid"]))
+            rr = ses.get(
+                "http://api.idigbio.org/v1/records/{0}".format(rec["idigbio:uuid"]))
             rr.raise_for_status()
             rro = rr.json()
             mrs = []
             if "mediarecord" in rro["idigbio:links"]:
-                mrs = [s.split("/")[-1] for s in rro["idigbio:links"]["mediarecord"]]
+                mrs = [s.split("/")[-1]
+                       for s in rro["idigbio:links"]["mediarecord"]]
             mediarecords.update(mrs)
             db.set_record(
                 rro["idigbio:uuid"],
@@ -577,7 +588,8 @@ def main():
 
         for mrid in mediarecords:
             print "mediarecord", mrid
-            rr = ses.get("http://api.idigbio.org/v1/mediarecords/{0}".format(mrid))
+            rr = ses.get(
+                "http://api.idigbio.org/v1/mediarecords/{0}".format(mrid))
             rr.raise_for_status()
             rro = rr.json()
             recs = [s.split("/")[-1] for s in rro["idigbio:links"]["record"]]

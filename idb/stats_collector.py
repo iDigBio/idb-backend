@@ -29,7 +29,7 @@ sl = config["elasticsearch"]["servers"]
 #     "c17node56.acis.ufl.edu"
 # ]
 
-es = elasticsearch.Elasticsearch(sl, sniff_on_start=True, sniff_on_connection_fail=True,retry_on_timeout=True,max_retries=3)
+es = elasticsearch.Elasticsearch(sl, sniff_on_start=True, sniff_on_connection_fail=True,retry_on_timeout=True,max_retries=10,timeout=30)
 
 record_types = ["records","mediarecords"]
 stat_types = ["download","mapping","search","seen","view"]

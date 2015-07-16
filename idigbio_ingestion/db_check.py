@@ -257,8 +257,8 @@ def process_subfile(rf, rsid, rs_uuid_etag, rs_id_uuid, ingest=False):
         seen_ids.update(ids_to_add)
         seen_uuids.update(uuids_to_add)
 
-        if ingestions % 10000 == 0:
-            db.commit()
+        # if ingestions % 10000 == 0:
+        #     db.commit()
 
     eu_set = existing_etags.viewkeys()
     nu_set = seen_uuids.viewkeys()

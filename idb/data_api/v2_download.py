@@ -39,6 +39,9 @@ def download():
     else:
         o = request.get_json()
 
+    if o is None:
+        o = request.form
+
     for k in params.keys():
         if k in o:
             if isinstance(o[k],str) or isinstance(o[k],unicode) and (o[k].startswith("{") or o[k].startswith("[")):

@@ -9,7 +9,7 @@ import shutil
 
 from .log import getIDigBioLogger
 from .delimited import DelimitedFile
-from .fieldnames import namespaces
+from idb.helpers.fieldnames import namespaces
 from .xmlDictTools import xml2d
 
 FNF_ERROR = "File {0} not present in archive."

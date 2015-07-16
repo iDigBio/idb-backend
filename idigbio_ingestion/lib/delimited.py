@@ -5,7 +5,7 @@ from collections import defaultdict
 
 import logging
 from .log import getIDigBioLogger
-from .fieldnames import get_canonical_name,types
+from idb.helpers.fieldnames import get_canonical_name,types
 
 class MissingFieldsException(Exception):
     def __init__(self,name,lineNumber,fieldnum,fieldname,lineArr):

@@ -28,7 +28,7 @@ app.register_blueprint(v2_download,url_prefix="/v2")
 if "ENV" in os.environ and os.environ["ENV"] == "test":
     app.register_blueprint(corrections,url_prefix="/v2")
 
-@app.route('/v2', methods=['GET'])
+@app.route('/v2/', methods=['GET'])
 @crossdomain(origin="*")
 def v2_meta_index():
     r = {}
@@ -48,7 +48,7 @@ def index():
 
     for rule in app.url_map.iter_rules():
         sa = str(rule).split("/")[1:]
-        if len(sa) == 1:
+        if len(sa) == 2 and sa[1] == "":
             r[sa[0]] = url_for(rule.endpoint,_external=True)
 
     return jsonify(r)

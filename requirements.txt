@@ -8,6 +8,7 @@ requests>=2.3.0
 pycrypto
 flask
 Flask-UUID
+Flask-CORS
 riak
 coverage
 -e git://github.com/thampiman/reverse-geocoder#egg=reverse_geocoder

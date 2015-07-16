@@ -3,6 +3,8 @@ from flask import current_app, Blueprint, jsonify, url_for, request
 from .common import load_data_from_riak, json_error
 from idb.helpers.idb_flask_authn import requires_auth
 
+from idb.helpers.cors import crossdomain
+
 this_version = Blueprint(__name__,__name__)
 
 def format_list_item(t,uuid,etag,modified,version,parent):
@@ -37,7 +39,8 @@ def format_item(t,uuid,etag,modified,version,parent,data,siblings,ids):
     r["recordIds"] = ids
     return r
 
-@this_version.route('/view/<string:t>/<uuid:u>/<string:st>', methods=['GET'])
+@this_version.route('/view/<string:t>/<uuid:u>/<string:st>', methods=['GET','OPTIONS'])
+@crossdomain(origin="*")
 def subitem(t,u,st):
     if not (t in current_app.config["SUPPORTED_TYPES"] and st in current_app.config["SUPPORTED_TYPES"]):
         return json_error(404)
@@ -58,7 +61,8 @@ def subitem(t,u,st):
     r["itemCount"] = current_app.config["DB"].get_children_count(str(u), "".join(st[:-1]))
     return jsonify(r)
 
-@this_version.route('/view/<string:t>/<uuid:u>', methods=['GET'])
+@this_version.route('/view/<string:t>/<uuid:u>', methods=['GET','OPTIONS'])
+@crossdomain(origin="*")
 def item(t,u):
     if t not in current_app.config["SUPPORTED_TYPES"]:
         return json_error(404)
@@ -84,7 +88,8 @@ def item(t,u):
     else:
         return json_error(404)
 
-@this_version.route('/view/<string:t>', methods=['GET'])
+@this_version.route('/view/<string:t>', methods=['GET','OPTIONS'])
+@crossdomain(origin="*")
 def list(t):
     if t not in current_app.config["SUPPORTED_TYPES"]:
         return json_error(404)
@@ -105,7 +110,8 @@ def list(t):
     r["itemCount"] = current_app.config["DB"].get_type_count("".join(t[:-1]))
     return jsonify(r)
 
-@this_version.route('/view', methods=['GET'])
+@this_version.route('/view', methods=['GET','OPTIONS'])
+@crossdomain(origin="*")
 def view():
     r = {}
     for t in current_app.config["SUPPORTED_TYPES"]:

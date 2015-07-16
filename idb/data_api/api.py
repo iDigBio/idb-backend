@@ -2,13 +2,13 @@ import os
 
 from flask import Flask, jsonify, request, abort, url_for
 from flask.ext.uuid import FlaskUUID
-from flask.ext.cors import CORS
+
+from idb.helpers.cors import crossdomain
 
 from idb.postgres_backend.db import PostgresDB
 
 app = Flask(__name__)
 FlaskUUID(app)
-CORS(app)
 
 app.config.from_object('idb.data_api.config')
 
@@ -29,6 +29,7 @@ if "ENV" in os.environ and os.environ["ENV"] == "test":
     app.register_blueprint(corrections,url_prefix="/v2")
 
 @app.route('/v2', methods=['GET'])
+@crossdomain(origin="*")
 def v2_meta_index():
     r = {}
 
@@ -40,6 +41,7 @@ def v2_meta_index():
     return jsonify(r)
 
 @app.route('/', methods=['GET'])
+@crossdomain(origin="*")
 def index():
 
     r = {}

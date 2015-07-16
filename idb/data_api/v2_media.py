@@ -8,23 +8,29 @@ import datetime
 
 from idb.helpers.etags import objectHasher
 
+from idb.helpers.cors import crossdomain
+
 from .common import json_error
 
-@this_version.route('/media', methods=['GET'])
+@this_version.route('/media', methods=['GET','OPTIONS'])
+@crossdomain(origin="*")
 def lookup():
     return json_error(500,"Not Yet Implemented")
 
-@this_version.route('/view/mediarecords/<uuid:u>/media', methods=['GET'])
-@this_version.route('/view/records/<uuid:u>/media', methods=['GET'])
-@this_version.route('/media/<uuid:u>', methods=['GET'])
+@this_version.route('/view/mediarecords/<uuid:u>/media', methods=['GET','OPTIONS'])
+@this_version.route('/view/records/<uuid:u>/media', methods=['GET','OPTIONS'])
+@this_version.route('/media/<uuid:u>', methods=['GET','OPTIONS'])
+@crossdomain(origin="*")
 def lookup_uuid(uuid):
     return json_error(500,"Not Yet Implemented")
 
-@this_version.route('/media/<string:etag>', methods=['GET'])
+@this_version.route('/media/<string:etag>', methods=['GET','OPTIONS'])
+@crossdomain(origin="*")
 def lookup_etag(etag):
     return json_error(500,"Not Yet Implemented")
 
-@this_version.route('/media', methods=['POST'])
+@this_version.route('/media', methods=['POST','OPTIONS'])
+@crossdomain(origin="*")
 def upload():
     return json_error(500,"Not Yet Implemented")
 

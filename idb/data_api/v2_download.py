@@ -12,13 +12,16 @@ from idigbio_workers import downloader, send_download_email
 
 from idb.helpers.etags import objectHasher
 
+from idb.helpers.cors import crossdomain
+
 from .common import json_error
 
 expire_time_in_seconds = 23 * 60 * 60
 
 redist = redis.StrictRedis(host='idb-redis-celery.acis.ufl.edu', port=6379, db=0)
 
-@this_version.route('/download', methods=['GET','POST'])
+@this_version.route('/download', methods=['GET','POST','OPTIONS'])
+@crossdomain(origin="*")
 def download():
 
     params = {
@@ -102,7 +105,8 @@ def download():
 
     return jsonify(params)
 
-@this_version.route('/download/<uuid:u>', methods=['GET'])
+@this_version.route('/download/<uuid:u>', methods=['GET','OPTIONS'])
+@crossdomain(origin="*")
 def status(u):
     u = str(u)
     try:

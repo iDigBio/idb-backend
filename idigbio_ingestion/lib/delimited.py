@@ -5,6 +5,7 @@ from collections import defaultdict
 
 import logging
 from .log import getIDigBioLogger
+from .fileproxy import FileProxy
 from idb.helpers.fieldnames import get_canonical_name,types
 
 class MissingFieldsException(Exception):
@@ -42,10 +43,10 @@ class DelimitedFile(object):
 
         if isinstance(fh,str) or isinstance(fh,unicode):
             self.name = fh
-            self.filehandle = open(fh,'rb')            
+            self.filehandle = FileProxy(open(fh,'rb'))
         else:
             self.name = fh.name
-            self.filehandle = fh
+            self.filehandle = FileProxy(fh)
         
         if logname is None:
             self.logger = getIDigBioLogger(self.name)
@@ -123,22 +124,26 @@ class DelimitedFile(object):
                             lineDict[self.fields[k]] = lineArr[k]
                     except IndexError, e:                        
                         raise MissingFieldsException(self.name,self.lineCount,k,self.fields[k],lineArr)
+                self.filehandle.snap()
                 return lineDict
             except UnicodeDecodeError:
                 lineDict = None
                 self.lineCount += 1
                 self.logger.warn("Unicode Decode Exception: {0} Line {1}".format(self.name,self.lineCount))
-                self.logger.debug(traceback.format_exc())                
+                self.logger.info(traceback.format_exc())
+                self.logger.info(self.filehandle.dump())
             except MissingFieldsException:
                 lineDict = None
                 self.logger.warn("Missing Fields Exception: {0} Line {1}".format(self.name,self.lineCount))
                 self.logger.debug(lineArr)
-                self.logger.debug(traceback.format_exc())
+                self.logger.info(traceback.format_exc())
+                self.logger.info(self.filehandle.dump())
             except LineLengthException:
                 lineDict = None
                 self.logger.warn("LineLengthException: {0} Line {1} ({2},{3})".format(self.name,self.lineCount,self.lineLength,len(lineArr)))
                 self.logger.debug(lineArr)
-                self.logger.debug(traceback.format_exc())
+                self.logger.info(traceback.format_exc())
+                self.logger.info(self.filehandle.dump())
         return lineDict
 
     def readlines(self,sizehint=None):

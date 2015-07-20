@@ -46,7 +46,11 @@ def download():
         o = dict(o)
 
     if "query" in o and "rq" not in o:
-        o["rq"] = o["query"]
+        if isinstance(o["query"],list):
+            o["rq"] = o["query"][0]
+        else:
+            o["rq"] = o["query"]
+
 
     for k in params.keys():
         if k in o:

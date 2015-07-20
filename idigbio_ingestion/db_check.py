@@ -217,7 +217,7 @@ def process_subfile(rf, rsid, rs_uuid_etag, rs_id_uuid, ingest=False):
                 if parent is not None:
                     assert parent == rsid
 
-            if deleted = True:
+            if deleted:
                 to_undelete += 1
 
             for _, _, i in idents:

@@ -260,12 +260,12 @@ def process_subfile(rf, rsid, rs_uuid_etag, rs_id_uuid, ingest=False):
         except AssertionError as e:
             ids_to_add = {}
             uuids_to_add = {}
-            traceback.print_exc()
+            logger.info(traceback.format_exc())
             assertions += 1
         except Exception as e:
             ids_to_add = {}
             uuids_to_add = {}
-            traceback.print_exc()
+            logger.info(traceback.format_exc())
 
         seen_ids.update(ids_to_add)
         seen_uuids.update(uuids_to_add)

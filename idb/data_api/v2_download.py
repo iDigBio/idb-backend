@@ -46,14 +46,14 @@ def download():
         o = dict(o)
 
     if "query" in o and "rq" not in o:
-        if isinstance(o["query"],list):
-            o["rq"] = o["query"][0]
-        else:
-            o["rq"] = o["query"]
+        o["rq"] = o["query"]
 
 
     for k in params.keys():
         if k in o:
+            if isinstance(o[k],list):
+                o[k] = o[k][0]
+
             if isinstance(o[k],str) or isinstance(o[k],unicode) and (o[k].startswith("{") or o[k].startswith("[")):
                 params[k] = json.loads(o[k])
             else:

@@ -140,6 +140,7 @@ def process_subfile(rf, rsid, rs_uuid_etag, rs_id_uuid, ingest=False):
     match = 0
     ingestions = 0
     assertions = 0
+    resurrections = 0
 
     typ = None
 
@@ -208,17 +209,25 @@ def process_subfile(rf, rsid, rs_uuid_etag, rs_id_uuid, ingest=False):
                         if existing_ids[i] != u:
                             raise RecordException("Cross record ID violation")
 
+            deleted = False
             if u is None:
-                u = str(uuid.uuid4())
+                u, parent, deleted = db.get_uuid([i for _,_,i in idents])
+                assert u is not None:
+                if parent is not None:
+                    assert parent == rsid
 
             for _, _, i in idents:
                 ids_to_add[i] = u
             uuids_to_add[u] = etag
 
-            if ingest and not matched:
+            if ingest and not matched and not deleted:
                 #             u, t,        p,    d, ids,               siblings, commit
                 db.set_record(u, typ[:-1], rsid, r, ids_to_add.keys(), siblings, commit=False)
                 ingestions += 1
+            elif ingest and deleted:
+                db.undelete_item(u, commit=False)
+                db.set_record(u, typ[:-1], rsid, r, ids_to_add.keys(), siblings, commit=False)
+                resurrections += 1
 
 
             if "coreid" in r:
@@ -293,6 +302,7 @@ def process_subfile(rf, rsid, rs_uuid_etag, rs_id_uuid, ingest=False):
         "delete": deletes,
         "ingestions": ingestions,
         "assertions": assertions,
+        "resurrections": resurrections,
         "processed_line_count": count,
         "total_line_count": rf.lineCount,
         "type": rf.rowtype,

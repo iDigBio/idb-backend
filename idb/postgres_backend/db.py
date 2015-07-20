@@ -303,6 +303,12 @@ class PostgresDB:
         if commit:
             self.commit()
 
+    def undelete_item(self, u, commit=True):
+        # Needs to be accompanied by a corresponding version insertion to obsolete the tombstone
+        self._cur.execute("UPDATE uuids SET deleted=false WHERE id=%s", (u,))
+        if commit:
+            self.commit()
+
     def get_type_list(self, t, limit=100, offset=0, data=False):
         cur = self._get_ss_cursor()
         if data:
@@ -396,22 +402,30 @@ class PostgresDB:
     def get_uuid(self, ids):
         self._cur.execute("""SELECT
             identifier,
-            uuids_id
+            uuids_id,
+            parent,
+            deleted
             FROM uuids_identifier
+            JOIN uuids
+            ON uuids.id = uuids_identifier.uuids_id
             WHERE identifier = ANY(%s)
         """, (ids,))
         rid = None
+        parent = None
+        deleted = False
         for row in self._cur:
             if rid is None:
                 rid = r["uuids_id"]
+                parent = r["parent"]
+                deleted = r["deleted"]
             elif rid == r["uuids_id"]:
                 pass
             else:
-                return None
+                return (None,parent,deleted)
         if rid is None:
-            return uuid.uuid4()
+            return (str(uuid.uuid4()),parent,deleted)
         else:
-            return rid
+            return (rid,parent,deleted)
 
     def set_record(self, u, t, p, d, ids, siblings, commit=True):
         try:

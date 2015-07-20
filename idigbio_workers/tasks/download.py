@@ -52,9 +52,9 @@ def send_download_email(email,link,params,ip=None,source=None):
 
 def upload_download_file_to_ceph(tid):
     s = IDigBioStorage()
-
     fkey = s.upload_file(tid,"idigbio-downloads",tid)
     fkey.set_metadata('Content-Type', 'application/zip')
+    fkey.make_public()
     os.unlink(tid)
     return "http://s.idigbio.org/idigbio-downloads/" + tid
 

@@ -42,6 +42,9 @@ def download():
     if o is None:
         o = request.form
 
+    if o is not None:
+        o = dict(o)
+
     if "query" in o and "rq" not in o:
         o["rq"] = o["query"]
 

@@ -140,6 +140,7 @@ def process_subfile(rf, rsid, rs_uuid_etag, rs_id_uuid, ingest=False):
     match = 0
     ingestions = 0
     assertions = 0
+    to_undelete = 0
     resurrections = 0
 
     typ = None
@@ -215,6 +216,9 @@ def process_subfile(rf, rsid, rs_uuid_etag, rs_id_uuid, ingest=False):
                 assert u is not None
                 if parent is not None:
                     assert parent == rsid
+
+            if deleted = True:
+                to_undelete += 1
 
             for _, _, i in idents:
                 ids_to_add[i] = u
@@ -300,6 +304,7 @@ def process_subfile(rf, rsid, rs_uuid_etag, rs_id_uuid, ingest=False):
         "create": count - found,
         "update": found - match,
         "delete": deletes,
+        "to_undelete": to_undelete,
         "ingestions": ingestions,
         "assertions": assertions,
         "resurrections": resurrections,

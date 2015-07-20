@@ -42,6 +42,9 @@ def download():
     if o is None:
         o = request.form
 
+    if "query" in o and "rq" not in o:
+        o["rq"] = o["query"]
+
     for k in params.keys():
         if k in o:
             if isinstance(o[k],str) or isinstance(o[k],unicode) and (o[k].startswith("{") or o[k].startswith("[")):

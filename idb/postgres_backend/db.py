@@ -415,10 +415,10 @@ class PostgresDB:
         deleted = False
         for row in self._cur:
             if rid is None:
-                rid = r["uuids_id"]
-                parent = r["parent"]
-                deleted = r["deleted"]
-            elif rid == r["uuids_id"]:
+                rid = row["uuids_id"]
+                parent = row["parent"]
+                deleted = row["deleted"]
+            elif rid == row["uuids_id"]:
                 pass
             else:
                 return (None,parent,deleted)

@@ -445,7 +445,7 @@ def main():
         rsid = sys.argv[-1]
         ingest = sys.argv[1] == "ingest"
 
-    fh = logging.FileHandler(rsid + ".log")
+    fh = logging.FileHandler(rsid + ".db_check.log")
     fh.setLevel(logging.INFO)
     fh.setFormatter(formatter)
     logger.addHandler(fh)

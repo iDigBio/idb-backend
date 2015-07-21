@@ -1,10 +1,7 @@
 import logging
 
 FORMAT = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-logging.basicConfig(level=logging.DEBUG,
-                    format=FORMAT,
-                    filename='/tmp/run.log',
-                    filemode='a')
+logging.basicConfig(format=FORMAT)
 formatter = logging.Formatter(FORMAT)
 
 def getIDigBioLogger(name=""):

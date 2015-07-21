@@ -383,7 +383,6 @@ class PostgresDB:
         """, (t, u))
         return cur.fetchone()["count"]
 
-# New ingestion throwing assertion error on precheck
     def _id_precheck(self, u, ids):
         self._cur.execute("""SELECT
             identifier,

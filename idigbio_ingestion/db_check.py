@@ -278,27 +278,15 @@ def process_subfile(rf, rsid, rs_uuid_etag, rs_id_uuid, ingest=False):
 
     deletes = len(eu_set - nu_set)
 
-    # ei_set = existing_ids.viewkeys()
-    # ni_set = seen_ids.viewkeys()
+    deleted = 0
 
-    # ee_set = set(existing_etags.values())
-
-
-
-    # if ingest:
-    #     print typ, "Create UUIDS", len(nu_set), len(eu_set), len(nu_set - eu_set)
-    #     for nu in nu_set - eu_set:
-    #         print "MOCK INSERT INTO uuids (id, type, parent, deleted) VALUES ({0},{1},{2},{3})".format(nu, typ[:-1], rsid, False)
-
-    #     print typ, "Create Idents", len(ni_set), len(ei_set), len(ni_set - ei_set)
-    #     for ni in ni_set - ei_set:
-    #         print "MOCK INSERT INTO uuids_identifier (identifier, uuids_id) VALUES ({0},{1})".format(ni, seen_ids[ni])
-
-    #     print typ, "Create Etags", len(seen_etags), len(ee_set), len(seen_etags - ee_set), len(etags_to_ingest)
-    #     # for ne in etags_to_ingest:
-    #     #     print "MOCK INSERT INTO data (etag, data) VALUES ({0},{1})".format(ne,etags_to_ingest[ne][1])
-    #     # print "MOCK INSERT INTO uuids_data (uuids_id,data_etag) VALUES
-    #     # ({0},{1})".format(etags_to_ingest[ne][0],ne)
+    if ingest:
+        for u in eu_set - nu_set:
+            try:
+                db.delete_item(u,commit=False)
+                deleted += 1
+            except:
+                logger.info(traceback.format_exc())
 
     return {
         "create": count - found,
@@ -308,6 +296,7 @@ def process_subfile(rf, rsid, rs_uuid_etag, rs_id_uuid, ingest=False):
         "ingestions": ingestions,
         "assertions": assertions,
         "resurrections": resurrections,
+        "deleted": deleted,
         "processed_line_count": count,
         "total_line_count": rf.lineCount,
         "type": rf.rowtype,

@@ -358,10 +358,11 @@ def process_file(fname, mime, rsid, existing_etags, existing_ids, ingest=False, 
         commit_ok = all(type_commits)
 
         if commit_ok:
-            print "Ready to Commit"
+            logger.info("Ready to Commit")
             db.commit()
             commited = True
         else:
+            logger.error("Rollback")
             db.rollback()
 
     # Clear after processing an archive

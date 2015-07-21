@@ -108,6 +108,10 @@ class ElasticSearchIndexer(object):
                 "_id": i["uuid"],
                 "_source": i,
             }
+            if i["delete"]:
+                meta["_op_type"] = "delete"
+                del meta["_source"]
+
             if t == "mediarecords":
                 if "records" in i and len(i["records"]) > 0:
                     meta["_parent"] = i["records"][0]

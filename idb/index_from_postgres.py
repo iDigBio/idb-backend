@@ -143,7 +143,7 @@ def type_yield_modified(ei,rc,typ,yield_record=False):
             GROUP BY subject
         ) as sibs
         ON sibs.subject=uuids.id
-        WHERE type=%s and modified>%s and deleted=false
+        WHERE type=%s and modified>%s
         ORDER BY modified ASC;
         """, (pg_typ,after))
 

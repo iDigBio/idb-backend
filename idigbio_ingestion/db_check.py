@@ -31,7 +31,9 @@ bad_chars = u"\ufeff"
 bad_char_re = re.compile("[%s]" % re.escape(bad_chars))
 
 logger = getIDigBioLogger("idigbio")
-logger.setLevel(logging.ERROR)
+ch = logging.StreamHandler()
+ch.setLevel(logging.ERROR)
+logger.addHandler(ch)
 
 
 class RecordException(Exception):

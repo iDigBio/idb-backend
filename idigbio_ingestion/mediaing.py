@@ -74,10 +74,5 @@ def main():
     for _ in p.imap(get_media,media_url_iterator()):
         pass
 
-
-
-
-
-
 if __name__ == '__main__':
     main()

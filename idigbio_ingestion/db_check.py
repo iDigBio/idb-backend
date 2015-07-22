@@ -462,7 +462,12 @@ def main():
             json.dump(db_u_d, uuidf)
         with open(rsid + "_ids.json", "wb") as idf:
             json.dump(db_i_d, idf)
-    metadata = process_file(name, mime, rsid, db_u_d, db_i_d, ingest=ingest)
+
+    commit_force = False
+    if len(db_i_d) == 0 and len(db_u_d) == 0:
+        commit_force = True
+
+    metadata = process_file(name, mime, rsid, db_u_d, db_i_d, ingest=ingest, commit_force=commit_force)
     metadataToSummaryJSON(rsid, metadata)
 
 if __name__ == '__main__':

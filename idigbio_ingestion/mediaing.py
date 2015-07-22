@@ -47,8 +47,12 @@ def main():
     for r in cur:
         media_urls.add(r["lookup_key"])
 
+    # Set a mime type to none to explicitly ignore it
     mime_mapping = {
-        "image/jpeg": "images"
+        "image/jpeg": "images",
+        "text/html": None,
+        "image/dng": None,
+        "application/xml": None,
     }
 
     def media_url_iterator():
@@ -59,7 +63,10 @@ def main():
             url = r["url"].replace("&amp;","&").strip()
             if url not in media_urls:
                 if r["format"] in mime_mapping:
-                    yield (r["url"], mime_mapping[r["format"]], r["format"])
+                    if mime_mapping[r["format"]] is not None:
+                        yield (r["url"], mime_mapping[r["format"]], r["format"])
+                elif r["format"] is None:
+                    pass
                 else:
                     print "Unknown Format", r["format"]
 

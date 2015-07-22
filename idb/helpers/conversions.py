@@ -661,7 +661,7 @@ def gs_sn_crossfill(t, r):
     if filled("genus", r) and not filled("scientificname",r):
         r["scientificname"] = scientificNameFiller(t, r)
         r["flag_scientificname_added"] = True
-    elif filled("scientificname", r) and not filled("genus"):
+    elif filled("scientificname", r) and not filled("genus", r):
         gs = genusSpeciesFiller(t, r)
         for k, indk in [("genus", "genus"), ("species", "specificepithet")]:
             if filled(k, gs) and not filled(indk, r):

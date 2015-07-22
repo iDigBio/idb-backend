@@ -93,6 +93,12 @@ def update_db_from_rss():
                 pub_uuid = str(uuid.uuid4())
 
             name = r["name"]
+            if name is None:
+                if "title" in feed["feed"]:
+                    name = feed["feed"]["title"]
+                else:
+                    name = r["rss_url"]
+
             if "\\x" in name:
                 name = name.decode("utf8")
 

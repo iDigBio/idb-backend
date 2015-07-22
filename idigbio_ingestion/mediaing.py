@@ -1,4 +1,7 @@
 from gevent.pool import Pool
+from gevent import monkey
+
+monkey.patch_all()
 
 from idb.postgres_backend.db import PostgresDB
 
@@ -14,19 +17,18 @@ auth = HTTPBasicAuth(os.environ.get("IDB_UUID"),os.environ.get("IDB_APIKEY"))
 
 def get_media(tup):
     url, t, fmt = tup
-    print url, t, fmt
 
     try:
         media_req = s.get(url)
         media_req.raise_for_status()
         
         detected_fmt = magic.from_buffer(media_req.content, mime=True)
-        print t, detected_fmt, fmt
-        # if detected_fmt == fmt:
-        #     apiimg_req = s.post("http://media.idigbio.org/upload/" + t, data={"filereference": url}, files={'file': media_req.content }, auth=auth)
-        #     apiimg_req.raise_for_status()
-        # else:
-        #     pass
+        if detected_fmt == fmt:
+            # apiimg_req = s.post("http://media.idigbio.org/upload/" + t, data={"filereference": url}, files={'file': media_req.content }, auth=auth)
+            # apiimg_req.raise_for_status()
+            pass
+        else:
+            print t, detected_fmt, fmt
 
         return True
     except:
@@ -62,7 +64,7 @@ def main():
                     print "Unknown Format", r["format"]
 
     p = Pool()
-    for _ in p.imap_unordered(get_media,media_url_iterator()):
+    for _ in p.imap(get_media,media_url_iterator()):
         pass
 
 

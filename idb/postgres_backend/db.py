@@ -164,17 +164,18 @@ class PostgresDB:
             return self._cur
 
     def drop_schema(self, commit=True):
-        self._cur.execute("DROP VIEW IF EXISTS idigbio_uuids_new")
-        self._cur.execute("DROP VIEW IF EXISTS idigbio_uuids_data")
-        self._cur.execute("DROP VIEW IF EXISTS idigbio_relations")
-        self._cur.execute("DROP TABLE IF EXISTS uuids_siblings")
-        self._cur.execute("DROP TABLE IF EXISTS uuids_identifier")
-        self._cur.execute("DROP TABLE IF EXISTS uuids_data")
-        self._cur.execute("DROP TABLE IF EXISTS uuids")
-        self._cur.execute("DROP TABLE IF EXISTS data")
+        raise Exception("I can't let you do that, dave.")
+        # self._cur.execute("DROP VIEW IF EXISTS idigbio_uuids_new")
+        # self._cur.execute("DROP VIEW IF EXISTS idigbio_uuids_data")
+        # self._cur.execute("DROP VIEW IF EXISTS idigbio_relations")
+        # self._cur.execute("DROP TABLE IF EXISTS uuids_siblings")
+        # self._cur.execute("DROP TABLE IF EXISTS uuids_identifier")
+        # self._cur.execute("DROP TABLE IF EXISTS uuids_data")
+        # self._cur.execute("DROP TABLE IF EXISTS uuids")
+        # self._cur.execute("DROP TABLE IF EXISTS data")
 
-        if commit:
-            self.commit()
+        # if commit:
+        #     self.commit()
 
     def create_views(self, commit=True):
         self._cur.execute(

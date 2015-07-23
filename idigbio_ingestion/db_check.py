@@ -31,9 +31,7 @@ bad_chars = u"\ufeff"
 bad_char_re = re.compile("[%s]" % re.escape(bad_chars))
 
 logger = getIDigBioLogger("idigbio")
-ch = logging.StreamHandler()
-ch.setLevel(logging.ERROR)
-logger.addHandler(ch)
+logger.setLevel(logging.INFO)
 
 
 class RecordException(Exception):
@@ -144,6 +142,8 @@ def process_subfile(rf, rsid, rs_uuid_etag, rs_id_uuid, ingest=False):
     assertions = 0
     to_undelete = 0
     resurrections = 0
+    record_exceptions = 0
+    exceptions = 0
 
     typ = None
 
@@ -255,10 +255,8 @@ def process_subfile(rf, rsid, rs_uuid_etag, rs_id_uuid, ingest=False):
         except RecordException as e:
             ids_to_add = {}
             uuids_to_add = {}
-            #logger.error(str(e) + ", File: " + rf.name + " Line: " + str(rf.lineCount))
-            # logger.debug(traceback.format_exc())
-            # traceback.print_exc()
-            pass
+            logger.info(traceback.format_exc())
+            record_exceptions += 1
         except AssertionError as e:
             ids_to_add = {}
             uuids_to_add = {}
@@ -267,7 +265,8 @@ def process_subfile(rf, rsid, rs_uuid_etag, rs_id_uuid, ingest=False):
         except Exception as e:
             ids_to_add = {}
             uuids_to_add = {}
-            logger.info(traceback.format_exc())
+            logger.error(traceback.format_exc())
+            exceptions += 1
 
         seen_ids.update(ids_to_add)
         seen_uuids.update(uuids_to_add)
@@ -305,6 +304,8 @@ def process_subfile(rf, rsid, rs_uuid_etag, rs_id_uuid, ingest=False):
         "no_recordid_count": no_recordid_count,
         "duplicate_record_count": duplicate_record_count,
         "duplicate_id_count": duplicate_id_count,
+        "record_exceptions": record_exceptions,
+        "exceptions": exceptions,
         "processing_time": (datetime.datetime.now() - t).total_seconds()
     }
 

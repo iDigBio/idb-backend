@@ -6,7 +6,7 @@ from idb.postgres_backend.db import PostgresDB
 
 def main3():
     db = PostgresDB()
-    db._cur.execute("SELECT * FROM recordsets WHERE ingest=true and uuid IS NOT NULL")
+    db._cur.execute("SELECT * FROM recordsets WHERE ingest=true and uuid IS NOT NULL AND file_harvest_date IS NOT NULL ORDER BY file_harvest_date")
     for r in db._cur:
         try:
             print r["uuid"]

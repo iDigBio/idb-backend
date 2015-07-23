@@ -6,7 +6,6 @@ import copy
 class RecordCorrector(object):
 
     def __init__(self):
-        self.create_schema()
         self.reload()
 
     def reload(self):

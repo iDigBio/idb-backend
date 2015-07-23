@@ -50,5 +50,5 @@ def objectHasher(hash_type,data,sort_arrays=False,sort_keys=True):
         print type(data);
 
     # print s
-    h.update(s)
+    h.update(s.encode("utf8"))
     return h.hexdigest()

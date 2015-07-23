@@ -78,7 +78,7 @@ def write_urls_to_db(media_urls):
     total_inserts = 0
     cur = db._get_ss_cursor()
     cur.execute(
-        "SELECT COALESCE(data ->> 'ac:accessURI', data ->> 'ac:bestQualityAccessURI', data ->> 'dcterms:identifier') as url, COALESCE(data ->> 'dcterms:format', data ->> 'dc:format') as format FROM data WHERE COALESCE(data ->> 'ac:accessURI', data ->> 'ac:bestQualityAccessURI', data ->> 'dcterms:identifier') IS NOT NULL")
+        "SELECT COALESCE(data ->> 'ac:accessURI', data ->> 'ac:bestQualityAccessURI', data ->> 'dcterms:identifier') as url, COALESCE(data ->> 'dcterms:format', data ->> 'dc:format') as format FROM idigbio_uuids_data WHERE type='mediarecord' and deleted=false and COALESCE(data ->> 'ac:accessURI', data ->> 'ac:bestQualityAccessURI', data ->> 'dcterms:identifier') IS NOT NULL")
     sqlite_cur.execute("BEGIN")
     for r in cur:
         scanned += 1

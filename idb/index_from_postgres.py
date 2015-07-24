@@ -18,6 +18,7 @@ import copy
 import sys
 import gc
 import os
+import math
 
 from postgres_backend import pg, DictCursor
 from helpers.index_helper import index_record
@@ -72,18 +73,6 @@ def type_yield_modified(ei, rc, typ, yield_record=False):
                     "max": {
                         "field": "datemodified"
                     }
-                },
-                "rs_mm": {
-                    "terms": {
-                        "field": "recordset"
-                    },
-                    "aggs": {
-                        "mm": {
-                            "max": {
-                                "field": "datemodified"
-                            }
-                        }
-                    }
                 }
             }
         }
@@ -91,197 +80,94 @@ def type_yield_modified(ei, rc, typ, yield_record=False):
 
     o = ei.es.search(**q)
 
-    if typ in ["records", "mediarecords"]:
-        rs_after = {}
-        for rs_b in o["aggregations"]["rs_mm"]
-            rsid = rs_b["key"]
-            rs_after[rsid] = datetime.datetime.utcfromtimestamp(
-                rs_b["mm"]["value"] / 1000)
+    after = datetime.datetime.utcfromtimestamp(
+        math.ceil(o["aggregations"]["mm"]["value"] / 1000))
 
-        db._cur.execute("SELECT id as uuid FROM uuids WHERE type='recordset'")
-        for r in db._cur:
-            if r["id"] not in rs_after:
-                rs_after[r["id"]] = datetime.datetime.utcfromtimestamp(
-                    rs_b["mm"]["value"] / 1000)
-
-        for rsid in rs_after:
-            after = rs_after[rsid]
-
-            if (typ, rsid) in last_afters:
-                if after == last_afters[(typ, rsid)]:
-                    print(
-                        typ, rsid), "after value", after, "same as last run, skipping"
-                    return
-                else:
-                    last_afters[(typ, rsid)] = after
-            else:
-                last_afters[(typ, rsid)] = after
-
-            print "Indexing", (typ, rsid), "after", rs_after[rsid].isoformat()
-            cursor = pg.cursor(str(uuid.uuid4()), cursor_factory=DictCursor)
-
-            # Note, a subtle distinction: The below query will index every _version_ of every record modified since the date
-            # it is thus imperative that the records are process in ascending modified order.
-            # in practice, this is unlikely to index more than one record in a single
-            # run, but it is possible.
-            cursor.execute("""SELECT
-                    uuids.id as uuid,
-                    type,
-                    deleted,
-                    data_etag as etag,
-                    version,
-                    modified,
-                    parent,
-                    recordids,
-                    siblings,
-                    uuids_data.id as vid,
-                    data,
-                    riak_etag
-                FROM uuids_data
-                LEFT JOIN uuids
-                ON uuids.id = uuids_data.uuids_id
-                LEFT JOIN data
-                ON data.etag = uuids_data.data_etag
-                LEFT JOIN LATERAL (
-                    SELECT uuids_id, array_agg(identifier) as recordids
-                    FROM uuids_identifier
-                    WHERE uuids_id=uuids.id
-                    GROUP BY uuids_id
-                ) as ids
-                ON ids.uuids_id=uuids.id
-                    LEFT JOIN LATERAL (
-                    SELECT subject, json_object_agg(rel,array_agg) as siblings
-                    FROM (
-                        SELECT subject, rel, array_agg(object)
-                        FROM (
-                            SELECT
-                                r1 as subject,
-                                type as rel,
-                                r2 as object
-                            FROM (
-                                SELECT r1,r2
-                                FROM uuids_siblings
-                                UNION
-                                SELECT r2,r1
-                                FROM uuids_siblings
-                            ) as rel_union
-                            JOIN uuids
-                            ON r2=id
-                            WHERE uuids.deleted = false
-                        ) as rel_table
-                        WHERE subject=uuids.id
-                        GROUP BY subject, rel
-                    ) as rels
-                    GROUP BY subject
-                ) as sibs
-                ON sibs.subject=uuids.id
-                WHERE type=%s and modified>%s and parent=%s
-                ORDER BY modified ASC;
-                """, (pg_typ, after, rsid))
-
-            start_time = datetime.datetime.now()
-            count = 0.0
-            for r in cursor:
-                count += 1.0
-
-                if yield_record:
-                    yield r
-                else:
-                    yield index_record(ei, rc, typ, r, do_index=False)
-
-                if count % 10000 == 0:
-                    print (typ, rsid), count, datetime.datetime.now() - start_time, count / (datetime.datetime.now() - start_time).total_seconds()
-
-            print (typ, rsid), count, datetime.datetime.now() - start_time, count / (datetime.datetime.now() - start_time).total_seconds()
-    else:
-        after = datetime.datetime.utcfromtimestamp(
-            o["aggregations"]["mm"]["value"] / 1000)
-
-        if typ in last_afters:
-            if after == last_afters[typ]:
-                print typ, "after value", after, "same as last run, skipping"
-                return
-            else:
-                last_afters[typ] = after
+    if typ in last_afters:
+        if after == last_afters[typ]:
+            print typ, "after value", after, "same as last run, skipping"
+            return
         else:
             last_afters[typ] = after
+    else:
+        last_afters[typ] = after
 
-        print "Indexing", typ, "after", after.isoformat()
-        cursor = pg.cursor(str(uuid.uuid4()), cursor_factory=DictCursor)
+    print "Indexing", typ, "after", after.isoformat()
+    cursor = pg.cursor(str(uuid.uuid4()), cursor_factory=DictCursor)
 
-        # Note, a subtle distinction: The below query will index every _version_ of every record modified since the date
-        # it is thus imperative that the records are process in ascending modified order.
-        # in practice, this is unlikely to index more than one record in a single
-        # run, but it is possible.
-        cursor.execute("""SELECT
-                uuids.id as uuid,
-                type,
-                deleted,
-                data_etag as etag,
-                version,
-                modified,
-                parent,
-                recordids,
-                siblings,
-                uuids_data.id as vid,
-                data,
-                riak_etag
-            FROM uuids_data
-            LEFT JOIN uuids
-            ON uuids.id = uuids_data.uuids_id
-            LEFT JOIN data
-            ON data.etag = uuids_data.data_etag
+    # Note, a subtle distinction: The below query will index every _version_ of every record modified since the date
+    # it is thus imperative that the records are process in ascending modified order.
+    # in practice, this is unlikely to index more than one record in a single
+    # run, but it is possible.
+    cursor.execute("""SELECT
+            uuids.id as uuid,
+            type,
+            deleted,
+            data_etag as etag,
+            version,
+            modified,
+            parent,
+            recordids,
+            siblings,
+            uuids_data.id as vid,
+            data,
+            riak_etag
+        FROM uuids_data
+        LEFT JOIN uuids
+        ON uuids.id = uuids_data.uuids_id
+        LEFT JOIN data
+        ON data.etag = uuids_data.data_etag
+        LEFT JOIN LATERAL (
+            SELECT uuids_id, array_agg(identifier) as recordids
+            FROM uuids_identifier
+            WHERE uuids_id=uuids.id
+            GROUP BY uuids_id
+        ) as ids
+        ON ids.uuids_id=uuids.id
             LEFT JOIN LATERAL (
-                SELECT uuids_id, array_agg(identifier) as recordids
-                FROM uuids_identifier
-                WHERE uuids_id=uuids.id
-                GROUP BY uuids_id
-            ) as ids
-            ON ids.uuids_id=uuids.id
-                LEFT JOIN LATERAL (
-                SELECT subject, json_object_agg(rel,array_agg) as siblings
+            SELECT subject, json_object_agg(rel,array_agg) as siblings
+            FROM (
+                SELECT subject, rel, array_agg(object)
                 FROM (
-                    SELECT subject, rel, array_agg(object)
+                    SELECT
+                        r1 as subject,
+                        type as rel,
+                        r2 as object
                     FROM (
-                        SELECT
-                            r1 as subject,
-                            type as rel,
-                            r2 as object
-                        FROM (
-                            SELECT r1,r2
-                            FROM uuids_siblings
-                            UNION
-                            SELECT r2,r1
-                            FROM uuids_siblings
-                        ) as rel_union
-                        JOIN uuids
-                        ON r2=id
-                        WHERE uuids.deleted = false
-                    ) as rel_table
-                    WHERE subject=uuids.id
-                    GROUP BY subject, rel
-                ) as rels
-                GROUP BY subject
-            ) as sibs
-            ON sibs.subject=uuids.id
-            WHERE type=%s and modified>%s
-            ORDER BY modified ASC;
-            """, (pg_typ, after))
+                        SELECT r1,r2
+                        FROM uuids_siblings
+                        UNION
+                        SELECT r2,r1
+                        FROM uuids_siblings
+                    ) as rel_union
+                    JOIN uuids
+                    ON r2=id
+                    WHERE uuids.deleted = false
+                ) as rel_table
+                WHERE subject=uuids.id
+                GROUP BY subject, rel
+            ) as rels
+            GROUP BY subject
+        ) as sibs
+        ON sibs.subject=uuids.id
+        WHERE type=%s and modified>%s
+        ORDER BY modified ASC;
+        """, (pg_typ, after))
 
-        start_time = datetime.datetime.now()
-        count = 0.0
-        for r in cursor:
-            count += 1.0
+    start_time = datetime.datetime.now()
+    count = 0.0
+    for r in cursor:
+        count += 1.0
 
-            if yield_record:
-                yield r
-            else:
-                yield index_record(ei, rc, typ, r, do_index=False)
+        if yield_record:
+            yield r
+        else:
+            yield index_record(ei, rc, typ, r, do_index=False)
 
-            if count % 10000 == 0:
-                print typ, count, datetime.datetime.now() - start_time, count / (datetime.datetime.now() - start_time).total_seconds()
+        if count % 10000 == 0:
+            print typ, count, datetime.datetime.now() - start_time, count / (datetime.datetime.now() - start_time).total_seconds()
 
-        print typ, count, datetime.datetime.now() - start_time, count / (datetime.datetime.now() - start_time).total_seconds()
+    print typ, count, datetime.datetime.now() - start_time, count / (datetime.datetime.now() - start_time).total_seconds()
 
 
 def type_yield_resume(ei, rc, typ, also_delete=False, yield_record=False):

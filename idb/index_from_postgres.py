@@ -1,7 +1,7 @@
 MULTIPROCESS = False
 
 if MULTIPROCESS:
-    from multiprocessing import Pool    
+    from multiprocessing import Pool
 else:
     # import gevent.monkey
     # gevent.monkey.patch_all()
@@ -33,13 +33,15 @@ last_afters = {}
 MAX_SLEEP = 600
 MIN_SLEEP = 120
 
-def type_yield(ei,rc,typ,yield_record=False):
+
+def type_yield(ei, rc, typ, yield_record=False):
     # drop the trailing s
     pg_typ = "".join(typ[:-1])
 
-    cursor = pg.cursor(str(uuid.uuid4()),cursor_factory=DictCursor)
+    cursor = pg.cursor(str(uuid.uuid4()), cursor_factory=DictCursor)
 
-    cursor.execute("select * from idigbio_uuids_data where type=%s and deleted=false", (pg_typ,))
+    cursor.execute(
+        "select * from idigbio_uuids_data where type=%s and deleted=false", (pg_typ,))
 
     start_time = datetime.datetime.now()
     count = 0.0
@@ -48,14 +50,15 @@ def type_yield(ei,rc,typ,yield_record=False):
         if yield_record:
             yield r
         else:
-            yield index_record(ei,rc,typ,r,do_index=False)
+            yield index_record(ei, rc, typ, r, do_index=False)
 
         if count % 10000 == 0:
-            print typ, count, datetime.datetime.now() - start_time, count/(datetime.datetime.now() - start_time).total_seconds()
+            print typ, count, datetime.datetime.now() - start_time, count / (datetime.datetime.now() - start_time).total_seconds()
 
-    print typ, count, datetime.datetime.now() - start_time, count/(datetime.datetime.now() - start_time).total_seconds()
+    print typ, count, datetime.datetime.now() - start_time, count / (datetime.datetime.now() - start_time).total_seconds()
 
-def type_yield_modified(ei,rc,typ,yield_record=False):
+
+def type_yield_modified(ei, rc, typ, yield_record=False):
     pg_typ = "".join(typ[:-1])
     es_ids = {}
 
@@ -69,6 +72,18 @@ def type_yield_modified(ei,rc,typ,yield_record=False):
                     "max": {
                         "field": "datemodified"
                     }
+                },
+                "rs_mm": {
+                    "terms": {
+                        "field": "recordset"
+                    },
+                    "aggs": {
+                        "mm": {
+                            "max": {
+                                "field": "datemodified"
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -76,94 +91,200 @@ def type_yield_modified(ei,rc,typ,yield_record=False):
 
     o = ei.es.search(**q)
 
-    after = datetime.datetime.utcfromtimestamp(o["aggregations"]["mm"]["value"]/1000)
+    if typ in ["records", "mediarecords"]:
+        rs_after = {}
+        for rs_b in o["aggregations"]["rs_mm"]
+            rsid = rs_b["key"]
+            rs_after[rsid] = datetime.datetime.utcfromtimestamp(
+                rs_b["mm"]["value"] / 1000)
 
-    if typ in last_afters:
-        if after == last_afters[typ]:
-            print typ, "after value", after, "same as last run, skipping"
-            return
+        db._cur.execute("SELECT id as uuid FROM uuids WHERE type='recordset'")
+        for r in db._cur:
+            if r["id"] not in rs_after:
+                rs_after[r["id"]] = datetime.datetime.utcfromtimestamp(
+                    rs_b["mm"]["value"] / 1000)
+
+        for rsid in rs_after:
+            after = rs_after[rsid]
+
+            if (typ, rsid) in last_afters:
+                if after == last_afters[(typ, rsid)]:
+                    print(
+                        typ, rsid), "after value", after, "same as last run, skipping"
+                    return
+                else:
+                    last_afters[(typ, rsid)] = after
+            else:
+                last_afters[(typ, rsid)] = after
+
+            print "Indexing", (typ, rsid), "after", rs_after[rsid].isoformat()
+            cursor = pg.cursor(str(uuid.uuid4()), cursor_factory=DictCursor)
+
+            # Note, a subtle distinction: The below query will index every _version_ of every record modified since the date
+            # it is thus imperative that the records are process in ascending modified order.
+            # in practice, this is unlikely to index more than one record in a single
+            # run, but it is possible.
+            cursor.execute("""SELECT
+                    uuids.id as uuid,
+                    type,
+                    deleted,
+                    data_etag as etag,
+                    version,
+                    modified,
+                    parent,
+                    recordids,
+                    siblings,
+                    uuids_data.id as vid,
+                    data,
+                    riak_etag
+                FROM uuids_data
+                LEFT JOIN uuids
+                ON uuids.id = uuids_data.uuids_id
+                LEFT JOIN data
+                ON data.etag = uuids_data.data_etag
+                LEFT JOIN LATERAL (
+                    SELECT uuids_id, array_agg(identifier) as recordids
+                    FROM uuids_identifier
+                    WHERE uuids_id=uuids.id
+                    GROUP BY uuids_id
+                ) as ids
+                ON ids.uuids_id=uuids.id
+                    LEFT JOIN LATERAL (
+                    SELECT subject, json_object_agg(rel,array_agg) as siblings
+                    FROM (
+                        SELECT subject, rel, array_agg(object)
+                        FROM (
+                            SELECT
+                                r1 as subject,
+                                type as rel,
+                                r2 as object
+                            FROM (
+                                SELECT r1,r2
+                                FROM uuids_siblings
+                                UNION
+                                SELECT r2,r1
+                                FROM uuids_siblings
+                            ) as rel_union
+                            JOIN uuids
+                            ON r2=id
+                            WHERE uuids.deleted = false
+                        ) as rel_table
+                        WHERE subject=uuids.id
+                        GROUP BY subject, rel
+                    ) as rels
+                    GROUP BY subject
+                ) as sibs
+                ON sibs.subject=uuids.id
+                WHERE type=%s and modified>%s and parent=%s and deleted=false
+                ORDER BY modified ASC;
+                """, (pg_typ, after, rsid))
+
+            start_time = datetime.datetime.now()
+            count = 0.0
+            for r in cursor:
+                count += 1.0
+
+                if yield_record:
+                    yield r
+                else:
+                    yield index_record(ei, rc, typ, r, do_index=False)
+
+                if count % 10000 == 0:
+                    print (typ, rsid), count, datetime.datetime.now() - start_time, count / (datetime.datetime.now() - start_time).total_seconds()
+
+            print (typ, rsid), count, datetime.datetime.now() - start_time, count / (datetime.datetime.now() - start_time).total_seconds()
+    else:
+        after = datetime.datetime.utcfromtimestamp(
+            o["aggregations"]["mm"]["value"] / 1000)
+
+        if typ in last_afters:
+            if after == last_afters[typ]:
+                print typ, "after value", after, "same as last run, skipping"
+                return
+            else:
+                last_afters[typ] = after
         else:
             last_afters[typ] = after
-    else:
-        last_afters[typ] = after
 
-    print "Indexing", typ, "after", after.isoformat()
-    cursor = pg.cursor(str(uuid.uuid4()),cursor_factory=DictCursor)
+        print "Indexing", typ, "after", after.isoformat()
+        cursor = pg.cursor(str(uuid.uuid4()), cursor_factory=DictCursor)
 
-    # Note, a subtle distinction: The below query will index every _version_ of every record modified since the date
-    # it is thus imperative that the records are process in ascending modified order.
-    # in practice, this is unlikely to index more than one record in a single run, but it is possible.
-    cursor.execute("""SELECT
-            uuids.id as uuid,
-            type,
-            deleted,
-            data_etag as etag,
-            version,
-            modified,
-            parent,
-            recordids,
-            siblings,
-            data,
-            riak_etag
-        FROM uuids_data
-        LEFT JOIN uuids
-        ON uuids.id = uuids_data.uuids_id
-        LEFT JOIN data
-        ON data.etag = uuids_data.data_etag
-        LEFT JOIN LATERAL (
-            SELECT uuids_id, array_agg(identifier) as recordids
-            FROM uuids_identifier
-            WHERE uuids_id=uuids.id
-            GROUP BY uuids_id
-        ) as ids
-        ON ids.uuids_id=uuids.id
+        # Note, a subtle distinction: The below query will index every _version_ of every record modified since the date
+        # it is thus imperative that the records are process in ascending modified order.
+        # in practice, this is unlikely to index more than one record in a single
+        # run, but it is possible.
+        cursor.execute("""SELECT
+                uuids.id as uuid,
+                type,
+                deleted,
+                data_etag as etag,
+                version,
+                modified,
+                parent,
+                recordids,
+                siblings,
+                uuids_data.id as vid,
+                data,
+                riak_etag
+            FROM uuids_data
+            LEFT JOIN uuids
+            ON uuids.id = uuids_data.uuids_id
+            LEFT JOIN data
+            ON data.etag = uuids_data.data_etag
             LEFT JOIN LATERAL (
-            SELECT subject, json_object_agg(rel,array_agg) as siblings
-            FROM (
-                SELECT subject, rel, array_agg(object)
+                SELECT uuids_id, array_agg(identifier) as recordids
+                FROM uuids_identifier
+                WHERE uuids_id=uuids.id
+                GROUP BY uuids_id
+            ) as ids
+            ON ids.uuids_id=uuids.id
+                LEFT JOIN LATERAL (
+                SELECT subject, json_object_agg(rel,array_agg) as siblings
                 FROM (
-                    SELECT
-                        r1 as subject,
-                        type as rel,
-                        r2 as object
+                    SELECT subject, rel, array_agg(object)
                     FROM (
-                        SELECT r1,r2
-                        FROM uuids_siblings
-                        UNION
-                        SELECT r2,r1
-                        FROM uuids_siblings
-                    ) as rel_union
-                    JOIN uuids
-                    ON r2=id
-                    WHERE uuids.deleted = false
-                ) as rel_table
-                WHERE subject=uuids.id
-                GROUP BY subject, rel
-            ) as rels
-            GROUP BY subject
-        ) as sibs
-        ON sibs.subject=uuids.id
-        WHERE type=%s and modified>%s and deleted=false
-        ORDER BY modified ASC;
-        """, (pg_typ,after))
+                        SELECT
+                            r1 as subject,
+                            type as rel,
+                            r2 as object
+                        FROM (
+                            SELECT r1,r2
+                            FROM uuids_siblings
+                            UNION
+                            SELECT r2,r1
+                            FROM uuids_siblings
+                        ) as rel_union
+                        JOIN uuids
+                        ON r2=id
+                        WHERE uuids.deleted = false
+                    ) as rel_table
+                    WHERE subject=uuids.id
+                    GROUP BY subject, rel
+                ) as rels
+                GROUP BY subject
+            ) as sibs
+            ON sibs.subject=uuids.id
+            WHERE type=%s and modified>%s and deleted=false
+            ORDER BY modified ASC;
+            """, (pg_typ, after))
 
-    start_time = datetime.datetime.now()
-    count = 0.0
-    for r in cursor:
-        count += 1.0
+        start_time = datetime.datetime.now()
+        count = 0.0
+        for r in cursor:
+            count += 1.0
 
-        if yield_record:
-            yield r
-        else:
-            yield index_record(ei,rc,typ,r,do_index=False)
+            if yield_record:
+                yield r
+            else:
+                yield index_record(ei, rc, typ, r, do_index=False)
 
-        if count % 10000 == 0:
-            print typ, count, datetime.datetime.now() - start_time, count/(datetime.datetime.now() - start_time).total_seconds()
+            if count % 10000 == 0:
+                print typ, count, datetime.datetime.now() - start_time, count / (datetime.datetime.now() - start_time).total_seconds()
 
-    print typ, count, datetime.datetime.now() - start_time, count/(datetime.datetime.now() - start_time).total_seconds()
+        print typ, count, datetime.datetime.now() - start_time, count / (datetime.datetime.now() - start_time).total_seconds()
 
 
-def type_yield_resume(ei,rc,typ,also_delete=False,yield_record=False):
+def type_yield_resume(ei, rc, typ, also_delete=False, yield_record=False):
     pg_typ = "".join(typ[:-1])
     es_ids = {}
 
@@ -176,7 +297,7 @@ def type_yield_resume(ei,rc,typ,also_delete=False,yield_record=False):
         "scroll": "10m"
     }
     cache_count = 0.0
-    for r in elasticsearch.helpers.scan(ei.es,**q):
+    for r in elasticsearch.helpers.scan(ei.es, **q):
         cache_count += 1.0
         k = r["_id"]
         etag = None
@@ -193,9 +314,10 @@ def type_yield_resume(ei,rc,typ,also_delete=False,yield_record=False):
     # print cache_count
 
     print "Indexing", typ
-    cursor = pg.cursor(str(uuid.uuid4()),cursor_factory=DictCursor)
+    cursor = pg.cursor(str(uuid.uuid4()), cursor_factory=DictCursor)
 
-    cursor.execute("select * from idigbio_uuids_data where type=%s and deleted=false", (pg_typ,))
+    cursor.execute(
+        "select * from idigbio_uuids_data where type=%s and deleted=false", (pg_typ,))
 
     start_time = datetime.datetime.now()
     count = 0.0
@@ -210,12 +332,12 @@ def type_yield_resume(ei,rc,typ,also_delete=False,yield_record=False):
         if yield_record:
             yield r
         else:
-            yield index_record(ei,rc,typ,r,do_index=False)
+            yield index_record(ei, rc, typ, r, do_index=False)
 
         if count % 10000 == 0:
-            print typ, count, datetime.datetime.now() - start_time, count/(datetime.datetime.now() - start_time).total_seconds()
+            print typ, count, datetime.datetime.now() - start_time, count / (datetime.datetime.now() - start_time).total_seconds()
 
-    print typ, count, datetime.datetime.now() - start_time, count/(datetime.datetime.now() - start_time).total_seconds()
+    print typ, count, datetime.datetime.now() - start_time, count / (datetime.datetime.now() - start_time).total_seconds()
 
     if also_delete and len(es_ids) > 0:
         print "Deleting", len(es_ids), "extra", typ
@@ -227,7 +349,7 @@ def type_yield_resume(ei,rc,typ,also_delete=False,yield_record=False):
                     "query": {
                         "filtered": {
                             "filter": {
-                                "term":{
+                                "term": {
                                     "uuid": r
                                 }
                             }
@@ -236,9 +358,10 @@ def type_yield_resume(ei,rc,typ,also_delete=False,yield_record=False):
                 }
             })
 
+
 def delete(ei, no_index=False):
     print "Running deletes"
-    cursor = pg.cursor(str(uuid.uuid4()),cursor_factory=DictCursor)
+    cursor = pg.cursor(str(uuid.uuid4()), cursor_factory=DictCursor)
 
     count = 0
     cursor.execute("SELECT id,type FROM uuids WHERE deleted=true")
@@ -252,7 +375,7 @@ def delete(ei, no_index=False):
                     "query": {
                         "filtered": {
                             "filter": {
-                                "term":{
+                                "term": {
                                     "uuid": r["id"]
                                 }
                             }
@@ -270,61 +393,79 @@ def delete(ei, no_index=False):
     except:
         pass
 
+
 def resume(ei, rc, also_delete=False, no_index=False):
     # Create a partial application to add in the keyword argument
-    f = functools.partial(type_yield_resume,also_delete=also_delete)
+    f = functools.partial(type_yield_resume, also_delete=also_delete)
     consume(ei, rc, f, no_index=no_index)
+
 
 def full(ei, rc, no_index=False):
     consume(ei, rc, type_yield, no_index=no_index)
 
-def incremental(ei,rc, no_index=False):
+
+def incremental(ei, rc, no_index=False):
     consume(ei, rc, type_yield_modified, no_index=no_index)
     try:
         ei.optimize()
     except:
         pass
 
+
 def consume(ei, rc, iter_func, no_index=False):
     p = Pool(10)
     for typ in ei.types:
-        # Construct a version of index record that can be just called with the record
+        # Construct a version of index record that can be just called with the
+        # record
         def index_func(rec):
             with Timeout(5) as timeout:
-                real_index_func = functools.partial(index_record, ei, rc, typ, do_index=False)
+                real_index_func = functools.partial(
+                    index_record, ei, rc, typ, do_index=False)
                 resp = real_index_func(rec)
             return resp
         if no_index:
-            for _ in p.imap(index_func,iter_func(ei, rc, typ, yield_record=True)):
+            for _ in p.imap(index_func, iter_func(ei, rc, typ, yield_record=True)):
                 pass
         else:
-            for ok, item in ei.bulk_index(p.imap(index_func,iter_func(ei, rc, typ, yield_record=True))):
+            for ok, item in ei.bulk_index(p.imap(index_func, iter_func(ei, rc, typ, yield_record=True))):
                 pass
         gc.collect()
 
-def continuous_incremental(ei,rc, no_index=False):
+
+def continuous_incremental(ei, rc, no_index=False):
     while True:
         t_start = datetime.datetime.now()
         print "Starting Incremental Run at", t_start.isoformat()
-        incremental(ei,rc, no_index=no_index)
+        incremental(ei, rc, no_index=no_index)
         t_end = datetime.datetime.now()
         print "Ending Incremental Run from", t_start.isoformat(), "at", t_end
-        sleep_duration = max([MAX_SLEEP - (t_end - t_start).total_seconds(),MIN_SLEEP])
+        sleep_duration = max(
+            [MAX_SLEEP - (t_end - t_start).total_seconds(), MIN_SLEEP])
         print "Sleeping for", sleep_duration, "seconds"
         time.sleep(sleep_duration)
+
 
 def main():
     import argparse
 
-    parser = argparse.ArgumentParser(description='Index data from new database to elasticsearch')
-    parser.add_argument('-i', '--incremental', dest='incremental', action='store_true', help='run incremental index')
-    parser.add_argument('-f', '--full', dest='full', action='store_true', help='run full sync')
-    parser.add_argument('-r', '--resume', dest='resume', action='store_true', help='resume a full sync (full + etag compare)')
-    parser.add_argument('-c', '--continuous', dest='continuous', action='store_true', help='run incemental continously (implies -i)')
-    parser.add_argument('-d', '--delete', dest='delete', action='store_true', help='delete records from index that are deleted in api')
-    parser.add_argument('-k', '--check', dest='check', action='store_true', help='run a full check (delete + resume)')
-    parser.add_argument('-n', '--noindex', dest='no_index', action='store_true', help="don't actually index records")
-    parser.add_argument('-t', '--types', dest='types', nargs='+', type=str, default=config["elasticsearch"]["types"])
+    parser = argparse.ArgumentParser(
+        description='Index data from new database to elasticsearch')
+    parser.add_argument('-i', '--incremental', dest='incremental',
+                        action='store_true', help='run incremental index')
+    parser.add_argument(
+        '-f', '--full', dest='full', action='store_true', help='run full sync')
+    parser.add_argument('-r', '--resume', dest='resume',
+                        action='store_true', help='resume a full sync (full + etag compare)')
+    parser.add_argument('-c', '--continuous', dest='continuous',
+                        action='store_true', help='run incemental continously (implies -i)')
+    parser.add_argument('-d', '--delete', dest='delete', action='store_true',
+                        help='delete records from index that are deleted in api')
+    parser.add_argument('-k', '--check', dest='check',
+                        action='store_true', help='run a full check (delete + resume)')
+    parser.add_argument('-n', '--noindex', dest='no_index',
+                        action='store_true', help="don't actually index records")
+    parser.add_argument('-t', '--types', dest='types', nargs='+',
+                        type=str, default=config["elasticsearch"]["types"])
 
     args = parser.parse_args()
 
@@ -340,23 +481,23 @@ def main():
                 "c17node55.acis.ufl.edu",
                 "c17node56.acis.ufl.edu"
             ]
-        ei = ElasticSearchIndexer(indexname,args.types,serverlist=sl)
+        ei = ElasticSearchIndexer(indexname, args.types, serverlist=sl)
 
         rc = RecordCorrector()
 
         if args.continuous:
-            continuous_incremental(ei,rc)
+            continuous_incremental(ei, rc)
 
         elif args.incremental:
-            incremental(ei,rc,no_index=args.no_index)
+            incremental(ei, rc, no_index=args.no_index)
         elif args.resume:
-            resume(ei,rc,no_index=args.no_index)
+            resume(ei, rc, no_index=args.no_index)
         elif args.full:
-            full(ei,rc,no_index=args.no_index)
+            full(ei, rc, no_index=args.no_index)
         elif args.delete:
-            delete(ei,no_index=args.no_index)
+            delete(ei, no_index=args.no_index)
         elif args.check:
-            resume(ei,rc,also_delete=True,no_index=args.no_index)
+            resume(ei, rc, also_delete=True, no_index=args.no_index)
         else:
             parser.print_help()
     else:

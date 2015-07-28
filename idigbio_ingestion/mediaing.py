@@ -163,7 +163,7 @@ def get_media_generator():
             r = inf.read(4096)
 
 def get_media_consumer():
-    p = Pool(50)
+    p = Pool(20)
     count = 0
     t = 0
     f = 0

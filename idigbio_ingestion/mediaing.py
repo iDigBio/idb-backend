@@ -136,6 +136,7 @@ def write_urls_to_db(media_urls):
                 total_inserts += inserts
                 print total_inserts, scanned
                 inserts = 0
+    print total_inserts, scanned
 
 
 def get_postgres_media_urls():

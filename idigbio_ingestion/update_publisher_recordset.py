@@ -90,7 +90,7 @@ def update_db_from_rss():
 
             pub_uuid = r["uuid"]
             if pub_uuid is None:
-                pub_uuid = str(uuid.uuid4())
+                pub_uuid, _, _ = db.get_uuid(r["recordids"])
 
             name = r["name"]
             if name is None:
@@ -239,7 +239,7 @@ def harvest_eml():
             etag = calcFileHash(fname)
             u = r["uuid"]
             if u is None:
-                u = str(uuid.uuid4())
+                u, _, _ = db.get_uuid(r["recordids"])
             desc = {}
             if etag != r["eml_harvest_etag"]:
                 with open(fname,"rb") as inf:

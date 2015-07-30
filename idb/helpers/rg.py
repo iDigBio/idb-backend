@@ -26,7 +26,7 @@ class ReverseGeocoder:
                         minx = int(geo_shp.bounds[0])
                         maxx = int(geo_shp.bounds[2])
                         miny = int(geo_shp.bounds[1])
-                        maxy = int(geo_shp.bounds[1])
+                        maxy = int(geo_shp.bounds[3])
                         for x in range(180+minx,180+maxx+1):
                             self.lon_box[x].add(k)
 

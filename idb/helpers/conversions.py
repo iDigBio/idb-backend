@@ -8,11 +8,8 @@ import datetime
 import pytz
 import pyproj
 import string
-from reverse_geocoder import RGeocoder
 from shapely import wkt
 from shapely.geometry import Polygon, mapping
-
-rg = RGeocoder(verbose=False, mode=1)
 
 import logging
 
@@ -25,6 +22,10 @@ from idb.data_tables.rights_strings import acceptable_licenses_trans, licenses
 from idb.data_tables.locality_data import iso_two_to_three
 
 from .biodiversity_socket_connector import Biodiversity
+from idb.helpers.rg import ReverseGeocoder
+
+rg = ReverseGeocoder()
+rg_eez = ReverseGeocoder(shapefile="data/EEZ_land_v2_201410.shp", cc_key="ISO_3digit")
 
 b = Biodiversity()
 
@@ -32,10 +33,6 @@ PARENT_MAP = {
     "records": "recordsets",
     "mediarecords": "recordsets",
     "recordsets": "publishers",
-}
-
-REVERSE_GEOCODE_BLACKLIST = {
-    "gin"
 }
 
 locale.setlocale(locale.LC_ALL, '')
@@ -456,14 +453,18 @@ def geoGrabber(t, d):
                 # note unprojected points (datum_val is None)
                 r["flag_geopoint_datum_missing"] = True
 
-            # Query takes tuples in lat, lon
-            results = rg.query([(r["geopoint"][1], r["geopoint"][0])])[0]
+            # get_country takes lat, lon
+            result = rg.get_country(r["geopoint"][0], r["geopoint"][1])            
+            if result is None:                
+                result_eez = rg_eez.get_country(r["geopoint"][0], r["geopoint"][1])
+                if result_eez is not None:
+                    result = result_eez
+                    r["flag_rev_geocode_eez"] = True
+                    
             if (
                 "idigbio:isocountrycode" in d and
-                d["idigbio:isocountrycode"] not in REVERSE_GEOCODE_BLACKLIST and
-                results["cc"] in iso_two_to_three and
-                iso_two_to_three[
-                    results["cc"]].lower() != d["idigbio:isocountrycode"]
+                result is not None and
+                result.lower() != d["idigbio:isocountrycode"]
             ):
                 r["flag_rev_geocode_mismatch"] = True
                 flip_queries = [  # Point, "Distance" from original coords, Flag
@@ -485,8 +486,8 @@ def geoGrabber(t, d):
                         [(-r["geopoint"][0], -r["geopoint"][1]),
                          4, "rev_geocode_flip_both_sign"]
                     ])
-                for i, f in enumerate(rg.query([f[0] for f in flip_queries])):
-                    if f["cc"] in iso_two_to_three and iso_two_to_three[f["cc"]].lower() == d["idigbio:isocountrycode"]:
+                for i, f in enumerate([rg.get_country(*f[0]) for f in flip_queries]):
+                    if f is not None and f.lower() == d["idigbio:isocountrycode"]:
                         # Flip back to lon, lat
                         r["geopoint"] = (
                             flip_queries[i][0][1], flip_queries[i][0][0])

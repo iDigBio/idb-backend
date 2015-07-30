@@ -453,7 +453,7 @@ def geoGrabber(t, d):
                 # note unprojected points (datum_val is None)
                 r["flag_geopoint_datum_missing"] = True
 
-            # get_country takes lat, lon
+            # get_country takes lon, lat
             result = rg.get_country(r["geopoint"][0], r["geopoint"][1])            
             if result is None:                
                 result_eez = rg_eez.get_country(r["geopoint"][0], r["geopoint"][1])

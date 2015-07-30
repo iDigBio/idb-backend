@@ -36,7 +36,10 @@ class ReverseGeocoder:
                         self.countries[k] = prep(geo_shp)
 
     def get_country(self, lon, lat):
-        p = Point(lon,lat)
+        if not (-90 <= lat <= 90) or not (-180 <= lon <= 180):
+            return None
+        p = Point(lon, lat)
+        print lon, lat
         contries_consider = self.lat_box[90+int(lat)] & self.lon_box[180+int(lon)]
         for c in contries_consider:
             if self.countries[c].contains(p):

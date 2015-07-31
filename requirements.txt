@@ -19,3 +19,4 @@ unicodecsv
 shapely
 celery
 boto
+fiona

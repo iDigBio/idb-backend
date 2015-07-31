@@ -70,10 +70,16 @@ def download():
     forward_ip = request.access_route[0]
 
     if "email" in o:
-        email = o["email"]
+        if isinstance(o["email"],list):
+            email = o["email"][0]
+        else:
+            email = o["email"]
 
     if "source" in o:
-        source = o["source"]
+        if isinstance(o["source"],list):
+            source = o["source"][0]
+        else:
+            source = o["source"]
 
     if "force" in o:
         force = True

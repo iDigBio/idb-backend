@@ -124,7 +124,7 @@ def queryFilter(k, shimK):
     return {
         "query": {
             "match": {
-                k: {
+                "_all": {
                     "query": shimK["value"].lower(),
                     "operator": "and"
                 }

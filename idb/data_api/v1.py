@@ -44,6 +44,13 @@ def subitem(t,u,st):
     if not (t in current_app.config["SUPPORTED_TYPES"] and st in current_app.config["SUPPORTED_TYPES"]):
         return json_error(404)
 
+    limit = request.args.get("limit")
+    if limit is not None:
+        limit = int(limit)
+    offset = request.args.get("offset")
+    if offset is not None:
+        offset = int(offset)
+
     r = {}
     l = [
         format_list_item(
@@ -53,7 +60,7 @@ def subitem(t,u,st):
             v["modified"],
             v["version"],
             v["parent"],
-        ) for v in current_app.config["DB"].get_children_list(str(u), "".join(st[:-1]))
+        ) for v in current_app.config["DB"].get_children_list(str(u), "".join(st[:-1]),limit=limit,offset=offset)
     ]
 
     r["idigbio:items"] = l
@@ -73,18 +80,22 @@ def item(t,u):
     if v is not None:
         if v["data"] is None:
             v["data"] = load_data_from_riak("".join(t[:-1]),u,v["riak_etag"])
-        r = format_item(
-            t,
-            v["uuid"],
-            v["etag"],
-            v["modified"],
-            v["version"],
-            v["parent"],
-            v["data"],
-            v["siblings"],
-            v["recordids"]
-        )
-        return jsonify(r)
+
+        if v["type"] +"s" == t:
+            r = format_item(
+                t,
+                v["uuid"],
+                v["etag"],
+                v["modified"],
+                v["version"],
+                v["parent"],
+                v["data"],
+                v["siblings"],
+                v["recordids"]
+            )
+            return jsonify(r)
+        else:
+            return json_error(404)
     else:
         return json_error(404)
 
@@ -95,6 +106,13 @@ def list(t):
     if t not in current_app.config["SUPPORTED_TYPES"]:
         return json_error(404)
 
+    limit = request.args.get("limit")
+    if limit is not None:
+        limit = int(limit)
+    offset = request.args.get("offset")
+    if offset is not None:
+        offset = int(offset)
+
     r = {}
     l = [
         format_list_item(
@@ -104,7 +122,7 @@ def list(t):
             v["modified"],
             v["version"],
             v["parent"],
-        ) for v in current_app.config["DB"].get_type_list("".join(t[:-1]))
+        ) for v in current_app.config["DB"].get_type_list("".join(t[:-1]),limit=limit,offset=offset)
     ]
 
     r["idigbio:items"] = l

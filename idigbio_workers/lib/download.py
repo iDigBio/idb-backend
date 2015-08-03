@@ -305,6 +305,11 @@ def generate_queries(record_query=None, mediarecord_query=None):
     rq_and = []
     mq_and = []
 
+    if record_query == {"filtered":{"filter":{}}}:
+        record_query = None
+    if mediarecord_query == {"filtered":{"filter":{}}}:
+        mediarecord_query = None
+
     if record_query is not None:
         if "and" in record_query["filtered"]["filter"]:
             rq_and.extend(record_query["filtered"]["filter"]["and"])
@@ -536,13 +541,17 @@ def main():
     # Form Testing
 
     #rq = {"genus": "acer", "stateprovince": "florida"}
-    rq = {"recordset":"e8c1413c-4e2e-46d7-9b6e-df0e416e3786"}
+    rq = {}
 
     record_query = queryFromShim(rq, "records")["query"]
 
+    print json.dumps(record_query)
+
     mediarecord_query = None
 
-    print generate_files(core_type="records", core_source="indexterms", form="dwca-csv", record_query=record_query, mediarecord_query=mediarecord_query, filename=str(uuid.uuid4()))[0]
+    print json.dumps(generate_queries(record_query, mediarecord_query))
+
+    #print generate_files(core_type="records", core_source="indexterms", form="dwca-csv", record_query=record_query, mediarecord_query=mediarecord_query, filename=str(uuid.uuid4()))[0]
 
     # core_types = ["records", "mediarecords", "uniquelocality", "uniquenames"]    
     # core_sources = ["indexterms", "raw"]

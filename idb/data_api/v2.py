@@ -14,6 +14,7 @@ def format_list_item(t,uuid,etag,modified,version,parent):
     links[t] = url_for(".item",t=t,u=uuid,_external=True)
 
     return {
+        "type": t,
         "uuid": uuid,
         "etag": etag,
         "modified": modified.isoformat(),
@@ -34,6 +35,7 @@ def format_item(t,uuid,etag,modified,version,parent,data,siblings,ids):
             for i in siblings[k]:
                 l[k + "s"].append(url_for(".item",t=k,u=i,_external=True))
 
+    r["type"] = t
     r["data"] = data
     r["links"].update(l)
     r["recordIds"] = ids

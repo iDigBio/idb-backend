@@ -3,6 +3,7 @@ import psycopg2.extensions
 import os
 import copy
 from psycopg2.extras import DictCursor
+from psycopg2.extensions import ISOLATION_LEVEL_READ_COMMITTED, ISOLATION_LEVEL_AUTOCOMMIT
 
 from idb.config import config
 

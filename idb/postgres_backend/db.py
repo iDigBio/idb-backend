@@ -5,7 +5,6 @@ import random
 import json
 import hashlib
 import sys
-from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
 
 TEST_SIZE = 10000
 TEST_COUNT = 10
@@ -146,11 +145,13 @@ class PostgresDB:
         )
     """
 
-    def __init__(self):
+    def __init__(self, autocommit=False):
 
         # Generic reusable cursor for normal ops
         self._cur = pg.cursor(cursor_factory=DictCursor)
         self._pg = pg
+        if autocommit:
+            pg.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
 
     def commit(self):
         pg.commit()
@@ -262,10 +263,13 @@ class PostgresDB:
     def _get_ss_cursor(self, name=None):
         """ Get a named server side cursor for large ops"""
 
+        cur = None
         if name is None:
-            return pg.cursor(str(uuid.uuid4()), cursor_factory=DictCursor)
+            cur = pg.cursor(str(uuid.uuid4()), cursor_factory=DictCursor)
         else:
-            return pg.cursor(name, cursor_factory=DictCursor)
+            cur = pg.cursor(name, cursor_factory=DictCursor)
+        cur.execute("BEGIN")
+        return cur
 
     def get_item(self, u, version=None):
         if version is not None:
@@ -339,6 +343,7 @@ class PostgresDB:
                 """, (t,))
         for r in cur:
             yield r
+        cur.rollback()
 
     def get_type_count(self, t):
         cur = self._get_ss_cursor()
@@ -346,7 +351,9 @@ class PostgresDB:
             count(*) as count FROM uuids
             WHERE deleted=false and type=%s
         """, (t,))
-        return cur.fetchone()["count"]
+        count = cur.fetchone()["count"]
+        cur.rollback()
+        return count
 
     def get_children_list(self, u, t, limit=100, offset=0, data=False):
         cur = self._get_ss_cursor()
@@ -376,6 +383,7 @@ class PostgresDB:
                 """, (t, u))
         for r in cur:
             yield r
+        cur.rollback()
 
     def get_children_count(self, u, t):
         cur = self._get_ss_cursor()
@@ -383,7 +391,9 @@ class PostgresDB:
             count(*) as count FROM uuids
             WHERE deleted=false and type=%s and parent=%s
         """, (t, u))
-        return cur.fetchone()["count"]
+        count = cur.fetchone()["count"]
+        cur.rollback()
+        return count
 
     def _id_precheck(self, u, ids):
         self._cur.execute("""SELECT

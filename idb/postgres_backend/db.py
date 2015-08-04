@@ -264,10 +264,13 @@ class PostgresDB:
     def _get_ss_cursor(self, name=None):
         """ Get a named server side cursor for large ops"""
 
+        cur = None
         if name is None:
-            return pg.cursor(str(uuid.uuid4()), cursor_factory=DictCursor)
+            cur = pg.cursor(str(uuid.uuid4()), cursor_factory=DictCursor)
         else:
-            return pg.cursor(name, cursor_factory=DictCursor)
+            cur = pg.cursor(name, cursor_factory=DictCursor)
+        cur.execute("BEGIN")
+        return cur
 
     def get_item(self, u, version=None):
         if version is not None:

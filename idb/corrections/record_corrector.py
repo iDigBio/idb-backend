@@ -12,6 +12,7 @@ class RecordCorrector(object):
         iso = pg.isolation_level
         pg.set_isolation_level(ISOLATION_LEVEL_READ_COMMITTED)
         cursor = pg.cursor(str(uuid.uuid4()),cursor_factory=DictCursor)
+        cursor.execute("BEGIN")
         cursor.execute("select k::json,v::json from corrections")
         pg.set_isolation_level(iso)
 

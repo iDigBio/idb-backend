@@ -392,7 +392,7 @@ class PostgresDB:
         cur.rollback()
         return count
 
-    def _id_precheck(self, u, ids):
+    def _id_precheck(self, u, ids, commit=False):
         self._cur.execute("""SELECT
             identifier,
             uuids_id
@@ -405,9 +405,11 @@ class PostgresDB:
                 break
         else:
             consistent = True
+        if commit:
+            self.commit()
         return consistent
 
-    def get_uuid(self, ids):
+    def get_uuid(self, ids, commit=False):
         self._cur.execute("""SELECT
             identifier,
             uuids_id,
@@ -418,6 +420,8 @@ class PostgresDB:
             ON uuids.id = uuids_identifier.uuids_id
             WHERE identifier = ANY(%s)
         """, (ids,))
+        if commit:
+            self.commit()
         rid = None
         parent = None
         deleted = False
@@ -437,7 +441,7 @@ class PostgresDB:
 
     def set_record(self, u, t, p, d, ids, siblings, commit=True):
         try:
-            assert self._id_precheck(u, ids)
+            assert self._id_precheck(u, ids, commit=False)
             e = calcEtag(d)
             self._upsert_uuid(u, t, p, commit=False)
             self._upsert_data(e, d, commit=False)
@@ -455,7 +459,7 @@ class PostgresDB:
     def set_records(self, record_list, commit=True):
         try:
             for u, t, p, d, ids, siblings in record_list:
-                assert self._id_precheck(u, ids)
+                assert self._id_precheck(u, ids, commit=False)
                 e = calcEtag(d)
                 self._upsert_uuid(u, t, p, commit=False)
                 self._upsert_data(e, d, commit=False)

@@ -340,7 +340,7 @@ class PostgresDB:
                 """, (t,))
         for r in cur:
             yield r
-        cur.rollback()
+        self.rollback()
 
     def get_type_count(self, t):
         cur = self._get_ss_cursor()
@@ -349,7 +349,7 @@ class PostgresDB:
             WHERE deleted=false and type=%s
         """, (t,))
         count = cur.fetchone()["count"]
-        cur.rollback()
+        self.rollback()
         return count
 
     def get_children_list(self, u, t, limit=100, offset=0, data=False):
@@ -380,7 +380,7 @@ class PostgresDB:
                 """, (t, u))
         for r in cur:
             yield r
-        cur.rollback()
+        self.rollback()
 
     def get_children_count(self, u, t):
         cur = self._get_ss_cursor()
@@ -389,7 +389,7 @@ class PostgresDB:
             WHERE deleted=false and type=%s and parent=%s
         """, (t, u))
         count = cur.fetchone()["count"]
-        cur.rollback()
+        self.rollback()
         return count
 
     def _id_precheck(self, u, ids, commit=False):

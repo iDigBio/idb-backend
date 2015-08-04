@@ -14,7 +14,7 @@ app.config.from_object('idb.data_api.config')
 
 app.url_map.strict_slashes = False
 
-app.config["DB"] = PostgresDB(autocommit=True)
+app.config["DB"] = PostgresDB()
 
 from .v1 import this_version as v1
 from .v2 import this_version as v2

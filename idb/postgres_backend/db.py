@@ -145,13 +145,11 @@ class PostgresDB:
         )
     """
 
-    def __init__(self, autocommit=False):
+    def __init__(self):
 
         # Generic reusable cursor for normal ops
         self._cur = pg.cursor(cursor_factory=DictCursor)
         self._pg = pg
-        if autocommit:
-            pg.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
 
     def commit(self):
         pg.commit()
@@ -268,7 +266,6 @@ class PostgresDB:
             cur = pg.cursor(str(uuid.uuid4()), cursor_factory=DictCursor)
         else:
             cur = pg.cursor(name, cursor_factory=DictCursor)
-        cur.execute("BEGIN")
         return cur
 
     def get_item(self, u, version=None):

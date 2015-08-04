@@ -146,11 +146,13 @@ class PostgresDB:
         )
     """
 
-    def __init__(self):
+    def __init__(self, autocommit=False):
 
         # Generic reusable cursor for normal ops
         self._cur = pg.cursor(cursor_factory=DictCursor)
         self._pg = pg
+        if autocommit:
+            pg.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
 
     def commit(self):
         pg.commit()

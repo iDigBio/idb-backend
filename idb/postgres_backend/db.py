@@ -298,7 +298,9 @@ class PostgresDB:
             self._cur.execute(self.__item_master_query_data + """
                 WHERE deleted=false and uuids.id=%s
             """, (u,))
-        return self._cur.fetchone()
+        rec = self._cur.fetchone()
+        self.rollback()
+        return rec
 
     def delete_item(self, u, commit=True):
         self._upsert_uuid_data(u, tombstone_etag, commit=False) 

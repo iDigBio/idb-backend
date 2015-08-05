@@ -170,6 +170,7 @@ def type_yield_modified(ei, rc, typ, yield_record=False):
             print typ, count, datetime.datetime.now() - start_time, count / (datetime.datetime.now() - start_time).total_seconds()
 
     print typ, count, datetime.datetime.now() - start_time, count / (datetime.datetime.now() - start_time).total_seconds()
+    pg.rollback()
 
 
 def type_yield_resume(ei, rc, typ, also_delete=False, yield_record=False):

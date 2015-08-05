@@ -83,14 +83,16 @@ def type_yield_modified(ei, rc, typ, yield_record=False):
     after = datetime.datetime.utcfromtimestamp(
         math.ceil(o["aggregations"]["mm"]["value"] / 1000))
 
-    if typ in last_afters:
-        if after == last_afters[typ]:
-            print typ, "after value", after, "same as last run, skipping"
-            return
-        else:
-            last_afters[typ] = after
-    else:
-        last_afters[typ] = after
+    # This code doesn't work, I would need to poll the database for this information.
+    # I don't care whether ES has changed or not (although presumably it hasn't).
+    # if typ in last_afters:
+    #     if after == last_afters[typ]:
+    #         print typ, "after value", after, "same as last run, skipping"
+    #         return
+    #     else:
+    #         last_afters[typ] = after
+    # else:
+    #     last_afters[typ] = after
 
     print "Indexing", typ, "after", after.isoformat()
     cursor = pg.cursor(str(uuid.uuid4()), cursor_factory=DictCursor)

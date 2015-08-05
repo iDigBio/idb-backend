@@ -1381,7 +1381,6 @@ kl = {
         u"arziona": "arizona",
         u"arzona": "arizona",
         u"az": "arizona",
-        u"baja california norte": "california",
         u"bergen co., new jersey": "new jersey",
         u"ca [=az]": "arizona",
         u"ca": "california",

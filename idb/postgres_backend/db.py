@@ -318,28 +318,24 @@ class PostgresDB:
         cur = self._get_ss_cursor()
         if data:
             if limit is not None:
-                cur.execute(self.__item_master_query_data + """
+                cur.execute("SELECT * FROM (" + self.__item_master_query_data + """
                     WHERE deleted=false and type=%s
-                    ORDER BY uuid
                     LIMIT %s OFFSET %s
-                """, (t, limit, offset))
+                """ + ") AS a ORDER BY uuid", (t, limit, offset))
             else:
-                cur.execute(self.__item_master_query_data + """
+                cur.execute("SELECT * FROM (" + self.__item_master_query_data + """
                     WHERE deleted=false and type=%s
-                    ORDER BY uuid
-                """, (t,))
+                """ + ") AS a ORDER BY uuid", (t,))
         else:
             if limit is not None:
-                cur.execute(self.__item_master_query + """
+                cur.execute("SELECT * FROM (" + self.__item_master_query + """
                     WHERE deleted=false and type=%s
-                    ORDER BY uuid
                     LIMIT %s OFFSET %s
-                """, (t, limit, offset))
+                """ + ") AS a ORDER BY uuid", (t, limit, offset))
             else:
-                cur.execute(self.__item_master_query + """
+                cur.execute("SELECT * FROM (" + self.__item_master_query + """
                     WHERE deleted=false and type=%s
-                    ORDER BY uuid
-                """, (t,))
+                """ + ") AS a ORDER BY uuid", (t,))
         for r in cur:
             yield r
         self.rollback()
@@ -358,28 +354,24 @@ class PostgresDB:
         cur = self._get_ss_cursor()
         if data:
             if limit is not None:
-                cur.execute(self.__item_master_query_data + """
+                cur.execute("SELECT * FROM (" + self.__item_master_query_data + """
                     WHERE deleted=false and type=%s and parent=%s
-                    ORDER BY uuid
                     LIMIT %s OFFSET %s
-                """, (t, u, limit, offset))
+                """ + ") AS a ORDER BY uuid", (t, u, limit, offset))
             else:
-                cur.execute(self.__item_master_query_data + """
+                cur.execute("SELECT * FROM (" + self.__item_master_query_data + """
                     WHERE deleted=false and type=%s and parent=%s
-                    ORDER BY uuid
-                """, (t, u))
+                """ + ") AS a ORDER BY uuid", (t, u))
         else:
             if limit is not None:
-                cur.execute(self.__item_master_query + """
+                cur.execute("SELECT * FROM (" + self.__item_master_query + """
                     WHERE deleted=false and type=%s and parent=%s
-                    ORDER BY uuid
                     LIMIT %s OFFSET %s
-                """, (t, u, limit, offset))
+                """ + ") AS a ORDER BY uuid", (t, u, limit, offset))
             else:
-                cur.execute(self.__item_master_query + """
+                cur.execute("SELECT * FROM (" + self.__item_master_query + """
                     WHERE deleted=false and type=%s and parent=%s
-                    ORDER BY uuid
-                """, (t, u))
+                """ + ") AS a ORDER BY uuid", (t, u))
         for r in cur:
             yield r
         self.rollback()

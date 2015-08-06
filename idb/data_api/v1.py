@@ -47,9 +47,13 @@ def subitem(t,u,st):
     limit = request.args.get("limit")
     if limit is not None:
         limit = int(limit)
+    else:
+        limit = 100
     offset = request.args.get("offset")
     if offset is not None:
         offset = int(offset)
+    else:
+        offset = 0
 
     r = {}
     l = [
@@ -109,9 +113,13 @@ def list(t):
     limit = request.args.get("limit")
     if limit is not None:
         limit = int(limit)
+    else:
+        limit = 100
     offset = request.args.get("offset")
     if offset is not None:
         offset = int(offset)
+    else:
+        offset = 0
 
     r = {}
     l = [

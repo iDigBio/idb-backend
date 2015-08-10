@@ -6,6 +6,7 @@ import json
 import traceback
 import zipfile
 import os
+import datetime
 
 from collections import Counter
 from cStringIO import StringIO, OutputType
@@ -40,17 +41,67 @@ indexName = "idigbio-" + indexname
 es = elasticsearch.Elasticsearch(
     sl, sniff_on_start=True, sniff_on_connection_fail=True, retry_on_timeout=True, max_retries=10)
 
-def get_recordsets(params):
-    record_query = None
-    mediarecord_query = None
+# 0: Current Year
+# 1: Query Text
+# 2: Total Number of Records
+# 3: Access Datetime
+# 4: Number of recordsets
+# 5: List of recordset IDs and counts
+citation_format = """http://www.idigbio.org/portal ({0}),
+Query: {1},
+{2} records, accessed on {3},
+contributed by {4} Recordsets, Recordset identifiers:
+{5}"""
 
-    if params["rq"] is not None:
-        record_query = queryFromShim(params["rq"])["query"]
+def write_citation_file(dl_id,t,query, recordsets):
+    filename = "{0}.{1}.citation.txt".format(dl_id,t)
+    with open(filename,"wb") as citefile:
+        rs_string = ""
+        total_recs = 0
+        total_rs = len(recordsets.keys())
+        for rs,rsc in sorted([(rs,recordsets[rs]) for rs in recordsets],key=lambda x: x[1],reverse=True):
+            rs_string += "http://www.idigbio.org/portal/recordsets/{0} ({1} records)\n".format(rs,rsc)
+            total_recs += rsc
 
-    if params["mq"] is not None:
-        mediarecord_query = queryFromShim(params["mq"])["query"]
 
-    rq, mq = generate_queries(record_query,mediarecord_query)
+        query_string = json.dumps(query)
+
+        now = datetime.datetime.now()
+
+        # 0: Current Year
+        # 1: Query Text
+        # 2: Total Number of Records
+        # 3: Access Datetime
+        # 4: Number of recordsets
+        # 5: List of recordset IDs and counts
+        citefile.write(citation_format.format(
+            now.year,           # 0: Current Year
+            query_string,  # 1: Query Text
+            total_recs,         # 2: Total Number of Records
+            now.isoformat(),    # 3: Access Datetime
+            total_rs,           # 4: Number of recordsets
+            rs_string,          # 5: List of recordset IDs and counts
+        ))
+        if total_recs > 0:
+            return filename
+
+def get_recordsets(params,generate=True):
+    rq, mq = None, None
+
+    if generate:
+        record_query = None
+        mediarecord_query = None        
+        if params["rq"] is not None:
+            record_query = queryFromShim(params["rq"])["query"]
+
+        if params["mq"] is not None:
+            mediarecord_query = queryFromShim(params["mq"])["query"]
+        rq, mq = generate_queries(record_query,mediarecord_query)
+    else:
+        rq = params["rq"]
+        mq = params["mq"]
+
+    
 
     q = None
     t = None
@@ -86,6 +137,21 @@ def get_recordsets(params):
     for b in ro["aggregations"]["recordsets"]["buckets"]:
         recsets[b["key"]] = b["doc_count"]
     return (q, recsets)
+
+def write_citation_files(dl_id,rq,mq,record_query,mediarecord_query):
+    files = []
+    for t in ["records","mediarecords"]:
+        query = None
+        if t == "records":
+            query = record_query
+        elif t == "mediarecords":
+            query = mediarecord_query
+        files.append(write_citation_file(dl_id,t,query,get_recordsets({
+            "rq": rq,
+            "mq": mq,
+            "core_type": t
+        },generate=False)[1]))
+    return files
 
 def count_query(t, query):
     return es.count(index=indexName, doc_type=t, body=query)["count"]
@@ -509,6 +575,8 @@ def generate_files(core_type="records", core_source="indexterms", record_query=N
             args, kwargs = type_source_options[(t,s)]
             files.append(make_file(*args, **kwargs))
 
+        files.extend([(f,".".join(f.split(".")[1:]),None) for f in write_citation_files(filename,rq,mq,record_query,mediarecord_query)])
+
         meta_string = None
         with zipfile.ZipFile(filename + ".zip", 'w', zipfile.ZIP_DEFLATED, True) as expzip:
             meta_files = []
@@ -519,7 +587,8 @@ def generate_files(core_type="records", core_source="indexterms", record_query=N
                     else:
                         expzip.write(f[0], f[1])
                         os.unlink(f[0])
-                    meta_files.append(f[2])
+                    if f[2] is not None:
+                        meta_files.append(f[2])
             meta_string = make_meta(meta_files)
             expzip.writestr("meta.xml", meta_string)
 
@@ -540,18 +609,13 @@ def main():
 
     # Form Testing
 
-    #rq = {"genus": "acer", "stateprovince": "florida"}
-    rq = {}
+    rq = {"genus": "acer", "stateprovince": "florida"}
 
     record_query = queryFromShim(rq, "records")["query"]
 
-    print json.dumps(record_query)
-
     mediarecord_query = None
 
-    print json.dumps(generate_queries(record_query, mediarecord_query))
-
-    #print generate_files(core_type="records", core_source="indexterms", form="dwca-csv", record_query=record_query, mediarecord_query=mediarecord_query, filename=str(uuid.uuid4()))[0]
+    print generate_files(core_type="records", core_source="indexterms", form="dwca-csv", record_query=record_query, mediarecord_query=mediarecord_query, filename=str(uuid.uuid4()))[0]
 
     # core_types = ["records", "mediarecords", "uniquelocality", "uniquenames"]    
     # core_sources = ["indexterms", "raw"]

@@ -3,7 +3,7 @@ from pytz import timezone
 import elasticsearch.helpers
 from elasticsearch import Elasticsearch
 
-from idb.helpers.conversions import fields
+from idb.helpers.conversions import fields, custom_mappings
 
 local_tz = timezone('US/Eastern')
 
@@ -80,6 +80,8 @@ class ElasticSearchIndexer(object):
                     "type": "geo_point", "geohash": True, "geohash_prefix": True, "lat_lon": True}
             elif f[2] == "shape":
                 m["properties"][f[0]] = {"type": "geo_shape"}
+            elif f[2] == "custom":
+                m["properties"][f[0]] = custom_mappings[t][f[0]]
         if t == "mediarecords":
             m["_parent"] = {
                 "type": "records"

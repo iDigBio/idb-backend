@@ -163,7 +163,23 @@ fields = {
         ["publisher", "", "text", 0, "idigbio:publisher"],
         ["flags", "", "list", 0, "idigbio:flags"],
         ["dqs", "", "float", 0, "idigbio:dataQualityScore"],
+        ["rights","data_rights","text", 0, "dcterms:rights"],
+        ["contacts","contacts","custom",0,None]
     ]
+}
+
+custom_mappings = {
+    "recordsets": {
+        "contacts": {
+            "type" : "nested",
+            "properties": {
+                "first_name": { "type": "string" },
+                "last_name": { "type": "string" },
+                "email": { "type": "string" },
+                "role": { "type": "string" },
+            }
+        }
+    }
 }
 
 index_field_to_longname = {}

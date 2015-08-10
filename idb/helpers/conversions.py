@@ -174,10 +174,10 @@ custom_mappings = {
             "type" : "nested",
             "include_in_parent": true,
             "properties": {
-                "first_name": { "type": "string", "analyzer": "keyword"}
-                "last_name": { "type": "string", "analyzer": "keyword"}
-                "email": { "type": "string", "analyzer": "keyword"}
-                "role": { "type": "string", "analyzer": "keyword"}
+                "first_name": { "type": "string", "analyzer": "keyword"},
+                "last_name": { "type": "string", "analyzer": "keyword"},
+                "email": { "type": "string", "analyzer": "keyword"},
+                "role": { "type": "string", "analyzer": "keyword"},
             }
         }
     }

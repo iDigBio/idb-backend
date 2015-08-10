@@ -172,11 +172,12 @@ custom_mappings = {
     "recordsets": {
         "contacts": {
             "type" : "nested",
+            "include_in_parent": true,
             "properties": {
-                "first_name": { "type": "string" },
-                "last_name": { "type": "string" },
-                "email": { "type": "string" },
-                "role": { "type": "string" },
+                "first_name": { "type": "string", "analyzer": "keyword"}
+                "last_name": { "type": "string", "analyzer": "keyword"}
+                "email": { "type": "string", "analyzer": "keyword"}
+                "role": { "type": "string", "analyzer": "keyword"}
             }
         }
     }

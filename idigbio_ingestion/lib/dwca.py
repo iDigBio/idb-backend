@@ -151,7 +151,9 @@ class DwcaRecordFile(DelimitedFile):
         ignoreheader = int(filedict["#ignoreHeaderLines"])
         
         self.defaults = {}
-        if not isinstance(filedict['field'],list):
+        if "field" not in filedict:
+            filedict["field"] = []
+        elif not isinstance(filedict['field'],list):
             filedict['field'] = [filedict['field']]
         for fld in filedict['field']:
             # drop any extra quote characters

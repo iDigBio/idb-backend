@@ -146,11 +146,13 @@ def write_citation_files(dl_id,rq,mq,record_query,mediarecord_query):
             query = record_query
         elif t == "mediarecords":
             query = mediarecord_query
-        files.append(write_citation_file(dl_id,t,query,get_recordsets({
+        cf = write_citation_file(dl_id,t,query,get_recordsets({
             "rq": rq,
             "mq": mq,
             "core_type": t
-        },generate=False)[1]))
+        },generate=False)[1])
+        if cf is not None:
+            files.append(cf)
     return files
 
 def count_query(t, query):

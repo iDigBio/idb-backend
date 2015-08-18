@@ -485,22 +485,22 @@ def geoGrabber(t, d):
             ):
                 r["flag_rev_geocode_mismatch"] = True
                 flip_queries = [  # Point, "Distance" from original coords, Flag
-                    [(r["geopoint"][1], -r["geopoint"][0]),
+                    [(-r["geopoint"][0], r["geopoint"][1]),
                      1, "rev_geocode_lon_sign"],
-                    [(-r["geopoint"][1], r["geopoint"][0]),
+                    [(r["geopoint"][0], -r["geopoint"][1]),
                      1, "rev_geocode_lat_sign"],
-                    [(-r["geopoint"][1], -r["geopoint"][0]),
+                    [(-r["geopoint"][0], -r["geopoint"][1]),
                      2, "rev_geocode_both_sign"],
                 ]
                 if r["geopoint"][0] <= 90.0:
                     flip_queries.extend([
-                        [(r["geopoint"][0], r["geopoint"][1]),
+                        [(r["geopoint"][1], r["geopoint"][0]),
                          2, "rev_geocode_flip"],
-                        [(r["geopoint"][0], -r["geopoint"][1]),
+                        [(-r["geopoint"][1], r["geopoint"][0]),
                          3, "rev_geocode_flip_lat_sign"],
-                        [(-r["geopoint"][0], r["geopoint"][1]),
+                        [(r["geopoint"][1], -r["geopoint"][0]),
                          3, "rev_geocode_flip_lon_sign"],
-                        [(-r["geopoint"][0], -r["geopoint"][1]),
+                        [(-r["geopoint"][1], -r["geopoint"][0]),
                          4, "rev_geocode_flip_both_sign"]
                     ])
                 for i, f in enumerate([rg.get_country(*f[0]) for f in flip_queries]):

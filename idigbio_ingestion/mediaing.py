@@ -48,6 +48,13 @@ ignore_prefix = [
     "http://firuta.huh.harvard.edu/"
 ]
 
+format_validators = {
+    "model/mesh": lambda url, t, fmt: url.endswith(".stl")
+}
+
+def default_format_validator(url, t, fmt):
+    return fmt == magic.from_buffer(media_req.content, mime=True)
+
 def get_media(tup, cache_bad=False):
     url, t, fmt = tup
 
@@ -62,9 +69,12 @@ def get_media(tup, cache_bad=False):
         media_req = s.get(url)
         media_req.raise_for_status()
 
-        detected_fmt = magic.from_buffer(media_req.content, mime=True)
+        if fmt in format_validators:
+            validator = format_validators[fmt]
+        else:
+            validator = default_format_validator
 
-        if detected_fmt == fmt:
+        if validator(url,t,fmt):
             #print "Success", url, t, fmt, detected_fmt
             apiimg_req = s.post("http://media.idigbio.org/upload/" + t, data={"filereference": url}, files={'file': media_req.content }, auth=auth)
             apiimg_req.raise_for_status()
@@ -73,7 +83,7 @@ def get_media(tup, cache_bad=False):
             if cache_bad:
                 with open(url_path,"wb") as outf:
                     outf.write(media_req.content)
-            print "Failure", url, t, fmt, detected_fmt
+            print "Failure", url, t, fmt
             return False
     except KeyboardInterrupt as e:
         raise e

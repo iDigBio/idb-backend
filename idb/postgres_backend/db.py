@@ -446,6 +446,7 @@ class PostgresDB:
             if commit:
                 self.commit()
         except:
+            print u, t, ids
             e = sys.exc_info()
             self.rollback()
             raise e[1], None, e[2]

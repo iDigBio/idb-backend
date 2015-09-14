@@ -5,6 +5,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath
 
 import requests
 import json
+import datetime
 
 from idigbio_workers.lib.download import generate_files, get_recordsets, es, indexName
 from idigbio_workers.lib.query_shim import queryFromShim
@@ -15,10 +16,20 @@ def runQuery(query):
     return es.search(index=indexName,doc_type="record,mediarecords",body=query)
 
 def upload_download_file_to_ceph(s, dsname):
-    fkey = s.upload_file(dsname,"idigbio-static-downloads",dsname)
+    keyname = dsname
+    makelink = False
+    if dsname == "idigbio.zip":
+        t = datetime.date.today().isoformat()
+        keyname = "idigbio-" + t + ".zip"
+        makelink = True
+    fkey = s.upload_file(keyname,"idigbio-static-downloads",dsname)
+
     fkey.set_metadata('Content-Type', 'application/zip')
     os.unlink(dsname)
-    return "http://s.idigbio.org/idigbio-static-downloads/" + dsname
+
+    if makelink:
+        
+    return "http://s.idigbio.org/idigbio-static-downloads/" + keyname
 
 def upload_eml_file_to_ceph(s, tid, eml):
     fkey = s.get_key(tid + ".eml","idigbio-static-downloads")

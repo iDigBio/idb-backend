@@ -4,7 +4,9 @@ from gevent import monkey
 monkey.patch_all()
 
 from idb.postgres_backend.db import PostgresDB
+from idb.helpers.storage import IDigBioStorage
 
+import psycopg2
 import magic
 import os
 import requests
@@ -20,6 +22,8 @@ s.mount('https://', adapter)
 auth = HTTPBasicAuth(os.environ.get("IDB_UUID"), os.environ.get("IDB_APIKEY"))
 
 db = PostgresDB()
+local_pg = psycopg2.connect(user="godfoder")
+local_cur = local_pg.cursor()
 
 # Set a mime type to none to explicitly ignore it
 mime_mapping = {
@@ -27,21 +31,37 @@ mime_mapping = {
     "text/html": None,
     "image/dng": None,
     "application/xml": None,
+    "image/x-adobe-dng": None,
+    "audio/mpeg3": None,
+    "text/html": None,
+    None: None
 }
 
 
 def create_schema():
-    sqlite_cur.execute("BEGIN")
-    sqlite_cur.execute("""CREATE TABLE IF NOT EXISTS media (
-        url text PRIMARY KEY,
-        type text,
-        mime text,
-        retrieved timestamp,
-        etag text,
-        detected_mime text
+    local_cur.execute("BEGIN")
+    local_cur.execute("""CREATE TABLE IF NOT EXISTS media (
+        id BIGSERIAL PRIMARY KEY,
+        url text UNIQUE,
+        type varchar(20),
+        mime varchar(255)
     )
     """)
-    sqlite_conn.commit()
+    local_cur.execute("""CREATE TABLE IF NOT EXISTS objects (
+        id BIGSERIAL PRIMARY KEY,
+        bucket varchar(255) NOT NULL,
+        etag varchar(41) NOT NULL UNIQUE,
+        detected_mime varchar(255)
+    )
+    """)
+    local_cur.execute("""CREATE TABLE IF NOT EXISTS media_objects (
+        id BIGSERIAL PRIMARY KEY,
+        url text NOT NULL REFERENCES media(url),
+        etag varchar(41) NOT NULL REFERENCES objects(etag),
+        modified timestamp NOT NULL DEFAULT now()
+    )
+    """)
+    local_pg.commit()
 
 ignore_prefix = [
     "http://media.idigbio.org/",
@@ -104,6 +124,7 @@ def write_urls_to_db(media_urls):
     cur = db._get_ss_cursor()
     cur.execute(
         "SELECT data FROM idigbio_uuids_data WHERE type='mediarecord' and deleted=false")
+    local_cur.execute("BEGIN")
     with open("url_out.json_null", "wb") as outf:
         for r in cur:
             scanned += 1
@@ -113,16 +134,26 @@ def write_urls_to_db(media_urls):
                 url = r["data"]["ac:accessURI"]
             elif "ac:bestQualityAccessURI" in r["data"]:
                 url = r["data"]["ac:bestQualityAccessURI"]
-            elif "dcterms:identifier" in r["data"]:
-                url = r["data"]["dcterms:identifier"]
-            elif "dc:identifier" in r["data"]:
-                url = r["data"]["dc:identifier"]
+            else:
+                # Don't use identifier as a url for things that supply audubon core properties
+                for k in r["data"].keys():
+                    if k.startswith("ac:"):
+                        break
+                else:
+                    if "dcterms:identifier" in r["data"]:
+                        url = r["data"]["dcterms:identifier"]
+                    elif "dc:identifier" in r["data"]:
+                        url = r["data"]["dc:identifier"]
 
             form = None
             if "dcterms:format" in r["data"]:
-                form = r["data"]["dcterms:format"]
+                form = r["data"]["dcterms:format"].strip()
             elif "dc:format" in r["data"]:
-                form = r["data"]["dc:format"]
+                form = r["data"]["dc:format"].strip()
+
+            t = None
+            if form in mime_mapping:
+                t = mime_mapping[form]
 
             if url is not None:
                 url = url.replace("&amp;", "&").strip()
@@ -132,20 +163,18 @@ def write_urls_to_db(media_urls):
                         break
                 else:
                     if url not in media_urls and url not in inserted_urls:
-                        if form in mime_mapping:
-                            if mime_mapping[form] is not None:
-                                outf.write(json.dumps([url, mime_mapping[form], form]) + "\x00")
-                                inserts += 1
-                                inserted_urls.add(url)
-                        elif form is None:
-                            pass
-                        else:
-                            print "Unknown Format", form
+                        local_cur.execute("INSERT INTO media (url,type,mime) VALUES (%s,%s,%s)", (url, t, form))
+                        inserts += 1
+                        inserted_urls.add(url)                        
 
             if inserts >= 10000:
+                local_pg.commit()
+                local_cur.execute("BEGIN")
                 total_inserts += inserts
                 print total_inserts, scanned
                 inserts = 0
+    local_pg.commit()
+    total_inserts += inserts
     print total_inserts, scanned
 
 
@@ -155,11 +184,55 @@ def get_postgres_media_urls():
     print "Get Media URLs"
 
     cur = db._get_ss_cursor()
-    cur.execute("SELECT lookup_key FROM idb_object_keys")
+    cur.execute("SELECT url FROM media")
     for r in cur:
-        media_urls.add(r["lookup_key"])
+        media_urls.add(r[0])
 
     return media_urls
+
+def get_postgres_media_objects():
+    cur = db._get_ss_cursor()
+    cur.execute("SELECT lookup_key, etag, date_modified FROM idb_object_keys")
+    count = 0
+    for r in cur:
+        local_cur.execute("""INSERT INTO media_objects (url,etag,modified) 
+        SELECT %(url)s, %(etag)s, %(modified)s WHERE EXISTS (SELECT 1 FROM media WHERE url=%(url)s)
+        """, {"url": r[0], "etag": r[1], "modified": r[2]})
+        count += 1
+
+        if count % 10000 == 0:
+            local_pg.commit()
+            print count
+    local_pg.commit()
+    print count
+
+def get_objects_from_ceph():
+    local_cur.execute("SELECT etag FROM objects")
+    existing_objects = set()
+    for r in local_cur:
+        existing_objects.add(r[0])
+
+    print len(existing_objects)
+
+    s = IDigBioStorage()
+    buckets = ["datasets","images"]
+    count = 0
+    for b_k in buckets:
+        b = s.get_bucket("idigbio-" + b_k + "-prod")
+        for k in b.list():
+            if k.name not in existing_objects:
+                ks = k.get_contents_as_string(headers={'Range' : 'bytes=0-100'})
+                detected_mime = magic.from_buffer(ks, mime=True)
+                local_cur.execute("INSERT INTO objects (bucket,etag,detected_mime) VALUES (%s,%s,%s)", (b_k,k.name,detected_mime))
+                existing_objects.add(k.name)
+            count += 1
+
+            if count % 10000 == 0:
+                print count
+                local_pg.commit()
+        print count
+        local_pg.commit()
+
 
 def get_media_generator():
     with open("url_out.json_null", "rb") as inf:
@@ -189,12 +262,15 @@ def get_media_consumer():
 
 def main():
     import sys
+    create_schema()
+    #get_objects_from_ceph()
+    get_postgres_media_objects()
 
-    if len(sys.argv) > 1 and sys.argv[1] == "get_media":
-        get_media_consumer()
-    else:
-        media_urls = get_postgres_media_urls()
-        write_urls_to_db(media_urls)
+    # if len(sys.argv) > 1 and sys.argv[1] == "get_media":
+    #     get_media_consumer()
+    # else:
+    #     media_urls = get_postgres_media_urls()
+    #     write_urls_to_db(media_urls)
 
 
 if __name__ == '__main__':

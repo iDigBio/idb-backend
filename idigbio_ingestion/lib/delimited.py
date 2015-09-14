@@ -44,10 +44,10 @@ class DelimitedFile(object):
 
         if isinstance(fh,str) or isinstance(fh,unicode):
             self.name = fh
-            self.filehandle = FileProxy(codecs.open(fh,"r",encoding=encoding))
+            self.filehandle = FileProxy(codecs.EncodedFile(open(fh,"rb"),"utf-8",encoding))
         else:
             self.name = fh.name
-            self.filehandle = FileProxy(fh)
+            self.filehandle = FileProxy(codecs.EncodedFile(fh,"utf-8",encoding))
         
         if logname is None:
             self.logger = getIDigBioLogger(self.name)
@@ -55,9 +55,9 @@ class DelimitedFile(object):
             self.logger = getIDigBioLogger(logname + "." + self.name)
 
         if self.fieldenc is None or self.fieldenc == "":
-            self._reader = csv.reader(self.filehandle,encoding=self.encoding,delimiter=self.delimiter,quoting=csv.QUOTE_NONE)
+            self._reader = csv.reader(self.filehandle,encoding="utf-8",delimiter=self.delimiter,quoting=csv.QUOTE_NONE)
         else:
-            self._reader = csv.reader(self.filehandle,encoding=self.encoding,delimiter=self.delimiter,quotechar=self.fieldenc)
+            self._reader = csv.reader(self.filehandle,encoding="utf-8",delimiter=self.delimiter,quotechar=self.fieldenc)
 
         t = defaultdict(int)
         if header is not None:
@@ -109,7 +109,7 @@ class DelimitedFile(object):
 
         lineDict = None
         while lineDict is None:     
-            try:                
+            try:
                 lineArr = self._reader.next()
                 self.lineCount += 1
                 if self.lineLength is None:

@@ -1,5 +1,6 @@
 import unicodecsv as csv
 import traceback
+import codecs
 
 from collections import defaultdict
 
@@ -43,7 +44,7 @@ class DelimitedFile(object):
 
         if isinstance(fh,str) or isinstance(fh,unicode):
             self.name = fh
-            self.filehandle = FileProxy(open(fh,'rb'))
+            self.filehandle = FileProxy(codecs.open(fh,"r",encoding=encoding))
         else:
             self.name = fh.name
             self.filehandle = FileProxy(fh)

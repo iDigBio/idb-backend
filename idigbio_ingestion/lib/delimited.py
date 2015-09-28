@@ -162,6 +162,7 @@ class DelimitedFile(object):
         max_dump_length = 5000
         string_for_append = '...<truncated for size>'
 
-        if len(dumpedtext) < 5000:
+        if len(dumpedtext) < max_dump_length:
             return dumpedtext
-        else return dumpedtext[:5000-len(string_for_append)] + string_for_append
+        else:
+            return dumpedtext[:max_dump_length-len(string_for_append)] + string_for_append

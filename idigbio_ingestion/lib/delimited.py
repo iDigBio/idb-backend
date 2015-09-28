@@ -144,6 +144,7 @@ class DelimitedFile(object):
                 self.logger.warn("LineLengthException: {0} Line {1} ({2},{3})".format(self.name,self.lineCount,self.lineLength,len(lineArr)))
                 self.logger.debug(lineArr)
                 self.logger.info(traceback.format_exc())
+                # here we need to add some kind of trim to reduce the amount of output going to screen
                 self.logger.info(self.filehandle.dump())
         return lineDict
 

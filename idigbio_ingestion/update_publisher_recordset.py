@@ -241,11 +241,8 @@ def harvest_eml():
             if u is None:
                 u, _, _ = db.get_uuid(r["recordids"])
             desc = {}
-            if etag != r["eml_harvest_etag"]:
-                with open(fname,"rb") as inf:
-                    desc = parseEml(r["recordids"][0], inf.read())
-            else:
-                desc = db.get_item(u)["data"]
+            with open(fname,"rb") as inf:
+                desc = parseEml(r["recordids"][0], inf.read())
             desc["ingest"] = r["ingest"]
             desc["link"] = r["file_link"]
             desc["eml_link"] = r["eml_link"]

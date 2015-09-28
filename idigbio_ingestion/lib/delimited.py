@@ -132,13 +132,13 @@ class DelimitedFile(object):
                 self.lineCount += 1
                 self.logger.warn("Unicode Decode Exception: {0} Line {1}".format(self.name,self.lineCount))
                 self.logger.info(traceback.format_exc())
-                self.logger.info(self.filehandle.dump()[:5000]+'...<truncated for size>')
+                self.logger.info(truncdump(self.filehandle.dump()))
             except MissingFieldsException:
                 lineDict = None
                 self.logger.warn("Missing Fields Exception: {0} Line {1}".format(self.name,self.lineCount))
                 self.logger.debug(lineArr)
                 self.logger.info(traceback.format_exc())
-                self.logger.info(self.filehandle.dump()[:5000]+'...<truncated for size>')
+                self.logger.info(truncdump(self.filehandle.dump()))
             except LineLengthException:
                 lineDict = None
                 self.logger.warn("LineLengthException: {0} Line {1} ({2},{3})".format(self.name,self.lineCount,self.lineLength,len(lineArr)))
@@ -146,7 +146,7 @@ class DelimitedFile(object):
                 self.logger.info(traceback.format_exc())
                 # Here we need to add some kind of trim to reduce the amount of output going to screen
                 # The FileProxy.dump function potentially returns too much if it gets confused about "what is a line"
-                self.logger.info(self.filehandle.dump()[:5000]+'...<truncated for size>')
+                self.logger.info(truncdump(self.filehandle.dump()))
         return lineDict
 
     def readlines(self,sizehint=None):
@@ -157,3 +157,11 @@ class DelimitedFile(object):
         for line in self:
             lines.append(self.readline())
         return lines
+
+    def truncdump(self,dumpedtext):
+        max_dump_length = 5000
+        string_for_append = '...<truncated for size>'
+
+        if len(dumpedtext) < 5000:
+            return dumpedtext
+        else return dumpedtext[:5000-len(string_for_append)] + string_for_append

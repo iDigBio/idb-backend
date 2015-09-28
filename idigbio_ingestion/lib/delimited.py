@@ -132,13 +132,13 @@ class DelimitedFile(object):
                 self.lineCount += 1
                 self.logger.warn("Unicode Decode Exception: {0} Line {1}".format(self.name,self.lineCount))
                 self.logger.info(traceback.format_exc())
-                self.logger.info(truncdump(self.filehandle.dump()))
+                self.logger.info(self.truncdump(self.filehandle.dump()))
             except MissingFieldsException:
                 lineDict = None
                 self.logger.warn("Missing Fields Exception: {0} Line {1}".format(self.name,self.lineCount))
                 self.logger.debug(lineArr)
                 self.logger.info(traceback.format_exc())
-                self.logger.info(truncdump(self.filehandle.dump()))
+                self.logger.info(self.truncdump(self.filehandle.dump()))
             except LineLengthException:
                 lineDict = None
                 self.logger.warn("LineLengthException: {0} Line {1} ({2},{3})".format(self.name,self.lineCount,self.lineLength,len(lineArr)))
@@ -146,7 +146,7 @@ class DelimitedFile(object):
                 self.logger.info(traceback.format_exc())
                 # Here we need to add some kind of trim to reduce the amount of output going to screen
                 # The FileProxy.dump function potentially returns too much if it gets confused about "what is a line"
-                self.logger.info(truncdump(self.filehandle.dump()))
+                self.logger.info(self.truncdump(self.filehandle.dump()))
         return lineDict
 
     def readlines(self,sizehint=None):

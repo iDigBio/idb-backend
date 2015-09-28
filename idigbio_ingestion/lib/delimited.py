@@ -110,6 +110,7 @@ class DelimitedFile(object):
         lineDict = None
         while lineDict is None:     
             try:
+                self.filehandle.snap()
                 lineArr = self._reader.next()
                 self.lineCount += 1
                 if self.lineLength is None:
@@ -125,27 +126,27 @@ class DelimitedFile(object):
                             lineDict[self.fields[k]] = lineArr[k]
                     except IndexError, e:                        
                         raise MissingFieldsException(self.name,self.lineCount,k,self.fields[k],lineArr)
-                self.filehandle.snap()
                 return lineDict
             except UnicodeDecodeError:
                 lineDict = None
                 self.lineCount += 1
                 self.logger.warn("Unicode Decode Exception: {0} Line {1}".format(self.name,self.lineCount))
                 self.logger.info(traceback.format_exc())
-                self.logger.info(self.filehandle.dump())
+                self.logger.info(self.filehandle.dump()[:5000])
             except MissingFieldsException:
                 lineDict = None
                 self.logger.warn("Missing Fields Exception: {0} Line {1}".format(self.name,self.lineCount))
                 self.logger.debug(lineArr)
                 self.logger.info(traceback.format_exc())
-                self.logger.info(self.filehandle.dump())
+                self.logger.info(self.filehandle.dump()[:5000])
             except LineLengthException:
                 lineDict = None
                 self.logger.warn("LineLengthException: {0} Line {1} ({2},{3})".format(self.name,self.lineCount,self.lineLength,len(lineArr)))
                 self.logger.debug(lineArr)
                 self.logger.info(traceback.format_exc())
-                # here we need to add some kind of trim to reduce the amount of output going to screen
-                self.logger.info(self.filehandle.dump())
+                # Here we need to add some kind of trim to reduce the amount of output going to screen
+                # The FileProxy.dump function potentially returns too much if it gets confused about "what is a line"
+                self.logger.info(self.filehandle.dump()[:5000])
         return lineDict
 
     def readlines(self,sizehint=None):

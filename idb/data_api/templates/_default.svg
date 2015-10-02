@@ -9,7 +9,7 @@
   <text 
      x="50%"
      y="50%"
-     text-align="middle"
+     text-anchor="middle"
      dominant-baseline="middle"
      style="font-size:20px;font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;fill:#f2f2f2;font-family:Ubuntu;-inkscape-font-specification:Ubuntu"
      >{{ text }}</text>

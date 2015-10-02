@@ -42,10 +42,10 @@ def respond_to_record(r, deriv=None, format=None):
                     "user": r[4]
                 })
         else:
-            if r[7] is None: # We haven't checked the file yet.
-                return Response(render_template("_default.svg", text="Media Download Pending"), mimetype="image/svg+xml")
             if r[1] is None: # We haven't assigned the mime to a type bucket yet.
                 return Response(render_template("_default.svg", text="Unsupported Media Format"), mimetype="image/svg+xml")
+            elif r[7] is None: # We haven't checked the file yet.
+                return Response(render_template("_default.svg", text="Media Download Pending"), mimetype="image/svg+xml")
             elif r[6] is not None: # We haven't generated an image derivative yet.
                 return Response(render_template("_default.svg", text=r[6]), mimetype="image/svg+xml")
             elif r[6] is None: # No Mime Type supplied

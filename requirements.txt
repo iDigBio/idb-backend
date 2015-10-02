@@ -11,7 +11,6 @@ Flask-UUID
 Flask-CORS
 riak
 coverage
--e git://github.com/thampiman/reverse-geocoder#egg=reverse_geocoder
 numpy
 scipy
 gevent
@@ -20,3 +19,4 @@ shapely
 celery
 boto
 fiona
+magic

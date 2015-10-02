@@ -42,7 +42,9 @@ def respond_to_record(r, deriv=None, format=None):
                     "user": r[4]
                 })
         else:
-            if r[6] is not None:
+            if r[7] is None:
+                return Response(render_template("_default.svg", text="Media Download Pending"), mimetype="image/svg+xml")
+            elif r[6] is not None:
                 return Response(render_template("_default.svg", text=r[6]), mimetype="image/svg+xml")
             else:
                 return Response(render_template("_default.svg", text="Unknown Media Format"), mimetype="image/svg+xml")
@@ -66,7 +68,7 @@ def lookup_uuid(u, format):
     rec = current_app.config["DB"].get_item(str(u))
     if rec is not None:
         ref = get_accessuri(rec["type"], rec["data"])["accessuri"]
-        current_app.config["DB"]._cur.execute("""SELECT media.url, media.type, objects.etag, modified, owner, derivatives, media.mime
+        current_app.config["DB"]._cur.execute("""SELECT media.url, media.type, objects.etag, modified, owner, derivatives, media.mime, last_status
             FROM media
             LEFT JOIN media_objects ON media.url = media_objects.url
             LEFT JOIN objects on media_objects.etag = objects.etag

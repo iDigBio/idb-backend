@@ -42,7 +42,10 @@ def respond_to_record(r, deriv=None, format=None):
                     "user": r[4]
                 })
         else:
-            return Response(render_template("_default.svg", text=r[6]), mimetype="image/svg+xml")
+            if r[6] is not None:
+                return Response(render_template("_default.svg", text=r[6]), mimetype="image/svg+xml")
+            else:
+                return Response(render_template("_default.svg", text="Unknown Media Format"), mimetype="image/svg+xml")
     else:
         return json_error(404)
 
@@ -65,12 +68,13 @@ def lookup_uuid(u, format):
         ref = get_accessuri(rec["type"], rec["data"])["accessuri"]
         current_app.config["DB"]._cur.execute("""SELECT media.url, media.type, objects.etag, modified, owner, derivatives, media.mime
             FROM media
-            JOIN media_objects ON media.url = media_objects.url
-            JOIN objects on media_objects.etag = objects.etag
+            LEFT JOIN media_objects ON media.url = media_objects.url
+            LEFT JOIN objects on media_objects.etag = objects.etag
             WHERE media.url=%s
         """, (ref,))
         current_app.config["DB"]._pg.rollback()
         r = current_app.config["DB"]._cur.fetchone()
+        print r
         return respond_to_record(r, deriv=deriv, format=format)
     else:
         return json_error(404)
@@ -87,8 +91,8 @@ def lookup_etag(etag, format):
 
     current_app.config["DB"]._cur.execute("""SELECT media.url, media.type, objects.etag, modified, owner, derivatives, media.mime
         FROM media
-        JOIN media_objects ON media.url = media_objects.url
-        JOIN objects on media_objects.etag = objects.etag
+        LEFT JOIN media_objects ON media.url = media_objects.url
+        LEFT JOIN objects on media_objects.etag = objects.etag
         WHERE objects.etag=%s
     """, (etag,))
     current_app.config["DB"]._pg.rollback()
@@ -108,8 +112,8 @@ def lookup_ref(format):
     ref = request.args["filereference"]
     current_app.config["DB"]._cur.execute("""SELECT media.url, media.type, objects.etag, modified, owner, derivatives, media.mime
         FROM media
-        JOIN media_objects ON media.url = media_objects.url
-        JOIN objects on media_objects.etag = objects.etag
+        LEFT JOIN media_objects ON media.url = media_objects.url
+        LEFT JOIN objects on media_objects.etag = objects.etag
         WHERE media.url=%s
     """, (ref,))
     current_app.config["DB"]._pg.rollback()

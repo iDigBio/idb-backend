@@ -12,14 +12,26 @@ def calcEtag(data):
     h = sha.hexdigest()
     return h
 
-def calcFileHash(f):
+def calcFileHash(f,op=True,return_size=False):
     md5 = hashlib.md5()
-    with open(f,"rb") as fd:
-        buf = fd.read(128)
-        while len(buf) > 0:
-            md5.update(buf)
+    size = 0
+    if op:
+        with open(f,"rb") as fd:
             buf = fd.read(128)
-    return md5.hexdigest()
+            while len(buf) > 0:
+                size += len(buf)
+                md5.update(buf)
+                buf = fd.read(128)
+    else:
+        buf = f.read(128)
+        while len(buf) > 0:
+            size += len(buf)
+            md5.update(buf)
+            buf = f.read(128)
+    if return_size:
+        return (md5.hexdigest(),size)
+    else:
+        return md5.hexdigest()
 
 def objectHasher(hash_type,data,sort_arrays=False,sort_keys=True):
     h = hashlib.new(hash_type)

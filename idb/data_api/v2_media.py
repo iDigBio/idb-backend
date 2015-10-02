@@ -1,4 +1,4 @@
-from flask import current_app, Blueprint, jsonify, url_for, request
+from flask import current_app, Blueprint, jsonify, url_for, request, redirect, Response, render_template
 
 this_version = Blueprint(__name__,__name__)
 
@@ -6,146 +6,162 @@ import uuid
 import redis
 import datetime
 
-from idb.helpers.etags import objectHasher
+from idb.helpers.etags import objectHasher, calcFileHash
+from idb.helpers.conversions import get_accessuri, get_media_type
+from idb.helpers.media_validation import get_validator
 
+from idb.helpers.idb_flask_authn import requires_auth
 from idb.helpers.cors import crossdomain
 
 from .common import json_error
 
-@this_version.route('/media', methods=['GET','OPTIONS'])
-@crossdomain(origin="*")
-def lookup():
-    return json_error(500,"Not Yet Implemented")
+# TODO:
+# List endpoints?
+# Finish Upload
 
-@this_version.route('/view/mediarecords/<uuid:u>/media', methods=['GET','OPTIONS'])
-@this_version.route('/view/records/<uuid:u>/media', methods=['GET','OPTIONS'])
-@this_version.route('/media/<uuid:u>', methods=['GET','OPTIONS'])
-@crossdomain(origin="*")
-def lookup_uuid(uuid):
-    return json_error(500,"Not Yet Implemented")
 
-@this_version.route('/media/<string:etag>', methods=['GET','OPTIONS'])
-@crossdomain(origin="*")
-def lookup_etag(etag):
-    return json_error(500,"Not Yet Implemented")
+def respond_to_record(r, deriv=None, format=None):
+    if r is not None:
+        media_url = None
+        if r[1] is not None and r[2] is not None:
+            if deriv is None:
+                media_url = "https://s.idigbio.org/idigbio-{0}-prod/{1}".format(r[1], r[2])
+            elif r[1] == "images" and deriv in ["thumbnail", "webview", "fullsize"]:
+                if r[5]: # If derivatives have been generated
+                    media_url = "https://s.idigbio.org/idigbio-{0}-prod-{2}/{1}.jpg".format(r[1], r[2], deriv)
 
-@this_version.route('/media', methods=['POST','OPTIONS'])
+        if media_url is not None:
+            if format is None:
+                return redirect(media_url)
+            elif format == "json":
+                return jsonify({
+                    "url": media_url,
+                    "etag": r[2],
+                    "filereference": r[0],
+                    "modified": r[3].isoformat(),
+                    "user": r[4]
+                })
+        else:
+            return Response(render_template("_default.svg", text=r[6]), mimetype="image/svg+xml")
+    else:
+        return json_error(404)
+
+@this_version.route('/view/mediarecords/<uuid:u>/media', methods=['GET','OPTIONS'], defaults={"format": None})
+@this_version.route('/view/records/<uuid:u>/media', methods=['GET','OPTIONS'], defaults={"format": None})
+@this_version.route('/media/<uuid:u>', methods=['GET','OPTIONS'], defaults={"format": None})
+@this_version.route('/view/mediarecords/<uuid:u>/media.<string:format>', methods=['GET','OPTIONS'])
+@this_version.route('/view/records/<uuid:u>/media.<string:format>', methods=['GET','OPTIONS'])
+@this_version.route('/media/<uuid:u>.<string:format>', methods=['GET','OPTIONS'])
 @crossdomain(origin="*")
+def lookup_uuid(u, format):
+    deriv = None
+    if "deriv" in request.args:
+        deriv = request.args["deriv"]
+    elif "size" in request.args:
+        deriv = request.args["size"]
+
+    rec = current_app.config["DB"].get_item(str(u))
+    if rec is not None:
+        ref = get_accessuri(rec["type"], rec["data"])["accessuri"]
+        current_app.config["DB"]._cur.execute("""SELECT media.url, media.type, objects.etag, modified, owner, derivatives, media.mime
+            FROM media
+            JOIN media_objects ON media.url = media_objects.url
+            JOIN objects on media_objects.etag = objects.etag
+            WHERE media.url=%s
+        """, (ref,))
+        current_app.config["DB"]._pg.rollback()
+        r = current_app.config["DB"]._cur.fetchone()
+        return respond_to_record(r, deriv=deriv, format=format)
+    else:
+        return json_error(404)
+
+@this_version.route('/media/<string:etag>', methods=['GET','OPTIONS'], defaults={"format": None})
+@this_version.route('/media/<string:etag>.<string:format>', methods=['GET','OPTIONS'])
+@crossdomain(origin="*")
+def lookup_etag(etag, format):
+    deriv = None
+    if "deriv" in request.args:
+        deriv = request.args["deriv"]
+    elif "size" in request.args:
+        deriv = request.args["size"]
+
+    current_app.config["DB"]._cur.execute("""SELECT media.url, media.type, objects.etag, modified, owner, derivatives, media.mime
+        FROM media
+        JOIN media_objects ON media.url = media_objects.url
+        JOIN objects on media_objects.etag = objects.etag
+        WHERE objects.etag=%s
+    """, (etag,))
+    current_app.config["DB"]._pg.rollback()
+    r = current_app.config["DB"]._cur.fetchone()
+    return respond_to_record(r, deriv=deriv, format=format)
+
+@this_version.route('/media/', methods=['GET','OPTIONS'], defaults={"format": None})
+@this_version.route('/media.<string:format>', methods=['GET','OPTIONS'])
+@crossdomain(origin="*")
+def lookup_ref(format):
+    deriv = None
+    if "deriv" in request.args:
+        deriv = request.args["deriv"]
+    elif "size" in request.args:
+        deriv = request.args["size"]
+
+    ref = request.args["filereference"]
+    current_app.config["DB"]._cur.execute("""SELECT media.url, media.type, objects.etag, modified, owner, derivatives, media.mime
+        FROM media
+        JOIN media_objects ON media.url = media_objects.url
+        JOIN objects on media_objects.etag = objects.etag
+        WHERE media.url=%s
+    """, (ref,))
+    current_app.config["DB"]._pg.rollback()
+    r = current_app.config["DB"]._cur.fetchone()
+    return respond_to_record(r, deriv=deriv, format=format)
+
+@this_version.route('/media', methods=['POST'])
+@crossdomain(origin="*")
+@requires_auth
 def upload():
-    return json_error(500,"Not Yet Implemented")
+    o = request.get_json()
 
+    if o is None:
+        o = request.form
 
-#redist = redis.StrictRedis(host='idb-redis-celery.acis.ufl.edu', port=6379, db=0)
+    if o is not None:
+        o = dict(o)
 
-# @this_version.route('/download', methods=['GET','POST'])
-# def download():
+    filereference = o["filereference"][0]
 
-#     params = {
-#         "core_type": "records", 
-#         "core_source": "indexterms",
-#         "rq": None,
-#         "mq": None,
-#         "form": "dwca-csv",
-#         "record_fields": None,
-#         "mediarecord_fields": None        
-#     }
+    current_app.config["DB"]._cur.execute("""SELECT url, type, owner FROM media WHERE url=%s""", (filereference,))
+    current_app.config["DB"]._pg.rollback()
+    r = current_app.config["DB"]._cur.fetchone()
 
-#     if request.method == "GET":
-#         o = request.args
-#     else:
-#         o = request.get_json()
+    if r is None or r[2] == request.authorization.username:
+        mime = "image/jpeg"
+        if "mime_type" in o:
+            mime = o["mime_type"][0]
 
-#     for k in params.keys():
-#         if k in o:
-#             if isinstance(o[k],str) or isinstance(o[k],unicode) and (o[k].startswith("{") or o[k].startswith("[")):
-#                 params[k] = json.loads(o[k])
-#             else:
-#                 params[k] = o[k]
+        mt = get_media_type("mediarecords",{"dc:format": mime })
 
-#     if params["rq"] is None and params["mq"] is None:
-#         return json_error(400,"Please supply at least one query paramter (rq,mq)")
+        file = request.files["file"]
 
-#     h = objectHasher("sha1",params,sort_arrays=True,sort_keys=True)
+        h, size = calcFileHash(request.files["file"],op=False,return_size=True)
 
-#     email = None
-#     source = None
-#     force = False
-#     forward_ip = request.access_route[0]
+        validator = get_validator(mime)
 
-#     if "email" in o:
-#         email = o["email"]
+        request.files["file"].seek(0)
 
-#     if "source" in o:
-#         source = o["source"]
+        valid, detected_mime = validator(file.filename,mt["type"],mime,request.files["file"].read(1024))
 
-#     if "force" in o:
-#         force = True
-
-#     dispatch = False
-#     if redist.exists(h) and not force:
-#         r = downloader.AsyncResult(redist.hget(h,"id"))
-#         if r.ready() and email is not None:
-#             send_download_email(email,r.get(),params,ip=forward_ip,source=source)
-#     else:
-#         r = downloader.delay(params,email=email,source=source,ip=forward_ip)
-#         dispatch = True
-
-#     if dispatch:
-#         redist.hmset(h, {
-#             "query": json.dumps(params),
-#             "id": r.id,
-#             "email": email
-#         })
-#         redist.set(r.id,h)
-#         redist.expire(r.id,expire_time_in_seconds - 60)
-#         redist.expire(h,expire_time_in_seconds)
-#     elif r.ready() and email is not None:
-#         send_download_email(email,r.get(),params,ip=forward_ip,source=source)
-
-#     dt = datetime.datetime.now() + datetime.timedelta(0,redist.ttl(h))
-#     if r.ready():
-#         params.update({
-#             "complete": True,
-#             "task_status": r.state,
-#             "status_url": url_for(".status",u=r.id,_external=True),
-#             "expires": dt.isoformat(),
-#             "download_url": r.get()
-#         })
-#     else:
-#         params.update({
-#             "complete": False,
-#             "task_status": r.state,
-#             "status_url": url_for(".status",u=r.id,_external=True),
-#             "expires": dt.isoformat()
-#         })
-
-#     return jsonify(params)
-
-# @this_version.route('/download/<uuid:u>', methods=['GET'])
-# def status(u):
-#     u = str(u)
-#     r = downloader.AsyncResult(u)
-#     h = redist.get(u)
-#     if h is not None:
-#         params_string = redist.hget(h,"query")
-#         params = json.loads(params_string)
-#         dt = datetime.datetime.now() + datetime.timedelta(0,redist.ttl(h))
-#         if r.ready():
-#             params.update({
-#                 "complete": True,
-#                 "task_status": r.state,
-#                 "status_url": url_for(".status",u=r.id,_external=True),
-#                 "expires": dt.isoformat(),
-#                 "download_url": r.get()
-#             })
-#         else:
-#             params.update({
-#                 "complete": False,
-#                 "task_status": r.state,
-#                 "status_url": url_for(".status",u=r.id,_external=True),
-#                 "expires": dt.isoformat()
-#             })
-
-#         return jsonify(params)
-#     else:
-#         return json_error(404)
+        if valid:
+            return jsonify({
+                "file_size": size,
+                "file_name": unicode(file.filename),
+                "file_md5": h,
+                "object_type": mt["type"],
+                "file_reference": filereference,
+                "file_url": url_for(".lookup_etag", etag=h, _external=True, _scheme='https'),
+                "content_type": detected_mime
+            })
+        else:
+            return json_error(400,"Invalid Content Type")
+    else:
+        return json_error(403)

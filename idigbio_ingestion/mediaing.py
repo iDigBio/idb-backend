@@ -5,6 +5,8 @@ monkey.patch_all()
 
 from idb.postgres_backend.db import PostgresDB
 from idb.helpers.storage import IDigBioStorage
+from idb.helpers.media_validation import get_validator
+from idb.helpers.conversions import get_accessuri, get_media_type
 
 import psycopg2
 import magic
@@ -22,21 +24,8 @@ s.mount('https://', adapter)
 auth = HTTPBasicAuth(os.environ.get("IDB_UUID"), os.environ.get("IDB_APIKEY"))
 
 db = PostgresDB()
-local_pg = psycopg2.connect(user="godfoder")
-local_cur = local_pg.cursor()
-
-# Set a mime type to none to explicitly ignore it
-mime_mapping = {
-    "image/jpeg": "images",
-    "text/html": None,
-    "image/dng": None,
-    "application/xml": None,
-    "image/x-adobe-dng": None,
-    "audio/mpeg3": None,
-    "text/html": None,
-    None: None
-}
-
+local_pg = db._pg
+local_cur = db._cur
 
 def create_schema():
     local_cur.execute("BEGIN")
@@ -71,14 +60,6 @@ ignore_prefix = [
     "http://firuta.huh.harvard.edu/"
 ]
 
-format_validators = {
-    "model/mesh": lambda url, t, fmt, content: (url.endswith(".stl"), "model/mesh")
-}
-
-def default_format_validator(url, t, fmt, content):
-    mime = magic.from_buffer(content, mime=True)
-    return (fmt == mime, mime)
-
 def get_media(tup, cache_bad=False):
     url, t, fmt = tup
 
@@ -97,10 +78,8 @@ def get_media(tup, cache_bad=False):
         media_status = media_req.status_code
         media_req.raise_for_status()
 
-        if fmt in format_validators:
-            validator = format_validators[fmt]
-        else:
-            validator = default_format_validator
+
+        validator = get_validator(fmt)
 
         valid, detected_mime = validator(url,t,fmt,media_req.content)
         if valid:
@@ -141,37 +120,18 @@ def write_urls_to_db(media_urls):
     total_inserts = 0
     cur = db._get_ss_cursor()
     cur.execute(
-        "SELECT data FROM idigbio_uuids_data WHERE type='mediarecord' and deleted=false")
+        "SELECT type,data FROM idigbio_uuids_data WHERE type='mediarecord' and deleted=false")
     local_cur.execute("BEGIN")
     with open("url_out.json_null", "wb") as outf:
         for r in cur:
             scanned += 1
 
-            url = None
-            if "ac:accessURI" in r["data"]:
-                url = r["data"]["ac:accessURI"]
-            elif "ac:bestQualityAccessURI" in r["data"]:
-                url = r["data"]["ac:bestQualityAccessURI"]
-            else:
-                # Don't use identifier as a url for things that supply audubon core properties
-                for k in r["data"].keys():
-                    if k.startswith("ac:"):
-                        break
-                else:
-                    if "dcterms:identifier" in r["data"]:
-                        url = r["data"]["dcterms:identifier"]
-                    elif "dc:identifier" in r["data"]:
-                        url = r["data"]["dc:identifier"]
+            url = get_accessuri(r["type"], r["data"])["accessuri"]
 
-            form = None
-            if "dcterms:format" in r["data"]:
-                form = r["data"]["dcterms:format"].strip()
-            elif "dc:format" in r["data"]:
-                form = r["data"]["dc:format"].strip()
+            o = get_media_type(r["type"], r["data"])
 
-            t = None
-            if form in mime_mapping:
-                t = mime_mapping[form]
+            form = o["format"]
+            t = o["type"]
 
             if url is not None:
                 url = url.replace("&amp;", "&").strip()
@@ -245,11 +205,14 @@ def get_objects_from_ceph():
         b = s.get_bucket("idigbio-" + b_k + "-prod")
         for k in b.list():
             if k.name not in existing_objects:
-                ks = k.get_contents_as_string(headers={'Range' : 'bytes=0-100'})
-                detected_mime = magic.from_buffer(ks, mime=True)
-                local_cur.execute("INSERT INTO objects (bucket,etag,detected_mime) SELECT %(bucket)s,%(etag)s,%(dm)s WHERE NOT EXISTS (SELECT 1 FROM objects WHERE etag=%(etag)s)", {"bucket": b_k, "etag": k.name, "dm": detected_mime})
-                existing_objects.add(k.name)
-                rowcount += local_cur.rowcount
+                try:
+                    ks = k.get_contents_as_string(headers={'Range' : 'bytes=0-100'})
+                    detected_mime = magic.from_buffer(ks, mime=True)
+                    local_cur.execute("INSERT INTO objects (bucket,etag,detected_mime) SELECT %(bucket)s,%(etag)s,%(dm)s WHERE NOT EXISTS (SELECT 1 FROM objects WHERE etag=%(etag)s)", {"bucket": b_k, "etag": k.name, "dm": detected_mime})
+                    existing_objects.add(k.name)
+                    rowcount += local_cur.rowcount
+                except:
+                    print "Ceph Error", b_k, k.name
             count += 1
 
 
@@ -260,6 +223,19 @@ def get_objects_from_ceph():
         print count, rowcount
         local_pg.commit()
 
+def set_deriv_from_ceph():
+    s = IDigBioStorage()
+    b = s.get_bucket("idigbio-images-prod-thumbnail")
+    count = 0
+    for k in b.list():
+        local_cur.execute("UPDATE objects SET derivatives=true WHERE etag=%s", (k.name.split(".")[0],))
+        count += 1
+
+        if count % 10000 == 0:
+            print count
+            local_pg.commit()
+    print count
+    local_pg.commit()
 
 def get_media_generator():
     local_cur.execute("""SELECT * FROM (
@@ -301,10 +277,16 @@ def main():
     if len(sys.argv) > 1 and sys.argv[1] == "get_media":
         get_media_consumer()
     else:
-        media_urls = get_postgres_media_urls()
-        write_urls_to_db(media_urls)
-        get_objects_from_ceph()
-        get_postgres_media_objects()
+        # media_urls = get_postgres_media_urls()
+        # write_urls_to_db(media_urls)
+        # get_objects_from_ceph()
+        # get_postgres_media_objects()
+        set_deriv_from_ceph()
 
 if __name__ == '__main__':
     main()
+
+# SQL Queries to import from old table:
+#insert into media (url,type,owner) (select lookup_key,type,user_uuid::uuid from (select media.url, idb_object_keys.lookup_key, idb_object_keys.type, idb_object_keys.user_uuid from idb_object_keys left join media on lookup_key=url) as a where url is null);
+#insert into objects (bucket,etag) (select type,etag from (select lookup_key, type, a.etag, b.etag as n from idb_object_keys as a left join objects as b on a.etag=b.etag) as c where n is null);
+#insert into media_objects (url,etag,modified) (select lookup_key,etag,date_modified from (select media_objects.url, idb_object_keys.lookup_key, idb_object_keys.etag, idb_object_keys.date_modified from idb_object_keys left join media_objects on lookup_key=url and media_objects.etag=idb_object_keys.etag) as a where url is null);

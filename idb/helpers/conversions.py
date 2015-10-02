@@ -35,6 +35,17 @@ PARENT_MAP = {
     "recordsets": "publishers",
 }
 
+mime_mapping = {
+    "image/jpeg": "images",
+    "text/html": None,
+    "image/dng": None,
+    "application/xml": None,
+    "image/x-adobe-dng": None,
+    "audio/mpeg3": None,
+    "text/html": None,
+    None: None
+}
+
 locale.setlocale(locale.LC_ALL, '')
 
 # [indexname, rawfield, type, include_in_max]
@@ -658,6 +669,41 @@ def getLicense(t, d):
         return licenses[most_common_lic]
     else:
         return {}
+
+def get_accessuri(t, d):
+    url = None
+    if filled("ac:accessURI",d):
+        url = d["ac:accessURI"]
+    elif filled("ac:bestQualityAccessURI",d):
+        url = d["ac:bestQualityAccessURI"]
+    else:
+        # Don't use identifier as a url for things that supply audubon core properties
+        for k in d.keys():
+            if k.startswith("ac:"):
+                break
+        else:
+            if filled("dcterms:identifier",d):
+                url = d["dcterms:identifier"]
+            elif filled("dc:identifier",d):
+                url = d["dc:identifier"]
+
+    return { "accessuri": url }
+
+def get_media_type(t,d):
+    form = None
+    if filled("dcterms:format",d):
+        form = d["dcterms:format"].strip()
+    elif filled("dc:format",d):
+        form = d["dc:format"].strip()
+
+    t = None
+    if form in mime_mapping:
+        t = mime_mapping[form]
+
+    return {
+        "format": form,
+        "type": t
+    }
 
 
 def filled(k, d):

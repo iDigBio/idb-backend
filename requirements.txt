@@ -19,4 +19,4 @@ shapely
 celery
 boto
 fiona
-magic
+python-magic

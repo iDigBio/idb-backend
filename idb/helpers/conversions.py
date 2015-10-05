@@ -41,7 +41,9 @@ mime_mapping = {
     "image/dng": None,
     "application/xml": None,
     "image/x-adobe-dng": None,
-    "audio/mpeg3": None,
+    "audio/mpeg3": "sounds",
+    "video/mpeg": "video",
+    "video/mp4": "video",
     "text/html": None,
     "model/mesh": "models",
     None: None

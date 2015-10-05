@@ -68,7 +68,10 @@ class RecordCorrector(object):
                     for k in self.corrections[c][uv].keys():
                         if k in cd_keys:
                             if corrected_dict[cd_keys[k]].lower() != self.corrections[c][uv][k]:
-                                corrected_dict["flag_" + k.replace(":","_").lower() + "_replaced"] = True
+                                if self.corrections[c][uv][k] is None:
+                                    corrected_dict["flag_" + k.replace(":","_").lower() + "_removed"] = True
+                                else:
+                                    corrected_dict["flag_" + k.replace(":","_").lower() + "_replaced"] = True
                                 corrected_dict[cd_keys[k]] = self.corrections[c][uv][k]
                                 corrected_keys.add(cd_keys[k])
                             else:

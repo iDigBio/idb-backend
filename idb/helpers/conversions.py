@@ -149,7 +149,8 @@ fields = {
         ["recordids", "idigbio:recordIds", "list", 0, None],
         ["recordset", "", "text", 0, "idigbio:recordsets"],
         ["records", "", "list", 0, "idigbio:records"],
-        ["format", "dcterms:format", "text", 1, None],
+        ["format", "", "text", 1, "dcterms:format"],
+        ["mediatype", "", "text", 1, "idigbio:mediaType"],
         ["type", "dc:type", "text", 1, None],
         ["tag", "ac:tag", "longtext", 1, None],
         ["xpixels", "", "integer", 1, "exif:PixelXDimension"],
@@ -698,6 +699,8 @@ def get_media_type(t,d):
         form = d["dcterms:format"].strip()
     elif filled("dc:format",d):
         form = d["dc:format"].strip()
+    elif filled("ac:bestQualityFormat",d):
+        form = d["ac:bestQualityFormat"].strip()
 
     t = None
     if form in mime_mapping:
@@ -705,7 +708,7 @@ def get_media_type(t,d):
 
     return {
         "format": form,
-        "type": t
+        "mediatype": t
     }
 
 
@@ -830,6 +833,7 @@ def grabAll(t, d):
     r.update(dateGrabber(t, d))  # 5
     r.update(relationsGrabber(t, d))
     r.update(getLicense(t, d))
+    r.update(get_media_type(t, d))
     # Done with non-dependant fields.
 
     gs_sn_crossfill(t, r)

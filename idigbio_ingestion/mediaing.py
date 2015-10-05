@@ -132,7 +132,7 @@ def write_urls_to_db(media_urls):
             o = get_media_type(r["type"], r["data"])
 
             form = o["format"]
-            t = o["type"]
+            t = o["mediatype"]
 
             if url is not None:
                 url = url.replace("&amp;", "&").strip()

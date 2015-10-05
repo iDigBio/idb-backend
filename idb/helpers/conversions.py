@@ -43,6 +43,7 @@ mime_mapping = {
     "image/x-adobe-dng": None,
     "audio/mpeg3": None,
     "text/html": None,
+    "model/mesh": "models",
     None: None
 }
 

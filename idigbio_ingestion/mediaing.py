@@ -87,6 +87,7 @@ def get_media(tup, cache_bad=False):
             apiimg_req = s.post("http://media.idigbio.org/upload/" + t, data={"filereference": url}, files={'file': media_req.content }, auth=auth)
             apiimg_req.raise_for_status()
             apiimg_o = apiimg_req.json()
+            local_cur.execute("UPDATE media SET last_status=%s, last_check=now() WHERE url=%s", (200,url))
             local_cur.execute("INSERT INTO objects (etag,bucket,detected_mime) SELECT %(etag)s, %(type)s, %(mime)s WHERE NOT EXISTS (SELECT 1 FROM objects WHERE etag=%(etag)s)", {"etag": apiimg_o["file_md5"], "type": t, "mime": detected_mime})
             local_cur.execute("INSERT INTO media_objects (url,etag) VALUES (%s,%s)", (url,apiimg_o["file_md5"]))
             local_pg.commit()
@@ -277,11 +278,11 @@ def main():
     if len(sys.argv) > 1 and sys.argv[1] == "get_media":
         get_media_consumer()
     else:
-        # media_urls = get_postgres_media_urls()
-        # write_urls_to_db(media_urls)
+        media_urls = get_postgres_media_urls()
+        write_urls_to_db(media_urls)
         # get_objects_from_ceph()
         # get_postgres_media_objects()
-        set_deriv_from_ceph()
+        #set_deriv_from_ceph()
 
 if __name__ == '__main__':
     main()

@@ -13,12 +13,14 @@ from idb.helpers.media_validation import get_validator
 from idb.helpers.idb_flask_authn import requires_auth
 from idb.helpers.cors import crossdomain
 
+from idb.helpers.storage import IDigBioStorage
+
 from .common import json_error
 
 # TODO:
 # List endpoints?
-# Finish Upload
 
+media_store = IDigBioStorage()
 
 def respond_to_record(r, deriv=None, format=None):
     if r is not None:
@@ -159,7 +161,18 @@ def upload():
 
         valid, detected_mime = validator(file.filename,mt["type"],mime,request.files["file"].read(1024))
 
-        if valid:
+        if valid and mt["type"] is not None:
+            request.files["file"].seek(0)
+            k = media_store.get_key(h,"idigbio-{0}-{1}".format(mt["type"],"prod"))
+            k.set_contents_from_file(request.files["file"],md5=k.get_md5_from_hexdigest(h))
+            k.make_public()
+            if r is None:
+                current_app.config["DB"]._cur.execute("INSERT INTO media (url,type,mime,last_status,last_check,owner) VALUES (%s,%s,%s,200,now(),%s)", (filereference,mt["type"],mime,request.authorization.username))
+            else:
+                current_app.config["DB"]._cur.execute("UPDATE media SET last_check=now(), last_status=200, type=%s, mime=%s WHERE url=%s", (mt["type"],mime,filereference))
+            current_app.config["DB"]._cur.execute("INSERT INTO objects (bucket, etag, detected_mime) (SELECT %s, %s, %s WHERE NOT EXISTS (SELECT 1 FROM objects WHERE etag=%s))", (mt["type"], h, detected_mime, h))
+            current_app.config["DB"]._cur.execute("INSERT INTO media_objects (url, etag) VALUES (%s,%s)", (filereference,h))
+            current_app.config["DB"]._pg.commit()
             return jsonify({
                 "file_size": size,
                 "file_name": unicode(file.filename),

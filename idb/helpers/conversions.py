@@ -108,6 +108,7 @@ fields = {
         ["recordset", "", "text", 0, "idigbio:recordset"],
         ["mediarecords", "", "list", 0, "idigbio:mediarecords"],
         ["hasImage", "", "boolean", 0, "idigbio:hasImage"],
+        ["hasMedia", "", "boolean", 0, "idigbio:hasMedia"],
         ["bed", "dwc:bed", "text", 1, None],
         ["group", "dwc:group", "text", 1, None],
         ["member", "dwc:member", "text", 1, None],
@@ -643,6 +644,7 @@ def relationsGrabber(t, d):
         r["hasSpecimen"] = "records" in r and r["records"] != None
     elif t == "records":
         r["hasImage"] = "mediarecords" in r and r["mediarecords"] != None
+        r["hasMedia"] = "mediarecords" in r and r["mediarecords"] != None
 
     return r
 
@@ -804,6 +806,7 @@ def fixBOR(t, r):
             r["basisofrecord"] = "humanobservation"
         else:
             r["basisofrecord"] = None
+            r["flag_dwc_basisofrecord_removed"] = True
             r["flag_dwc_basisofrecord_invalid"] = True
 
 

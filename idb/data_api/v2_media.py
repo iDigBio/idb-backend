@@ -95,7 +95,7 @@ def lookup_etag(etag, format):
     elif "size" in request.args:
         deriv = request.args["size"]
 
-    current_app.config["DB"]._cur.execute("""SELECT media.url, media.type, objects.etag, modified, owner, derivatives, media.mime
+    current_app.config["DB"]._cur.execute("""SELECT media.url, media.type, objects.etag, modified, owner, derivatives, media.mime, last_status
         FROM media
         LEFT JOIN media_objects ON media.url = media_objects.url
         LEFT JOIN objects on media_objects.etag = objects.etag
@@ -118,10 +118,13 @@ def lookup_ref(format):
     params = {}
     for ak, pk in [("filereference","url"),("type","type"),("prefix","prefix"),("user","owner"),("mime_type","mime")]:
         if ak in request.args:
-            params[pk] = request.args[ak][0]
+            if isinstance(request.args[ak],list):
+                params[pk] = request.args[ak][0]
+            else:
+                params[pk] = request.args[ak]
 
     if "url" in params:
-        current_app.config["DB"]._cur.execute("""SELECT media.url, media.type, objects.etag, modified, owner, derivatives, media.mime
+        current_app.config["DB"]._cur.execute("""SELECT media.url, media.type, objects.etag, modified, owner, derivatives, media.mime, last_status
             FROM media
             LEFT JOIN media_objects ON media.url = media_objects.url
             LEFT JOIN objects on media_objects.etag = objects.etag
@@ -144,11 +147,12 @@ def lookup_ref(format):
         if len(where_a) > 0:
             where += " AND ".join(where_a)
 
-        current_app.config["DB"]._cur.execute("""SELECT media.url, media.type, objects.etag, modified, owner, derivatives, media.mime
+        current_app.config["DB"]._cur.execute("""SELECT media.url, media.type, objects.etag, modified, owner, derivatives, media.mime, last_status
             FROM media
             LEFT JOIN media_objects ON media.url = media_objects.url
             LEFT JOIN objects on media_objects.etag = objects.etag
         """ + where + " LIMIT 100", params)
+        print current_app.config["DB"]._cur.query
         current_app.config["DB"]._pg.rollback()
 
         files = []
@@ -156,7 +160,7 @@ def lookup_ref(format):
             print r
             files.append({
                 "filereference": r[0],
-                "url": url_for(".lookup_etag", etag=r[2], _external=True, _scheme='https'),
+                "url": url_for(".lookup_etag", etag=r[2], _external=True, _scheme='https', deriv=deriv),
                 "etag": r[2],
                 "user": r[4],
                 "type": r[1],

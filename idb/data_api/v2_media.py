@@ -115,16 +115,54 @@ def lookup_ref(format):
     elif "size" in request.args:
         deriv = request.args["size"]
 
-    ref = request.args["filereference"]
-    current_app.config["DB"]._cur.execute("""SELECT media.url, media.type, objects.etag, modified, owner, derivatives, media.mime
-        FROM media
-        LEFT JOIN media_objects ON media.url = media_objects.url
-        LEFT JOIN objects on media_objects.etag = objects.etag
-        WHERE media.url=%s
-    """, (ref,))
-    current_app.config["DB"]._pg.rollback()
-    r = current_app.config["DB"]._cur.fetchone()
-    return respond_to_record(r, deriv=deriv, format=format)
+    params = {}
+    for ak, pk in [("filereference","url"),("type","type"),("prefix","prefix"),("user","owner"),("mime_type","mime")]:
+        if ak in request.args:
+            params[pk] = request.args[ak][0]
+
+    if "url" in params:
+        current_app.config["DB"]._cur.execute("""SELECT media.url, media.type, objects.etag, modified, owner, derivatives, media.mime
+            FROM media
+            LEFT JOIN media_objects ON media.url = media_objects.url
+            LEFT JOIN objects on media_objects.etag = objects.etag
+            WHERE media.url=%(url)s
+        """, params)
+        current_app.config["DB"]._pg.rollback()
+        r = current_app.config["DB"]._cur.fetchone()
+        print r
+        return respond_to_record(r, deriv=deriv, format=format)
+    else:
+        where = "WHERE "
+        where_a = ["objects.etag IS NOT NULL"]
+        for k in params:
+            if k == "prefix":
+                where_a.append("media.url LIKE %({0})s".format(k))
+                params[k] += "%"
+            else:
+                where_a.append("{0}=%({0})s".format(k))
+
+        if len(where_a) > 0:
+            where += " AND ".join(where_a)
+
+        current_app.config["DB"]._cur.execute("""SELECT media.url, media.type, objects.etag, modified, owner, derivatives, media.mime
+            FROM media
+            LEFT JOIN media_objects ON media.url = media_objects.url
+            LEFT JOIN objects on media_objects.etag = objects.etag
+        """ + where + " LIMIT 100", params)
+        current_app.config["DB"]._pg.rollback()
+
+        files = []
+        for r in current_app.config["DB"]._cur:
+            print r
+            files.append({
+                "filereference": r[0],
+                "url": url_for(".lookup_etag", etag=r[2], _external=True, _scheme='https'),
+                "etag": r[2],
+                "user": r[4],
+                "type": r[1],
+                "mime": r[6]
+            })
+        return jsonify({"files": files, "count": len(files)})
 
 @this_version.route('/media', methods=['POST'])
 @crossdomain(origin="*")

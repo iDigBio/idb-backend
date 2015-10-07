@@ -123,6 +123,8 @@ def write_urls_to_db(media_urls):
     cur.execute(
         "SELECT type,data FROM idigbio_uuids_data WHERE type='mediarecord' and deleted=false")
     local_cur.execute("BEGIN")
+    to_insert = []
+    to_update = []
     with open("url_out.json_null", "wb") as outf:
         for r in cur:
             scanned += 1
@@ -141,31 +143,32 @@ def write_urls_to_db(media_urls):
                     if url.startswith(p):
                         break
                 else:
-                    if url not in media_urls and url not in inserted_urls:
-                        local_cur.execute("INSERT INTO media (url,type,mime) VALUES (%s,%s,%s)", (url, t, form))
-                        inserts += 1
+                    if url in media_urls:
+                        # We're going to change something, but only if we're adding/replacing things, not nulling existing values.
+                        if not (t,form) == media_urls[url] and form is not None and (t is not None or media_urls[url][0] is None):
+                            to_update.append((t, form, url))
+                    elif url not in inserted_urls:
+                        to_insert.append((url, t, form))
                         inserted_urls.add(url)                        
 
-            if inserts >= 10000:
-                local_pg.commit()
-                local_cur.execute("BEGIN")
-                total_inserts += inserts
-                print total_inserts, scanned
-                inserts = 0
+            if scanned % 100000 == 0:
+                print len(to_insert), len(to_update), scanned
+
+    local_cur.executemany("INSERT INTO media (url,type,mime) VALUES (%s,%s,%s)", to_insert)
+    local_cur.executemany("UPDATE media SET type=%s, mime=%s, last_status=NULL, last_check=NULL WHERE url=%s", to_update)
     local_pg.commit()
-    total_inserts += inserts
-    print total_inserts, scanned
+    print len(to_insert), len(to_update), scanned
 
 
 def get_postgres_media_urls():
-    media_urls = set()
+    media_urls = dict()
 
     print "Get Media URLs"
 
     local_cur = local_pg.cursor()
-    local_cur.execute("SELECT url FROM media")
+    local_cur.execute("SELECT url,type,mime FROM media")
     for r in local_cur:
-        media_urls.add(r[0])
+        media_urls[r[0]] = (r[1],r[2])
 
     return media_urls
 
@@ -243,7 +246,7 @@ def get_media_generator():
         SELECT substring(url from 'https?://[^/]*/'), count(*) FROM (
             SELECT media.url, media_objects.etag FROM media LEFT JOIN media_objects ON media.url = media_objects.url WHERE type IS NOT NULL AND (last_status IS NULL or (last_status >= 400 and last_check < now() - '1 month'::interval))
         ) AS a WHERE a.etag IS NULL GROUP BY substring(url from 'https?://[^/]*/')
-    ) AS b ORDER BY count""")
+    ) AS b WHERE substring != '' ORDER BY count""")
     subs_rows = local_cur.fetchall()
     for sub_row in subs_rows:
         subs = sub_row[0]

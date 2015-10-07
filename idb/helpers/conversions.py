@@ -154,6 +154,7 @@ fields = {
         ["mediatype", "", "text", 1, "idigbio:mediaType"],
         ["type", "dc:type", "text", 1, None],
         ["tag", "ac:tag", "longtext", 1, None],
+        ["accessuri", "", "text", 1, "ac:accessURI"],
         ["xpixels", "", "integer", 1, "exif:PixelXDimension"],
         ["ypixels", "", "integer", 1, "exif:PixelYDimension"],
         ["rights", "", "text", 1, "dcterms:rights"],
@@ -837,6 +838,7 @@ def grabAll(t, d):
     r.update(relationsGrabber(t, d))
     r.update(getLicense(t, d))
     r.update(get_media_type(t, d))
+    r.update(get_accessuri(t, d))
     # Done with non-dependant fields.
 
     gs_sn_crossfill(t, r)

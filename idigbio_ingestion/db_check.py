@@ -226,10 +226,15 @@ def process_subfile(rf, rsid, rs_uuid_etag, rs_id_uuid, ingest=False):
                 ids_to_add[i] = u
             uuids_to_add[u] = etag
 
-            if ingest and not matched and not deleted:
-                #             u, t,        p,    d, ids,               siblings, commit
-                db.set_record(u, typ[:-1], rsid, r, ids_to_add.keys(), siblings, commit=False)
-                ingestions += 1
+            if ingest and not deleted:
+                if matched:
+                    # Always update siblings
+                    for s in siblings:
+                        db._upsert_uuid_sibling(u, s, commit=False)
+                else:
+                    #             u, t,        p,    d, ids,               siblings, commit
+                    db.set_record(u, typ[:-1], rsid, r, ids_to_add.keys(), siblings, commit=False)
+                    ingestions += 1
             elif ingest and deleted:
                 db.undelete_item(u, commit=False)
                 db.set_record(u, typ[:-1], rsid, r, ids_to_add.keys(), siblings, commit=False)

@@ -247,6 +247,21 @@ def type_yield_resume(ei, rc, typ, also_delete=False, yield_record=False):
                 }
             })
 
+def queryIter(query, ei, rc, typ, yield_record=False):
+    q = {
+        "index": ei.indexName,
+        "doc_type": typ,
+        "_source": [],
+        "size": 10000,
+        "scroll": "10m"
+    }
+    cursor = pg.cursor(cursor_factory=DictCursor)
+    for r in elasticsearch.helpers.scan(ei.es, query=query, **q):
+        cursor.execute("SELECT * FROM idigbio_uuids_data WHERE uuid=%s", (r["_id"],))
+        if yield_record:
+            yield cursor.fetchone()
+        else:
+            yield index_record(ei, rc, typ, cursor.fetchone(), do_index=False)
 
 def delete(ei, no_index=False):
     print "Running deletes"
@@ -300,6 +315,13 @@ def incremental(ei, rc, no_index=False):
     except:
         pass
 
+def query(ei, rc, query, no_index=False):
+    f = functools.partial(queryIter, query)
+    consume(ei, rc, f, no_index=no_index)
+    try:
+        ei.optimize()
+    except:
+        pass
 
 def consume(ei, rc, iter_func, no_index=False):
     p = Pool(10)
@@ -355,6 +377,8 @@ def main():
                         action='store_true', help="don't actually index records")
     parser.add_argument('-t', '--types', dest='types', nargs='+',
                         type=str, default=config["elasticsearch"]["types"])
+    parser.add_argument('-q', '--query', dest='query',
+                        type=str, default="{}")
 
     args = parser.parse_args()
 
@@ -376,9 +400,11 @@ def main():
 
         if args.continuous:
             continuous_incremental(ei, rc)
-
         elif args.incremental:
             incremental(ei, rc, no_index=args.no_index)
+        elif args.query != "{}":
+            q = json.loads(args.query)
+            query(ei, rc, q)
         elif args.resume:
             resume(ei, rc, no_index=args.no_index)
         elif args.full:

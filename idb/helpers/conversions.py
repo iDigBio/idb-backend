@@ -803,6 +803,8 @@ def fixBOR(t, r):
             r["basisofrecord"] = "livingspecimen"
         elif "specimen" in r["basisofrecord"]:
             r["basisofrecord"] = "preservedspecimen"
+        elif "machine" in r["basisofrecord"] and "observation" in r["basisofrecord"]:
+            r["basisofrecord"] = "machineobservation"
         elif "observation" in r["basisofrecord"]:
             r["basisofrecord"] = "humanobservation"
         else:

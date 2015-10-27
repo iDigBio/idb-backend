@@ -1,10 +1,9 @@
-from conversions import grabAll
-from elasticsearch_backend.indexer import prepForEs
-from postgres_backend.db import tombstone_etag
+from idb.helpers.conversions import grabAll
+from idb.elasticsearch_backend.indexer import prepForEs
+from idb.postgres_backend.db import tombstone_etag
 
 
 def index_record(ei,rc,typ,r,do_index=True):
-
         if r["etag"] == tombstone_etag:
             i = {
                 "uuid": r["uuid"],

@@ -20,11 +20,11 @@ import gc
 import os
 import math
 
-from postgres_backend import pg, DictCursor
-from helpers.index_helper import index_record
-from corrections.record_corrector import RecordCorrector
-from elasticsearch_backend.indexer import ElasticSearchIndexer
-from config import config
+from idb.postgres_backend import pg, DictCursor
+from idb.helpers.index_helper import index_record
+from idb.corrections.record_corrector import RecordCorrector
+from idb.elasticsearch_backend.indexer import ElasticSearchIndexer
+from idb.config import config
 
 import elasticsearch.helpers
 
@@ -257,11 +257,24 @@ def queryIter(query, ei, rc, typ, yield_record=False):
     }
     cursor = pg.cursor(cursor_factory=DictCursor)
     for r in elasticsearch.helpers.scan(ei.es, query=query, **q):
-        cursor.execute("SELECT * FROM idigbio_uuids_data WHERE uuid=%s", (r["_id"],))
-        if yield_record:
-            yield cursor.fetchone()
-        else:
-            yield index_record(ei, rc, typ, cursor.fetchone(), do_index=False)
+        cursor.execute("SELECT * FROM idigbio_uuids_data WHERE uuid=%s and type=%s", (r["_id"],typ[:-1]))
+        rec = cursor.fetchone()
+        if rec is not None:
+            if yield_record:
+                yield rec
+            else:
+                yield index_record(ei, rc, typ, rec, do_index=False)
+
+def uuidsIter(uuid_l, ei, rc, typ, yield_record=False):
+    cursor = pg.cursor(cursor_factory=DictCursor)
+    for rid in uuid_l:
+        cursor.execute("SELECT * FROM idigbio_uuids_data WHERE uuid=%s and type=%s", (rid.strip(),typ[:-1]))
+        rec = cursor.fetchone()
+        if rec is not None:
+            if yield_record:
+                yield rec
+            else:
+                yield index_record(ei, rc, typ, rec, do_index=False)
 
 def delete(ei, no_index=False):
     print "Running deletes"
@@ -317,6 +330,14 @@ def incremental(ei, rc, no_index=False):
 
 def query(ei, rc, query, no_index=False):
     f = functools.partial(queryIter, query)
+    consume(ei, rc, f, no_index=no_index)
+    try:
+        ei.optimize()
+    except:
+        pass
+
+def uuids(ei, rc, uuid_l, no_index=False):
+    f = functools.partial(uuidsIter, uuid_l)
     consume(ei, rc, f, no_index=no_index)
     try:
         ei.optimize()
@@ -379,6 +400,10 @@ def main():
                         type=str, default=config["elasticsearch"]["types"])
     parser.add_argument('-q', '--query', dest='query',
                         type=str, default="{}")
+    parser.add_argument('-u', '--uuid', dest='uuid', nargs='+',
+                        type=str, default=[])
+    parser.add_argument('--uuid-file', dest='uuid_file',
+                        type=str, default=None)
 
     args = parser.parse_args()
 
@@ -405,6 +430,11 @@ def main():
         elif args.query != "{}":
             q = json.loads(args.query)
             query(ei, rc, q)
+        elif args.uuid_file is not None:
+            with open(args.uuid_file,"rb") as uf:
+                uuids(ei,rc,uf.readlines())
+        elif len(args.uuid) > 0:
+            uuids(ei,rc,args.uuid)
         elif args.resume:
             resume(ei, rc, no_index=args.no_index)
         elif args.full:

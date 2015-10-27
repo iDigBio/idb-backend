@@ -512,7 +512,7 @@ def geoGrabber(t, d):
                     [(-r["geopoint"][0], -r["geopoint"][1]),
                      2, "rev_geocode_both_sign"],
                 ]
-                if r["geopoint"][0] <= 90.0:
+                if abs(r["geopoint"][0]) <= 90.0:
                     flip_queries.extend([
                         [(r["geopoint"][1], r["geopoint"][0]),
                          2, "rev_geocode_flip"],

@@ -268,7 +268,7 @@ class PostgresDB:
             cur = pg.cursor(name, cursor_factory=DictCursor)
         return cur
 
-    def get_item(self, u, version=None):
+    def get_item(self, u, version=None, rollback=True):
         if version is not None:
             # Fetch by version ignores the deleted flag
             if version == "all":
@@ -299,7 +299,8 @@ class PostgresDB:
                 WHERE deleted=false and uuids.id=%s
             """, (u,))
         rec = self._cur.fetchone()
-        self.rollback()
+        if rollback:
+            self.rollback()
         return rec
 
     def delete_item(self, u, commit=True):
@@ -429,7 +430,9 @@ class PostgresDB:
             else:
                 return (None,parent,deleted)
         if rid is None:
-            return (str(uuid.uuid4()),parent,deleted)
+            rv = (str(uuid.uuid4()),parent,deleted)
+            #print "Create UUID", ids, rv
+            return rv
         else:
             return (rid,parent,deleted)
 

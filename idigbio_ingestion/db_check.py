@@ -34,6 +34,9 @@ logger = getIDigBioLogger("idigbio")
 logger.setLevel(logging.INFO)
 
 
+uuid_re = re.compile(
+    "([a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12})")
+
 class RecordException(Exception):
     pass
 
@@ -233,6 +236,7 @@ def process_subfile(rf, rsid, rs_uuid_etag, rs_id_uuid, ingest=False):
                         db._upsert_uuid_sibling(u, s, commit=False)
                 else:
                     #             u, t,        p,    d, ids,               siblings, commit
+                    # print u, typ[:-1], rsid, r, ids_to_add.keys(), siblings
                     db.set_record(u, typ[:-1], rsid, r, ids_to_add.keys(), siblings, commit=False)
                     ingestions += 1
             elif ingest and deleted:
@@ -255,6 +259,23 @@ def process_subfile(rf, rsid, rs_uuid_etag, rs_id_uuid, ingest=False):
                         unconsumed_extensions[r["coreid"]][rf.rowtype] = []
 
                     unconsumed_extensions[r["coreid"]][rf.rowtype].append(r)
+
+            if "ac:associatedSpecimenReference" in r and r["ac:associatedSpecimenReference"] is not None:
+                ref_uuids_list = uuid_re.findall(r["ac:associatedSpecimenReference"])
+                for ref_uuid in ref_uuids_list:
+                    # Check for internal idigbio_uuid reference
+                    db_r = db.get_item(ref_uuid,rollback=False)
+                    db_uuid = None
+                    if db_r is None:
+                        # Check for identifier suffix match
+                        db._cur.execute("SELECT uuids_id FROM uuids_identifier WHERE reverse(identifier) LIKE reverse(%s)", ("%"+ref_uuid,))
+                        db_r = db._cur.fetchone()
+                        db_uuid = db_r["uuids_id"]
+                    else:
+                        db_uuid = db_r["uuid"]
+
+                    if db_uuid is not None and ingest:
+                        db._upsert_uuid_sibling(u, db_uuid, commit=False)
 
             count += 1
         except RecordException as e:

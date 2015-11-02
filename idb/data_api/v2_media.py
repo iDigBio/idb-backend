@@ -28,7 +28,7 @@ def respond_to_record(r, deriv=None, format=None):
         if r[1] is not None and r[2] is not None:
             if deriv is None:
                 media_url = "https://s.idigbio.org/idigbio-{0}-prod/{1}".format(r[1], r[2])
-            elif r[1] == "images" and deriv in ["thumbnail", "webview", "fullsize"]:
+            elif r[1] in ["images","sounds"] and deriv in ["thumbnail", "webview", "fullsize"]:
                 if r[5]: # If derivatives have been generated
                     media_url = "https://s.idigbio.org/idigbio-{0}-prod-{2}/{1}.jpg".format(r[1], r[2], deriv)
 
@@ -80,7 +80,7 @@ def lookup_uuid(u, format):
         """, (ref,))
         current_app.config["DB"]._pg.rollback()
         r = current_app.config["DB"]._cur.fetchone()
-        print r
+        #print r
         return respond_to_record(r, deriv=deriv, format=format)
     else:
         return json_error(404)
@@ -132,7 +132,7 @@ def lookup_ref(format):
         """, params)
         current_app.config["DB"]._pg.rollback()
         r = current_app.config["DB"]._cur.fetchone()
-        print r
+        #print r
         return respond_to_record(r, deriv=deriv, format=format)
     else:
         where = "WHERE "

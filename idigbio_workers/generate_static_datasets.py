@@ -28,6 +28,7 @@ def upload_download_file_to_ceph(s, dsname):
     os.unlink(dsname)
 
     if makelink:
+        fkey.copy("idigbio-static-downloads",dsname, preserve_acl=True)
         
     return "http://s.idigbio.org/idigbio-static-downloads/" + keyname
 
@@ -41,42 +42,44 @@ def upload_eml_file_to_ceph(s, tid, eml):
 
 def main():
     s = IDigBioStorage()
-    static_queries = [
-        ({},"idigbio"),
-        ({"hasImage": True},"idigbio-images"),
-    ]
-    rsquery = {
-        "query": {
-            "match_all": {}
-        },
-        "size": 0,
-        "aggs": {
-            "recordset_counts": {
-                "terms": {
-                    "field": "recordset",
-                    "size": 10000
-                }
-            }
-        }
-    }
-    ro = runQuery(rsquery)
-    if ro is not None:
-        for b in ro["aggregations"]["recordset_counts"]["buckets"]:
-            #print b["key"], b["doc_count"], b["doc_count"] * 7 / 10000            
-            static_queries.append(({
-                "recordset": b["key"]
-            },b["key"]))
+    # static_queries = [
+    #     ({},"idigbio"),
+    #     ({"hasImage": True},"idigbio-images"),
+    # ]
+    # rsquery = {
+    #     "query": {
+    #         "match_all": {}
+    #     },
+    #     "size": 0,
+    #     "aggs": {
+    #         "recordset_counts": {
+    #             "terms": {
+    #                 "field": "recordset",
+    #                 "size": 10000
+    #             }
+    #         }
+    #     }
+    # }
+    # ro = runQuery(rsquery)
+    # if ro is not None:
+    #     for b in ro["aggregations"]["recordset_counts"]["buckets"]:
+    #         #print b["key"], b["doc_count"], b["doc_count"] * 7 / 10000            
+    #         static_queries.append(({
+    #             "recordset": b["key"]
+    #         },b["key"]))
 
-    count = 0
-    for q in reversed(static_queries):
-        print count, q
-        file_name, _, _ = generate_files(record_query=queryFromShim(q[0])["query"],form="dwca-csv",filename=q[1])
-        print q[1], file_name
-        u = upload_download_file_to_ceph(s,file_name)
-        # # rseml = eml_from_recordset(q[1],env="prod")
-        # # e = upload_eml_file_to_ceph(s,q[1],rseml)
-        print q[1], u
-        count += 1
-
+    # count = 0
+    # for q in reversed(static_queries):
+    #     print count, q
+    #     file_name, _, _ = generate_files(record_query=queryFromShim(q[0])["query"],form="dwca-csv",filename=q[1])
+    #     print q[1], file_name
+    #     u = upload_download_file_to_ceph(s,file_name)
+    #     # # rseml = eml_from_recordset(q[1],env="prod")
+    #     # # e = upload_eml_file_to_ceph(s,q[1],rseml)
+    #     print q[1], u
+    #     count += 1
+    file_name, _, _ = generate_files(record_query=queryFromShim({})["query"],form="dwca-csv",filename="idigbio")
+    u = upload_download_file_to_ceph(s,file_name)
+    
 if __name__ == '__main__':
     main()

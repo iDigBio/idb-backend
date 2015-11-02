@@ -234,7 +234,7 @@ def acceptable_field_name(f):
 type_core_type_ids = {
     # Core Type, File Type, Core Source : id_func, id_field
     ("records", "records", "indexterms"): (lambda r: r["_id"], None),
-    ("records", "mediarecords", "indexterms"): (lambda r: r["_source"]["records"][0], "records"),
+    ("records", "mediarecords", "indexterms"): (lambda r: r["_source"]["records"][0] if "records" in r["_source"] else "", "records"),
     ("records", "records", "raw"): (lambda r: r["_id"], None),
     ("records", "mediarecords", "raw"): (lambda r: r["_source"]["records"][0], "records"),    
     ("mediarecords", "mediarecords", "indexterms"): (lambda r: r["_id"], None),    

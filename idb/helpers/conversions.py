@@ -528,13 +528,17 @@ def geoGrabber(t, d):
                         [(-r["geopoint"][1], -r["geopoint"][0]),
                          4, "rev_geocode_flip_both_sign"]
                     ])
-                for i, f in enumerate([rg.get_country(*f[0]) for f in flip_queries]):
+                for i, f in enumerate([rg.get_country(*f[0]) for f in flip_queries] + [rg_eez.get_country(*f[0]) for f in flip_queries]):
                     if f is not None and f.lower() == d["idigbio:isocountrycode"]:
                         # Flip back to lon, lat
+                        real_i = i % len(flip_queries)
                         r["geopoint"] = (
-                            flip_queries[i][0][1], flip_queries[i][0][0])
+                            flip_queries[real_i][0][0], flip_queries[real_i][0][1])
                         # Set flag
-                        r["flag_" + flip_queries[i][2]] = True
+                        r["flag_" + flip_queries[real_i][2]] = True
+                        if real_i != i:
+                            r["flag_rev_geocode_eez_corrected"] = True
+                        r["flag_rev_geocode_corrected"] = True
                         break
     return r
 

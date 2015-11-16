@@ -173,6 +173,7 @@ fields = {
         ["flags", "", "list", 0, "idigbio:flags"],
         ["dqs", "", "float", 0, "idigbio:dataQualityScore"],
         ["recordsets", "", "list", 0, "idigbio:recordsets"],
+        ["name","name","text",0, "idigbio:publisherName"],
     ],
     "recordsets": [
         ["uuid", "idigbio:uuid", "text", 0, None],
@@ -184,7 +185,11 @@ fields = {
         ["flags", "", "list", 0, "idigbio:flags"],
         ["dqs", "", "float", 0, "idigbio:dataQualityScore"],
         ["rights","data_rights","text", 0, "dcterms:rights"],
-        ["contacts","contacts","custom",0,None]
+        ["contacts","contacts","custom",0,None],
+        ["archivelink","link","text", 0, "idigbio:archiveLink"],
+        ["emllink","eml_link","text", 0, "idigbio:emlLink"],
+        ["logourl","logo_url","text", 0, "idigbio:logoUrl"],
+        ["name","collection_name","text",0, "dwc:datasetName"],
     ]
 }
 

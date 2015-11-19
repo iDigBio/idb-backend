@@ -821,6 +821,30 @@ def fixBOR(t, r):
             r["flag_dwc_basisofrecord_removed"] = True
             r["flag_dwc_basisofrecord_invalid"] = True
 
+        if r["basisofrecord"] == "preservedspecimen":
+            paleo_terms = [
+                "bed",
+                "group",
+                "member",
+                "formation",
+                "lowestbiostratigraphiczone",
+                "lithostratigraphicterms",
+                "earliestperiodorlowestsystem",
+                "earliesteraorlowesterathem",
+                "earliestepochorlowestseries",
+                "earliestageorloweststage",
+                "latesteraorhighesterathem",
+                "latestepochorhighestseries",
+                "latestageorhigheststage",
+                "latestperiodorhighestsystem",
+            ]
+
+            for f in paleo_terms:
+                if f in r:
+                    r["flag_dwc_basisofrecord_paleo_conflict"] = True
+                    r["flag_dwc_basisofrecord_replaced"] = True
+                    r["basisofrecord"] = "fossilspecimen"
+                    break
 
 # Step, count, ms, ms/count     action
 # rc 1000 354.179 0.354179      record corrector

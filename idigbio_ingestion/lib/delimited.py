@@ -146,7 +146,10 @@ class DelimitedFile(object):
                 self.logger.info(traceback.format_exc())
                 # Here we need to add some kind of trim to reduce the amount of output going to screen
                 # The FileProxy.dump function potentially returns too much if it gets confused about "what is a line"
-                self.logger.info(self.truncdump(self.filehandle.dump()))
+                try:
+                    self.logger.info(self.truncdump(self.filehandle.dump()))
+                except:
+                    self.logger.warn("Unable to print debug dump.")
         return lineDict
 
     def readlines(self,sizehint=None):

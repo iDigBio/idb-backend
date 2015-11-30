@@ -502,12 +502,16 @@ def geoGrabber(t, d):
                 if result_eez is not None:
                     result = result_eez
                     r["flag_rev_geocode_eez"] = True
+
+            test_flips = False
+            if result is None:
+                r["flag_rev_geocode_failure"] = True
+                test_flips = True
+            elif filled("idigbio:isocountrycode",d) and result.lower() != d["idigbio:isocountrycode"]:
+                r["flag_rev_geocode_mismatch"] = True
+                test_flips = True
                     
-            if (
-                "idigbio:isocountrycode" in d and
-                result is not None and
-                result.lower() != d["idigbio:isocountrycode"]
-            ):
+            if filled("idigbio:isocountrycode",d) and test_flips:
                 r["flag_rev_geocode_mismatch"] = True
                 flip_queries = [  # Point, "Distance" from original coords, Flag
                     [(-r["geopoint"][0], r["geopoint"][1]),
@@ -840,7 +844,7 @@ def fixBOR(t, r):
             ]
 
             for f in paleo_terms:
-                if f in r:
+                if filled(f,r):
                     r["flag_dwc_basisofrecord_paleo_conflict"] = True
                     r["flag_dwc_basisofrecord_replaced"] = True
                     r["basisofrecord"] = "fossilspecimen"

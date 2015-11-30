@@ -39,7 +39,7 @@ if os.environ["ENV"] == "beta":
 
 indexName = "idigbio-" + indexname
 es = elasticsearch.Elasticsearch(
-    sl, sniff_on_start=True, sniff_on_connection_fail=True, retry_on_timeout=True, max_retries=10)
+    sl, sniff_on_start=False, sniff_on_connection_fail=False, retry_on_timeout=True, max_retries=10)
 
 # 0: Current Year
 # 1: Query Text

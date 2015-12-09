@@ -5,12 +5,12 @@ logging.basicConfig(format=FORMAT)
 formatter = logging.Formatter(FORMAT)
 
 def getIDigBioLogger(name=""):
-	logname = name
-	if logname == "":
-		logname = "idigbio"	
-	logger = logging.getLogger(logname)
+    logname = name
+    if logname == "":
+        logname = "idigbio"
+    logger = logging.getLogger(logname)
     logger.setFormatter(formatter)
-	return logger
+    return logger
 
 logger = getIDigBioLogger()
 logger.setFormatter(formatter)

@@ -9,6 +9,8 @@ def getIDigBioLogger(name=""):
 	if logname == "":
 		logname = "idigbio"	
 	logger = logging.getLogger(logname)
+    logger.setFormatter(formatter)
 	return logger
 
 logger = getIDigBioLogger()
+logger.setFormatter(formatter)

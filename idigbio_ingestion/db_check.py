@@ -31,7 +31,8 @@ bad_chars = u"\ufeff"
 bad_char_re = re.compile("[%s]" % re.escape(bad_chars))
 
 logger = getIDigBioLogger("idigbio")
-logger.setFormatter(formatter)
+for h in logger.handlers:
+    h.setFormatter(formatter)
 logger.setLevel(logging.INFO)
 
 

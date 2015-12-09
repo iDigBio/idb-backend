@@ -283,16 +283,19 @@ def process_subfile(rf, rsid, rs_uuid_etag, rs_id_uuid, ingest=False):
         except RecordException as e:
             ids_to_add = {}
             uuids_to_add = {}
+            logger.warn(e)
             logger.info(traceback.format_exc())
             record_exceptions += 1
         except AssertionError as e:
             ids_to_add = {}
             uuids_to_add = {}
+            logger.warn(e)
             logger.info(traceback.format_exc())
             assertions += 1
         except Exception as e:
             ids_to_add = {}
             uuids_to_add = {}
+            logger.warn(e)
             logger.error(traceback.format_exc())
             exceptions += 1
 

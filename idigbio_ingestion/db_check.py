@@ -182,7 +182,7 @@ def process_subfile(rf, rsid, rs_uuid_etag, rs_id_uuid, ingest=False):
             if etag in seen_etags:
                 dupe_etags.add(etag)
                 duplicate_record_count += 1
-                raise RecordException("Duplicate ETag Detected, Record {0}, Etag {1}".format(count,etag))
+                raise RecordException("Duplicate ETag Detected, File {2}, Record {0}, Etag {1}".format(count,etag,rf.name))
             seen_etags.add(etag)
 
             proposed_idents = identifyRecord(rf.rowtype, etag, r, rsid)
@@ -196,7 +196,7 @@ def process_subfile(rf, rsid, rs_uuid_etag, rs_id_uuid, ingest=False):
                     if ident[2] in seen_ids:
                         dupe_ids.add(ident[2])
                         duplicate_id_count += 1
-                        raise RecordException("Duplicate ID Detected, Record {0}, ID {1}".format(count,ident[2]))
+                        raise RecordException("Duplicate ID Detected, File {2}, Record {0}, ID {1}".format(count,ident[2],rf.name))
                     else:
                         ids_to_add[ident[2]] = True
                         idents.append(ident)

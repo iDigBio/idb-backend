@@ -252,6 +252,7 @@ def harvest_eml():
             db._cur.execute("UPDATE recordsets SET eml_harvest_etag=%s, eml_harvest_date=%s,uuid=%s WHERE id=%s", (etag,datetime.datetime.now(),u,r["id"]))
             db.commit()
         except:
+            logger.error("failed Harvest EML " + str(r["id"]) + " " + r["name"])
             traceback.print_exc()
         if os.path.exists(fname):
             os.unlink(fname)
@@ -266,6 +267,7 @@ def upload_recordset_to_mediaapi(rsid, fname):
     except KeyboardInterrupt:
         raise
     except Exception,e:
+        logger.error("failed to post recordset " + rsid)
         traceback.print_exc()
         return False
 

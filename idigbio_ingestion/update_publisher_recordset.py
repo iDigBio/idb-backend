@@ -251,7 +251,7 @@ def harvest_eml():
             desc["eml_link"] = r["eml_link"]
             desc["update"] = r["pub_date"].isoformat()
             parent = r["publisher_uuid"]
-            logger.debug("ready for set_record with " + u + ' ' + parent + ' ' + desc + ' ' + r["recordids"])
+            logger.debug("ready for set_record with " + u + " " + parent + " " + desc + " " + str(r["recordids"]))
             db.set_record(u,"recordset",parent,desc,r["recordids"],[],commit=False)
             db._cur.execute("UPDATE recordsets SET eml_harvest_etag=%s, eml_harvest_date=%s,uuid=%s WHERE id=%s", (etag,datetime.datetime.now(),u,r["id"]))
             db.commit()

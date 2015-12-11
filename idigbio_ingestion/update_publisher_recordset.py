@@ -86,6 +86,7 @@ def update_db_from_rss():
     pub_recs = db._cur.fetchall()
     for r in pub_recs:
         try:
+            logger.info("Publisher Feed: " + r["uuid"] + " " + r["rss_url"])
             feed = feedparser.parse(r["rss_url"])
 
             pub_uuid = r["uuid"]
@@ -104,7 +105,7 @@ def update_db_from_rss():
 
             auto_publish = r["auto_publish"]
 
-            logger.info("Update Publisher " + pub_uuid + " " + name + " " + str(r["id"]))
+            logger.info("Update Publisher id:"+str(r["id"]) + " " + pub_uuid + " " + name )
 
             pub_date = None
             if "published_parsed" in feed["feed"]:
@@ -210,7 +211,7 @@ def update_db_from_rss():
                             "id": recordset["id"]
                         }
                     )
-                    logger.info("Update Recordset " + recordid + " " + name + " " + str(recordset["id"]))
+                    logger.info("Update Recordset id:" + str(recordset["id"]) + " " + recordid + " " + name)
 
 
             db.set_record(pub_uuid,"publisher","872733a2-67a3-4c54-aa76-862735a5f334",{
@@ -231,8 +232,6 @@ def harvest_eml():
     s = requests.Session()
     db._cur.execute("SELECT * FROM recordsets WHERE eml_link IS NOT NULL AND ingest=true AND pub_date < now() AND (eml_harvest_date IS NULL OR eml_harvest_date < pub_date)")
     recs = db._cur.fetchall()
-    print "**** printing recs ****"
-    print recs
     for r in recs:
         logger.info("Harvest EML " + str(r["id"]) + " " + r["name"])
         fname = "{0}.eml".format(r["id"])
@@ -251,7 +250,8 @@ def harvest_eml():
             desc["eml_link"] = r["eml_link"]
             desc["update"] = r["pub_date"].isoformat()
             parent = r["publisher_uuid"]
-            logger.debug("ready for set_record with " + u + " " + parent + " " + desc + " " + str(r["recordids"]))
+            print "ready for set_record with " , u , parent, str(r["recordids"])
+            # "ready for set_record with " + type(u) + " " + type(parent) + " " + type(desc) + " " + type(str(r["recordids"]))
             db.set_record(u,"recordset",parent,desc,r["recordids"],[],commit=False)
             db._cur.execute("UPDATE recordsets SET eml_harvest_etag=%s, eml_harvest_date=%s,uuid=%s WHERE id=%s", (etag,datetime.datetime.now(),u,r["id"]))
             db.commit()

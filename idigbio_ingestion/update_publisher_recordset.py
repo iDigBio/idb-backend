@@ -234,10 +234,12 @@ def harvest_eml():
     for r in recs:
         logger.info("Harvest EML " + str(r["id"]) + " " + r["name"])
         fname = "{0}.eml".format(r["id"])
+        logger.debug(fname)
         try:
             download_file(r["eml_link"],fname)
             etag = calcFileHash(fname)
             u = r["uuid"]
+            logger.debug("u = ", u)
             if u is None:
                 u, _, _ = db.get_uuid(r["recordids"])
             desc = {}
@@ -248,6 +250,7 @@ def harvest_eml():
             desc["eml_link"] = r["eml_link"]
             desc["update"] = r["pub_date"].isoformat()
             parent = r["publisher_uuid"]
+            logger.debug(str(etag,datetime.datetime.now(),u,r["id"]))
             db.set_record(u,"recordset",parent,desc,r["recordids"],[],commit=False)
             db._cur.execute("UPDATE recordsets SET eml_harvest_etag=%s, eml_harvest_date=%s,uuid=%s WHERE id=%s", (etag,datetime.datetime.now(),u,r["id"]))
             db.commit()

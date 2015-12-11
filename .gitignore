@@ -3,3 +3,5 @@
 idb/.pythoscope
 .coverage
 cover
+\#*#
+*/\#*#

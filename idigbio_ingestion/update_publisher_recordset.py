@@ -86,7 +86,7 @@ def update_db_from_rss():
     pub_recs = db._cur.fetchall()
     for r in pub_recs:
         try:
-            logger.info("Publisher Feed: " + r["uuid"] + " " + r["rss_url"])
+            logger.info("Publisher Feed: {0} {1}".format(r["uuid"], r["rss_url"]))
             feed = feedparser.parse(r["rss_url"])
 
             pub_uuid = r["uuid"]
@@ -239,7 +239,7 @@ def harvest_eml():
             download_file(r["eml_link"],fname)
             etag = calcFileHash(fname)
             u = r["uuid"]
-            logger.debug("u = " + u)
+            #logger.debug("u = " + u)
             if u is None:
                 u, _, _ = db.get_uuid(r["recordids"])
             desc = {}

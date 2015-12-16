@@ -24,6 +24,14 @@ args = argparser.parse_args()
 print args
 
 
+# TODO:
+#
+# Will want to:
+#   - Add checks does each recordset exist?
+#   - Output info on each recordset, including count of records that would be deleted
+#   - Add confirmation before proceeding?
+
+
 db = PostgresDB()
 
 

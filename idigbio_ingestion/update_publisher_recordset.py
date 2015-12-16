@@ -9,6 +9,8 @@ import traceback
 import uuid
 import os
 
+# must set PYTHONPATH environment variable to the top level prior to running this script
+
 from idb.postgres_backend.db import PostgresDB
 
 from lib.util import download_file

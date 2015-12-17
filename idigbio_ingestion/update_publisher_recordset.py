@@ -104,6 +104,9 @@ def update_db_from_rss():
         try:
             feedtest = requests.get(r["rss_url"],timeout=10)
             feedtest.raise_for_status()
+        except requests.exceptions.SSLError:
+            # Ignore urllib3 SSL issues on this quick check
+            pass
         except:
             feedisgood = False
             logger.error("Failed to read {0}".format(r["rss_url"]))

@@ -1,4 +1,5 @@
 import feedparser
+assert feedparser.__version__ > "5.2.0"
 import re
 import datetime
 import dateutil.parser

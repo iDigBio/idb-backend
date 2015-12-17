@@ -89,6 +89,8 @@ def update_db_from_rss():
     for r in pub_recs:
         try:
             logger.info("Publisher Feed: {0} {1}".format(r["uuid"], r["rss_url"]))
+
+            # if feed is not available, this takes a long time to timeout
             feed = feedparser.parse(r["rss_url"])
 
             pub_uuid = r["uuid"]
@@ -237,27 +239,29 @@ def harvest_eml():
     for r in recs:
         logger.info("Harvest EML " + str(r["id"]) + " " + r["name"])
         fname = "{0}.eml".format(r["id"])
-        try:
-            download_file(r["eml_link"],fname)
-            etag = calcFileHash(fname)
-            u = r["uuid"]
-            #logger.debug("u = " + u)
-            if u is None:
-                u, _, _ = db.get_uuid(r["recordids"])
-            desc = {}
-            with open(fname,"rb") as inf:
-                desc = parseEml(r["recordids"][0], inf.read())
-            desc["ingest"] = r["ingest"]
-            desc["link"] = r["file_link"]
-            desc["eml_link"] = r["eml_link"]
-            desc["update"] = r["pub_date"].isoformat()
-            parent = r["publisher_uuid"]
-            db.set_record(u,"recordset",parent,desc,r["recordids"],[],commit=False)
-            db._cur.execute("UPDATE recordsets SET eml_harvest_etag=%s, eml_harvest_date=%s,uuid=%s WHERE id=%s", (etag,datetime.datetime.now(),u,r["id"]))
-            db.commit()
-        except:
+        if not download_file(r["eml_link"],fname):
             logger.error("failed Harvest EML " + str(r["id"]) + " " + r["name"])
-            traceback.print_exc()
+        else:
+            try:
+                etag = calcFileHash(fname)
+                u = r["uuid"]
+                #logger.debug("u = " + u)
+                if u is None:
+                    u, _, _ = db.get_uuid(r["recordids"])
+                desc = {}
+                with open(fname,"rb") as inf:
+                    desc = parseEml(r["recordids"][0], inf.read())
+                desc["ingest"] = r["ingest"]
+                desc["link"] = r["file_link"]
+                desc["eml_link"] = r["eml_link"]
+                desc["update"] = r["pub_date"].isoformat()
+                parent = r["publisher_uuid"]
+                db.set_record(u,"recordset",parent,desc,r["recordids"],[],commit=False)
+                db._cur.execute("UPDATE recordsets SET eml_harvest_etag=%s, eml_harvest_date=%s,uuid=%s WHERE id=%s", (etag,datetime.datetime.now(),u,r["id"]))
+                db.commit()
+            except:
+                logger.error("failed Harvest EML " + str(r["id"]) + " " + r["name"])
+                traceback.print_exc()
         if os.path.exists(fname):
             os.unlink(fname)
 

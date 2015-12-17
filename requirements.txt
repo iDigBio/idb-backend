@@ -20,3 +20,4 @@ celery
 boto
 fiona
 python-magic
+feedparser>=5.2.0

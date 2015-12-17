@@ -1,5 +1,5 @@
 import feedparser
-assert feedparser.__version__ > "5.2.0"
+assert feedparser.__version__ >= "5.2.0"
 import re
 import datetime
 import dateutil.parser
@@ -18,6 +18,16 @@ from lib.util import download_file
 from idb.helpers.etags import calcFileHash
 from lib.eml import parseEml
 from lib.log import logger
+
+#### disabling warnings per https://urllib3.readthedocs.org/en/latest/security.html#disabling-warnings
+## Would rather have warnings go to log but could not get logging.captureWarnings(True) to work.
+## There is no urllib3.enable_warnings method. Is it possible to disable_warnings and then re-enable them later?
+####### The disable_warnings method did not prevent warnings from being printed. Commenting out for now...
+#import urllib3
+#assert urllib3.__version__ >= "1.13"
+#urllib3.disable_warnings()
+####
+
 
 def struct_to_datetime(s):
     return datetime.datetime.fromtimestamp(time.mktime(s))
@@ -88,150 +98,159 @@ def update_db_from_rss():
     db._cur.execute("SELECT * FROM publishers")
     pub_recs = db._cur.fetchall()
     for r in pub_recs:
+        feedisgood = True
+        logger.info("Publisher Feed: {0} {1}".format(r["uuid"], r["rss_url"]))
+        # Quick check on the feed url since feedparser does not have a timeout parameter
         try:
-            logger.info("Publisher Feed: {0} {1}".format(r["uuid"], r["rss_url"]))
-
-            # if feed is not available, this takes a long time to timeout
-            feed = feedparser.parse(r["rss_url"])
-
-            pub_uuid = r["uuid"]
-            if pub_uuid is None:
-                pub_uuid, _, _ = db.get_uuid(r["recordids"])
-
-            name = r["name"]
-            if name is None:
-                if "title" in feed["feed"]:
-                    name = feed["feed"]["title"]
-                else:
-                    name = r["rss_url"]
-
-            if "\\x" in name:
-                name = name.decode("utf8")
-
-            auto_publish = r["auto_publish"]
-
-            logger.info("Update Publisher id:"+str(r["id"]) + " " + pub_uuid + " " + name )
-
-            pub_date = None
-            if "published_parsed" in feed["feed"]:
-                pub_date = struct_to_datetime(feed["feed"]["published_parsed"])
-            elif "updated_parsed" in feed:
-                pub_date = struct_to_datetime(feed["updated_parsed"])
-            elif "updated_parsed" in feed["feed"]:
-                pub_date = struct_to_datetime(feed["feed"]["updated_parsed"])
-
-            db._cur.execute("""UPDATE publishers SET
-                    name=%(name)s,
-                    last_seen=%(last_seen)s,
-                    pub_date=%(pub_date)s,
-                    uuid=%(uuid)s
-                    WHERE id=%(id)s
-                """,
-                {
-                    "id": r["id"],
-                    "name": name,
-                    "uuid": pub_uuid,
-                    "last_seen": datetime.datetime.now(),
-                    "pub_date": pub_date,
-                }
-            )
-
-            for e in feed['entries']:
-                recordid = id_func(e)
-
-                rsid = None
-                ingest = auto_publish
-                recordids = [recordid]
-                recordset = None           
-                if recordid in existing_recordsets:
-                    recordset = recordsets[existing_recordsets[recordid]]
-                    rsid = recordset["uuid"]
-                    ingest = recordset["ingest"]
-                    recordids = list(set(recordids + recordset["recordids"]))
-
-                eml_link = None
-                file_link = None
-                date = None
-                rs_name = None
-
-                if "published_parsed" in e and e["published_parsed"] is not None:
-                    date = struct_to_datetime(e["published_parsed"])
-                elif "published" in e and e["published"] is not None:
-                    date = dateutil.parser.parse(e["published"])
-
-                # Pick a time distinctly before now() to avoid data races
-                fifteen_minutes_ago = datetime.datetime.now() - datetime.timedelta(minutes=15)
-                if date is None or date > datetime.datetime.now():
-                    date = fifteen_minutes_ago
-
-                for eml_prop in ["ipt_eml", "emllink"]:
-                    if eml_prop in e:
-                        eml_link = e[eml_prop]
-                        break
-                else:
-                    if recordset is not None:
-                        eml_link = recordset["eml_link"]
-
-                for link_prop in ["ipt_dwca", "link"]:
-                    if link_prop in e:
-                        file_link = e[link_prop]
-                        break
-                else:
-                    if recordset is not None:
-                        file_link = recordset["file_link"]
-
-                if "title" in e:
-                    rs_name = e['title']
-                elif recordset is not None:
-                    rs_name = recordset["name"]
-                else:
-                    rs_name = recordid
-
-                if recordset is None:
-                    db._cur.execute(             
-                        """INSERT INTO recordsets 
-                            (uuid, publisher_uuid, name, recordids, eml_link, file_link, ingest, pub_date)
-                            VALUES (%s,%s,%s,%s,%s,%s,%s,%s)
-                        """,
-                        (rsid, pub_uuid, rs_name, recordids, eml_link, file_link, ingest, date)
-                    )
-                    logger.info("Create Recordset " + recordid + " " + name)
-                else:
-                    db._cur.execute("""UPDATE recordsets SET
-                            publisher_uuid=%(publisher_uuid)s,
-                            eml_link=%(eml_link)s,
-                            file_link=%(file_link)s,
-                            last_seen=%(last_seen)s,
-                            pub_date=%(pub_date)s
-                            WHERE id=%(id)s
-                        """,
-                        {
-                            "publisher_uuid": pub_uuid,
-                            "name": rs_name,
-                            "recordids": recordids,
-                            "eml_link": eml_link,
-                            "file_link": file_link,
-                            "last_seen": datetime.datetime.now(),
-                            "pub_date": date,
-                            "id": recordset["id"]
-                        }
-                    )
-                    logger.info("Update Recordset id:" + str(recordset["id"]) + " " + recordid + " " + name)
-
-
-            db.set_record(pub_uuid,"publisher","872733a2-67a3-4c54-aa76-862735a5f334",{
-                "rss_url": r["rss_url"],
-                "name": name,
-                "auto_publish": r["auto_publish"],
-                "base_url": r["portal_url"],
-                "publisher_type": r["pub_type"],
-                "recordsets": {}
-            },r["recordids"],[],commit=False)
-            db.commit()
+            feedtest = requests.get(r["rss_url"],timeout=10)
+            feedtest.raise_for_status()
         except:
-            print r
-            traceback.print_exc()
-            db.rollback()
+            feedisgood = False
+            logger.error("Failed to read {0}".format(r["rss_url"]))
+        
+        if feedisgood:
+            try:
+
+                feed = feedparser.parse(r["rss_url"])
+
+                pub_uuid = r["uuid"]
+                if pub_uuid is None:
+                    pub_uuid, _, _ = db.get_uuid(r["recordids"])
+
+                name = r["name"]
+                if name is None:
+                    if "title" in feed["feed"]:
+                        name = feed["feed"]["title"]
+                    else:
+                        name = r["rss_url"]
+
+                if "\\x" in name:
+                    name = name.decode("utf8")
+
+                auto_publish = r["auto_publish"]
+
+                logger.info("Update Publisher id:"+str(r["id"]) + " " + pub_uuid + " " + name )
+
+                pub_date = None
+                if "published_parsed" in feed["feed"]:
+                    pub_date = struct_to_datetime(feed["feed"]["published_parsed"])
+                elif "updated_parsed" in feed:
+                    pub_date = struct_to_datetime(feed["updated_parsed"])
+                elif "updated_parsed" in feed["feed"]:
+                    pub_date = struct_to_datetime(feed["feed"]["updated_parsed"])
+
+                db._cur.execute("""UPDATE publishers SET
+                        name=%(name)s,
+                        last_seen=%(last_seen)s,
+                        pub_date=%(pub_date)s,
+                        uuid=%(uuid)s
+                        WHERE id=%(id)s
+                    """,
+                    {
+                        "id": r["id"],
+                        "name": name,
+                        "uuid": pub_uuid,
+                        "last_seen": datetime.datetime.now(),
+                        "pub_date": pub_date,
+                    }
+                )
+
+                for e in feed['entries']:
+                    recordid = id_func(e)
+
+                    rsid = None
+                    ingest = auto_publish
+                    recordids = [recordid]
+                    recordset = None           
+                    if recordid in existing_recordsets:
+                        recordset = recordsets[existing_recordsets[recordid]]
+                        rsid = recordset["uuid"]
+                        ingest = recordset["ingest"]
+                        recordids = list(set(recordids + recordset["recordids"]))
+
+                    eml_link = None
+                    file_link = None
+                    date = None
+                    rs_name = None
+
+                    if "published_parsed" in e and e["published_parsed"] is not None:
+                        date = struct_to_datetime(e["published_parsed"])
+                    elif "published" in e and e["published"] is not None:
+                        date = dateutil.parser.parse(e["published"])
+
+                    # Pick a time distinctly before now() to avoid data races
+                    fifteen_minutes_ago = datetime.datetime.now() - datetime.timedelta(minutes=15)
+                    if date is None or date > datetime.datetime.now():
+                        date = fifteen_minutes_ago
+
+                    for eml_prop in ["ipt_eml", "emllink"]:
+                        if eml_prop in e:
+                            eml_link = e[eml_prop]
+                            break
+                    else:
+                        if recordset is not None:
+                            eml_link = recordset["eml_link"]
+
+                    for link_prop in ["ipt_dwca", "link"]:
+                        if link_prop in e:
+                            file_link = e[link_prop]
+                            break
+                    else:
+                        if recordset is not None:
+                            file_link = recordset["file_link"]
+
+                    if "title" in e:
+                        rs_name = e['title']
+                    elif recordset is not None:
+                        rs_name = recordset["name"]
+                    else:
+                        rs_name = recordid
+
+                    if recordset is None:
+                        db._cur.execute(             
+                            """INSERT INTO recordsets 
+                                (uuid, publisher_uuid, name, recordids, eml_link, file_link, ingest, pub_date)
+                                VALUES (%s,%s,%s,%s,%s,%s,%s,%s)
+                            """,
+                            (rsid, pub_uuid, rs_name, recordids, eml_link, file_link, ingest, date)
+                        )
+                        logger.info("Create Recordset " + recordid + " " + name)
+                    else:
+                        db._cur.execute("""UPDATE recordsets SET
+                                publisher_uuid=%(publisher_uuid)s,
+                                eml_link=%(eml_link)s,
+                                file_link=%(file_link)s,
+                                last_seen=%(last_seen)s,
+                                pub_date=%(pub_date)s
+                                WHERE id=%(id)s
+                            """,
+                            {
+                                "publisher_uuid": pub_uuid,
+                                "name": rs_name,
+                                "recordids": recordids,
+                                "eml_link": eml_link,
+                                "file_link": file_link,
+                                "last_seen": datetime.datetime.now(),
+                                "pub_date": date,
+                                "id": recordset["id"]
+                            }
+                        )
+                        logger.info("Update Recordset id:" + str(recordset["id"]) + " " + recordid + " " + name)
+
+
+                db.set_record(pub_uuid,"publisher","872733a2-67a3-4c54-aa76-862735a5f334",{
+                    "rss_url": r["rss_url"],
+                    "name": name,
+                    "auto_publish": r["auto_publish"],
+                    "base_url": r["portal_url"],
+                    "publisher_type": r["pub_type"],
+                    "recordsets": {}
+                },r["recordids"],[],commit=False)
+                db.commit()
+            except:
+                print r
+                traceback.print_exc()
+                db.rollback()
 
 def harvest_eml():
     s = requests.Session()

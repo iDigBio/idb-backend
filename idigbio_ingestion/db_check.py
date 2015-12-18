@@ -222,7 +222,10 @@ def process_subfile(rf, rsid, rs_uuid_etag, rs_id_uuid, ingest=False):
                 u, parent, deleted = db.get_uuid([i for _,_,i in idents])
                 assert u is not None
                 if parent is not None:
-                    assert parent == rsid
+                    # assert parent == rsid
+                    if parent != rsid:
+                        raise  RecordException("Record exists but has a parent other than expected. Expected parent (this recordset): {0}  Existing Parent: {1}  Record: {2}".format(rsid,parent,u))
+
 
             if deleted:
                 to_undelete += 1

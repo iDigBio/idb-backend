@@ -15,6 +15,7 @@ import requests
 from requests.auth import HTTPBasicAuth
 import traceback
 import json
+import datetime
 
 s = requests.Session()
 adapter = requests.adapters.HTTPAdapter(pool_connections=100, pool_maxsize=100)
@@ -83,7 +84,7 @@ def get_media(tup, cache_bad=False):
 
         valid, detected_mime = validator(url,t,fmt,media_req.content)
         if valid:
-            print "Success", url, t, fmt, detected_mime
+            print datetime.datetime.now(), "Success", url, t, fmt, detected_mime
             apiimg_req = s.post("http://media.idigbio.org/upload/" + t, data={"filereference": url}, files={'file': media_req.content }, auth=auth)
             apiimg_req.raise_for_status()
             apiimg_o = apiimg_req.json()
@@ -98,7 +99,7 @@ def get_media(tup, cache_bad=False):
             if cache_bad:
                 with open(url_path,"wb") as outf:
                     outf.write(media_req.content)
-            print "Failure", url, t, valid, fmt, detected_mime
+            print datetime.datetime.now(), "Failure", url, t, valid, fmt, detected_mime
             return False
     except KeyboardInterrupt as e:
         raise e
@@ -279,13 +280,17 @@ def main():
     #create_schema()
 
     if len(sys.argv) > 1 and sys.argv[1] == "get_media":
+        print "Starting get_media operations at ", datetime.datetime.now()
         get_media_consumer()
+        print "Finished get_media operations at ", datetime.datetime.now()
     else:
+        print "Starting media_urls operations at ", datetime.datetime.now()
         media_urls = get_postgres_media_urls()
         write_urls_to_db(media_urls)
         # get_objects_from_ceph()
         # get_postgres_media_objects()
         #set_deriv_from_ceph()
+        print "Finished media_urls operations at ", datetime.datetime.now()
 
 if __name__ == '__main__':
     main()

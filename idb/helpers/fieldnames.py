@@ -22,7 +22,7 @@ namespaces = {
     "http://ns.adobe.com/photoshop/1.0/": "photoshop",
     "http://ns.adobe.com/exif/1.0/": "exif",
     "http://purl.org/NET/aec/NET/aec/": "aec",
-    "http://purl.org/NET/aec/": "aec",
+    "http://purl.org/NET/aec/": "aec"
 }
 
 namespaces_rev = {v:k for k, v in namespaces.items()}
@@ -47,6 +47,7 @@ types = {
     "http://rs.gbif.org/terms/1.0/SpeciesProfile": { "shortname": "gbif:SpeciesProfile" },
     "http://purl.org/NET/aec/associatedTaxa": {"shortname": "aec:associatedTaxa"},
     "http://rs.tdwg.org/dwc/terms/MeasurementOrFact": {"shortname": "dwc:MeasurementOrFact"},
+    "http://rs.gbif.org/terms/1.0/Reference": {"shortname": "gbif:Reference"},
 }
 
 translate_dict = {

@@ -37,6 +37,7 @@ PARENT_MAP = {
 
 mime_mapping = {
     "image/jpeg": "images",
+    "image/jp2": "images",
     "text/html": None,
     "image/dng": None,
     "application/xml": None,

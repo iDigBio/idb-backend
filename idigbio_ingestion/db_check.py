@@ -20,7 +20,7 @@ from idb.helpers.etags import calcEtag, calcFileHash
 from lib.dwca import Dwca
 from lib.delimited import DelimitedFile
 from lib.util import download_file
-
+from idb.helpers.storage import IDigBioStorage
 
 from idb.stats_collector import es, indexName
 
@@ -38,6 +38,8 @@ logger.setLevel(logging.INFO)
 
 uuid_re = re.compile(
     "([a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12})")
+
+s = IDigBioStorage()
 
 class RecordException(Exception):
     pass
@@ -88,8 +90,9 @@ def idFromRR(r, rs=None):
 def get_file(rsid):
     fname = rsid
     if not os.path.exists(fname):
-        download_file("https://media.idigbio.org/lookup/datasets", fname, params={
-                         "filereference": "http://api.idigbio.org/v1/recordsets/" + rsid})
+        s.get_file_by_url("http://api.idigbio.org/v1/recordsets/" + rsid, file_name=fname)
+        # download_file("https://beta-media.idigbio.org/v2/media/datasets", fname, params={
+        #                  "filereference": "http://api.idigbio.org/v1/recordsets/" + rsid})
     m = magic.from_file(fname)
     return (fname, m)
 

@@ -11,6 +11,8 @@ import boto
 import boto.s3.connection
 from boto.s3.key import Key
 
+from idb.postgres_backend.db import PostgresDB
+
 class IDigBioStorage(object):
     """
         Class to abstract out the iDigBio S3 storage.
@@ -23,6 +25,8 @@ class IDigBioStorage(object):
     """
 
     def __init__(self,host="s.idigbio.org",access_key=None,secret_key=None):
+        self.db = PostgresDB()
+
         if access_key is None:
             access_key =  os.getenv("IDB_STORAGE_ACCESS_KEY")
 
@@ -93,3 +97,23 @@ class IDigBioStorage(object):
             k.set_contents_from_filename(file_name)
         k.make_public()
         return k
+
+    def get_file_by_url(self,url, file_name=None):
+        cur = self.db.cursor()
+
+        cur.execute("""SELECT objects.bucket, objects.etag
+            FROM media
+            LEFT JOIN media_objects ON media.url = media_objects.url
+            LEFT JOIN objects on media_objects.etag = objects.etag
+            WHERE media.url=%(url)s
+        """, {"url": url})
+
+        r = cur.fetchone()
+
+        k = self.get_key(r["etag"],"idigbio-{}-prod".format(r["bucket"]))
+
+        if file_name is None:
+            file_name = r["etag"]
+
+        k.get_contents_to_filename(file_name)
+        return file_name

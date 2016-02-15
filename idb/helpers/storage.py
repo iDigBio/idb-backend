@@ -11,7 +11,10 @@ import boto
 import boto.s3.connection
 from boto.s3.key import Key
 
+from idb.helpers.media_validation import get_validator
 from idb.postgres_backend.db import PostgresDB
+from idb.helpers.etags import calcFileHash
+from idb.config import config
 
 class IDigBioStorage(object):
     """
@@ -117,3 +120,18 @@ class IDigBioStorage(object):
 
         k.get_contents_to_filename(file_name)
         return file_name
+
+    # def set_file_by_url(self, url, fil, typ, mime=None):
+    #     fname = fil.filename
+    #     h, size = calcFileHash(fil,op=False,return_size=True)
+    #     fil.seek(0)
+
+    #     validator = get_validator(mime)
+    #     valid, detected_mime = validator(fname,typ,mime,fil.read(1024))
+    #     fil.seek(0)
+
+    #     self.upload_file(h,"idigbio-{}-prod".format(typ),fname)
+
+    #     current_app.config["DB"]._cur.execute("INSERT INTO media (url,type,mime,last_status,last_check,owner) VALUES (SELECT %s,%s,%s,200,now(),%s WHERE NOT EXISTS (SELECT 1 FROM media WHERE url=%s))", (url,typ,detected_mime, config["env"]["IDB_UUID"],url))
+    #     current_app.config["DB"]._cur.execute("INSERT INTO objects (bucket, etag, detected_mime) (SELECT %s, %s, %s WHERE NOT EXISTS (SELECT 1 FROM objects WHERE etag=%s))", (typ, h, detected_mime, h))
+    #     current_app.config["DB"]._cur.execute("INSERT INTO media_objects (url, etag) VALUES (%s,%s)", (url,h))        

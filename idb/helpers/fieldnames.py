@@ -579,6 +579,13 @@ def print_ns_counts():
             if ns in namespaces_rev:
                 nsc[namespaces_rev[ns]] += 1
     print json.dumps(nsc,indent=2)
+
+def get_short_term(f):
+    for ns in sorted(namespaces.keys(),key=lambda x: len(x), reverse=True):
+        if f.startswith(ns):
+            return f.replace(ns,namespaces[ns]+":")
+    print "NO NS: " + f
+    return f
         
 def main():
     print_sorted_dict()

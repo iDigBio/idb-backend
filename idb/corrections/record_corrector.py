@@ -10,7 +10,7 @@ class RecordCorrector(object):
 
     def reload(self):
         cursor = pg.cursor(str(uuid.uuid4()),cursor_factory=DictCursor)
-        cursor.execute("select k::json,v::json from corrections")
+        cursor.execute("select k::json,v::json from corrections where source = ANY('{\"data_dictionaries_2\",\"data_dictionaries_1\",\"gbif_checklist\"}')")
 
         self.corrections = {}
         for r in cursor:

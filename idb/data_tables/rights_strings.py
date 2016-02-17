@@ -61,9 +61,10 @@ acceptable_licenses_trans = {
     "CC BY-NC (Attribution-NonCommercial)": "CC4 BY-NC",
     "CC BY-NC (Attribution-Non-Commercial)": "CC4 BY-NC",
     "CC BY (Attribution)": "CC4 BY",
+    "Creative Commons Attribution Non Commercial (CC-BY-NC) 4.0 License" : "CC4 BY-NC",
+    "Public Domain (CC0 1.0)" : "CC0",
     "CC0 1.0 (Public-domain)": "CC0",
     "Public Domain": "Public Domain",
-
     "Attribution-NonCommercial-ShareAlike 4.0 International": "CC4 BY-NC-SA",
     "URL: http://creativecommons.org/licenses/by-nc-sa/4.0/": "CC4 BY-NC-SA",
     "Creative Commons Attribution Non-Commercial (CC BY-NC)": "CC4 BY-NC",

@@ -48,11 +48,12 @@ def parseEml(id, emlText):
         collection["institution_web_address"] = eml("dataset distribution online url").text()
 
     rights_text = None
-    # ROM license text para includes additional sub-items
+    # ROM license text para includes additional sub-items ulink and citetitle which breaks .find traversal,
+    # so look for that item first.
     rights = getElement(eml.root.getroot(),"dataset/intellectualRights/para/ulink/citetitle")
     if rights is not None:
         rights_text = rights.text
-        logger.debug('Found license in citetitle: **{0}**'.format(rights_text))
+        logger.debug('Found license in citetitle: {0}'.format(rights_text))
     else:
         rights = getElement(eml.root.getroot(),"dataset/intellectualRights")
         if rights is not None:

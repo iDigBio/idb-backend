@@ -56,7 +56,7 @@ def parseEml(id, emlText):
         elif rights.text is not None:
             if rights.text.strip() != "":
                 rights_text = rights.text.strip()
-
+                logger.debug("Found rights text: {0}".format(rights_text))
     if rights_text is not None:
         if rights_text not in acceptable_licenses_trans:
             logger.debug("Unmatched data license in " + id + " " + rights_text)

@@ -51,6 +51,7 @@ def parseEml(id, emlText):
     rights_text = None
     if rights is not None:        
         rights_para = rights.find("para")
+        logger.debug("Found rights para: {0}".format(rights_para))
         if rights_para is not None:
             rights_text = rights_para.text
         elif rights.text is not None:
@@ -58,7 +59,6 @@ def parseEml(id, emlText):
                 rights_text = rights.text.strip()
 
     if rights_text is not None:
-        logger.debug("Found rights text: {0}".format(rights_text))
         if rights_text not in acceptable_licenses_trans:
             logger.debug("Unmatched data license in " + id + " " + rights_text)
             collection["data_rights"] = "Unknown License, assume Public Domain"

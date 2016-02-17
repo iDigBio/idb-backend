@@ -47,22 +47,21 @@ def parseEml(id, emlText):
     elif eml("dataset distribution online url").text() != None:
         collection["institution_web_address"] = eml("dataset distribution online url").text()
 
-    rights = getElement(eml.root.getroot(),"dataset/intellectualRights")
     rights_text = None
-    rights_citetitle = None
-    if rights is not None:        
-        rights_para = rights.find("para")
-        if rights_para is not None:
-            rights_citetitle = rights.find("citetitle")
-            if rights_citetitle is not None:
-                rights_text = rights_citetitle.text
-                logger.debug("rights_text(citetitle): {0}".format(rights_text))
-            else:
+    # ROM license text para includes additional sub-items
+    rights = getElement(eml.root.getroot(),"dataset/intellectualRights/para/ulink/citetitle")
+    if rights is not None:
+        rights_text = rights.text
+        logger.debug('Found license in citetitle: **{0}**'.format(rights_text))
+    else:
+        rights = getElement(eml.root.getroot(),"dataset/intellectualRights")
+        if rights is not None:
+            rights_para = rights.find("para")
+            if rights_para is not None:
                 rights_text = rights_para.text
-                logger.debug("rights_text(para.text): {0}".format(rights_text))
-        elif rights.text is not None:
-            if rights.text.strip() != "":
-                rights_text = rights.text.strip()
+            elif rights.text is not None:
+                if rights.text.strip() != "":
+                    rights_text = rights.text.strip()
 
     if rights_text is not None:
         if rights_text not in acceptable_licenses_trans:

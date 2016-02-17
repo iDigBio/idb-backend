@@ -53,7 +53,7 @@ def parseEml(id, emlText):
     if rights is not None:        
         rights_para = rights.find("para")
         if rights_para is not None:
-            rights_citetitle = rights_para.find("citetitle")
+            rights_citetitle = rights.find("citetitle")
             if rights_citetitle is not None:
                 rights_text = rights_citetitle.text
                 logger.debug("rights_text(citetitle): {0}".format(rights_text))

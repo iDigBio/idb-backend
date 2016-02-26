@@ -3,7 +3,7 @@ import json
 import string
 from collections import defaultdict
 
-namespaces = { 
+namespaces = {
     "http://rs.tdwg.org/dwc/terms/": "dwc",
     "http://purl.org/dc/terms/": "dcterms",
     "http://purl.org/dc/elements/1.1/": "dc",
@@ -33,7 +33,7 @@ namespaces_rev["aec"] = "http://purl.org/NET/aec/"
 # Manual Reverse Override
 namespaces_rev["Iptc4xmpExt"] = "http://iptc.org/std/Iptc4xmpExt/2008-02-29/"
 
-types = { 
+types = {
     "http://rs.tdwg.org/dwc/terms/occurrence": { "shortname": "dwc:Occurrence" },
     "http://rs.tdwg.org/dwc/terms/Occurrence": { "shortname": "dwc:Occurrence" },
     "http://rs.tdwg.org/ac/terms/multimedia": { "shortname": "dwc:Multimedia"},
@@ -560,7 +560,7 @@ def get_canonical_name(f):
     else:
         # logger.warn("Unmapped field: \"{0}\"".format(f.encode("utf8")))
         return [f, "Unknown"]
-        
+
 def print_sorted_dict():
     ks = translate_dict.keys()
     ks = sorted(ks, key=lambda s: s.lower())
@@ -586,10 +586,10 @@ def get_short_term(f):
             return f.replace(ns,namespaces[ns]+":")
     print "NO NS: " + f
     return f
-        
+
 def main():
     print_sorted_dict()
     print_ns_counts()
 
 if __name__ == "__main__":
-    main()        
+    main()

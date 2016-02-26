@@ -172,11 +172,11 @@ fields = {
         ["datemodified", "", "date", 0, "idigbio:dateModified"],
         ["etag", "idigbio:etag", "text", 0, None],
         ["version", "", "integer", 0, "idigbio:version"],
-        ["recordids", "idigbio:recordIds", "list", 0, None],        
+        ["recordids", "idigbio:recordIds", "list", 0, None],
         ["flags", "", "list", 0, "idigbio:flags"],
         ["dqs", "", "float", 0, "idigbio:dataQualityScore"],
         ["recordsets", "", "list", 0, "idigbio:recordsets"],
-        ["name","name","text",0, "idigbio:publisherName"],
+        ["name", "name", "text", 0, "idigbio:publisherName"],
     ],
     "recordsets": [
         ["uuid", "idigbio:uuid", "text", 0, None],
@@ -187,25 +187,25 @@ fields = {
         ["publisher", "", "text", 0, "idigbio:publisher"],
         ["flags", "", "list", 0, "idigbio:flags"],
         ["dqs", "", "float", 0, "idigbio:dataQualityScore"],
-        ["rights","data_rights","text", 0, "dcterms:rights"],
-        ["contacts","contacts","custom",0,None],
-        ["archivelink","link","text", 0, "idigbio:archiveLink"],
-        ["emllink","eml_link","text", 0, "idigbio:emlLink"],
-        ["logourl","logo_url","text", 0, "idigbio:logoUrl"],
-        ["name","collection_name","text",0, "dwc:datasetName"],
+        ["rights", "data_rights", "text", 0, "dcterms:rights"],
+        ["contacts", "contacts", "custom", 0, None],
+        ["archivelink", "link", "text", 0, "idigbio:archiveLink"],
+        ["emllink", "eml_link", "text", 0, "idigbio:emlLink"],
+        ["logourl", "logo_url", "text", 0, "idigbio:logoUrl"],
+        ["name", "collection_name", "text", 0, "dwc:datasetName"],
     ]
 }
 
 custom_mappings = {
     "recordsets": {
         "contacts": {
-            "type" : "nested",
+            "type": "nested",
             "include_in_parent": True,
             "properties": {
-                "first_name": { "type": "string", "analyzer": "keyword"},
-                "last_name": { "type": "string", "analyzer": "keyword"},
-                "email": { "type": "string", "analyzer": "keyword"},
-                "role": { "type": "string", "analyzer": "keyword"},
+                "first_name": {"type": "string", "analyzer": "keyword"},
+                "last_name": {"type": "string", "analyzer": "keyword"},
+                "email": {"type": "string", "analyzer": "keyword"},
+                "role": {"type": "string", "analyzer": "keyword"},
             }
         }
     }
@@ -312,7 +312,7 @@ def grabFirstNumber(f):
             n = f
         else:
             c = gfn.search(f)
-            if c != None:
+            if c is not None:
                 n = c.groups()[0]
     except:
         pass
@@ -333,7 +333,7 @@ def grabFirstUUID(f):
     n = None
     try:
         c = uuid_re.search(f)
-        if c != None:
+        if c is not None:
             n = c.groups()[0]
     except:
         pass
@@ -356,7 +356,7 @@ def elevGrabber(t, d):
             if fv is not None:
                 try:
                     n = grabFirstNumber(fv)
-                    if n != None:
+                    if n is not None:
                         r[f[0]] = locale.atof(n)
                 except:
                     pass
@@ -389,7 +389,7 @@ def intGrabber(t, d):
             if isinstance(fv, (str, unicode)):
                 try:
                     n = grabFirstNumber(fv)
-                    if n != None:
+                    if n is not None:
                         r[f[0]] = locale.atoi(n)
                 except:
                     pass
@@ -421,7 +421,7 @@ def floatGrabber(t, d):
         if fv is not None:
             try:
                 n = grabFirstNumber(fv)
-                if n != None:
+                if n is not None:
                     r[f[0]] = locale.atof(n)
             except:
                 pass
@@ -499,8 +499,8 @@ def geoGrabber(t, d):
                 r["flag_geopoint_datum_missing"] = True
 
             # get_country takes lon, lat
-            result = rg.get_country(r["geopoint"][0], r["geopoint"][1])            
-            if result is None:                
+            result = rg.get_country(r["geopoint"][0], r["geopoint"][1])
+            if result is None:
                 result_eez = rg_eez.get_country(r["geopoint"][0], r["geopoint"][1])
                 if result_eez is not None:
                     result = result_eez
@@ -510,11 +510,11 @@ def geoGrabber(t, d):
             if result is None:
                 r["flag_rev_geocode_failure"] = True
                 test_flips = True
-            elif filled("idigbio:isocountrycode",d) and result.lower() != d["idigbio:isocountrycode"]:
+            elif filled("idigbio:isocountrycode", d) and result.lower() != d["idigbio:isocountrycode"]:
                 r["flag_rev_geocode_mismatch"] = True
                 test_flips = True
-                    
-            if filled("idigbio:isocountrycode",d) and test_flips:
+
+            if filled("idigbio:isocountrycode", d) and test_flips:
                 r["flag_rev_geocode_mismatch"] = True
                 flip_queries = [  # Point, "Distance" from original coords, Flag
                     [(-r["geopoint"][0], r["geopoint"][1]),
@@ -587,7 +587,7 @@ def dateGrabber(t, d):
         if f[0] not in r:
             r[f[0]] = None
 
-    if "datecollected" in r and r["datecollected"] == None:
+    if "datecollected" in r and r["datecollected"] is None:
         year = getfield("dwc:year", d)
         month = getfield("dwc:month", d)
         day = getfield("dwc:day", d)
@@ -658,10 +658,10 @@ def relationsGrabber(t, d):
             r["".join(PARENT_MAP[t][:-1])] = d["idigbio:parent"]
 
     if t == "mediarecords":
-        r["hasSpecimen"] = "records" in r and r["records"] != None
+        r["hasSpecimen"] = "records" in r and r["records"] is not None
     elif t == "records":
-        r["hasImage"] = "mediarecords" in r and r["mediarecords"] != None
-        r["hasMedia"] = "mediarecords" in r and r["mediarecords"] != None
+        r["hasImage"] = "mediarecords" in r and r["mediarecords"] is not None
+        r["hasMedia"] = "mediarecords" in r and r["mediarecords"] is not None
 
     return r
 
@@ -693,11 +693,12 @@ def getLicense(t, d):
     else:
         return {}
 
+
 def get_accessuri(t, d):
     url = None
-    if filled("ac:accessURI",d):
+    if filled("ac:accessURI", d):
         url = d["ac:accessURI"]
-    elif filled("ac:bestQualityAccessURI",d):
+    elif filled("ac:bestQualityAccessURI", d):
         url = d["ac:bestQualityAccessURI"]
     else:
         # Don't use identifier as a url for things that supply audubon core properties
@@ -705,20 +706,21 @@ def get_accessuri(t, d):
             if k.startswith("ac:"):
                 break
         else:
-            if filled("dcterms:identifier",d):
+            if filled("dcterms:identifier", d):
                 url = d["dcterms:identifier"]
-            elif filled("dc:identifier",d):
+            elif filled("dc:identifier", d):
                 url = d["dc:identifier"]
 
-    return { "accessuri": url }
+    return {"accessuri": url}
 
-def get_media_type(t,d):
+
+def get_media_type(t, d):
     form = None
-    if filled("dcterms:format",d):
+    if filled("dcterms:format", d):
         form = d["dcterms:format"].strip()
-    elif filled("dc:format",d):
+    elif filled("dc:format", d):
         form = d["dc:format"].strip()
-    elif filled("ac:bestQualityFormat",d):
+    elif filled("ac:bestQualityFormat", d):
         form = d["ac:bestQualityFormat"].strip()
 
     t = None
@@ -750,7 +752,7 @@ def scientificNameFiller(t, r):
 
 
 def gs_sn_crossfill(t, r):
-    if filled("genus", r) and not filled("scientificname",r):
+    if filled("genus", r) and not filled("scientificname", r):
         r["scientificname"] = scientificNameFiller(t, r)
         r["flag_scientificname_added"] = True
     elif filled("scientificname", r) and not filled("genus", r):

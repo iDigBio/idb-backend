@@ -16,6 +16,6 @@ pg_conf["database"] = "stats"
 
 pg = None
 if os.environ["ENV"] == "test":
-    pg = psycopg2.connect(host="localhost",user="test",password="test",dbname="stats")
+    pg = psycopg2.connect(host="localhost", user="test", password="test", dbname="stats")
 else:
     pg = psycopg2.connect(**pg_conf)

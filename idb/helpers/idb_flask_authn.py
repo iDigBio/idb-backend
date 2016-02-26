@@ -13,7 +13,7 @@ cur = db.cursor()
 def check_auth(username, password):
     """This function is called to check if a username /
     password combination is valid.
-    """    
+    """
     try:
         corrections = "/v2/corrections" in request.url
         annotations = "/v2/anotations" in request.url
@@ -25,7 +25,7 @@ def check_auth(username, password):
         elif objects:
             cur.execute("SELECT * FROM idb_api_keys WHERE user_uuid=%s and apikey=%s and objects_allowed=true",(username, _encrypt(password,os.environ["IDB_CRYPT_KEY"])))
         else:
-            cur.execute("SELECT * FROM idb_api_keys WHERE user_uuid=%s and apikey=%s and records_allowed=true",(username, _encrypt(password,os.environ["IDB_CRYPT_KEY"])))            
+            cur.execute("SELECT * FROM idb_api_keys WHERE user_uuid=%s and apikey=%s and records_allowed=true",(username, _encrypt(password,os.environ["IDB_CRYPT_KEY"])))
         r = cur.fetchone()
         if r is not None:
             return True
@@ -35,12 +35,14 @@ def check_auth(username, password):
         db.rollback()
         return False
 
+
 def authenticate():
     """Sends a 401 response that enables basic auth"""
     resp = jsonify({"error": "Requires Authentication"})
     resp.status_code = 401
     resp.headers = {'WWW-Authenticate': 'Basic realm="Login Required"'}
     return resp
+
 
 def requires_auth(f):
     @wraps(f)

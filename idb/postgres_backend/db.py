@@ -304,7 +304,7 @@ class PostgresDB:
         return rec
 
     def delete_item(self, u, commit=True):
-        self._upsert_uuid_data(u, tombstone_etag, commit=False) 
+        self._upsert_uuid_data(u, tombstone_etag, commit=False)
         self._cur.execute("UPDATE uuids SET deleted=true WHERE id=%s", (u,))
         if commit:
             self.commit()
@@ -428,13 +428,13 @@ class PostgresDB:
             elif rid == row["uuids_id"]:
                 pass
             else:
-                return (None,parent,deleted)
+                return (None, parent, deleted)
         if rid is None:
-            rv = (str(uuid.uuid4()),parent,deleted)
+            rv = (str(uuid.uuid4()), parent, deleted)
             #print "Create UUID", ids, rv
             return rv
         else:
-            return (rid,parent,deleted)
+            return (rid, parent, deleted)
 
     def set_record(self, u, t, p, d, ids, siblings, commit=True):
         try:
@@ -519,7 +519,7 @@ class PostgresDB:
             SELECT %(etag)s as etag WHERE NOT EXISTS (
                 SELECT 1 FROM data WHERE etag=%(etag)s
             )
-        """, [{"etag": e } for e in el])
+        """, [{"etag": e} for e in el])
         if commit:
             self.commit()
 

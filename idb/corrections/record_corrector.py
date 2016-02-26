@@ -3,13 +3,13 @@ from . import *
 import uuid
 import copy
 
-class RecordCorrector(object):
 
+class RecordCorrector(object):
     def __init__(self):
         self.reload()
 
     def reload(self):
-        cursor = pg.cursor(str(uuid.uuid4()),cursor_factory=DictCursor)
+        cursor = pg.cursor(str(uuid.uuid4()), cursor_factory=DictCursor)
         cursor.execute("select k::json,v::json from corrections where source = ANY('{\"data_dictionaries_2\",\"data_dictionaries_1\",\"gbif_checklist\"}')")
 
         self.corrections = {}

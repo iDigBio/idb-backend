@@ -19,7 +19,4 @@ format_validators = {
 
 
 def get_validator(m):
-    if m in format_validators:
-        return format_validators[m]
-    else:
-        return default_format_validator
+    return format_validators.get(m, default_format_validator)

@@ -90,9 +90,14 @@ def idFromRR(r, rs=None):
 def get_file(rsid):
     fname = rsid
     if not os.path.exists(fname):
-        s.get_file_by_url("http://api.idigbio.org/v1/recordsets/" + rsid, file_name=fname)
-        # download_file("https://beta-media.idigbio.org/v2/media/datasets", fname, params={
-        #                  "filereference": "http://api.idigbio.org/v1/recordsets/" + rsid})
+        rsurl = "http://api.idigbio.org/v1/recordsets/" + rsid
+        try:
+            s.get_file_by_url(rsurl, file_name=fname)
+            # download_file("https://beta-media.idigbio.org/v2/media/datasets", fname, params={
+            #                  "filereference": "http://api.idigbio.org/v1/recordsets/" + rsid})
+        except:
+            logger.error("Failed get_file_by_url on: {0}".format(rsurl))
+            logger.error(traceback.format_exc())
     m = magic.from_file(fname)
     return (fname, m)
 

@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 from flask import (current_app, Blueprint, jsonify, url_for, request, redirect,
                    Response, render_template)
 

@@ -1,7 +1,7 @@
 """
     Thin wrapper around boto.s3 to ensure consistent access patterns in idigbio scripts
 """
-
+from __future__ import absolute_import
 import os
 import sys
 import glob

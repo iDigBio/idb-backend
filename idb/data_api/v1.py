@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 from flask import current_app, Blueprint, jsonify, url_for, request
 
 from .common import load_data_from_riak, json_error

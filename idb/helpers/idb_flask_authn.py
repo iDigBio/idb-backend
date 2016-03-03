@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 from functools import wraps
 from flask import request, Response, jsonify, current_app
 import os

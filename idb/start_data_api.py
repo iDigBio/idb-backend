@@ -1,7 +1,8 @@
+from __future__ import absolute_import
 import os
 
 if __name__ == '__main__':
-    from data_api.api import app
+    from idb.data_api.api import app
 
     env = os.environ.get('ENV', 'dev')
     if env in ('beta', 'prod'):

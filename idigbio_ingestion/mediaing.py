@@ -84,7 +84,7 @@ def get_media(tup, cache_bad=False):
 
         valid, detected_mime = validator(url,t,fmt,media_req.content)
         if valid:
-            print datetime.datetime.now(), "Success", url, t, fmt, detected_mime
+            print datetime.datetime.now(), "Validated Media:", url, t, fmt, detected_mime
             apiimg_req = s.post("http://media.idigbio.org/upload/" + t, data={"filereference": url}, files={'file': media_req.content }, auth=auth)
             apiimg_req.raise_for_status()
             apiimg_o = apiimg_req.json()
@@ -107,7 +107,7 @@ def get_media(tup, cache_bad=False):
         local_pg.rollback()
         local_cur.execute("UPDATE media SET last_status=%s, last_check=now() WHERE url=%s", (media_status, url))
         local_pg.commit()
-        print url, t, fmt, media_status
+        print url, t, fmt, "GET media status:", media_status, "POST media status:", media_req.status_code
         traceback.print_exc()
         return False
 

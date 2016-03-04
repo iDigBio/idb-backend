@@ -6,15 +6,16 @@ import json
 import hashlib
 import sys
 
+from psycopg2.extras import DictCursor
+from psycopg2.extensions import ISOLATION_LEVEL_READ_COMMITTED, ISOLATION_LEVEL_AUTOCOMMIT
+from idb.helpers.etags import calcEtag
+from idb.postgres_backend import pg
+
 TEST_SIZE = 10000
 TEST_COUNT = 10
 
 #tombstone_etag = calcEtag({"deleted":True})
 tombstone_etag = "9a4e35834eb80d9af64bcd07ed996b9ec0e60d92"
-
-from . import *
-
-from idb.helpers.etags import calcEtag
 
 
 class PostgresDB:

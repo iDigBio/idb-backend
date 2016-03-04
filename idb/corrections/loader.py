@@ -1,7 +1,7 @@
-from . import *
+from psycopg2.extras import DictCursor
+from idb.postgres_backend import pg
 
 import json
-import psycopg2.extras
 
 
 class CorrectionsLoader(object):

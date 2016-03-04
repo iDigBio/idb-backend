@@ -1,5 +1,5 @@
 from __future__ import absolute_import
-from . import *
+from idb.postgres_backend import pg, DictCursor
 
 import uuid
 import copy

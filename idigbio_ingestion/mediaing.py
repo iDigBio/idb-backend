@@ -67,6 +67,7 @@ def get_media(tup, cache_bad=False):
     url_path = "bad_media/"+url.replace("/","^^")
 
     media_status = 1000
+    apiimg_post_status = 0
 
     try:
         for p in ignore_prefix:
@@ -86,6 +87,7 @@ def get_media(tup, cache_bad=False):
         if valid:
             print datetime.datetime.now(), "Validated Media:", url, t, fmt, detected_mime
             apiimg_req = s.post("http://media.idigbio.org/upload/" + t, data={"filereference": url}, files={'file': media_req.content }, auth=auth)
+            apiimg_post_status = apiimg_req.status_code
             apiimg_req.raise_for_status()
             apiimg_o = apiimg_req.json()
             local_cur.execute("UPDATE media SET last_status=%s, last_check=now() WHERE url=%s", (200,url))
@@ -107,7 +109,7 @@ def get_media(tup, cache_bad=False):
         local_pg.rollback()
         local_cur.execute("UPDATE media SET last_status=%s, last_check=now() WHERE url=%s", (media_status, url))
         local_pg.commit()
-        print url, t, fmt, "GET media status:", media_status, "POST media status:", media_req.status_code
+        print url, t, fmt, "GET media status:", media_status, "POST media status:", apiimg_post_status
         traceback.print_exc()
         return False
 

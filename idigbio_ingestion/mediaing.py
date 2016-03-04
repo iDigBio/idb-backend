@@ -107,7 +107,11 @@ def get_media(tup, cache_bad=False):
         raise e
     except:
         local_pg.rollback()
-        local_cur.execute("UPDATE media SET last_status=%s, last_check=now() WHERE url=%s", (media_status, url))
+        if apiimg_post_status > 200:
+            # had a problem posting valid media, set status code at 2000 + the actual status code.
+            local_cur.execute("UPDATE media SET last_status=%s, last_check=now() WHERE url=%s", (apiimg_post_status+2000, url))
+        else:
+            local_cur.execute("UPDATE media SET last_status=%s, last_check=now() WHERE url=%s", (media_status, url))
         local_pg.commit()
         print url, t, fmt, "GET media status:", media_status, "POST media status:", apiimg_post_status
         traceback.print_exc()

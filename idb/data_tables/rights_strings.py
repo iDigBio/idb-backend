@@ -55,6 +55,7 @@ acceptable_licenses_trans = {
     "CC-BY-SA": "CC4 BY-SA",
     "CC-BY-NC": "CC4 BY-NC",
     "CC-BY": "CC4 BY",
+    "Creative Commons Attribution (CC-BY) 4.0": "CC4 BY",
     "CC0": "CC0",
     "CC BY-NC-SA (Attribution-NonCommercial-ShareAlike)": "CC4 BY-NC-SA",
     "CC BY-SA (Attribution-ShareAlike)": "CC4 BY-SA",

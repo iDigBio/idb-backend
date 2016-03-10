@@ -1,21 +1,23 @@
 import psycopg2
 import os
 import copy
+
 from psycopg2.extras import DictCursor
 
 from idb.config import config
+from .gevent_helpers import GeventedConnPool
 
-prefix = config["postgres"]["db_prefix"] if "db_prefix" in config["postgres"] else ""
-suffix = config["postgres"]["db_suffix"] if "db_suffix" in config["postgres"] else ""
 
 pg_conf = copy.deepcopy(config["postgres"])
-del pg_conf["db_prefix"]
-del pg_conf["db_suffix"]
+if 'db_prefix' in pg_conf: del pg_conf["db_prefix"]
+if "db_suffix" in pg_conf: del pg_conf["db_suffix"]
 
-pg_conf["database"] = "stats"
+pg_conf["dbname"] = "stats"
+pg_conf["cursor_factory"] = DictCursor
 
-pg = None
 if os.environ["ENV"] == "test":
-    pg = psycopg2.connect(host="localhost", user="test", password="test", dbname="stats")
-else:
-    pg = psycopg2.connect(**pg_conf)
+    pg_conf["host"] = "localhost"
+    pg_conf["user"] = "test"
+    pg_conf["password"] = "test"
+
+statsdbpool = GeventedConnPool(**pg_conf)

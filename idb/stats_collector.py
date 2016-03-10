@@ -1,6 +1,6 @@
 import json
 import dateutil.parser
-from postgres_backend.stats_db import pg, DictCursor
+from postgres_backend.stats_db import statsdbpool
 import elasticsearch
 
 from idb.postgres_backend.db import PostgresDB
@@ -91,23 +91,21 @@ def new_stats_dict():
     return stats_dict
 
 def get_stats_dates():
-    dates_cur = pg.cursor("stats_collector_dates",cursor_factory=DictCursor)
-    dates_cur.execute("select date_trunc('day', date) from stats group by date_trunc('day', date) order by date_trunc('day', date)")
-    return [r[0] for r in dates_cur]
+    sql = """select date_trunc('day', date)
+    		from stats
+    		group by date_trunc('day', date)
+    		order by date_trunc('day', date)"""
+    return [r[0] for r in statsdbpool.fetchall(sql)]
 
 def collect_stats(collect_datetime):
     date_min = (collect_datetime - timedelta(1)).date()
     date_max = collect_datetime.date()
 
-    #print date_min, date_max
-
-    cur = pg.cursor("stats_collector_" + repr(date_min) + repr(date_max),cursor_factory=DictCursor)
-
-    cur.execute("SELECT * FROM stats LEFT JOIN queries on stats.query_id=queries.id WHERE date > %s AND date < %s", (date_min,date_max))
-
     recordset_stats = defaultdict(new_stats_dict)
 
-    for r in cur:
+    #print date_min, date_max
+    sql = "SELECT * FROM stats LEFT JOIN queries on stats.query_id=queries.id WHERE date > %s AND date < %s"
+    for r in statsdbpool.fetchiter(sql, (date_min, date_max)):
         record_type = r["record_type"]
         stats_type = r["type"]
         query_hash = r["query_hash"]
@@ -135,8 +133,6 @@ def collect_stats(collect_datetime):
                     recordset_stats[recordset_key][record_type][stats_type]["total"] += record_count
                     recordset_stats[recordset_key][record_type][stats_type]["queries"][query_hash] += record_count
                     recordset_stats[recordset_key][record_type][stats_type]["geocodes"][geocode] += record_count
-
-
 
     for recordset_key in recordset_stats:
         recordset_data = {
@@ -218,7 +214,6 @@ def main():
                 collect_stats(d)
         else:
             collect_datetime = dateutil.parser.parse(args.collect_date_str)
-
             collect_stats(collect_datetime)
 
 if __name__ == '__main__':

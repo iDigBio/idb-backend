@@ -5,7 +5,6 @@ import psycopg2
 from flask import current_app, Blueprint, jsonify, url_for, request
 
 from idb.helpers.idb_flask_authn import requires_auth
-from idb.postgres_backend.db import PostgresDB
 from idb.data_api.common import json_error
 
 from idb.corrections.record_corrector import RecordCorrector

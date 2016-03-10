@@ -1,12 +1,13 @@
-from psycopg2.extras import DictCursor
-from idb.postgres_backend import pg
+
+from idb.postgres_backend import apidbpool, DictCursor
 
 import json
 
 
 class CorrectionsLoader(object):
     def __init__(self):
-        self.cursor = pg.cursor(cursor_factory=DictCursor)
+        self.conn = apidbpool.get()
+        self.cursor = self.conn.cursor(cursor_factory=DictCursor)
         self.corrections = []
 
     def __enter__(self):
@@ -18,7 +19,7 @@ class CorrectionsLoader(object):
         self.cursor.executemany(
             "INSERT INTO corrections (k,v,approved,source) VALUES (%s,%s,%s,%s)",
             self.corrections)
-        pg.commit()
+        self.conn.commit()
 
     def __exit__(self, type, value, traceback):
         self.commit()
@@ -30,4 +31,8 @@ class CorrectionsLoader(object):
     def clear_source(self, source):
         self.cursor.execute(
             "DELETE from corrections WHERE source=%s", (source,))
-        pg.commit()
+        self.conn.commit()
+
+    def __del__(self):
+        apidbpool.put(self.conn)
+        self.conn = None

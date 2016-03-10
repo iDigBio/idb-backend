@@ -43,7 +43,7 @@ search_stats_mapping = {
 for record_type in record_types:
     search_stats_mapping["properties"][record_type] = {
         "properties": {}
-    }    
+    }
     for stat_type in stat_types:
         search_stats_mapping["properties"][record_type]["properties"][stat_type] = {
             "properties": {
@@ -70,9 +70,9 @@ for record_type in record_types:
                                 "region": { "type" : "string", "analyzer": "keyword" },
                                 "city": { "type" : "string", "analyzer": "keyword" },
                             }
-                        }                        
+                        }
                     }
-                }                
+                }
             }
         }
 
@@ -193,13 +193,13 @@ def api_stats():
         rsc["harvest_date"] = now
         rsc["recordset_id"] = k
 
-        es.index(index=indexName,doc_type="api",body=rsc)  
+        es.index(index=indexName,doc_type="api",body=rsc)
 
 def main():
     import argparse
 
     parser = argparse.ArgumentParser(description='Collect the stats for a day from postgres, defaults to yesterday')
-    parser.add_argument('-d', '--date', dest='collect_date_str', type=str, default=datetime.now().isoformat())    
+    parser.add_argument('-d', '--date', dest='collect_date_str', type=str, default=datetime.now().isoformat())
     parser.add_argument('-m', '--mapping', dest='mapping', action='store_true', help='write mapping')
     parser.add_argument('-a', '--alldates', dest='alldates', action='store_true', help='write stats for all dates in the db')
     parser.add_argument('-p', '--api', dest='api', action='store_true', help="write out the api stats")

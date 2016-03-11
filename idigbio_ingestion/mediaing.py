@@ -64,14 +64,16 @@ ignore_prefix = [
 def get_media(tup, cache_bad=False):
     url, t, fmt = tup
 
-    url_path = "bad_media/"+url.replace("/","^^")
+    url_path = "bad_media/" + url.replace("/", "^^")
 
     media_status = 1000
 
     try:
         for p in ignore_prefix:
             if url.startswith(p):
-                local_cur.execute("UPDATE media SET last_status=%s, last_check=now() WHERE url=%s", (1002,url))
+                local_cur.execute(
+                    "UPDATE media SET last_status=%s, last_check=now() WHERE url=%s",
+                    (1002, url))
                 print "Skip", url, t, fmt, p
                 return False
 
@@ -79,25 +81,33 @@ def get_media(tup, cache_bad=False):
         media_status = media_req.status_code
         media_req.raise_for_status()
 
-
         validator = get_validator(fmt)
-
-        valid, detected_mime = validator(url,t,fmt,media_req.content)
+        valid, detected_mime = validator(url, t, fmt, media_req.content)
         if valid:
             print datetime.datetime.now(), "Success", url, t, fmt, detected_mime
-            apiimg_req = s.post("http://media.idigbio.org/upload/" + t, data={"filereference": url}, files={'file': media_req.content }, auth=auth)
+            apiimg_req = s.post("http://media.idigbio.org/upload/" + t,
+                                data={"filereference": url},
+                                files={'file': media_req.content},
+                                auth=auth)
             apiimg_req.raise_for_status()
             apiimg_o = apiimg_req.json()
-            local_cur.execute("UPDATE media SET last_status=%s, last_check=now() WHERE url=%s", (200,url))
-            local_cur.execute("INSERT INTO objects (etag,bucket,detected_mime) SELECT %(etag)s, %(type)s, %(mime)s WHERE NOT EXISTS (SELECT 1 FROM objects WHERE etag=%(etag)s)", {"etag": apiimg_o["file_md5"], "type": t, "mime": detected_mime})
-            local_cur.execute("INSERT INTO media_objects (url,etag) VALUES (%s,%s)", (url,apiimg_o["file_md5"]))
+            local_cur.execute("UPDATE media SET last_status=%s, last_check=now() WHERE url=%s",
+                              (200, url))
+            local_cur.execute("""INSERT INTO objects (etag, bucket, detected_mime)
+                               SELECT %(etag)s, %(type)s, %(mime)s
+                               WHERE NOT EXISTS (SELECT 1 FROM objects WHERE etag=%(etag)s)""",
+                              {"etag": apiimg_o["file_md5"], "type": t, "mime": detected_mime})
+            local_cur.execute("INSERT INTO media_objects (url,etag) VALUES (%s,%s)",
+                              (url, apiimg_o["file_md5"]))
             local_pg.commit()
             return True
         else:
-            local_cur.execute("UPDATE media SET last_status=%s, last_check=now() WHERE url=%s", (1001,url))
+            local_cur.execute(
+                "UPDATE media SET last_status=%s, last_check=now() WHERE url=%s",
+                (1001, url))
             local_pg.commit()
             if cache_bad:
-                with open(url_path,"wb") as outf:
+                with open(url_path, "wb") as outf:
                     outf.write(media_req.content)
             print datetime.datetime.now(), "Failure", url, t, valid, fmt, detected_mime
             return False
@@ -146,11 +156,11 @@ def write_urls_to_db(media_urls):
                 else:
                     if url in media_urls:
                         # We're going to change something, but only if we're adding/replacing things, not nulling existing values.
-                        if not (t,form) == media_urls[url] and form is not None and (t is not None or media_urls[url][0] is None):
+                        if not (t, form) == media_urls[url] and form is not None and (t is not None or media_urls[url][0] is None):
                             to_update.append((t, form, url))
                     elif url not in inserted_urls:
                         to_insert.append((url, t, form))
-                        inserted_urls.add(url)                        
+                        inserted_urls.add(url)
 
             if scanned % 100000 == 0:
                 print len(to_insert), len(to_update), scanned
@@ -169,7 +179,7 @@ def get_postgres_media_urls():
     local_cur = local_pg.cursor()
     local_cur.execute("SELECT url,type,mime FROM media")
     for r in local_cur:
-        media_urls[r[0]] = (r[1],r[2])
+        media_urls[r[0]] = (r[1], r[2])
 
     return media_urls
 
@@ -180,8 +190,12 @@ def get_postgres_media_objects():
     rowcount = 0
     lrc = 0
     for r in cur:
-        local_cur.execute("""INSERT INTO media_objects (url,etag,modified) 
-        SELECT %(url)s, %(etag)s, %(modified)s WHERE EXISTS (SELECT 1 FROM media WHERE url=%(url)s) AND EXISTS (SELECT 1 FROM objects WHERE etag=%(etag)s) AND NOT EXISTS (SELECT 1 FROM media_objects WHERE url=%(url)s AND etag=%(etag)s)
+        local_cur.execute("""
+             INSERT INTO media_objects (url, etag, modified)
+             SELECT %(url)s, %(etag)s, %(modified)s
+             WHERE EXISTS (SELECT 1 FROM media WHERE url=%(url)s)
+               AND EXISTS (SELECT 1 FROM objects WHERE etag=%(etag)s)
+               AND NOT EXISTS (SELECT 1 FROM media_objects WHERE url=%(url)s AND etag=%(etag)s)
         """, {"url": r[0], "etag": r[1], "modified": r[2]})
         count += 1
         rowcount += local_cur.rowcount
@@ -202,7 +216,7 @@ def get_objects_from_ceph():
     print len(existing_objects)
 
     s = IDigBioStorage()
-    buckets = ["datasets","images"]
+    buckets = ["datasets", "images"]
     count = 0
     rowcount = 0
     lrc = 0
@@ -211,15 +225,19 @@ def get_objects_from_ceph():
         for k in b.list():
             if k.name not in existing_objects:
                 try:
-                    ks = k.get_contents_as_string(headers={'Range' : 'bytes=0-100'})
+                    ks = k.get_contents_as_string(headers={'Range': 'bytes=0-100'})
                     detected_mime = magic.from_buffer(ks, mime=True)
-                    local_cur.execute("INSERT INTO objects (bucket,etag,detected_mime) SELECT %(bucket)s,%(etag)s,%(dm)s WHERE NOT EXISTS (SELECT 1 FROM objects WHERE etag=%(etag)s)", {"bucket": b_k, "etag": k.name, "dm": detected_mime})
+                    local_cur.execute(
+                        """INSERT INTO objects (bucket,etag,detected_mime)
+                           SELECT %(bucket)s,%(etag)s,%(dm)s
+                           WHERE NOT EXISTS(
+                              SELECT 1 FROM objects WHERE etag=%(etag)s)""",
+                        {"bucket": b_k, "etag": k.name, "dm": detected_mime})
                     existing_objects.add(k.name)
                     rowcount += local_cur.rowcount
                 except:
                     print "Ceph Error", b_k, k.name
             count += 1
-
 
             if rowcount != lrc and rowcount % 10000 == 0:
                 print count, rowcount
@@ -244,17 +262,30 @@ def set_deriv_from_ceph():
 
 def get_media_generator():
     local_cur.execute("""SELECT * FROM (
-        SELECT substring(url from 'https?://[^/]*/'), count(*) FROM (
-            SELECT media.url, media_objects.etag FROM media LEFT JOIN media_objects ON media.url = media_objects.url WHERE type IS NOT NULL AND (last_status IS NULL or (last_status >= 400 and last_check < now() - '1 month'::interval))
-        ) AS a WHERE a.etag IS NULL GROUP BY substring(url from 'https?://[^/]*/')
+        SELECT substring(url from 'https?://[^/]*/'), count(*)
+        FROM (
+            SELECT media.url, media_objects.etag
+            FROM media
+            LEFT JOIN media_objects ON media.url = media_objects.url
+            WHERE type IS NOT NULL
+              AND (last_status IS NULL or (last_status >= 400 and last_check < now() - '1 month'::interval))
+        ) AS a
+        WHERE a.etag IS NULL GROUP BY substring(url from 'https?://[^/]*/')
     ) AS b WHERE substring != '' ORDER BY count""")
     subs_rows = local_cur.fetchall()
     for sub_row in subs_rows:
         subs = sub_row[0]
-        local_cur.execute("""SELECT url,type,mime FROM (
-            SELECT media.url,type,mime,etag FROM media LEFT JOIN media_objects ON media.url = media_objects.url
-            WHERE media.url LIKE %s AND type IS NOT NULL AND (last_status IS NULL OR (last_status >= 400 AND last_check < now() - '1 month'::interval))
-        ) AS a WHERE a.etag IS NULL""", (subs + "%",))
+        local_cur.execute("""SELECT url,type,mime
+            FROM (
+               SELECT media.url,type,mime,etag
+               FROM media
+               LEFT JOIN media_objects ON media.url = media_objects.url
+               WHERE media.url LIKE %s
+                 AND type IS NOT NULL
+                 AND (last_status IS NULL
+                      OR (last_status >= 400 AND last_check < now() - '1 month'::interval))
+               ) AS a
+            WHERE a.etag IS NULL""", (subs + "%",))
         url_rows = local_cur.fetchall()
         for url_row in url_rows:
             yield tuple(url_row[0:3])
@@ -272,8 +303,8 @@ def get_media_consumer():
         count += 1
 
         if count % 10000 == 0:
-            print count,t,f
-    print count,t,f
+            print count, t, f
+    print count, t, f
 
 def main():
     import sys

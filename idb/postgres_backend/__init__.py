@@ -7,7 +7,8 @@ import psycopg2.extensions
 
 from .gevent_helpers import GeventedConnPool
 
-from psycopg2.extras import DictCursor
+from psycopg2.extras import DictCursor, NamedTupleCursor
+from psycopg2.extensions import cursor
 
 from psycopg2.extensions import ISOLATION_LEVEL_READ_COMMITTED, ISOLATION_LEVEL_AUTOCOMMIT
 

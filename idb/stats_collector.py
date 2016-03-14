@@ -1,13 +1,15 @@
+from __future__ import absolute_import
 import json
 import dateutil.parser
-from postgres_backend.stats_db import statsdbpool
 import elasticsearch
 
-from idb.postgres_backend.db import PostgresDB
+from idb.config import config
+from idb.postgres_backend import apidbpool, DictCursor
+from idb.postgres_backend.stats_db import statsdbpool
 
 from collections import defaultdict
 from datetime import datetime, timedelta
-from config import config
+
 
 def json_serial(obj):
     """JSON serializer for objects not serializable by default json code"""
@@ -105,7 +107,7 @@ def collect_stats(collect_datetime):
 
     #print date_min, date_max
     sql = "SELECT * FROM stats LEFT JOIN queries on stats.query_id=queries.id WHERE date > %s AND date < %s"
-    for r in statsdbpool.fetchiter(sql, (date_min, date_max)):
+    for r in statsdbpool.fetchiter(sql, (date_min, date_max), cursor_factory=DictCursor):
         record_type = r["record_type"]
         stats_type = r["type"]
         query_hash = r["query_hash"]
@@ -168,14 +170,15 @@ def collect_stats(collect_datetime):
         es.index(index=indexName,doc_type=typeName,body=recordset_data)
 
 def api_stats():
-    db = PostgresDB()
-
     now = datetime.utcnow().isoformat()
 
     rstc = defaultdict(lambda: defaultdict(int))
 
-    db._cur.execute("SELECT parent,type,count(id) FROM uuids WHERE deleted=false and (type='record' or type='mediarecord') GROUP BY parent,type")
-    for r in db._cur:
+    sql = """SELECT parent,type,count(id)
+             FROM uuids
+             WHERE deleted=false and (type='record' or type='mediarecord')
+             GROUP BY parent,type"""
+    for r in apidbpool.fetchiter(sql):
         rstc[r[0]][r[1]+"s_count"]=r[2]
 
     rstc=dict(rstc)

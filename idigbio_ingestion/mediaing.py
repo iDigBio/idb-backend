@@ -4,7 +4,6 @@ from gevent import monkey
 monkey.patch_all()
 
 from idb.postgres_backend import apidbpool
-from idb.postgres_backend.db import PostgresDB
 from idb.helpers.storage import IDigBioStorage
 from idb.helpers.media_validation import get_validator
 from idb.helpers.conversions import get_accessuri, get_media_type
@@ -25,9 +24,6 @@ s.mount('https://', adapter)
 
 auth = HTTPBasicAuth(os.environ.get("IDB_UUID"), os.environ.get("IDB_APIKEY"))
 
-db = PostgresDB()
-local_pg = db._pg
-local_cur = db._cur
 
 def create_schema():
     with apidbpool.cursor() as cur:
@@ -95,13 +91,13 @@ def get_media(tup, cache_bad=False):
             apiimg_o = apiimg_req.json()
             with apidbpool.cursor() as cur:
                 cur.execute("UPDATE media SET last_status=%s, last_check=now() WHERE url=%s",
-                                  (200, url))
+                            (200, url))
                 cur.execute("""INSERT INTO objects (etag, bucket, detected_mime)
                                    SELECT %(etag)s, %(type)s, %(mime)s
                                    WHERE NOT EXISTS (SELECT 1 FROM objects WHERE etag=%(etag)s)""",
-                                  {"etag": apiimg_o["file_md5"], "type": t, "mime": detected_mime})
+                            {"etag": apiimg_o["file_md5"], "type": t, "mime": detected_mime})
                 cur.execute("INSERT INTO media_objects (url,etag) VALUES (%s,%s)",
-                                  (url, apiimg_o["file_md5"]))
+                            (url, apiimg_o["file_md5"]))
             return True
         else:
             apidbpool.execute(
@@ -123,23 +119,18 @@ def get_media(tup, cache_bad=False):
 
 def write_urls_to_db(media_urls):
     print "Start Inserts"
-
     inserted_urls = set()
 
     scanned = 0
-    cur = db._get_ss_cursor()
-    cur.execute(
-        "SELECT type,data FROM idigbio_uuids_data WHERE type='mediarecord' and deleted=false")
-    local_cur.execute("BEGIN")
-    to_insert = []
-    to_update = []
-    for r in cur:
+    to_insert, to_update = [], []
+    itersql = """SELECT type,data
+                 FROM idigbio_uuids_data
+                 WHERE type='mediarecord' and deleted=false"""
+
+    for r in apidbpool.fetchiter(itersql, named=True):
         scanned += 1
-
         url = get_accessuri(r["type"], r["data"])["accessuri"]
-
         o = get_media_type(r["type"], r["data"])
-
         form = o["format"]
         t = o["mediatype"]
 
@@ -151,7 +142,8 @@ def write_urls_to_db(media_urls):
                     break
             else:
                 if url in media_urls:
-                    # We're going to change something, but only if we're adding/replacing things, not nulling existing values.
+                    # We're going to change something, but only if we're
+                    # adding/replacing things, not nulling existing values.
                     if not (t, form) == media_urls[url] and form is not None and (t is not None or media_urls[url][0] is None):
                         to_update.append((t, form, url))
                 elif url not in inserted_urls:
@@ -160,10 +152,11 @@ def write_urls_to_db(media_urls):
 
         if scanned % 100000 == 0:
             print len(to_insert), len(to_update), scanned
+    with apidbpool.cursor() as cur:
+        cur.executemany("INSERT INTO media (url,type,mime) VALUES (%s,%s,%s)", to_insert)
+        cur.executemany("UPDATE media SET type=%s, mime=%s, last_status=NULL, last_check=NULL WHERE url=%s",
+                        to_update)
 
-    local_cur.executemany("INSERT INTO media (url,type,mime) VALUES (%s,%s,%s)", to_insert)
-    local_cur.executemany("UPDATE media SET type=%s, mime=%s, last_status=NULL, last_check=NULL WHERE url=%s", to_update)
-    local_pg.commit()
     print len(to_insert), len(to_update), scanned
 
 

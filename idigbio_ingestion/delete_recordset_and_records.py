@@ -18,7 +18,7 @@ from idb.postgres_backend.db import PostgresDB
 # from lib.log import logger
 
 argparser = argparse.ArgumentParser(description='Script to delete a recordset and all of its child records from the database. Also sets Ingest to false.')
-argparser.add_argument('recordsets', metavar='recordset_uuid', nargs='+', help='list of recordset uuids to delete separated by whitespace') # required built into nargs="+" 
+argparser.add_argument('recordsets', metavar='recordset_uuid', nargs='+', help='list of recordset uuids to delete separated by whitespace') # required built into nargs="+"
 args = argparser.parse_args()
 
 print args
@@ -59,7 +59,7 @@ db = PostgresDB()
 #         rss_url text NOT NULL,
 #         auto_publish boolean NOT NULL DEFAULT false,
 #         first_seen timestamp NOT NULL DEFAULT now(),
-#         last_seen timestamp NOT NULL DEFAULT now(), 
+#         last_seen timestamp NOT NULL DEFAULT now(),
 #         pub_date timestamp
 #     )""")
 
@@ -164,7 +164,7 @@ db = PostgresDB()
 #                 rsid = None
 #                 ingest = auto_publish
 #                 recordids = [recordid]
-#                 recordset = None           
+#                 recordset = None
 #                 if recordid in existing_recordsets:
 #                     recordset = recordsets[existing_recordsets[recordid]]
 #                     rsid = recordset["uuid"]
@@ -210,8 +210,8 @@ db = PostgresDB()
 #                     rs_name = recordid
 
 #                 if recordset is None:
-#                     db._cur.execute(             
-#                         """INSERT INTO recordsets 
+#                     db._cur.execute(
+#                         """INSERT INTO recordsets
 #                             (uuid, publisher_uuid, name, recordids, eml_link, file_link, ingest, pub_date)
 #                             VALUES (%s,%s,%s,%s,%s,%s,%s,%s)
 #                         """,
@@ -316,7 +316,7 @@ db = PostgresDB()
 #             db._cur.execute("UPDATE recordsets SET file_harvest_etag=%s, file_harvest_date=%s WHERE id=%s", (etag,datetime.datetime.now(),r["id"]))
 #             db.commit()
 #         except:
-#             traceback.print_exc()   
+#             traceback.print_exc()
 #         if os.path.exists(fname):
 #             os.unlink(fname)
 

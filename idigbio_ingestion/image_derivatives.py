@@ -27,8 +27,8 @@ def img_from_key(key):
         return img
     except Exception as e:
         raise Exception(traceback.format_exc() +"Exception during processing of "+key.name)
-        
-    
+
+
 def save_to_buffer(img, **kwargs):
     dervbuff = cStringIO.StringIO()
     img.save(dervbuff,**kwargs)
@@ -43,7 +43,7 @@ def generate_derivative(img, derivative_width):
         return derv
     else:
         return img
-        
+
 def check_and_generate(name,env="prod"):
     tkey = s.get_key(name + ".jpg","idigbio-images-" + env + "-thumbnail")
 
@@ -52,10 +52,10 @@ def check_and_generate(name,env="prod"):
         db._cur.execute("UPDATE objects SET derivatives=true WHERE etag=%s", (name,))
         return False
 
-    mkey = s.get_key(name,"idigbio-images-" + env)    
+    mkey = s.get_key(name,"idigbio-images-" + env)
     fkey = s.get_key(name + ".jpg","idigbio-images-" + env + "-fullsize")
     wkey = s.get_key(name + ".jpg","idigbio-images-" + env + "-webview")
-    
+
 
     if mkey.exists() and not all([fkey.exists(), wkey.exists(), tkey.exists()]):
         baseimg = img_from_key(mkey)

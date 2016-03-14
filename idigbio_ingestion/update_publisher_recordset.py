@@ -45,7 +45,7 @@ def create_tables():
         rss_url text NOT NULL,
         auto_publish boolean NOT NULL DEFAULT false,
         first_seen timestamp NOT NULL DEFAULT now(),
-        last_seen timestamp NOT NULL DEFAULT now(), 
+        last_seen timestamp NOT NULL DEFAULT now(),
         pub_date timestamp
     )""")
 
@@ -110,7 +110,7 @@ def update_db_from_rss():
         except:
             feedisgood = False
             logger.error("Failed to read {0}".format(r["rss_url"]))
-        
+
         if feedisgood:
             try:
 
@@ -164,7 +164,7 @@ def update_db_from_rss():
                     rsid = None
                     ingest = auto_publish
                     recordids = [recordid]
-                    recordset = None           
+                    recordset = None
                     if recordid in existing_recordsets:
                         recordset = recordsets[existing_recordsets[recordid]]
                         rsid = recordset["uuid"]
@@ -210,8 +210,8 @@ def update_db_from_rss():
                         rs_name = recordid
 
                     if recordset is None:
-                        db._cur.execute(             
-                            """INSERT INTO recordsets 
+                        db._cur.execute(
+                            """INSERT INTO recordsets
                                 (uuid, publisher_uuid, name, recordids, eml_link, file_link, ingest, pub_date)
                                 VALUES (%s,%s,%s,%s,%s,%s,%s,%s)
                             """,
@@ -318,7 +318,7 @@ def harvest_file():
             db._cur.execute("UPDATE recordsets SET file_harvest_etag=%s, file_harvest_date=%s WHERE id=%s", (etag,datetime.datetime.now(),r["id"]))
             db.commit()
         except:
-            traceback.print_exc()   
+            traceback.print_exc()
         if os.path.exists(fname):
             os.unlink(fname)
 

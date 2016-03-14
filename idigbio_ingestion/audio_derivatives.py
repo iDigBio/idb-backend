@@ -137,7 +137,7 @@ def generate_derivative(img, derivative_width):
         derv = img.resize((derivative_width, derivative_horizontal_size), Image.BILINEAR)
         return derv
     else:
-        return img        
+        return img
 
 def check_and_generate(name,env="prod"):
     tkey = s.get_key(name + ".jpg","idigbio-sounds-" + env + "-thumbnail")
@@ -147,15 +147,15 @@ def check_and_generate(name,env="prod"):
         db._cur.execute("UPDATE objects SET derivatives=true WHERE etag=%s", (name,))
         return False
 
-    mkey = s.get_key(name,"idigbio-sounds-" + env)    
+    mkey = s.get_key(name,"idigbio-sounds-" + env)
     fkey = s.get_key(name + ".jpg","idigbio-sounds-" + env + "-fullsize")
     wkey = s.get_key(name + ".jpg","idigbio-sounds-" + env + "-webview")
-    
+
 
     if mkey.exists() and not all([fkey.exists(), wkey.exists(), tkey.exists()]):
         basefile = buff_from_key(mkey)
         w = Waveform(basefile,name=name)
-        d = w.save(toFile=False)    
+        d = w.save(toFile=False)
 
         if not fkey.exists():
             fkey.set_metadata('Content-Type', 'image/jpeg')
@@ -178,7 +178,7 @@ def check_and_generate(name,env="prod"):
         return True
     else:
         db._cur.execute("UPDATE objects SET derivatives=true WHERE etag=%s", (name,))
-        return False            
+        return False
 
 def main():
     db._cur.execute("SELECT * FROM objects where derivatives=false and bucket='sounds'")

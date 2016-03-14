@@ -31,10 +31,10 @@ class IDigBioStorage(object):
         self.db = PostgresDB()
 
         if access_key is None:
-            access_key =  os.getenv("IDB_STORAGE_ACCESS_KEY")
+            access_key = os.getenv("IDB_STORAGE_ACCESS_KEY")
 
         if secret_key is None:
-            secret_key =  os.getenv("IDB_STORAGE_SECRET_KEY")
+            secret_key = os.getenv("IDB_STORAGE_SECRET_KEY")
 
         self.host = host
 
@@ -42,11 +42,11 @@ class IDigBioStorage(object):
         assert secret_key is not None
 
         self.boto_conn = boto.connect_s3(
-            aws_access_key_id = access_key,
-            aws_secret_access_key = secret_key,
-            host = host,
+            aws_access_key_id=access_key,
+            aws_secret_access_key=secret_key,
+            host=host,
             is_secure=False,
-            calling_format = boto.s3.connection.OrdinaryCallingFormat(),
+            calling_format=boto.s3.connection.OrdinaryCallingFormat(),
         )
 
     def get_bucket(self,bucket_name):
@@ -87,7 +87,7 @@ class IDigBioStorage(object):
         if mb_size > 1000:
             parts = self.split_file(key_name,file_name,mb_size)
             mp = bucket.initiate_multipart_upload(key_name)
-            try:        
+            try:
                 for i,part in enumerate(parts):
                     with open(part,"rb") as pf:
                         mp.upload_part_from_file(pf,i+1)
@@ -134,4 +134,4 @@ class IDigBioStorage(object):
 
     #     current_app.config["DB"]._cur.execute("INSERT INTO media (url,type,mime,last_status,last_check,owner) VALUES (SELECT %s,%s,%s,200,now(),%s WHERE NOT EXISTS (SELECT 1 FROM media WHERE url=%s))", (url,typ,detected_mime, config["env"]["IDB_UUID"],url))
     #     current_app.config["DB"]._cur.execute("INSERT INTO objects (bucket, etag, detected_mime) (SELECT %s, %s, %s WHERE NOT EXISTS (SELECT 1 FROM objects WHERE etag=%s))", (typ, h, detected_mime, h))
-    #     current_app.config["DB"]._cur.execute("INSERT INTO media_objects (url, etag) VALUES (%s,%s)", (url,h))        
+    #     current_app.config["DB"]._cur.execute("INSERT INTO media_objects (url, etag) VALUES (%s,%s)", (url,h))

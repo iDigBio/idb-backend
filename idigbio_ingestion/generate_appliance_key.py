@@ -29,8 +29,8 @@ api_key_e = _encrypt(api_key,config["env"]["IDB_CRYPT_KEY"])
 feeder_parent_id = "520dcbb3-f35a-424c-8778-6df11afc9f95"
 rs_rid = "http://feeder.idigbio.org/datasets/{0}".format(user_uuid)
 
-db._cur.execute("INSERT INTO idb_api_keys (user_uuid,apikey) VALUES (%s,%s)",(user_uuid,api_key_e))
-db.set_record(user_uuid,"recordset",feeder_parent_id,{},[rs_rid],[],commit=False)
+db.execute("INSERT INTO idb_api_keys (user_uuid,apikey) VALUES (%s,%s)",(user_uuid,api_key_e))
+db.set_record(user_uuid,"recordset",feeder_parent_id,{},[rs_rid],[])
 db.commit()
 
 print "#########################################################"

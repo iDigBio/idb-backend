@@ -248,7 +248,7 @@ db = PostgresDB()
 #                 "base_url": r["portal_url"],
 #                 "publisher_type": r["pub_type"],
 #                 "recordsets": {}
-#             },r["recordids"],[],commit=False)
+#             },r["recordids"],[])
 #             db.commit()
 #         except:
 #             print r
@@ -277,7 +277,7 @@ db = PostgresDB()
 #             desc["eml_link"] = r["eml_link"]
 #             desc["update"] = r["pub_date"].isoformat()
 #             parent = r["publisher_uuid"]
-#             db.set_record(u,"recordset",parent,desc,r["recordids"],[],commit=False)
+#             db.set_record(u,"recordset",parent,desc,r["recordids"],[])
 #             db._cur.execute("UPDATE recordsets SET eml_harvest_etag=%s, eml_harvest_date=%s,uuid=%s WHERE id=%s", (etag,datetime.datetime.now(),u,r["id"]))
 #             db.commit()
 #         except:

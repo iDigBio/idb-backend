@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 import logging
 import contextlib
+import uuid
 import sys
 
 import psycopg2.extensions
@@ -134,6 +135,8 @@ class GeventedConnPool(object):
     @contextlib.contextmanager
     def cursor(self, *args, **kwargs):
         isolation_level = kwargs.pop('isolation_level', None)
+        if kwargs.pop('named', False) is True:
+            kwargs['name'] = str(uuid.uuid4())
         with self.connection(isolation_level) as conn:
             yield conn.cursor(*args, **kwargs)
 

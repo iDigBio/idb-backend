@@ -14,7 +14,6 @@ import os
 import requests
 from requests.auth import HTTPBasicAuth
 import traceback
-import json
 import datetime
 
 from psycopg2.extensions import cursor
@@ -127,43 +126,40 @@ def write_urls_to_db(media_urls):
 
     inserted_urls = set()
 
-    inserts = 0
     scanned = 0
-    total_inserts = 0
     cur = db._get_ss_cursor()
     cur.execute(
         "SELECT type,data FROM idigbio_uuids_data WHERE type='mediarecord' and deleted=false")
     local_cur.execute("BEGIN")
     to_insert = []
     to_update = []
-    with open("url_out.json_null", "wb") as outf:
-        for r in cur:
-            scanned += 1
+    for r in cur:
+        scanned += 1
 
-            url = get_accessuri(r["type"], r["data"])["accessuri"]
+        url = get_accessuri(r["type"], r["data"])["accessuri"]
 
-            o = get_media_type(r["type"], r["data"])
+        o = get_media_type(r["type"], r["data"])
 
-            form = o["format"]
-            t = o["mediatype"]
+        form = o["format"]
+        t = o["mediatype"]
 
-            if url is not None:
-                url = url.replace("&amp;", "&").strip()
+        if url is not None:
+            url = url.replace("&amp;", "&").strip()
 
-                for p in ignore_prefix:
-                    if url.startswith(p):
-                        break
-                else:
-                    if url in media_urls:
-                        # We're going to change something, but only if we're adding/replacing things, not nulling existing values.
-                        if not (t, form) == media_urls[url] and form is not None and (t is not None or media_urls[url][0] is None):
-                            to_update.append((t, form, url))
-                    elif url not in inserted_urls:
-                        to_insert.append((url, t, form))
-                        inserted_urls.add(url)
+            for p in ignore_prefix:
+                if url.startswith(p):
+                    break
+            else:
+                if url in media_urls:
+                    # We're going to change something, but only if we're adding/replacing things, not nulling existing values.
+                    if not (t, form) == media_urls[url] and form is not None and (t is not None or media_urls[url][0] is None):
+                        to_update.append((t, form, url))
+                elif url not in inserted_urls:
+                    to_insert.append((url, t, form))
+                    inserted_urls.add(url)
 
-            if scanned % 100000 == 0:
-                print len(to_insert), len(to_update), scanned
+        if scanned % 100000 == 0:
+            print len(to_insert), len(to_update), scanned
 
     local_cur.executemany("INSERT INTO media (url,type,mime) VALUES (%s,%s,%s)", to_insert)
     local_cur.executemany("UPDATE media SET type=%s, mime=%s, last_status=NULL, last_check=NULL WHERE url=%s", to_update)

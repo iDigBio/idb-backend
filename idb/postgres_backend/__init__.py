@@ -19,8 +19,8 @@ psycopg2.extensions.register_type(psycopg2.extensions.UNICODEARRAY)
 
 pg_conf = copy.deepcopy(config["postgres"])
 
-prefix = config["postgres"].pop("db_prefix", "")
-suffix = config["postgres"].pop("db_suffix", "")
+prefix = pg_conf.pop("db_prefix", "")
+suffix = pg_conf.pop("db_suffix", "")
 
 pg_conf["database"] = prefix + "api" + suffix
 pg_conf["cursor_factory"] = DictCursor

@@ -68,13 +68,13 @@ def create_tables():
 
     db.commit()
 
-def id_func(e):
+def id_func(portal_url, e):
     id = None
     if "id" in e:   # feedparser magic maps various fields to "id"
         id = e["id"]
     elif "collid" in e:
         id = "{0}collections/misc/collprofiles.php?collid={1}".format(
-            self.portal_url, e["collid"])
+            portal_url, e["collid"])
 
     if id is not None:
         # Strip version from ipt ids
@@ -159,7 +159,7 @@ def update_db_from_rss():
                 )
 
                 for e in feed['entries']:
-                    recordid = id_func(e)
+                    recordid = id_func(r['portal_url'], e)
 
                     rsid = None
                     ingest = auto_publish

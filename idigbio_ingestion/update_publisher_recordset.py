@@ -1,3 +1,4 @@
+# must set PYTHONPATH environment variable to the top level prior to running this script
 import feedparser
 assert feedparser.__version__ >= "5.2.0"
 import re
@@ -5,19 +6,16 @@ import datetime
 import dateutil.parser
 import time
 import requests
-from requests.auth import HTTPBasicAuth
-import traceback
-import uuid
 import os
 
-# must set PYTHONPATH environment variable to the top level prior to running this script
+from requests.auth import HTTPBasicAuth
 
 from idb.postgres_backend.db import PostgresDB
-
-from lib.util import download_file
 from idb.helpers.etags import calcFileHash
-from lib.eml import parseEml
-from lib.log import logger
+
+from idigbio_ingestion.lib.util import download_file
+from idigbio_ingestion.lib.eml import parseEml
+from idigbio_ingestion.lib.log import logger
 
 #### disabling warnings per https://urllib3.readthedocs.org/en/latest/security.html#disabling-warnings
 ## Would rather have warnings go to log but could not get logging.captureWarnings(True) to work.
@@ -99,7 +97,7 @@ def update_db_from_rss():
     pub_recs = db._cur.fetchall()
     for r in pub_recs:
         feedisgood = True
-        logger.info("Publisher Feed: {0} {1}".format(r["uuid"], r["rss_url"]))
+        logger.info("Publisher Feed: %s %s", r["uuid"], r["rss_url"])
         # Quick check on the feed url since feedparser does not have a timeout parameter
         try:
             feedtest = requests.get(r["rss_url"],timeout=10)
@@ -109,7 +107,7 @@ def update_db_from_rss():
             pass
         except:
             feedisgood = False
-            logger.error("Failed to read {0}".format(r["rss_url"]))
+            logger.error("Failed to read %s", r["rss_url"])
 
         if feedisgood:
             try:
@@ -132,7 +130,8 @@ def update_db_from_rss():
 
                 auto_publish = r["auto_publish"]
 
-                logger.info("Update Publisher id:"+str(r["id"]) + " " + pub_uuid + " " + name )
+                logger.info("Update Publisher id:%s %s %s",
+                            r["id"], pub_uuid, name)
 
                 pub_date = None
                 if "published_parsed" in feed["feed"]:
@@ -141,26 +140,23 @@ def update_db_from_rss():
                     pub_date = struct_to_datetime(feed["updated_parsed"])
                 elif "updated_parsed" in feed["feed"]:
                     pub_date = struct_to_datetime(feed["feed"]["updated_parsed"])
-
-                db._cur.execute("""UPDATE publishers SET
-                        name=%(name)s,
-                        last_seen=%(last_seen)s,
-                        pub_date=%(pub_date)s,
-                        uuid=%(uuid)s
-                        WHERE id=%(id)s
-                    """,
-                    {
-                        "id": r["id"],
-                        "name": name,
-                        "uuid": pub_uuid,
-                        "last_seen": datetime.datetime.now(),
-                        "pub_date": pub_date,
-                    }
-                )
+                sql = ("""UPDATE publishers
+                          SET name=%(name)s,
+                              last_seen=%(last_seen)s,
+                              pub_date=%(pub_date)s,
+                              uuid=%(uuid)s
+                          WHERE id=%(id)s""",
+                       {
+                           "id": r["id"],
+                           "name": name,
+                           "uuid": pub_uuid,
+                           "last_seen": datetime.datetime.now(),
+                           "pub_date": pub_date,
+                       })
+                db._cur.execute(*sql)
 
                 for e in feed['entries']:
                     recordid = id_func(r['portal_url'], e)
-
                     rsid = None
                     ingest = auto_publish
                     recordids = [recordid]
@@ -210,45 +206,46 @@ def update_db_from_rss():
                         rs_name = recordid
 
                     if recordset is None:
-                        db._cur.execute(
+                        sql = (
                             """INSERT INTO recordsets
-                                (uuid, publisher_uuid, name, recordids, eml_link, file_link, ingest, pub_date)
-                                VALUES (%s,%s,%s,%s,%s,%s,%s,%s)
+                                 (uuid, publisher_uuid, name, recordids, eml_link, file_link, ingest, pub_date)
+                               VALUES (%s,%s,%s,%s,%s,%s,%s,%s)
                             """,
-                            (rsid, pub_uuid, rs_name, recordids, eml_link, file_link, ingest, date)
-                        )
-                        logger.info("Create Recordset " + recordid + " " + name)
+                            (rsid, pub_uuid, rs_name, recordids, eml_link, file_link, ingest, date))
+                        db._cur.execute(*sql)
+                        logger.info("Create Recordset %s %s", recordid, name)
                     else:
-                        db._cur.execute("""UPDATE recordsets SET
-                                publisher_uuid=%(publisher_uuid)s,
-                                eml_link=%(eml_link)s,
-                                file_link=%(file_link)s,
-                                last_seen=%(last_seen)s,
-                                pub_date=%(pub_date)s
-                                WHERE id=%(id)s
-                            """,
-                            {
-                                "publisher_uuid": pub_uuid,
-                                "name": rs_name,
-                                "recordids": recordids,
-                                "eml_link": eml_link,
-                                "file_link": file_link,
-                                "last_seen": datetime.datetime.now(),
-                                "pub_date": date,
-                                "id": recordset["id"]
-                            }
-                        )
-                        logger.info("Update Recordset id:" + str(recordset["id"]) + " " + recordid + " " + name)
+                        sql = ("""UPDATE recordsets
+                                  SET publisher_uuid=%(publisher_uuid)s,
+                                      eml_link=%(eml_link)s,
+                                      file_link=%(file_link)s,
+                                      last_seen=%(last_seen)s,
+                                      pub_date=%(pub_date)s
+                                  WHERE id=%(id)s""",
+                               {
+                                   "publisher_uuid": pub_uuid,
+                                   "name": rs_name,
+                                   "recordids": recordids,
+                                   "eml_link": eml_link,
+                                   "file_link": file_link,
+                                   "last_seen": datetime.datetime.now(),
+                                   "pub_date": date,
+                                   "id": recordset["id"]
+                               })
+                        db._cur.execute(*sql)
+                        logger.info("Update Recordset id:%s %s %s",
+                                    recordset["id"], recordid, name)
 
-
-                db.set_record(pub_uuid,"publisher","872733a2-67a3-4c54-aa76-862735a5f334",{
-                    "rss_url": r["rss_url"],
-                    "name": name,
-                    "auto_publish": r["auto_publish"],
-                    "base_url": r["portal_url"],
-                    "publisher_type": r["pub_type"],
-                    "recordsets": {}
-                },r["recordids"],[],commit=False)
+                db.set_record(pub_uuid, "publisher", "872733a2-67a3-4c54-aa76-862735a5f334",
+                              {
+                                  "rss_url": r["rss_url"],
+                                  "name": name,
+                                  "auto_publish": r["auto_publish"],
+                                  "base_url": r["portal_url"],
+                                  "publisher_type": r["pub_type"],
+                                  "recordsets": {}
+                              },
+                              r["recordids"], [], commit=False)
                 db.commit()
             except:
                 print r
@@ -257,18 +254,23 @@ def update_db_from_rss():
 
 def harvest_eml():
     s = requests.Session()
-    db._cur.execute("SELECT * FROM recordsets WHERE eml_link IS NOT NULL AND ingest=true AND pub_date < now() AND (eml_harvest_date IS NULL OR eml_harvest_date < pub_date)")
+    sql = """SELECT *
+             FROM recordsets
+             WHERE eml_link IS NOT NULL
+               AND ingest=true
+               AND pub_date < now()
+               AND (eml_harvest_date IS NULL OR eml_harvest_date < pub_date)"""
+    db._cur.execute(sql)
     recs = db._cur.fetchall()
     for r in recs:
-        logger.info("Harvest EML " + str(r["id"]) + " " + r["name"])
+        logger.info("Harvest EML %s %s", r["id"], r["name"])
         fname = "{0}.eml".format(r["id"])
-        if not download_file(r["eml_link"],fname):
-            logger.error("failed Harvest EML " + str(r["id"]) + " " + r["name"])
+        if not download_file(r["eml_link"], fname):
+            logger.error("failed Harvest EML %s %s", r["id"], r["name"])
         else:
             try:
                 etag = calcFileHash(fname)
                 u = r["uuid"]
-                #logger.debug("u = " + u)
                 if u is None:
                     u, _, _ = db.get_uuid(r["recordids"])
                 desc = {}
@@ -279,12 +281,15 @@ def harvest_eml():
                 desc["eml_link"] = r["eml_link"]
                 desc["update"] = r["pub_date"].isoformat()
                 parent = r["publisher_uuid"]
-                db.set_record(u,"recordset",parent,desc,r["recordids"],[],commit=False)
-                db._cur.execute("UPDATE recordsets SET eml_harvest_etag=%s, eml_harvest_date=%s,uuid=%s WHERE id=%s", (etag,datetime.datetime.now(),u,r["id"]))
+                db.set_record(u, "recordset", parent, desc, r["recordids"], [], commit=False)
+                sql = ("""UPDATE recordsets
+                          SET eml_harvest_etag=%s, eml_harvest_date=%s, uuid=%s
+                          WHERE id=%s""",
+                       (etag, datetime.datetime.now(), u, r["id"]))
+                db._cur.execute(*sql)
                 db.commit()
             except:
-                logger.error("failed Harvest EML " + str(r["id"]) + " " + r["name"])
-                traceback.print_exc()
+                logger.exception("failed Harvest EML %s %s", r["id"], r["name"])
         if os.path.exists(fname):
             os.unlink(fname)
 
@@ -292,35 +297,49 @@ def upload_recordset_to_mediaapi(rsid, fname):
     try:
         with open(fname,'rb') as inf:
             files = {'file': inf}
-            r = requests.post("http://media.idigbio.org/upload/datasets", files=files, data={"filereference": "http://api.idigbio.org/v1/recordsets/"+rsid}, auth=auth)
+            r = requests.post("http://media.idigbio.org/upload/datasets",
+                              files=files,
+                              data={"filereference": "http://api.idigbio.org/v1/recordsets/" + rsid},
+                              auth=auth)
             r.raise_for_status()
         return True
     except KeyboardInterrupt:
         raise
-    except Exception,e:
-        logger.error("failed to post recordset " + rsid)
-        traceback.print_exc()
+    except Exception:
+        logger.exception("failed to post recordset %s", rsid)
         return False
 
-auth=HTTPBasicAuth(os.environ["IDB_UUID"],os.environ["IDB_APIKEY"])
+auth = HTTPBasicAuth(os.environ["IDB_UUID"], os.environ["IDB_APIKEY"])
 def harvest_file():
     s = requests.Session()
-    db._cur.execute("SELECT * FROM recordsets WHERE file_link IS NOT NULL AND uuid IS NOT NULL AND ingest=true AND pub_date < now() AND (file_harvest_date IS NULL OR file_harvest_date < pub_date)")
+    sql = """SELECT *
+             FROM recordsets
+             WHERE file_link IS NOT NULL
+               AND uuid IS NOT NULL
+               AND ingest=true
+               AND pub_date < now()
+               AND (file_harvest_date IS NULL OR file_harvest_date < pub_date)"""
+    db._cur.execute(sql)
     recs = db._cur.fetchall()
     for r in recs:
-        logger.info("Harvest File " + str(r["id"]) + " " + r["name"])
+        logger.info("Harvest File %s %s", r["id"], r["name"])
         fname = "{0}.file".format(r["id"])
         try:
             download_file(r["file_link"],fname)
             etag = calcFileHash(fname)
             if etag != r["file_harvest_etag"]:
                 upload_recordset_to_mediaapi(r["uuid"], fname)
-            db._cur.execute("UPDATE recordsets SET file_harvest_etag=%s, file_harvest_date=%s WHERE id=%s", (etag,datetime.datetime.now(),r["id"]))
+            sql = ("""UPDATE recordsets
+                      SET file_harvest_etag=%s, file_harvest_date=%s
+                      WHERE id=%s""",
+                   (etag, datetime.datetime.now(), r["id"]))
+            db._cur.execute(*sql)
             db.commit()
         except:
-            traceback.print_exc()
+            logger.exception("Error processing id:%s url:%s", r['id'], r['file_link'])
         if os.path.exists(fname):
             os.unlink(fname)
+
 
 def main():
     # create_tables()

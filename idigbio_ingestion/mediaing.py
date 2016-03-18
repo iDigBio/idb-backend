@@ -61,6 +61,8 @@ ignore_prefix = [
     "http://firuta.huh.harvard.edu/"
 ]
 
+user_agent = {'User-Agent': 'iDigBio Media Ingestor (idigbio@acis.ufl.edu https://www.idigbio.org/wiki/index.php/Media_Ingestor)'}
+
 def get_media(tup, cache_bad=False):
     url, t, fmt = tup
 
@@ -76,7 +78,7 @@ def get_media(tup, cache_bad=False):
                 print "Skip", url, t, fmt, p
                 return False
 
-        media_req = s.get(url)
+        media_req = s.get(url, headers = user_agent)
         media_status = media_req.status_code
         media_req.raise_for_status()
 

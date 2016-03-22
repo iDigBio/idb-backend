@@ -120,11 +120,13 @@ class GeventedConnPool(object):
         self.closed = True
 
     @contextlib.contextmanager
-    def connection(self, isolation_level=None):
+    def connection(self, isolation_level=None, autocommit=None):
         conn = self.get()
         try:
             if isolation_level is not None and isolation_level != conn.isolation_level:
                 conn.set_isolation_level(isolation_level)
+            if autocommit is not None:
+                conn.autocommit = autocommit
             yield conn
             conn.commit()
         finally:
@@ -134,10 +136,14 @@ class GeventedConnPool(object):
 
     @contextlib.contextmanager
     def cursor(self, *args, **kwargs):
-        isolation_level = kwargs.pop('isolation_level', None)
+        connargs = {
+            'isolation_level': kwargs.pop('isolation_level', None),
+            'autocommit':kwargs.pop('autocommit', None)
+        }
+
         if kwargs.pop('named', False) is True:
             kwargs['name'] = str(uuid.uuid4())
-        with self.connection(isolation_level) as conn:
+        with self.connection(**connargs) as conn:
             yield conn.cursor(*args, **kwargs)
 
 
@@ -150,6 +156,13 @@ class GeventedConnPool(object):
         with self.cursor(**kwargs) as cursor:
             cursor.execute(*args)
             return cursor.rowcount
+
+    def executemany(self, *args, **kwargs):
+        """Pasthrough to cursor.executemany
+
+        kwargs to cursor, positional args to executemany"""
+        with self.cursor(**kwargs) as cursor:
+            cursor.executemany(*args)
 
     def fetchone(self, *args, **kwargs):
         """like cursor.fetchone

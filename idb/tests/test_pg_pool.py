@@ -119,6 +119,20 @@ def test_transaction_isolation_reset(pool1):
     gevent.wait(timeout=1)
     assert pool1.pool.qsize() <= pool1.maxsize
 
+def test_autocomit_reset(pool1):
+    _conn = None
+    with pool1.connection() as conn:
+        _conn = conn
+        conn.autocommit = True
+    gevent.wait(timeout=1)
+    assert _conn.autocommit is False
+
+    with pool1.connection(autocommit=True) as conn:
+        _conn = conn
+        assert conn.autocommit is True
+    gevent.wait(timeout=1)
+    assert _conn.autocommit is False
+
 
 def test_cursor_type(pool1):
     with pool1.cursor(cursor_factory=RealDictCursor) as cur:

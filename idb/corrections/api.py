@@ -39,8 +39,8 @@ def correct_record():
     else:
         d,ck = rc.correct_record(data)
 
-        g = grabAll(t,d)
-        i =  prepForEs(t,g)
+        g = grabAll(t, d)
+        i = prepForEs(t, g)
         dwc_rec = {}
         for k in i:
             dwc_rec[index_field_to_longname[t][k]] = i[k]

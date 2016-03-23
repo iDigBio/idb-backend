@@ -1,5 +1,7 @@
-from __future__ import absolute_import
-from __future__ import print_function
+from __future__ import division, absolute_import
+from __future__ import print_function, unicode_literals
+from future_builtins import map, filter
+
 import traceback
 import cStringIO
 import sys
@@ -25,83 +27,113 @@ ENV = 'prod'
 log = getIDigBioLogger('derivatives')
 
 
-GenerateItem = namedtuple(
-    'GenerateItem', ['etag', 'bucket', 'media', 'thumbnail', 'fullsize', 'webview'])
+CheckItem = namedtuple(
+    'CheckItem', ['etag', 'bucket', 'media', 'thumbnail', 'fullsize', 'webview'])
 
-GenerateResult = namedtuple('GenerateResult', ['etag', 'desc'])
+GenerateResult = namedtuple('GenerateResult', ['etag', 'items'])
+GenerateItem = namedtuple('GenerateItem', ['key', 'data'])
+CopyItem = namedtuple('CopyItem', ['key', 'data'])
 
 
 def main(bucket):
     sql = ("SELECT etag, bucket FROM objects where derivatives=false and bucket=%s",
            (bucket,))
     objects = apidbpool.fetchall(sql, cursor_factory=NamedTupleCursor)
-    process_objects(objects)
-
-
-def process_objects(objects):
-    log.info("Checking derivatives for %d objects", objects)
     pool = Pool(10)
+    results = process_objects(objects, pool)
+
+    def create_items(gr):
+        for item in gr.items:
+            upload_item(item)
+        return gr.etag
+    etags = pool.imap_unordered(create_items, results)
+
+    apidbpool.executemany(
+        "SELECT etag, bucket FROM objects where derivatives=false and bucket=%s",
+        etags,
+        autocommit=True
+    )
+    pool.join()
+
+
+def process_objects(objects, pool):
+    log.info("Checking derivatives for %d objects", objects)
     c = Counter()
-    with apidbpool.connection() as conn:
-        with conn.cursor() as cursor:
-            items = pool.imap_unordered(get_keys, objects, maxsize=100)
-            items = pool.imap_unordered(generate_all, items, maxsize=100)
-            for count, result in enumerate(items):
-                c[result.desc] += 1
-                if result.desc != 'erred':
-                    sql = ("UPDATE objects SET derivatives=true WHERE etag=%s",
-                           (result.etag, ))
-                    cursor.execute(*sql)
-                if count % 100 == 0:
-                    log.info("Generated: %10d  Existed:%10d  Erred: %10d",
-                             c['generated'], c['existed'], c['erred'])
-                    conn.commit()
-            conn.commit()
+    items = pool.imap_unordered(get_keys, objects, maxsize=100)
+    items = pool.imap_unordered(check_and_generate, items, maxsize=100)
+
+    for count, result in enumerate(items):
+        if result is None:
+            c['erred'] += 1
+        else:
+            if len(result.items):
+                c['generated'] += 1
+            else:
+                c['existed'] += 1
+
+            yield result.etag
+
+        if count % 100 == 0:
+            log.info("Generated: %10d  Existed:%10d  Erred: %10d",
+                     c['generated'], c['existed'], c['erred'])
 
     log.info("Generated: %10d  Existed:%10d  Erred: %10d",
              c['generated'], c['existed'], c['erred'])
+
 
 def get_keys(obj):
     etag, bucket = obj.etag, obj.bucket
     s = IDigBioStorage()
     bucketbase = "idigbio-{0}-{1}".format(bucket, ENV)
-    return GenerateItem(etag, bucket,
-                        s.get_key(etag),
-                        s.get_key(etag + ".jpg", bucketbase + "-thumbnail"),
-                        s.get_key(etag + ".jpg", bucketbase + "-fullsize"),
-                        s.get_key(etag + ".jpg", bucketbase + "-webview"))
+    return CheckItem(etag, bucket,
+                     s.get_key(etag, bucketbase),
+                     s.get_key(etag + ".jpg", bucketbase + "-thumbnail"),
+                     s.get_key(etag + ".jpg", bucketbase + "-fullsize"),
+                     s.get_key(etag + ".jpg", bucketbase + "-webview"))
+
+
+def check_and_generate(item):
+    try:
+        return GenerateResult(item.etag, list(filter(None, generate_all(item))))
+    except:
+        log.exception("Failed generating: %s", item.etag)
+        return None
 
 
 def generate_all(item):
-    try:
-        # check if thumbnail exists as proxy for everything existing
-        if item.thumbnail.exists():
-            return GenerateResult(item.etag, 'existed')
-
-        img = get_img(item)
-        if not item.fullsize.exists():
-            if item.bucket == 'images' and img.format == 'JPEG':
-                copy_key_as_jpeg(item.media, item.fullsize)
-            else:
-                generate_deriv(item, img, 'fullsize')
-        generate_deriv(item, img, 'thumbnail')
-        generate_deriv(item, img, 'webview')
-        return GenerateResult(item.etag, 'generated')
-    except:
-        return GenerateResult(item.etag, 'erred')
-        log.exception("Failed generating: %s", item.etag)
+    # check if thumbnail exists as proxy for everything existing
+    if item.thumbnail.exists():
+        return
+    img = get_media_img(item.media)
+    yield build_deriv(item, img, 'fullsize')
+    yield build_deriv(item, img, 'thumbnail')
+    yield build_deriv(item, img, 'webview')
 
 
-def generate_deriv(item, img, deriv):
+def build_deriv(item, img, deriv):
     key = getattr(item, deriv)
     if key.exists():
         return
 
+    if deriv == 'fullsize' and item.bucket == 'images' and img.format == 'JPEG':
+        return CopyItem(item.fullsize, item.media)
+
     if deriv != 'fullsize':
         img = resize_image(img, deriv)
     buff = img_to_buffer(img, format='JPEG', quality=95)
-    key.set_metadata('Content-Type', 'image/jpeg')
-    key.set_contents_from_file(buff)
+    return GenerateItem(key, buff)
+
+
+def upload_item(item):
+    key = item.key
+    data = item.data
+    if isinstance(item, CopyItem):
+        data.copy(dst_bucket=key.bucket,
+                  dst_key=key.name,
+                  metadata={'Content-Type': 'image/jpeg'})
+    else:
+        key.set_metadata('Content-Type', 'image/jpeg')
+        key.set_contents_from_file(data)
     key.make_public()
 
 
@@ -136,24 +168,21 @@ def resize_image(img, deriv):
         return img
 
 
-def get_img(item):
-    buff = key_to_buffer(item.media)
-    if item.bucket == 'sounds':
+def get_media_img(key):
+    buff = key_to_buffer(key)
+    if 'sounds' in key.bucket.name:
+        log.debug("Converting wave to img %s", key.name)
         return wave_to_img(buff)
     else:
-        return Image.open(buff).convert('RGB')
+        img = Image.open(buff)
+        if img.mode != 'RGB':
+            img = img.convert('RGB')
+        return img
 
 def wave_to_img(buff):
     from idigbio_ingestion.lib.waveform import Waveform
     return Waveform(buff).generate_waveform_image()
 
-
-def copy_key_as_jpeg(from_key, to_key):
-    from_key.copy(dst_bucket=to_key.bucket,
-                  dst_key=to_key.name,
-                  metadata={'Content-Type': 'image/jpeg'})
-    if to_key.exists():
-        to_key.make_public()
 
 if __name__ == '__main__':
     patch_all()

@@ -1,0 +1,3 @@
+pydub
+pillow
+Python-fontconfig

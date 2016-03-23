@@ -1,5 +1,4 @@
-from locality_data import *
-
+from .locality_data import string_to_iso_code, implied_parent, kl
 
 def get_data():
     aggs_fields = ["continent", "country", "stateprovince"]

@@ -99,7 +99,7 @@ class IDigBioStorage(object):
         k.make_public()
         return k
 
-    def get_file_by_url(self,url, file_name=None):
+    def get_key_by_url(self, url):
         sql = ("""SELECT objects.bucket, objects.etag
             FROM media
             LEFT JOIN media_objects ON media.url = media_objects.url
@@ -110,10 +110,12 @@ class IDigBioStorage(object):
         r = apidbpool.fetchone(*sql, cursor_factory=NamedTupleCursor)
         if r is None:
             raise Exception("No media with url {0!r}".format(url))
-        k = self.get_key(r.etag, "idigbio-{}-prod".format(r.bucket))
+        return self.get_key(r.etag, "idigbio-{}-prod".format(r.bucket))
 
+    def get_file_by_url(self, url, file_name=None):
+        k = self.get_key_by_url(url)
         if file_name is None:
-            file_name = r.etag
+            file_name = k.name
 
         k.get_contents_to_filename(file_name)
         return file_name

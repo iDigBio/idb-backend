@@ -252,9 +252,9 @@ def set_deriv_from_ceph():
 
 def get_media_generator():
     local_cur.execute("""SELECT * FROM (
-        SELECT substring(url from 'https?://[^/]*/'), count(*) FROM (
+        SELECT substring(url from 'https?://[^/]*[/?]'), count(*) FROM (
             SELECT media.url, media_objects.etag FROM media LEFT JOIN media_objects ON media.url = media_objects.url WHERE type IS NOT NULL AND (last_status IS NULL or (last_status >= 400 and last_check < now() - '1 month'::interval))
-        ) AS a WHERE a.etag IS NULL GROUP BY substring(url from 'https?://[^/]*/')
+        ) AS a WHERE a.etag IS NULL GROUP BY substring(url from 'https?://[^/]*[/?]')
     ) AS b WHERE substring != '' ORDER BY count""")
     subs_rows = local_cur.fetchall()
     for sub_row in subs_rows:

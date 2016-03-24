@@ -2,13 +2,12 @@ import unittest
 
 import os
 import sys
-import pytz
 
 sys.path.append(
     os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(__file__)))))
 
-from helpers.query_shim import *
-import copy
+from idigbio_workers.lib.query_shim import *  # noqa
+
 
 
 class TestIsString(unittest.TestCase):

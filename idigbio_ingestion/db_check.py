@@ -105,7 +105,6 @@ def get_file(rsid):
 def get_db_dicts(rsid):
     id_uuid = {}
     uuid_etag = {}
-    db = PostgresDB()
     for t in ["record", "mediarecord"]:
         id_uuid[t + "s"] = {}
         uuid_etag[t + "s"] = {}

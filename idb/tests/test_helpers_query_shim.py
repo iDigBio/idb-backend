@@ -9,7 +9,6 @@ sys.path.append(
 from idigbio_workers.lib.query_shim import *  # noqa
 
 
-
 class TestIsString(unittest.TestCase):
 
     def test_is_string(self):
@@ -274,6 +273,7 @@ class TestQueryFromShim(unittest.TestCase):
                 "filtered": {"filter": {"and": [{"terms": {"execution": "or", "hasImage": [True, False]}}]}}}},
             queryFromShim({"hasImage": [True, False]})
         )
+
 
 if __name__ == "__main__":
     unittest.main()

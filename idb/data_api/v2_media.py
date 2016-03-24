@@ -9,7 +9,7 @@ from idb.helpers.idb_flask_authn import requires_auth
 from idb.helpers.cors import crossdomain
 from idb.helpers.storage import IDigBioStorage
 
-from .common import json_error
+from .common import json_error, idbmodel
 
 this_version = Blueprint(__name__, __name__)
 
@@ -103,10 +103,10 @@ def lookup_uuid(u, format):
     elif "size" in request.args:
         deriv = request.args["size"]
 
-    rec = current_app.config["DB"].get_item(str(u))
+    rec = idbmodel.get_item(str(u))
     if rec is not None:
         ref = get_accessuri(rec["type"], rec["data"])["accessuri"]
-        current_app.config["DB"]._cur.execute(
+        r = idbmodel.fetchone(
             """SELECT media.url, media.type, objects.etag, modified, owner,
                       derivatives, media.mime, last_status
             FROM media
@@ -114,9 +114,6 @@ def lookup_uuid(u, format):
             LEFT JOIN objects on media_objects.etag = objects.etag
             WHERE media.url=%s
         """, (ref,))
-        current_app.config["DB"]._pg.rollback()
-        r = current_app.config["DB"]._cur.fetchone()
-        #print r
         return respond_to_record(r, deriv=deriv, format=format)
     else:
         return json_error(404)
@@ -135,7 +132,7 @@ def lookup_etag(etag, format):
     elif "size" in request.args:
         deriv = request.args["size"]
 
-    current_app.config["DB"]._cur.execute(
+    r = idbmodel.fetchone(
         """SELECT media.url, media.type, objects.etag, modified, owner,
                   derivatives, media.mime, last_status
         FROM media
@@ -143,8 +140,6 @@ def lookup_etag(etag, format):
         LEFT JOIN objects on media_objects.etag = objects.etag
         WHERE objects.etag=%s
     """, (etag,))
-    current_app.config["DB"]._pg.rollback()
-    r = current_app.config["DB"]._cur.fetchone()
     return respond_to_record(r, deriv=deriv, format=format)
 
 
@@ -171,7 +166,7 @@ def lookup_ref(format):
                 params[pk] = request.args[ak]
 
     if "url" in params:
-        current_app.config["DB"]._cur.execute(
+        r = idbmodel.fetchone(
             """SELECT media.url, media.type, objects.etag, modified, owner,
                       derivatives, media.mime, last_status
             FROM media
@@ -179,9 +174,6 @@ def lookup_ref(format):
             LEFT JOIN objects on media_objects.etag = objects.etag
             WHERE media.url=%(url)s
         """, params)
-        current_app.config["DB"]._pg.rollback()
-        r = current_app.config["DB"]._cur.fetchone()
-        #print r
         return respond_to_record(r, deriv=deriv, format=format)
     else:
         where = "WHERE "
@@ -196,19 +188,15 @@ def lookup_ref(format):
         if len(where_a) > 0:
             where += " AND ".join(where_a)
 
-        current_app.config["DB"]._cur.execute(
+        results = idbmodel.fetchall(
             """SELECT media.url, media.type, objects.etag, modified, owner,
                       derivatives, media.mime, last_status
             FROM media
             LEFT JOIN media_objects ON media.url = media_objects.url
             LEFT JOIN objects on media_objects.etag = objects.etag
         """ + where + " LIMIT 100", params)
-        print current_app.config["DB"]._cur.query
-        current_app.config["DB"]._pg.rollback()
-
         files = []
-        for r in current_app.config["DB"]._cur:
-            print r
+        for r in results:
             files.append({
                 "filereference": r[0],
                 "url": url_for(".lookup_etag",
@@ -236,10 +224,8 @@ def upload():
 
     filereference = o["filereference"][0]
 
-    current_app.config["DB"]._cur.execute(
+    r = idbmodel.fetchone(
         """SELECT url, type, owner FROM media WHERE url=%s""", (filereference,))
-    current_app.config["DB"]._pg.rollback()
-    r = current_app.config["DB"]._cur.fetchone()
 
     if (r is not None and r[2] != request.authorization.username):
         return json_error(403)
@@ -271,21 +257,22 @@ def upload():
                              md5=k.get_md5_from_hexdigest(h))
     k.make_public()
     if r is None:
-        current_app.config["DB"]._cur.execute(
+        idbmodel.execute(
             "INSERT INTO media (url,type,mime,last_status,last_check,owner) VALUES (%s,%s,%s,200,now(),%s)",
             (filereference, mt["mediatype"], mime,
              request.authorization.username))
     else:
-        current_app.config["DB"]._cur.execute(
+        idbmodel.execute(
             "UPDATE media SET last_check=now(), last_status=200, type=%s, mime=%s WHERE url=%s",
             (mt["mediatype"], mime, filereference))
-    current_app.config["DB"]._cur.execute(
-        "INSERT INTO objects (bucket, etag, detected_mime) (SELECT %s, %s, %s WHERE NOT EXISTS (SELECT 1 FROM objects WHERE etag=%s))",
+    idbmodel.execute(
+        """INSERT INTO objects (bucket, etag, detected_mime)
+           (SELECT %s, %s, %s WHERE NOT EXISTS (SELECT 1 FROM objects WHERE etag=%s))""",
         (mt["mediatype"], h, detected_mime, h))
-    current_app.config["DB"]._cur.execute(
+    idbmodel.execute(
         "INSERT INTO media_objects (url, etag) VALUES (%s,%s)", (
             filereference, h))
-    current_app.config["DB"]._pg.commit()
+    idbmodel.commit()
     return jsonify({
         "file_size": size,
         "file_name": unicode(file.filename),

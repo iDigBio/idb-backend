@@ -5,8 +5,8 @@ from flask import Flask, jsonify, request, abort, url_for
 from flask.ext.uuid import FlaskUUID
 
 from idb.helpers.cors import crossdomain
-
-from idb.postgres_backend.db import PostgresDB
+from idb.postgres_backend import apidbpool
+from idb.data_api.common import idbmodel
 
 app = Flask(__name__)
 FlaskUUID(app)
@@ -15,7 +15,8 @@ app.config.from_object('idb.data_api.config')
 
 app.url_map.strict_slashes = False
 
-app.config["DB"] = PostgresDB()
+app.config["DB"] = apidbpool
+idbmodel.init_app(app)
 
 from .v1 import this_version as v1
 from .v2 import this_version as v2

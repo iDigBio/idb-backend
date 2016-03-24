@@ -6,10 +6,7 @@ import traceback
 
 from .encryption import _encrypt
 from idb.config import config
-from idb.postgres_backend.db import PostgresDB
 
-db = PostgresDB()
-cur = db.cursor()
 
 def check_auth(username, password):
     """This function is called to check if a username /
@@ -20,20 +17,23 @@ def check_auth(username, password):
         annotations = "/v2/anotations" in request.url
         objects = "/v2/media" in request.url
         if corrections:
-            cur.execute("SELECT * FROM idb_api_keys WHERE user_uuid=%s and apikey=%s and corrections_allowed=true",(username, _encrypt(password,os.environ["IDB_CRYPT_KEY"])))
+            sql = ("SELECT * FROM idb_api_keys WHERE user_uuid=%s and apikey=%s and corrections_allowed=true",
+                   (username, _encrypt(password,os.environ["IDB_CRYPT_KEY"])))
         elif annotations:
-            cur.execute("SELECT * FROM idb_api_keys WHERE user_uuid=%s and apikey=%s and annotations_allowed=true",(username, _encrypt(password,os.environ["IDB_CRYPT_KEY"])))
+            sql = ("SELECT * FROM idb_api_keys WHERE user_uuid=%s and apikey=%s and annotations_allowed=true",
+                   (username, _encrypt(password,os.environ["IDB_CRYPT_KEY"])))
         elif objects:
-            cur.execute("SELECT * FROM idb_api_keys WHERE user_uuid=%s and apikey=%s and objects_allowed=true",(username, _encrypt(password,os.environ["IDB_CRYPT_KEY"])))
+            sql = ("SELECT * FROM idb_api_keys WHERE user_uuid=%s and apikey=%s and objects_allowed=true",
+                   (username, _encrypt(password,os.environ["IDB_CRYPT_KEY"])))
         else:
-            cur.execute("SELECT * FROM idb_api_keys WHERE user_uuid=%s and apikey=%s and records_allowed=true",(username, _encrypt(password,os.environ["IDB_CRYPT_KEY"])))
-        r = cur.fetchone()
+            sql = ("SELECT * FROM idb_api_keys WHERE user_uuid=%s and apikey=%s and records_allowed=true",
+                   (username, _encrypt(password,os.environ["IDB_CRYPT_KEY"])))
+        r = current_app.config["DB"].fetchone(*sql)
         if r is not None:
             return True
         else:
             return False
     except:
-        db.rollback()
         return False
 
 

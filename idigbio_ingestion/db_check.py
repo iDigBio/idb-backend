@@ -1,13 +1,9 @@
 import os
 import sys
-import uuid
-import gc
 import re
 import datetime
 import traceback
 
-import requests
-import shutil
 import magic
 import json
 import logging

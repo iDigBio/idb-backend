@@ -20,7 +20,6 @@ from idb.helpers.storage import IDigBioStorage
 
 from idb.stats_collector import es, indexName
 
-db = PostgresDB()
 magic = magic.Magic(mime=True)
 
 bad_chars = u"\ufeff"
@@ -132,7 +131,7 @@ unconsumed_extensions = {}
 core_siblings = {}
 
 
-def process_subfile(rf, rsid, rs_uuid_etag, rs_id_uuid, ingest=False):
+def process_subfile(rf, rsid, rs_uuid_etag, rs_id_uuid, ingest=False, db=None):
     count = 0
     no_recordid_count = 0
     duplicate_record_count = 0
@@ -357,15 +356,16 @@ def process_file(fname, mime, rsid, existing_etags, existing_ids, ingest=False, 
     counts = {}
     t = datetime.datetime.now()
     filehash = calcFileHash(fname)
+    db = PostgresDB()
 
     if mime == "application/zip":
         dwcaobj = Dwca(fname, skipeml=True, logname="idigbio")
         for dwcrf in dwcaobj.extensions:
             counts[dwcrf.name] = process_subfile(
-                dwcrf, rsid, existing_etags, existing_ids, ingest=ingest)
+                dwcrf, rsid, existing_etags, existing_ids, ingest=ingest, db=db)
             dwcrf.close()
         counts[dwcaobj.core.name] = process_subfile(
-            dwcaobj.core, rsid, existing_etags, existing_ids, ingest=ingest)
+            dwcaobj.core, rsid, existing_etags, existing_ids, ingest=ingest, db=db)
         dwcaobj.core.close()
         dwcaobj.close()
     elif mime == "text/plain":
@@ -376,12 +376,12 @@ def process_file(fname, mime, rsid, existing_etags, existing_ids, ingest=False, 
         if commas:
             csvrf = DelimitedFile(fname, logname="idigbio")
             counts[fname] = process_subfile(
-                csvrf, rsid, existing_etags, existing_ids, ingest=ingest)
+                csvrf, rsid, existing_etags, existing_ids, ingest=ingest, db=db)
         else:
             tsvrf = DelimitedFile(
                 fname, delimiter="\t", fieldenc=None, logname="idigbio")
             counts[fname] = process_subfile(
-                tsvrf, rsid, existing_etags, existing_ids, ingest=ingest)
+                tsvrf, rsid, existing_etags, existing_ids, ingest=ingest, db=db)
 
     commited = False
     if ingest:
@@ -408,10 +408,13 @@ def process_file(fname, mime, rsid, existing_etags, existing_ids, ingest=False, 
         else:
             logger.error("Rollback")
             db.rollback()
+    else:
+        db.rollback()
+    db.close()
 
     # Clear after processing an archive
-    unconsumed_extensions = {}
-    core_siblings = {}
+    unconsumed_extensions.clear()
+    core_siblings.clear()
 
     return {
         "name": fname,

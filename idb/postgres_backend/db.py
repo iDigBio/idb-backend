@@ -346,10 +346,10 @@ class PostgresDB(object):
                 sql = ("SELECT * FROM (" + self.__item_master_query + """
                     WHERE deleted=false and type=%s
                 """ + ") AS a ORDER BY uuid", (t,))
-        return apidbpool.fetchiter(sql)
+        return apidbpool.fetchiter(*sql)
 
     @staticmethod
-    def get_type_count(self, t):
+    def get_type_count(t):
         sql = ("""SELECT count(*) as count
                   FROM uuids
                   WHERE deleted=false and type=%s""", (t,))

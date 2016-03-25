@@ -41,7 +41,6 @@ class IDBModelSession(object):
             self.init_app(app)
 
     def init_app(self, app):
-        app.config.setdefault('DB', apidbpool)
         # Use the newstyle teardown_appcontext if it's available,
         # otherwise fall back to the request context
         if hasattr(app, 'teardown_appcontext'):
@@ -62,7 +61,7 @@ class IDBModelSession(object):
         try:
             idb = ctx.IDBModel
         except:
-            idb = PostgresDB(pool=current_app.config['DB'])
+            idb = get_idb()
             ctx.IDBModel = idb
         return getattr(idb, k)
 

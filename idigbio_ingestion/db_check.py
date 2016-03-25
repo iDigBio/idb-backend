@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 from __future__ import print_function
 import os
 import sys
@@ -9,14 +10,14 @@ import magic
 import json
 import logging
 from psycopg2 import DatabaseError
-from lib.log import getIDigBioLogger, formatter
 
 from idb.postgres_backend.db import PostgresDB
 from idb.helpers.etags import calcEtag, calcFileHash
 
-from lib.dwca import Dwca
-from lib.delimited import DelimitedFile
-from lib.util import download_file
+from .lib.log import getIDigBioLogger, formatter
+from .lib.dwca import Dwca
+from .lib.delimited import DelimitedFile
+from .lib.util import download_file
 from idb.helpers.storage import IDigBioStorage
 
 from idb.stats_collector import es, indexName

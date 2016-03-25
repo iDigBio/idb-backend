@@ -59,12 +59,15 @@ ignore_prefix = [
     "http://firuta.huh.harvard.edu/"
 ]
 
+user_agent = {'User-Agent': 'iDigBio Media Ingestor (idigbio@acis.ufl.edu https://www.idigbio.org/wiki/index.php/Media_Ingestor)'}
+
 def get_media(tup, cache_bad=False):
     url, t, fmt = tup
 
     url_path = "bad_media/" + url.replace("/", "^^")
 
     media_status = 1000
+    apiimg_post_status = 0
 
     try:
         for p in ignore_prefix:
@@ -75,18 +78,19 @@ def get_media(tup, cache_bad=False):
                 print "Skip", url, t, fmt, p
                 return False
 
-        media_req = s.get(url)
+        media_req = s.get(url, headers = user_agent)
         media_status = media_req.status_code
         media_req.raise_for_status()
 
         validator = get_validator(fmt)
         valid, detected_mime = validator(url, t, fmt, media_req.content)
         if valid:
-            print datetime.datetime.now(), "Success", url, t, fmt, detected_mime
+            print datetime.datetime.now(), "Validated Media:", url, t, fmt, detected_mime
             apiimg_req = s.post("http://media.idigbio.org/upload/" + t,
                                 data={"filereference": url},
                                 files={'file': media_req.content},
                                 auth=auth)
+            apiimg_post_status = apiimg_req.status_code
             apiimg_req.raise_for_status()
             apiimg_o = apiimg_req.json()
             with apidbpool.cursor() as cur:
@@ -111,8 +115,15 @@ def get_media(tup, cache_bad=False):
     except KeyboardInterrupt as e:
         raise e
     except:
-        apidbpool.execute("UPDATE media SET last_status=%s, last_check=now() WHERE url=%s", (media_status, url))
-        print url, t, fmt, media_status
+        if apiimg_post_status > 200:
+            # had a problem posting valid media, set status code at 2000 + the actual status code.
+            sql = ("UPDATE media SET last_status=%s, last_check=now() WHERE url=%s",
+                   (apiimg_post_status+2000, url))
+        else:
+            sql = ("UPDATE media SET last_status=%s, last_check=now() WHERE url=%s",
+                   (media_status, url))
+        apidbpool.execute(*sql)
+        print url, t, fmt, "GET media status:", media_status, "POST media status:", apiimg_post_status
         traceback.print_exc()
         return False
 
@@ -250,7 +261,7 @@ def set_deriv_from_ceph():
 
 def get_media_generator():
     sql = """SELECT * FROM (
-        SELECT substring(url from 'https?://[^/]*/'), count(*)
+        SELECT substring(url from 'https?://[^/]*[/?]'), count(*)
         FROM (
             SELECT media.url, media_objects.etag
             FROM media
@@ -258,7 +269,7 @@ def get_media_generator():
             WHERE type IS NOT NULL
               AND (last_status IS NULL or (last_status >= 400 and last_check < now() - '1 month'::interval))
         ) AS a
-        WHERE a.etag IS NULL GROUP BY substring(url from 'https?://[^/]*/')
+        WHERE a.etag IS NULL GROUP BY substring(url from 'https?://[^/]*[/?]')
     ) AS b WHERE substring != '' ORDER BY count"""
     subs_rows = apidbpool.fetchall(sql)
     for sub_row in subs_rows:

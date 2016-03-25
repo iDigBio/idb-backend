@@ -1,3 +1,5 @@
+from __future__ import absolute_import
+
 import os
 import fiona
 from shapely.geometry import shape, Point

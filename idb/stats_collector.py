@@ -1,13 +1,15 @@
+from __future__ import absolute_import
 import json
 import dateutil.parser
-from postgres_backend.stats_db import pg, DictCursor
 import elasticsearch
 
-from idb.postgres_backend.db import PostgresDB
+from idb.config import config
+from idb.postgres_backend import apidbpool, DictCursor
+from idb.postgres_backend.stats_db import statsdbpool
 
 from collections import defaultdict
 from datetime import datetime, timedelta
-from config import config
+
 
 def json_serial(obj):
     """JSON serializer for objects not serializable by default json code"""
@@ -43,7 +45,7 @@ search_stats_mapping = {
 for record_type in record_types:
     search_stats_mapping["properties"][record_type] = {
         "properties": {}
-    }    
+    }
     for stat_type in stat_types:
         search_stats_mapping["properties"][record_type]["properties"][stat_type] = {
             "properties": {
@@ -70,9 +72,9 @@ for record_type in record_types:
                                 "region": { "type" : "string", "analyzer": "keyword" },
                                 "city": { "type" : "string", "analyzer": "keyword" },
                             }
-                        }                        
+                        }
                     }
-                }                
+                }
             }
         }
 
@@ -91,23 +93,21 @@ def new_stats_dict():
     return stats_dict
 
 def get_stats_dates():
-    dates_cur = pg.cursor("stats_collector_dates",cursor_factory=DictCursor)
-    dates_cur.execute("select date_trunc('day', date) from stats group by date_trunc('day', date) order by date_trunc('day', date)")
-    return [r[0] for r in dates_cur]
+    sql = """select date_trunc('day', date)
+    		from stats
+    		group by date_trunc('day', date)
+    		order by date_trunc('day', date)"""
+    return [r[0] for r in statsdbpool.fetchall(sql)]
 
 def collect_stats(collect_datetime):
     date_min = (collect_datetime - timedelta(1)).date()
     date_max = collect_datetime.date()
 
-    #print date_min, date_max
-
-    cur = pg.cursor("stats_collector_" + repr(date_min) + repr(date_max),cursor_factory=DictCursor)
-
-    cur.execute("SELECT * FROM stats LEFT JOIN queries on stats.query_id=queries.id WHERE date > %s AND date < %s", (date_min,date_max))
-
     recordset_stats = defaultdict(new_stats_dict)
 
-    for r in cur:
+    #print date_min, date_max
+    sql = "SELECT * FROM stats LEFT JOIN queries on stats.query_id=queries.id WHERE date > %s AND date < %s"
+    for r in statsdbpool.fetchiter(sql, (date_min, date_max), cursor_factory=DictCursor):
         record_type = r["record_type"]
         stats_type = r["type"]
         query_hash = r["query_hash"]
@@ -135,8 +135,6 @@ def collect_stats(collect_datetime):
                     recordset_stats[recordset_key][record_type][stats_type]["total"] += record_count
                     recordset_stats[recordset_key][record_type][stats_type]["queries"][query_hash] += record_count
                     recordset_stats[recordset_key][record_type][stats_type]["geocodes"][geocode] += record_count
-
-
 
     for recordset_key in recordset_stats:
         recordset_data = {
@@ -172,14 +170,15 @@ def collect_stats(collect_datetime):
         es.index(index=indexName,doc_type=typeName,body=recordset_data)
 
 def api_stats():
-    db = PostgresDB()
-
     now = datetime.utcnow().isoformat()
 
     rstc = defaultdict(lambda: defaultdict(int))
 
-    db._cur.execute("SELECT parent,type,count(id) FROM uuids WHERE deleted=false and (type='record' or type='mediarecord') GROUP BY parent,type")
-    for r in db._cur:
+    sql = """SELECT parent,type,count(id)
+             FROM uuids
+             WHERE deleted=false and (type='record' or type='mediarecord')
+             GROUP BY parent,type"""
+    for r in apidbpool.fetchiter(sql):
         rstc[r[0]][r[1]+"s_count"]=r[2]
 
     rstc=dict(rstc)
@@ -193,13 +192,13 @@ def api_stats():
         rsc["harvest_date"] = now
         rsc["recordset_id"] = k
 
-        es.index(index=indexName,doc_type="api",body=rsc)  
+        es.index(index=indexName,doc_type="api",body=rsc)
 
 def main():
     import argparse
 
     parser = argparse.ArgumentParser(description='Collect the stats for a day from postgres, defaults to yesterday')
-    parser.add_argument('-d', '--date', dest='collect_date_str', type=str, default=datetime.now().isoformat())    
+    parser.add_argument('-d', '--date', dest='collect_date_str', type=str, default=datetime.now().isoformat())
     parser.add_argument('-m', '--mapping', dest='mapping', action='store_true', help='write mapping')
     parser.add_argument('-a', '--alldates', dest='alldates', action='store_true', help='write stats for all dates in the db')
     parser.add_argument('-p', '--api', dest='api', action='store_true', help="write out the api stats")
@@ -218,7 +217,6 @@ def main():
                 collect_stats(d)
         else:
             collect_datetime = dateutil.parser.parse(args.collect_date_str)
-
             collect_stats(collect_datetime)
 
 if __name__ == '__main__':

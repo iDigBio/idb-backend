@@ -20,7 +20,7 @@ import gc
 import os
 import math
 
-from idb.postgres_backend import pg, DictCursor
+from idb.postgres_backend import apidbpool, DictCursor
 from idb.helpers.index_helper import index_record
 from idb.corrections.record_corrector import RecordCorrector
 from idb.elasticsearch_backend.indexer import ElasticSearchIndexer
@@ -39,22 +39,21 @@ def type_yield(ei, rc, typ, yield_record=False):
     # drop the trailing s
     pg_typ = "".join(typ[:-1])
 
-    cursor = pg.cursor(str(uuid.uuid4()), cursor_factory=DictCursor)
+    with apidbpool.cursor(name=str(uuid.uuid4()), cursor_factory=DictCursor) as cursor:
+        cursor.execute(
+            "select * from idigbio_uuids_data where type=%s and deleted=false", (pg_typ,))
 
-    cursor.execute(
-        "select * from idigbio_uuids_data where type=%s and deleted=false", (pg_typ,))
+        start_time = datetime.datetime.now()
+        count = 0.0
+        for r in cursor:
+            count += 1.0
+            if yield_record:
+                yield r
+            else:
+                yield index_record(ei, rc, typ, r, do_index=False)
 
-    start_time = datetime.datetime.now()
-    count = 0.0
-    for r in cursor:
-        count += 1.0
-        if yield_record:
-            yield r
-        else:
-            yield index_record(ei, rc, typ, r, do_index=False)
-
-        if count % 10000 == 0:
-            print typ, count, datetime.datetime.now() - start_time, count / (datetime.datetime.now() - start_time).total_seconds()
+            if count % 10000 == 0:
+                print typ, count, datetime.datetime.now() - start_time, count / (datetime.datetime.now() - start_time).total_seconds()
 
     print typ, count, datetime.datetime.now() - start_time, count / (datetime.datetime.now() - start_time).total_seconds()
 
@@ -95,13 +94,12 @@ def type_yield_modified(ei, rc, typ, yield_record=False):
     #     last_afters[typ] = after
 
     print "Indexing", typ, "after", after.isoformat()
-    cursor = pg.cursor(str(uuid.uuid4()), cursor_factory=DictCursor)
 
     # Note, a subtle distinction: The below query will index every _version_ of every record modified since the date
     # it is thus imperative that the records are process in ascending modified order.
     # in practice, this is unlikely to index more than one record in a single
     # run, but it is possible.
-    cursor.execute("""SELECT
+    sql = ("""SELECT
             uuids.id as uuid,
             type,
             deleted,
@@ -156,21 +154,22 @@ def type_yield_modified(ei, rc, typ, yield_record=False):
         ORDER BY modified ASC;
         """, (pg_typ, after))
 
-    start_time = datetime.datetime.now()
-    count = 0.0
-    for r in cursor:
-        count += 1.0
+    with apidbpool.cursor(name=str(uuid.uuid4()), cursor_factory=DictCursor) as cursor:
+        cursor.execute(*sql)
+        start_time = datetime.datetime.now()
+        count = 0.0
+        for r in cursor:
+            count += 1.0
 
-        if yield_record:
-            yield r
-        else:
-            yield index_record(ei, rc, typ, r, do_index=False)
+            if yield_record:
+                yield r
+            else:
+                yield index_record(ei, rc, typ, r, do_index=False)
 
-        if count % 10000 == 0:
-            print typ, count, datetime.datetime.now() - start_time, count / (datetime.datetime.now() - start_time).total_seconds()
+            if count % 10000 == 0:
+                print typ, count, datetime.datetime.now() - start_time, count / (datetime.datetime.now() - start_time).total_seconds()
 
     print typ, count, datetime.datetime.now() - start_time, count / (datetime.datetime.now() - start_time).total_seconds()
-    pg.rollback()
 
 
 def type_yield_resume(ei, rc, typ, also_delete=False, yield_record=False):
@@ -203,28 +202,28 @@ def type_yield_resume(ei, rc, typ, also_delete=False, yield_record=False):
     # print cache_count
 
     print "Indexing", typ
-    cursor = pg.cursor(str(uuid.uuid4()), cursor_factory=DictCursor)
 
-    cursor.execute(
+    sql = (
         "select * from idigbio_uuids_data where type=%s and deleted=false", (pg_typ,))
+    with apidbpool.cursor(name=str(uuid.uuid4()), cursor_factory=DictCursor) as cursor:
+        cursor.execute(*sql)
+        start_time = datetime.datetime.now()
+        count = 0.0
+        for r in cursor:
+            count += 1.0
+            if r["uuid"] in es_ids:
+                etag = es_ids[r["uuid"]]
+                del es_ids[r["uuid"]]
+                if etag == r["etag"]:
+                    continue
 
-    start_time = datetime.datetime.now()
-    count = 0.0
-    for r in cursor:
-        count += 1.0
-        if r["uuid"] in es_ids:
-            etag = es_ids[r["uuid"]]
-            del es_ids[r["uuid"]]
-            if etag == r["etag"]:
-                continue
+            if yield_record:
+                yield r
+            else:
+                yield index_record(ei, rc, typ, r, do_index=False)
 
-        if yield_record:
-            yield r
-        else:
-            yield index_record(ei, rc, typ, r, do_index=False)
-
-        if count % 10000 == 0:
-            print typ, count, datetime.datetime.now() - start_time, count / (datetime.datetime.now() - start_time).total_seconds()
+            if count % 10000 == 0:
+                print typ, count, datetime.datetime.now() - start_time, count / (datetime.datetime.now() - start_time).total_seconds()
 
     print typ, count, datetime.datetime.now() - start_time, count / (datetime.datetime.now() - start_time).total_seconds()
 
@@ -255,10 +254,11 @@ def queryIter(query, ei, rc, typ, yield_record=False):
         "size": 10000,
         "scroll": "10m"
     }
-    cursor = pg.cursor(cursor_factory=DictCursor)
+
     for r in elasticsearch.helpers.scan(ei.es, query=query, **q):
-        cursor.execute("SELECT * FROM idigbio_uuids_data WHERE uuid=%s and type=%s", (r["_id"],typ[:-1]))
-        rec = cursor.fetchone()
+        sql = ("SELECT * FROM idigbio_uuids_data WHERE uuid=%s and type=%s",
+               (r["_id"], typ[:-1]))
+        rec = apidbpool.fetchone(*sql, cursor_factory=DictCursor)
         if rec is not None:
             if yield_record:
                 yield rec
@@ -266,10 +266,10 @@ def queryIter(query, ei, rc, typ, yield_record=False):
                 yield index_record(ei, rc, typ, rec, do_index=False)
 
 def uuidsIter(uuid_l, ei, rc, typ, yield_record=False):
-    cursor = pg.cursor(cursor_factory=DictCursor)
     for rid in uuid_l:
-        cursor.execute("SELECT * FROM idigbio_uuids_data WHERE uuid=%s and type=%s", (rid.strip(),typ[:-1]))
-        rec = cursor.fetchone()
+        sql = ("SELECT * FROM idigbio_uuids_data WHERE uuid=%s and type=%s",
+               (rid.strip(), typ[:-1]))
+        rec = apidbpool.fetchone(*sql, cursor_factory=DictCursor)
         if rec is not None:
             if yield_record:
                 yield rec
@@ -278,11 +278,10 @@ def uuidsIter(uuid_l, ei, rc, typ, yield_record=False):
 
 def delete(ei, no_index=False):
     print "Running deletes"
-    cursor = pg.cursor(str(uuid.uuid4()), cursor_factory=DictCursor)
 
     count = 0
-    cursor.execute("SELECT id,type FROM uuids WHERE deleted=true")
-    for r in cursor:
+    sql = "SELECT id,type FROM uuids WHERE deleted=true"
+    for r in apidbpool.fetchiter(sql, name=str(uuid.uuid4()), cursor_factory=DictCursor):
         count += 1
         if not no_index:
             ei.es.delete_by_query(**{

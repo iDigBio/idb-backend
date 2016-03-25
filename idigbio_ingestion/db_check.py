@@ -1,30 +1,27 @@
+from __future__ import absolute_import
+from __future__ import print_function
 import os
 import sys
-import uuid
-import gc
 import re
 import datetime
 import traceback
 
-import requests
-import shutil
 import magic
 import json
-
 import logging
-from lib.log import getIDigBioLogger, formatter
+from psycopg2 import DatabaseError
 
 from idb.postgres_backend.db import PostgresDB
 from idb.helpers.etags import calcEtag, calcFileHash
 
-from lib.dwca import Dwca
-from lib.delimited import DelimitedFile
-from lib.util import download_file
+from .lib.log import getIDigBioLogger, formatter
+from .lib.dwca import Dwca
+from .lib.delimited import DelimitedFile
+from .lib.util import download_file
 from idb.helpers.storage import IDigBioStorage
 
 from idb.stats_collector import es, indexName
 
-db = PostgresDB()
 magic = magic.Magic(mime=True)
 
 bad_chars = u"\ufeff"
@@ -108,7 +105,7 @@ def get_db_dicts(rsid):
     for t in ["record", "mediarecord"]:
         id_uuid[t + "s"] = {}
         uuid_etag[t + "s"] = {}
-        for c in db.get_children_list(rsid, t, limit=None):
+        for c in PostgresDB.get_children_list(rsid, t, limit=None):
             u = c["uuid"]
             e = c["etag"]
             uuid_etag[t + "s"][u] = e
@@ -136,7 +133,7 @@ unconsumed_extensions = {}
 core_siblings = {}
 
 
-def process_subfile(rf, rsid, rs_uuid_etag, rs_id_uuid, ingest=False):
+def process_subfile(rf, rsid, rs_uuid_etag, rs_id_uuid, ingest=False, db=None):
     count = 0
     no_recordid_count = 0
     duplicate_record_count = 0
@@ -157,6 +154,7 @@ def process_subfile(rf, rsid, rs_uuid_etag, rs_id_uuid, ingest=False):
     resurrections = 0
     record_exceptions = 0
     exceptions = 0
+    dberrors = 0
 
     typ = None
 
@@ -182,7 +180,6 @@ def process_subfile(rf, rsid, rs_uuid_etag, rs_id_uuid, ingest=False):
 
                 if r["id"] in core_siblings:
                     siblings = core_siblings[r["id"]]
-
 
             if rf.rowtype == "dwc:Occurrence" and "dwc:occurrenceID" not in r and "id" in r:
                 r["dwc:occurrenceID"] = r["id"]
@@ -232,8 +229,7 @@ def process_subfile(rf, rsid, rs_uuid_etag, rs_id_uuid, ingest=False):
                 if parent is not None:
                     # assert parent == rsid
                     if parent != rsid:
-                        raise  RecordException("Record exists but has a parent other than expected. Expected parent (this recordset): {0}  Existing Parent: {1}  Record: {2}".format(rsid,parent,u))
-
+                        raise RecordException("Record exists but has a parent other than expected. Expected parent (this recordset): {0}  Existing Parent: {1}  Record: {2}".format(rsid,parent,u))
 
             if deleted:
                 to_undelete += 1
@@ -246,17 +242,16 @@ def process_subfile(rf, rsid, rs_uuid_etag, rs_id_uuid, ingest=False):
                 if matched:
                     # Always update siblings
                     for s in siblings:
-                        db._upsert_uuid_sibling(u, s, commit=False)
+                        db._upsert_uuid_sibling(u, s)
                 else:
                     #             u, t,        p,    d, ids,               siblings, commit
                     # print u, typ[:-1], rsid, r, ids_to_add.keys(), siblings
-                    db.set_record(u, typ[:-1], rsid, r, ids_to_add.keys(), siblings, commit=False)
+                    db.set_record(u, typ[:-1], rsid, r, ids_to_add.keys(), siblings)
                     ingestions += 1
             elif ingest and deleted:
-                db.undelete_item(u, commit=False)
-                db.set_record(u, typ[:-1], rsid, r, ids_to_add.keys(), siblings, commit=False)
+                db.undelete_item(u)
+                db.set_record(u, typ[:-1], rsid, r, ids_to_add.keys(), siblings)
                 resurrections += 1
-
 
             if "coreid" in r:
                 if rf.rowtype in ingestion_types:
@@ -277,18 +272,19 @@ def process_subfile(rf, rsid, rs_uuid_etag, rs_id_uuid, ingest=False):
                 ref_uuids_list = uuid_re.findall(r["ac:associatedSpecimenReference"])
                 for ref_uuid in ref_uuids_list:
                     # Check for internal idigbio_uuid reference
-                    db_r = db.get_item(ref_uuid,rollback=False)
+                    db_r = db.get_item(ref_uuid)
                     db_uuid = None
                     if db_r is None:
                         # Check for identifier suffix match
-                        db._cur.execute("SELECT uuids_id FROM uuids_identifier WHERE reverse(identifier) LIKE reverse(%s)", ("%"+ref_uuid,))
-                        db_r = db._cur.fetchone()
+                        db_r = db.fetchone(
+                            "SELECT uuids_id FROM uuids_identifier WHERE reverse(identifier) LIKE reverse(%s)",
+                            ("%" + ref_uuid,))
                         db_uuid = db_r["uuids_id"]
                     else:
                         db_uuid = db_r["uuid"]
 
                     if db_uuid is not None and ingest:
-                        db._upsert_uuid_sibling(u, db_uuid, commit=False)
+                        db._upsert_uuid_sibling(u, db_uuid)
 
             count += 1
         except RecordException as e:
@@ -303,6 +299,11 @@ def process_subfile(rf, rsid, rs_uuid_etag, rs_id_uuid, ingest=False):
             logger.warn(e)
             logger.info(traceback.format_exc())
             assertions += 1
+        except DatabaseError as e:
+            ids_to_add = {}
+            uuids_to_add = {}
+            logger.exception(e)
+            dberrors += 1
         except Exception as e:
             ids_to_add = {}
             uuids_to_add = {}
@@ -326,7 +327,7 @@ def process_subfile(rf, rsid, rs_uuid_etag, rs_id_uuid, ingest=False):
     if ingest:
         for u in eu_set - nu_set:
             try:
-                db.delete_item(u,commit=False)
+                db.delete_item(u)
                 deleted += 1
             except:
                 logger.info(traceback.format_exc())
@@ -348,6 +349,7 @@ def process_subfile(rf, rsid, rs_uuid_etag, rs_id_uuid, ingest=False):
         "duplicate_id_count": duplicate_id_count,
         "record_exceptions": record_exceptions,
         "exceptions": exceptions,
+        "dberrors": dberrors,
         "processing_time": (datetime.datetime.now() - t).total_seconds()
     }
 
@@ -356,15 +358,16 @@ def process_file(fname, mime, rsid, existing_etags, existing_ids, ingest=False, 
     counts = {}
     t = datetime.datetime.now()
     filehash = calcFileHash(fname)
+    db = PostgresDB()
 
     if mime == "application/zip":
         dwcaobj = Dwca(fname, skipeml=True, logname="idigbio")
         for dwcrf in dwcaobj.extensions:
             counts[dwcrf.name] = process_subfile(
-                dwcrf, rsid, existing_etags, existing_ids, ingest=ingest)
+                dwcrf, rsid, existing_etags, existing_ids, ingest=ingest, db=db)
             dwcrf.close()
         counts[dwcaobj.core.name] = process_subfile(
-            dwcaobj.core, rsid, existing_etags, existing_ids, ingest=ingest)
+            dwcaobj.core, rsid, existing_etags, existing_ids, ingest=ingest, db=db)
         dwcaobj.core.close()
         dwcaobj.close()
     elif mime == "text/plain":
@@ -375,12 +378,12 @@ def process_file(fname, mime, rsid, existing_etags, existing_ids, ingest=False, 
         if commas:
             csvrf = DelimitedFile(fname, logname="idigbio")
             counts[fname] = process_subfile(
-                csvrf, rsid, existing_etags, existing_ids, ingest=ingest)
+                csvrf, rsid, existing_etags, existing_ids, ingest=ingest, db=db)
         else:
             tsvrf = DelimitedFile(
                 fname, delimiter="\t", fieldenc=None, logname="idigbio")
             counts[fname] = process_subfile(
-                tsvrf, rsid, existing_etags, existing_ids, ingest=ingest)
+                tsvrf, rsid, existing_etags, existing_ids, ingest=ingest, db=db)
 
     commited = False
     if ingest:
@@ -407,10 +410,13 @@ def process_file(fname, mime, rsid, existing_etags, existing_ids, ingest=False, 
         else:
             logger.error("Rollback")
             db.rollback()
+    else:
+        db.rollback()
+    db.close()
 
     # Clear after processing an archive
-    unconsumed_extensions = {}
-    core_siblings = {}
+    unconsumed_extensions.clear()
+    core_siblings.clear()
 
     return {
         "name": fname,
@@ -481,12 +487,11 @@ def metadataToSummaryJSON(rsid, metadata, writeFile=True, doStats=True):
 
 
 def main():
-    rsid = sys.argv[1]
-    ingest = False
-    if len(sys.argv) > 2:
-        # RSID is always last for xargs support
-        rsid = sys.argv[-1]
-        ingest = sys.argv[1] == "ingest"
+    if len(sys.argv) == 1:
+        print("Usage: db_check.py [ingest] <RSID>", file=sys.stderr)
+        sys.exit(1)
+    ingest = sys.argv[1] == "ingest"
+    rsid = sys.argv[-1]
 
     fh = logging.FileHandler(rsid + ".db_check.log")
     fh.setLevel(logging.INFO)

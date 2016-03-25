@@ -18,7 +18,7 @@ from idb.postgres_backend.db import PostgresDB
 # from lib.log import logger
 
 argparser = argparse.ArgumentParser(description='Script to delete a recordset and all of its child records from the database. Also sets Ingest to false.')
-argparser.add_argument('recordsets', metavar='recordset_uuid', nargs='+', help='list of recordset uuids to delete separated by whitespace') # required built into nargs="+" 
+argparser.add_argument('recordsets', metavar='recordset_uuid', nargs='+', help='list of recordset uuids to delete separated by whitespace') # required built into nargs="+"
 args = argparser.parse_args()
 
 print args
@@ -59,7 +59,7 @@ db = PostgresDB()
 #         rss_url text NOT NULL,
 #         auto_publish boolean NOT NULL DEFAULT false,
 #         first_seen timestamp NOT NULL DEFAULT now(),
-#         last_seen timestamp NOT NULL DEFAULT now(), 
+#         last_seen timestamp NOT NULL DEFAULT now(),
 #         pub_date timestamp
 #     )""")
 
@@ -82,13 +82,13 @@ db = PostgresDB()
 
 #     db.commit()
 
-# def id_func(e):
+# def id_func(portal_url, e):
 #     id = None
 #     if "id" in e:   # feedparser magic maps various fields to "id"
 #         id = e["id"]
 #     elif "collid" in e:
 #         id = "{0}collections/misc/collprofiles.php?collid={1}".format(
-#             self.portal_url, e["collid"])
+#             portal_url, e["collid"])
 
 #     if id is not None:
 #         # Strip version from ipt ids
@@ -159,12 +159,12 @@ db = PostgresDB()
 #             )
 
 #             for e in feed['entries']:
-#                 recordid = id_func(e)
+#                 recordid = id_func(r['portal_url'], e)
 
 #                 rsid = None
 #                 ingest = auto_publish
 #                 recordids = [recordid]
-#                 recordset = None           
+#                 recordset = None
 #                 if recordid in existing_recordsets:
 #                     recordset = recordsets[existing_recordsets[recordid]]
 #                     rsid = recordset["uuid"]
@@ -210,8 +210,8 @@ db = PostgresDB()
 #                     rs_name = recordid
 
 #                 if recordset is None:
-#                     db._cur.execute(             
-#                         """INSERT INTO recordsets 
+#                     db._cur.execute(
+#                         """INSERT INTO recordsets
 #                             (uuid, publisher_uuid, name, recordids, eml_link, file_link, ingest, pub_date)
 #                             VALUES (%s,%s,%s,%s,%s,%s,%s,%s)
 #                         """,
@@ -248,7 +248,7 @@ db = PostgresDB()
 #                 "base_url": r["portal_url"],
 #                 "publisher_type": r["pub_type"],
 #                 "recordsets": {}
-#             },r["recordids"],[],commit=False)
+#             },r["recordids"],[])
 #             db.commit()
 #         except:
 #             print r
@@ -277,7 +277,7 @@ db = PostgresDB()
 #             desc["eml_link"] = r["eml_link"]
 #             desc["update"] = r["pub_date"].isoformat()
 #             parent = r["publisher_uuid"]
-#             db.set_record(u,"recordset",parent,desc,r["recordids"],[],commit=False)
+#             db.set_record(u,"recordset",parent,desc,r["recordids"],[])
 #             db._cur.execute("UPDATE recordsets SET eml_harvest_etag=%s, eml_harvest_date=%s,uuid=%s WHERE id=%s", (etag,datetime.datetime.now(),u,r["id"]))
 #             db.commit()
 #         except:
@@ -316,7 +316,7 @@ db = PostgresDB()
 #             db._cur.execute("UPDATE recordsets SET file_harvest_etag=%s, file_harvest_date=%s WHERE id=%s", (etag,datetime.datetime.now(),r["id"]))
 #             db.commit()
 #         except:
-#             traceback.print_exc()   
+#             traceback.print_exc()
 #         if os.path.exists(fname):
 #             os.unlink(fname)
 

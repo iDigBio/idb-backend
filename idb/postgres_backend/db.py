@@ -1,4 +1,4 @@
-import psycopg2
+import contextlib
 import uuid
 import datetime
 import random
@@ -6,18 +6,21 @@ import json
 import hashlib
 import sys
 
+from psycopg2.extras import DictCursor
+from psycopg2.extensions import (ISOLATION_LEVEL_READ_COMMITTED,
+                                 ISOLATION_LEVEL_AUTOCOMMIT,
+                                 TRANSACTION_STATUS_IDLE)
+from idb.helpers.etags import calcEtag
+from idb.postgres_backend import apidbpool
+
 TEST_SIZE = 10000
 TEST_COUNT = 10
 
 #tombstone_etag = calcEtag({"deleted":True})
 tombstone_etag = "9a4e35834eb80d9af64bcd07ed996b9ec0e60d92"
 
-from . import *
 
-from idb.helpers.etags import calcEtag
-
-
-class PostgresDB:
+class PostgresDB(object):
     __join_uuids_etags_latest_version = """
         LEFT JOIN LATERAL (
             SELECT * FROM uuids_data
@@ -145,45 +148,76 @@ class PostgresDB:
         )
     """
 
-    def __init__(self):
+    def __init__(self, pool=None):
 
+        self._pool = (pool or apidbpool)
         # Generic reusable cursor for normal ops
-        self._cur = pg.cursor(cursor_factory=DictCursor)
-        self._pg = pg
+        self.conn = self._pool.get()
+
+    def __del__(self):
+        if self.conn:
+            self._pool.put(self.conn)
+
+    def __enter__(self):
+        pass
+
+    def __exit__(self, type, value, traceback):
+        self.close()
+
+    def close(self):
+        if self.conn:
+            self._pool.put(self.conn)
+            self.conn = None
+
+    def fetchone(self, *args, **kwargs):
+        with self.cursor(**kwargs) as cur:
+            cur.execute(*args)
+            return cur.fetchone()
+
+    def fetchall(self, *args, **kwargs):
+        with self.cursor(**kwargs) as cur:
+            cur.execute(*args)
+            return cur.fetchall()
+
+    def execute(self, *args, **kwargs):
+        with self.cursor(**kwargs) as cur:
+            return cur.execute(*args)
+
+    def executemany(self, *args, **kwargs):
+        with self.cursor(**kwargs) as cur:
+            return cur.executemany(*args)
 
     def commit(self):
-        pg.commit()
+        self.conn.commit()
 
     def rollback(self):
-        pg.rollback()
+        self.conn.rollback()
 
-    def cursor(self, ss=False, ss_name=None):
-        if ss:
-            return self._get_ss_cursor(name=ss_name)
-        else:
-            return self._cur
+    def cursor(self, ss=False, **kwargs):
+        if kwargs.pop('named', False) is True:
+            kwargs['name'] == str(uuid.uuid4())
 
-    def drop_schema(self, commit=True):
+        kwargs.setdefault('cursor_factory', DictCursor)
+        return self.conn.cursor(**kwargs)
+
+    def drop_schema(self):
         raise Exception("I can't let you do that, dave.")
-        # self._cur.execute("DROP VIEW IF EXISTS idigbio_uuids_new")
-        # self._cur.execute("DROP VIEW IF EXISTS idigbio_uuids_data")
-        # self._cur.execute("DROP VIEW IF EXISTS idigbio_relations")
-        # self._cur.execute("DROP TABLE IF EXISTS uuids_siblings")
-        # self._cur.execute("DROP TABLE IF EXISTS uuids_identifier")
-        # self._cur.execute("DROP TABLE IF EXISTS uuids_data")
-        # self._cur.execute("DROP TABLE IF EXISTS uuids")
-        # self._cur.execute("DROP TABLE IF EXISTS data")
+        #     self.execute("DROP VIEW IF EXISTS idigbio_uuids_new")
+        #     self.execute("DROP VIEW IF EXISTS idigbio_uuids_data")
+        #     self.execute("DROP VIEW IF EXISTS idigbio_relations")
+        #     self.execute("DROP TABLE IF EXISTS uuids_siblings")
+        #     self.execute("DROP TABLE IF EXISTS uuids_identifier")
+        #     self.execute("DROP TABLE IF EXISTS uuids_data")
+        #     self.execute("DROP TABLE IF EXISTS uuids")
+        #     self.execute("DROP TABLE IF EXISTS data")
 
-        # if commit:
-        #     self.commit()
-
-    def create_views(self, commit=True):
-        self._cur.execute(
+    def create_views(self):
+        self.execute(
             "CREATE OR REPLACE VIEW idigbio_uuids_new AS" + self.__item_master_query)
-        self._cur.execute(
+        self.execute(
             "CREATE OR REPLACE VIEW idigbio_uuids_data AS" + self.__item_master_query_data)
 
-        self._cur.execute("""CREATE OR REPLACE VIEW idigbio_relations AS
+        self.execute("""CREATE OR REPLACE VIEW idigbio_relations AS
             SELECT
                 r1 as subject,
                 type as rel,
@@ -199,25 +233,22 @@ class PostgresDB:
             ON r2=id
         """)
 
-        if commit:
-            self.commit()
+    def create_schema(self):
 
-    def create_schema(self, commit=True):
-
-        self._cur.execute("""CREATE TABLE IF NOT EXISTS uuids (
+        self.execute("""CREATE TABLE IF NOT EXISTS uuids (
             id uuid NOT NULL PRIMARY KEY,
             type varchar(50) NOT NULL,
             parent uuid,
             deleted boolean NOT NULL DEFAULT false
         )""")
 
-        self._cur.execute("""CREATE TABLE IF NOT EXISTS data (
+        self.execute("""CREATE TABLE IF NOT EXISTS data (
             etag varchar(41) NOT NULL PRIMARY KEY,
             riak_etag varchar(41),
             data jsonb
         )""")
 
-        self._cur.execute("""CREATE TABLE IF NOT EXISTS uuids_data (
+        self.execute("""CREATE TABLE IF NOT EXISTS uuids_data (
             id bigserial NOT NULL PRIMARY KEY,
             uuids_id uuid NOT NULL REFERENCES uuids(id),
             data_etag varchar(41) NOT NULL REFERENCES data(etag),
@@ -225,54 +256,41 @@ class PostgresDB:
             version int NOT NULL DEFAULT 0
         )""")
 
-        self._cur.execute("""CREATE TABLE IF NOT EXISTS uuids_identifier (
+        self.execute("""CREATE TABLE IF NOT EXISTS uuids_identifier (
             id bigserial NOT NULL PRIMARY KEY,
             identifier text NOT NULL UNIQUE,
             uuids_id uuid NOT NULL REFERENCES uuids(id)
         )""")
 
-        self._cur.execute("""CREATE TABLE IF NOT EXISTS uuids_siblings (
+        self.execute("""CREATE TABLE IF NOT EXISTS uuids_siblings (
             id bigserial NOT NULL PRIMARY KEY,
             r1 uuid NOT NULL REFERENCES uuids(id),
             r2 uuid NOT NULL REFERENCES uuids(id)
         )""")
 
-        self._cur.execute(
+        self.execute(
             "CREATE INDEX uuids_data_uuids_id ON uuids_data (uuids_id)")
-        self._cur.execute(
+        self.execute(
             "CREATE INDEX uuids_data_modified ON uuids_data (modified)")
-        self._cur.execute(
+        self.execute(
             "CREATE INDEX uuids_data_version ON uuids_data (version)")
-        self._cur.execute("CREATE INDEX uuids_deleted ON uuids (deleted)")
-        self._cur.execute("CREATE INDEX uuids_parent ON uuids (parent)")
-        self._cur.execute("CREATE INDEX uuids_type ON uuids (type)")
-        self._cur.execute(
+        self.execute("CREATE INDEX uuids_deleted ON uuids (deleted)")
+        self.execute("CREATE INDEX uuids_parent ON uuids (parent)")
+        self.execute("CREATE INDEX uuids_type ON uuids (type)")
+        self.execute(
             "CREATE INDEX uuids_siblings_r1 ON uuids_siblings (r1)")
-        self._cur.execute(
+        self.execute(
             "CREATE INDEX uuids_siblings_r2 ON uuids_siblings (r2)")
-        self._cur.execute(
+        self.execute(
             "CREATE INDEX uuids_identifier_uuids_id ON uuids_identifier (uuids_id)")
 
-        self.create_views(commit=False)
+        self.create_views()
 
-        if commit:
-            self.commit()
-
-    def _get_ss_cursor(self, name=None):
-        """ Get a named server side cursor for large ops"""
-
-        cur = None
-        if name is None:
-            cur = pg.cursor(str(uuid.uuid4()), cursor_factory=DictCursor)
-        else:
-            cur = pg.cursor(name, cursor_factory=DictCursor)
-        return cur
-
-    def get_item(self, u, version=None, rollback=True):
+    def get_item(self, u, version=None):
         if version is not None:
             # Fetch by version ignores the deleted flag
             if version == "all":
-                self._cur.execute(self.__columns_master_query_data +
+                sql = (self.__columns_master_query_data +
                                   """ FROM uuids """ +
                                   self.__join_uuids_etags_all_versions +
                                   self.__join_uuids_identifiers +
@@ -282,130 +300,109 @@ class PostgresDB:
                     WHERE uuids.id=%s
                     ORDER BY version ASC
                 """, (u,))
-                return self._cur.fetchall()
+                return self.fetchall(*sql)
             else:
                 # Fetch by version ignores the deleted flag
-                self._cur.execute(self.__columns_master_query_data +
-                                  """ FROM uuids """ +
-                                  self.__join_uuids_etags_all_versions +
-                                  self.__join_uuids_identifiers +
-                                  self.__join_uuids_siblings +
-                                  self.__join_uuids_data +
-                                  """
-                    WHERE uuids.id=%s and version=%s
-                """, (u, version))
+                sql = (self.__columns_master_query_data +
+                       """ FROM uuids """ +
+                       self.__join_uuids_etags_all_versions +
+                       self.__join_uuids_identifiers +
+                       self.__join_uuids_siblings +
+                       self.__join_uuids_data +
+                       "\nWHERE uuids.id=%s and version=%s", (u, version))
+                return self.fetchone(*sql)
         else:
-            self._cur.execute(self.__item_master_query_data + """
-                WHERE deleted=false and uuids.id=%s
-            """, (u,))
-        rec = self._cur.fetchone()
-        if rollback:
-            self.rollback()
-        return rec
+            sql = (self.__item_master_query_data +
+                   "\nWHERE deleted=false and uuids.id=%s", (u,))
+            return self.fetchone(*sql)
 
-    def delete_item(self, u, commit=True):
-        self._upsert_uuid_data(u, tombstone_etag, commit=False) 
-        self._cur.execute("UPDATE uuids SET deleted=true WHERE id=%s", (u,))
-        if commit:
-            self.commit()
+    def delete_item(self, u):
+        self._upsert_uuid_data(u, tombstone_etag)
+        self.execute("UPDATE uuids SET deleted=true WHERE id=%s", (u,))
 
-    def undelete_item(self, u, commit=True):
+    def undelete_item(self, u):
         # Needs to be accompanied by a corresponding version insertion to obsolete the tombstone
-        self._cur.execute("UPDATE uuids SET deleted=false WHERE id=%s", (u,))
-        if commit:
-            self.commit()
+        self.execute("UPDATE uuids SET deleted=false WHERE id=%s", (u,))
 
+    @classmethod
     def get_type_list(self, t, limit=100, offset=0, data=False):
-        cur = self._get_ss_cursor()
         if data:
             if limit is not None:
-                cur.execute("SELECT * FROM (" + self.__item_master_query_data + """
+                sql = ("SELECT * FROM (" + self.__item_master_query_data + """
                     WHERE deleted=false and type=%s
                     LIMIT %s OFFSET %s
                 """ + ") AS a ORDER BY uuid", (t, limit, offset))
             else:
-                cur.execute("SELECT * FROM (" + self.__item_master_query_data + """
+                sql = ("SELECT * FROM (" + self.__item_master_query_data + """
                     WHERE deleted=false and type=%s
                 """ + ") AS a ORDER BY uuid", (t,))
         else:
             if limit is not None:
-                cur.execute("SELECT * FROM (" + self.__item_master_query + """
+                sql = ("SELECT * FROM (" + self.__item_master_query + """
                     WHERE deleted=false and type=%s
                     LIMIT %s OFFSET %s
                 """ + ") AS a ORDER BY uuid", (t, limit, offset))
             else:
-                cur.execute("SELECT * FROM (" + self.__item_master_query + """
+                sql = ("SELECT * FROM (" + self.__item_master_query + """
                     WHERE deleted=false and type=%s
                 """ + ") AS a ORDER BY uuid", (t,))
-        for r in cur:
-            yield r
-        self.rollback()
+        return apidbpool.fetchiter(*sql)
 
-    def get_type_count(self, t):
-        cur = self._get_ss_cursor()
-        cur.execute(""" SELECT
-            count(*) as count FROM uuids
-            WHERE deleted=false and type=%s
-        """, (t,))
-        count = cur.fetchone()["count"]
-        self.rollback()
-        return count
+    @staticmethod
+    def get_type_count(t):
+        sql = ("""SELECT count(*) as count
+                  FROM uuids
+                  WHERE deleted=false and type=%s""", (t,))
+        return apidbpool.fetchone(*sql)[0]
 
+    @classmethod
     def get_children_list(self, u, t, limit=100, offset=0, data=False):
-        cur = self._get_ss_cursor()
+        sql = None
         if data:
             if limit is not None:
-                cur.execute("SELECT * FROM (" + self.__item_master_query_data + """
+                sql = ("SELECT * FROM (" + self.__item_master_query_data + """
                     WHERE deleted=false and type=%s and parent=%s
                     LIMIT %s OFFSET %s
                 """ + ") AS a ORDER BY uuid", (t, u, limit, offset))
             else:
-                cur.execute("SELECT * FROM (" + self.__item_master_query_data + """
+                sql = ("SELECT * FROM (" + self.__item_master_query_data + """
                     WHERE deleted=false and type=%s and parent=%s
                 """ + ") AS a ORDER BY uuid", (t, u))
         else:
             if limit is not None:
-                cur.execute("SELECT * FROM (" + self.__item_master_query + """
+                sql = ("SELECT * FROM (" + self.__item_master_query + """
                     WHERE deleted=false and type=%s and parent=%s
                     LIMIT %s OFFSET %s
                 """ + ") AS a ORDER BY uuid", (t, u, limit, offset))
             else:
-                cur.execute("SELECT * FROM (" + self.__item_master_query + """
+                sql = ("SELECT * FROM (" + self.__item_master_query + """
                     WHERE deleted=false and type=%s and parent=%s
                 """ + ") AS a ORDER BY uuid", (t, u))
-        for r in cur:
-            yield r
-        self.rollback()
+        return apidbpool.fetchiter(*sql, named=True)
 
+    @classmethod
     def get_children_count(self, u, t):
-        cur = self._get_ss_cursor()
-        cur.execute(""" SELECT
+        sql = (""" SELECT
             count(*) as count FROM uuids
             WHERE deleted=false and type=%s and parent=%s
         """, (t, u))
-        count = cur.fetchone()["count"]
-        self.rollback()
-        return count
+        return apidbpool.fetchone(*sql)[0]
 
-    def _id_precheck(self, u, ids, commit=False):
-        self._cur.execute("""SELECT
+    def _id_precheck(self, u, ids):
+        rows = self.fetchall("""SELECT
             identifier,
             uuids_id
             FROM uuids_identifier
             WHERE uuids_id=%s OR identifier = ANY(%s)
         """, (u, ids))
-        consistent = False
-        for row in self._cur:
+        for row in rows:
             if row["uuids_id"] != u:
-                break
+                return False
         else:
-            consistent = True
-        if commit:
-            self.commit()
-        return consistent
+            return True
 
-    def get_uuid(self, ids, commit=False):
-        self._cur.execute("""SELECT
+    def get_uuid(self, ids):
+        sql = ("""SELECT
             identifier,
             uuids_id,
             parent,
@@ -415,12 +412,10 @@ class PostgresDB:
             ON uuids.id = uuids_identifier.uuids_id
             WHERE identifier = ANY(%s)
         """, (ids,))
-        if commit:
-            self.commit()
         rid = None
         parent = None
         deleted = False
-        for row in self._cur:
+        for row in self.fetchall(*sql):
             if rid is None:
                 rid = row["uuids_id"]
                 parent = row["parent"]
@@ -428,45 +423,43 @@ class PostgresDB:
             elif rid == row["uuids_id"]:
                 pass
             else:
-                return (None,parent,deleted)
+                return (None, parent, deleted)
         if rid is None:
-            rv = (str(uuid.uuid4()),parent,deleted)
+            rv = (str(uuid.uuid4()), parent, deleted)
             #print "Create UUID", ids, rv
             return rv
         else:
-            return (rid,parent,deleted)
+            return (rid, parent, deleted)
 
-    def set_record(self, u, t, p, d, ids, siblings, commit=True):
+    def set_record(self, u, t, p, d, ids, siblings):
         try:
-            assert self._id_precheck(u, ids, commit=False)
+            assert self._id_precheck(u, ids)
             e = calcEtag(d)
-            self._upsert_uuid(u, t, p, commit=False)
-            self._upsert_data(e, d, commit=False)
-            self._upsert_uuid_data(u, e, commit=False)
-            self._upsert_uuid_id_l([(u, i) for i in ids], commit=False)
+            self._upsert_uuid(u, t, p)
+            self._upsert_data(e, d)
+            self._upsert_uuid_data(u, e)
+            self._upsert_uuid_id_l([(u, i) for i in ids])
             self._upsert_uuid_sibling_l(
-                [(u, s) for s in siblings], commit=False)
-            if commit:
-                self.commit()
+                [(u, s) for s in siblings])
+        except AssertionError:
+            print u, t, ids
+            raise
         except:
             print u, t, ids
-            e = sys.exc_info()
             self.rollback()
-            raise e[1], None, e[2]
+            raise
 
-    def set_records(self, record_list, commit=True):
+    def set_records(self, record_list):
         try:
             for u, t, p, d, ids, siblings in record_list:
-                assert self._id_precheck(u, ids, commit=False)
+                assert self._id_precheck(u, ids)
                 e = calcEtag(d)
-                self._upsert_uuid(u, t, p, commit=False)
-                self._upsert_data(e, d, commit=False)
-                self._upsert_uuid_data(u, e, commit=False)
-                self._upsert_uuid_id_l([(u, i) for i in ids], commit=False)
+                self._upsert_uuid(u, t, p)
+                self._upsert_data(e, d)
+                self._upsert_uuid_data(u, e)
+                self._upsert_uuid_id_l([(u, i) for i in ids])
                 self._upsert_uuid_sibling_l(
-                    [(u, s) for s in siblings], commit=False)
-            if commit:
-                self.commit()
+                    [(u, s) for s in siblings])
         except:
             e = sys.exc_info()
             self.rollback()
@@ -474,111 +467,89 @@ class PostgresDB:
 
     # UUID
 
-    def _upsert_uuid(self, u, t, p, commit=True):
-        self._cur.execute(self._upsert_uuid_query, {
+    def _upsert_uuid(self, u, t, p):
+        self.execute(self._upsert_uuid_query, {
             "uuid": u,
             "type": t,
             "parent": p
         })
-        if commit:
-            self.commit()
 
-    def _upsert_uuid_l(self, utpl, commit=True):
-        self._cur.executemany(self._upsert_uuid_query, [
+    def _upsert_uuid_l(self, utpl):
+        self.executemany(self._upsert_uuid_query, [
             {
                 "uuid": u,
                 "type": t,
                 "parent": p
             } for u, t, p in utpl
         ])
-        if commit:
-            self.commit()
 
     # DATA
-    def _upsert_data(self, e, d, commit=True):
-        self._cur.execute(self._upsert_data_query, {
+    def _upsert_data(self, e, d):
+        self.execute(self._upsert_data_query, {
             "etag": e,
             "data": json.dumps(d)
         })
-        if commit:
-            self.commit()
 
-    def _upsert_data_l(self, edl, commit=True):
-        self._cur.executemany(self._upsert_data_query, [
+    def _upsert_data_l(self, edl):
+        self.executemany(self._upsert_data_query, [
             {
                 "etag": e,
                 "data": json.dumps(d)
             } for e, d in edl
         ])
-        if commit:
-            self.commit()
 
     # ETAGS ONLY
-    def _upsert_etag_l(self, el, commit=True):
-        self._cur.executemany("""INSERT INTO data (etag)
+    def _upsert_etag_l(self, el):
+        self.executemany("""INSERT INTO data (etag)
             SELECT %(etag)s as etag WHERE NOT EXISTS (
                 SELECT 1 FROM data WHERE etag=%(etag)s
             )
-        """, [{"etag": e } for e in el])
-        if commit:
-            self.commit()
+        """, [{"etag": e} for e in el])
 
     # UUID DATA
-    def _upsert_uuid_data(self, u, e, commit=True):
-        self._cur.execute(self._upsert_uuid_data_query, {
+    def _upsert_uuid_data(self, u, e):
+        self.execute(self._upsert_uuid_data_query, {
             "uuid": u,
             "etag": e
         })
-        if commit:
-            self.commit()
 
-    def _upsert_uuid_data_l(self, uel, commit=True):
-        self._cur.executemany(self._upsert_uuid_data_query, [
+    def _upsert_uuid_data_l(self, uel):
+        self.executemany(self._upsert_uuid_data_query, [
             {
                 "uuid": u,
                 "etag": e
             } for u, e in uel
         ])
-        if commit:
-            self.commit()
 
     # UUID ID
-    def _upsert_uuid_id(self, u, i, commit=True):
-        self._cur.execute(self._upsert_uuid_id_query, {
+    def _upsert_uuid_id(self, u, i):
+        self.execute(self._upsert_uuid_id_query, {
             "uuid": u,
             "id": i
         })
-        if commit:
-            self.commit()
 
-    def _upsert_uuid_id_l(self, uil, commit=True):
-        self._cur.executemany(self._upsert_uuid_id_query, [
+    def _upsert_uuid_id_l(self, uil):
+        self.executemany(self._upsert_uuid_id_query, [
             {
                 "uuid": u,
                 "id": i
             } for u, i in uil
         ])
-        if commit:
-            self.commit()
 
     # UUID ID
-    def _upsert_uuid_sibling(self, u, s, commit=True):
-        self._cur.execute(self._upsert_uuid_sibling_query, {
+    def _upsert_uuid_sibling(self, u, s):
+        self.execute(self._upsert_uuid_sibling_query, {
             "uuid": sorted([u, s])[0],
             "sibling": sorted([u, s])[1]
         })
-        if commit:
-            self.commit()
 
-    def _upsert_uuid_sibling_l(self, usl, commit=True):
-        self._cur.executemany(self._upsert_uuid_sibling_query, [
+    def _upsert_uuid_sibling_l(self, usl):
+        self.executemany(self._upsert_uuid_sibling_query, [
             {
                 "uuid": sorted(x)[0],
                 "sibling": sorted(x)[1]
             } for x in usl
         ])
-        if commit:
-            self.commit()
 
 
 def main():
@@ -616,8 +587,7 @@ def main():
     #             rro["idigbio:links"]["recordset"][0].split("/")[-1],
     #             rro["idigbio:data"],
     #             rro["idigbio:recordIds"],
-    #             [],
-    #             commit=False
+    #             []
     #         )
     #         reccount += 1
 
@@ -635,8 +605,7 @@ def main():
     #             rro["idigbio:links"]["recordset"][0].split("/")[-1],
     #             rro["idigbio:data"],
     #             rro["idigbio:recordIds"],
-    #             recs,
-    #             commit=False
+    #             recs
     #         )
 
     #     db.commit()

@@ -1,6 +1,8 @@
+from __future__ import absolute_import
+
 from flask import current_app, Blueprint, jsonify, url_for, request
 
-from .common import load_data_from_riak, json_error
+from .common import json_error, idbmodel
 from idb.helpers.idb_flask_authn import requires_auth
 
 from idb.helpers.cors import crossdomain
@@ -67,11 +69,11 @@ def subitem(t,u,st):
             v["modified"],
             v["version"],
             v["parent"],
-        ) for v in current_app.config["DB"].get_children_list(str(u), "".join(st[:-1]),limit=limit,offset=offset)
+        ) for v in idbmodel.get_children_list(str(u), "".join(st[:-1]),limit=limit,offset=offset)
     ]
 
     r["items"] = l
-    r["itemCount"] = current_app.config["DB"].get_children_count(str(u), "".join(st[:-1]))
+    r["itemCount"] = idbmodel.get_children_count(str(u), "".join(st[:-1]))
     return jsonify(r)
 
 @this_version.route('/view/<string:t>/<uuid:u>', methods=['GET','OPTIONS'])
@@ -82,10 +84,10 @@ def item(t,u):
     
     version = request.args.get("version")
 
-    v = current_app.config["DB"].get_item(str(u),version=version)
+    v = idbmodel.get_item(str(u), version=version)
     if v is not None:
         if v["data"] is None:
-            v["data"] = load_data_from_riak("".join(t[:-1]),u,v["riak_etag"])
+            return json_error(500)
 
         if v["type"] +"s" == t:
             r = format_item(
@@ -110,10 +112,10 @@ def item(t,u):
 def item_no_type(u):
     version = request.args.get("version")
 
-    v = current_app.config["DB"].get_item(str(u),version=version)
+    v = idbmodel.get_item(str(u), version=version)
     if v is not None:
         if v["data"] is None:
-            v["data"] = load_data_from_riak("".join(v["type"]),u,v["riak_etag"])
+            return json_error(500)
 
         r = format_item(
             v["type"] + "s",
@@ -156,11 +158,11 @@ def list(t):
             v["modified"],
             v["version"],
             v["parent"],
-        ) for v in current_app.config["DB"].get_type_list("".join(t[:-1]),limit=limit,offset=offset)
+        ) for v in idbmodel.get_type_list("".join(t[:-1]), limit=limit, offset=offset)
     ]
 
     r["items"] = l
-    r["itemCount"] = current_app.config["DB"].get_type_count("".join(t[:-1]))
+    r["itemCount"] = idbmodel.get_type_count("".join(t[:-1]))
     return jsonify(r)
 
 @this_version.route('/view', methods=['GET','OPTIONS'])

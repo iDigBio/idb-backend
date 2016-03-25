@@ -1,27 +1,34 @@
-import psycopg2
-import psycopg2.extensions
+from __future__ import absolute_import
 import os
 import copy
-import psycopg2.extras
-from psycopg2.extras import DictCursor
+import psycopg2
+import psycopg2.extensions
+
+from .gevent_helpers import GeventedConnPool
+
+from psycopg2.extras import DictCursor, NamedTupleCursor
+from psycopg2.extensions import cursor
+
 from psycopg2.extensions import ISOLATION_LEVEL_READ_COMMITTED, ISOLATION_LEVEL_AUTOCOMMIT
+
 
 from idb.config import config
 
 psycopg2.extensions.register_type(psycopg2.extensions.UNICODE)
 psycopg2.extensions.register_type(psycopg2.extensions.UNICODEARRAY)
 
-prefix = config["postgres"]["db_prefix"] if "db_prefix" in config["postgres"] else ""
-suffix = config["postgres"]["db_suffix"] if "db_suffix" in config["postgres"] else ""
-
 pg_conf = copy.deepcopy(config["postgres"])
-del pg_conf["db_prefix"]
-del pg_conf["db_suffix"]
 
-pg_conf["database"] = prefix + 'api' + suffix
+prefix = pg_conf.pop("db_prefix", "")
+suffix = pg_conf.pop("db_suffix", "")
 
-pg = None
+pg_conf["database"] = prefix + "api" + suffix
+pg_conf["cursor_factory"] = DictCursor
+
 if os.environ["ENV"] == "test":
-    pg = psycopg2.connect(host="localhost",user="test",password="test",dbname="test")
-else:
-    pg = psycopg2.connect(**pg_conf)
+    pg_conf["host"] = "localhost"
+    pg_conf["user"] = "test"
+    pg_conf["password"] = "test"
+    pg_conf["dbname"] = "test"
+
+apidbpool = GeventedConnPool(**pg_conf)

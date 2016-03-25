@@ -6,16 +6,16 @@ from idb.postgres_backend.db import PostgresDB
 
 def main3():
     db = PostgresDB()
-    db._cur.execute("SELECT * FROM recordsets WHERE ingest=true and uuid IS NOT NULL AND file_harvest_date IS NOT NULL ORDER BY file_harvest_date")
-    for r in db._cur:
+    sql = "SELECT * FROM recordsets WHERE ingest=true and uuid IS NOT NULL AND file_harvest_date IS NOT NULL ORDER BY file_harvest_date"
+
+    for r in db.fetchall(sql):
         try:
             print r["uuid"]
         except:
             traceback.print_exc()
 
 def main2():
-    db = PostgresDB()
-    for r in db.get_type_list("recordset", limit=None):
+    for r in PostgresDB.get_type_list("recordset", limit=None):
         try:
             print r["uuid"]
         except:

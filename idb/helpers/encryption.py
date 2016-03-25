@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 from Crypto.Cipher import AES
 from hashlib import md5
 import binascii

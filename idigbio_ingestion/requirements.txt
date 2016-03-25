@@ -1,3 +1,5 @@
 pydub
 pillow
 Python-fontconfig
+lxml
+chardet

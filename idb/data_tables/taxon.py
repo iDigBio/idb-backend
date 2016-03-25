@@ -1,7 +1,7 @@
 import traceback
 import os
 
-from idb.lib.data.importers.dwca import Dwca
+from idigbio_ingestion.lib.dwca import Dwca
 
 whitelist = [
     #"description.txt",

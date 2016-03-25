@@ -2,6 +2,7 @@ import psycopg2
 import psycopg2.extensions
 import os
 import copy
+import psycopg2.extras
 from psycopg2.extras import DictCursor
 from psycopg2.extensions import ISOLATION_LEVEL_READ_COMMITTED, ISOLATION_LEVEL_AUTOCOMMIT
 

@@ -2,6 +2,9 @@ from . import *
 
 import uuid
 import copy
+import traceback
+
+from idb.helpers.etags import objectHasher
 
 class RecordCorrector(object):
 
@@ -9,17 +12,26 @@ class RecordCorrector(object):
         self.reload()
 
     def reload(self):
+        self.keytups = set()
+
+
         cursor = pg.cursor(str(uuid.uuid4()),cursor_factory=DictCursor)
-        cursor.execute("select k::json,v::json from corrections where source = ANY('{\"data_dictionaries_2\",\"data_dictionaries_1\",\"gbif_checklist\"}')")
+        cursor.execute("select k::json, v::json from corrections")
 
         self.corrections = {}
         for r in cursor:
-            uk = tuple(r["k"].keys())
-            uv = tuple([r["k"][k] for k in uk])
-            if uk not in self.corrections:
-                self.corrections[uk] = {}
+            try:
+                uk = tuple(r["k"].keys())
+                self.keytups.add(uk)
 
-            self.corrections[uk][uv] = r["v"]
+                etag = objectHasher("sha256", r["k"])
+
+                self.corrections[etag] = r["v"]
+            except:
+                traceback.print_exc()
+                print r, [type(f) for f in r]
+                raise Exception
+
         pg.rollback()
 
     def create_schema(self):
@@ -55,31 +67,41 @@ class RecordCorrector(object):
 
         cd_keys = dict([(k.lower(),k) for k in corrected_dict.keys()])
 
-        for c in self.corrections:
-            l = []
-            for k in c:
-                if k in cd_keys:
-                    l.append(corrected_dict[cd_keys[k]].lower())
+        for t in self.keytups:
+            d = {}
+            for f in t:
+                f_real = f
+                if f in cd_keys:
+                    f_real = cd_keys[f]
+
+                if f in corrected_dict:
+                    d[f] = corrected_dict[f].lower()
+                elif f_real in corrected_dict:
+                    d[f] = corrected_dict[f_real].lower()
                 else:
                     break
             else: # if we got to the end of the for without breaking
-                uv = tuple(l)
-                if uv in self.corrections[c]:
-                    for k in self.corrections[c][uv].keys():
+                etag = objectHasher("sha256", d)
+                if etag in self.corrections:
+                    for k in self.corrections[etag].keys():
+                        if k == "dwc:scientificname":
+                            continue
+
                         if k in cd_keys:
-                            if corrected_dict[cd_keys[k]].lower() != self.corrections[c][uv][k]:
-                                if self.corrections[c][uv][k] is None:
+                            cdk = cd_keys[k]
+                            if corrected_dict[cdk].lower() != self.corrections[etag][k]:
+                                if self.corrections[etag][k] is None:
                                     corrected_dict["flag_" + k.replace(":","_").lower() + "_removed"] = True
                                 else:
                                     corrected_dict["flag_" + k.replace(":","_").lower() + "_replaced"] = True
-                                corrected_dict[cd_keys[k]] = self.corrections[c][uv][k]
-                                corrected_keys.add(cd_keys[k])
+                                corrected_dict[cdk] = self.corrections[etag][k]
+                                corrected_keys.add(cdk)
                             else:
                                 # match
                                 pass
                         else:
                             corrected_dict["flag_" + k.replace(":","_").lower() + "_added"] = True
-                            corrected_dict[k] = self.corrections[c][uv][k]
+                            corrected_dict[k] = self.corrections[etag][k]
                             corrected_keys.add(k)
 
         return (corrected_dict,corrected_keys)

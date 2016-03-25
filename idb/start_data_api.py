@@ -3,6 +3,9 @@ import os
 import sys
 
 if __name__ == '__main__':
+    from gevent import monkey
+    monkey.patch_all()
+
     from idb.data_api.api import app
 
     env = os.environ.get('ENV', 'dev')

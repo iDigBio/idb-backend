@@ -1,3 +1,4 @@
+from __future__ import print_function
 import os
 import sys
 import re
@@ -485,12 +486,11 @@ def metadataToSummaryJSON(rsid, metadata, writeFile=True, doStats=True):
 
 
 def main():
-    rsid = sys.argv[1]
-    ingest = False
-    if len(sys.argv) > 2:
-        # RSID is always last for xargs support
-        rsid = sys.argv[-1]
-        ingest = sys.argv[1] == "ingest"
+    if len(sys.argv) == 1:
+        print("Usage: db_check.py [ingest] <RSID>", file=sys.stderr)
+        sys.exit(1)
+    ingest = sys.argv[1] == "ingest"
+    rsid = sys.argv[-1]
 
     fh = logging.FileHandler(rsid + ".db_check.log")
     fh.setLevel(logging.INFO)

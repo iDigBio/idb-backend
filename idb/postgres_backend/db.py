@@ -4,14 +4,16 @@ import datetime
 import random
 import json
 import hashlib
+import os
 import sys
 
 from psycopg2.extras import DictCursor
 from psycopg2.extensions import (ISOLATION_LEVEL_READ_COMMITTED,
                                  ISOLATION_LEVEL_AUTOCOMMIT,
                                  TRANSACTION_STATUS_IDLE)
-from idb.helpers.etags import calcEtag
 from idb.postgres_backend import apidbpool
+from idb.helpers.etags import calcEtag, calcFileHash
+from idb.helpers.media_validation import sniff_validation
 
 TEST_SIZE = 10000
 TEST_COUNT = 10
@@ -550,6 +552,66 @@ class PostgresDB(object):
                 "sibling": sorted(x)[1]
             } for x in usl
         ])
+
+
+class MediaObject(object):
+    __slots__ = 'filereference etag mime mtype size owner'.split(' ')
+
+    @classmethod
+    def fromobj(klass, obj):
+        obj.seek(0)
+        mo = klass()
+        mo.mime, mo.mtype = sniff_validation(obj.read(1024))
+        obj.seek(0)
+        mo.etag, mo.size = calcFileHash(obj, op=False, return_size=True)
+        return mo
+
+    @classmethod
+    def frometag(klass, etag, idbmodel):
+        sql = "SELECT etag, bucket, detected_mime FROM objects WHERE etag=%s"
+        r = idbmodel.fetchone(sql, (etag,))
+        if r:
+            mo = klass()
+            mo.etag, mo.mtype, mo.mime = r
+            return mo
+
+    def get_key(self, media_store):
+        bucket = "idigbio-{0}-{1}".format(self.mtype, os.environ["ENV"])
+        return media_store.get_key(self.etag, bucket)
+
+    def upload(self, media_store, fobj, force=False):
+        k = self.get_key(media_store)
+        if force or not k.exists():
+            fobj.seek(0)
+            k.set_contents_from_file(fobj, md5=k.get_md5_from_hexdigest(self.etag))
+            k.make_public()
+
+    def insert_object(self, idbmodel):
+        idbmodel.execute(
+            """INSERT INTO objects (bucket, etag, detected_mime)
+               SELECT %s, %s, %s WHERE NOT EXISTS (SELECT 1 FROM objects WHERE etag=%s)""",
+            (self.mtype, self.etag, self.mime, self.etag))
+
+    def update_media(self, idbmodel, status=200):
+        idbmodel.execute(
+            """UPDATE media
+               SET last_check=now(), last_status=%s, type=%s, mime=%s
+               WHERE url=%s""",
+            (status, self.mtype, self.mime, self.filereference))
+
+    def insert_media(self, idbmodel, status=200):
+        idbmodel.execute(
+            """INSERT INTO media (url, type, mime, last_status, last_check, owner)
+               VALUES (%s, %s, %s, %s, now(), %s)""",
+            (self.filereference, self.mtype, self.mime, status, self.owner))
+
+    def ensure_media_object(self, idbmodel):
+        idbmodel.execute(
+            """INSERT INTO media_objects (url, etag)
+               SELECT %(url)s, %(etag)s WHERE NOT EXISTS (
+                 SELECT 1 FROM media_objects WHERE url=%(url)s AND etag=%(etag)s
+               )""",
+            (self.filereference, self.etag))
 
 
 def main():

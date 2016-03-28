@@ -30,7 +30,7 @@ def get_media_url(r, deriv=None):
         if deriv is None:
             return "https://s.idigbio.org/idigbio-{0}-prod/{1}".format(
                 media_type, objects_etag)
-        elif media_type in MTYPES and deriv in DERIV:
+        elif media_type in MTYPES and deriv in DERIVATIONS:
             if derivatives:  # If derivatives have been generated
                 return "https://s.idigbio.org/idigbio-{0}-prod-{2}/{1}.jpg".format(
                     media_type, objects_etag, deriv)

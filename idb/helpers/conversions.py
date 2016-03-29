@@ -23,12 +23,17 @@ from idb.data_tables.rights_strings import acceptable_licenses_trans, licenses
 from idb.data_tables.locality_data import iso_two_to_three
 
 from .biodiversity_socket_connector import Biodiversity
-from idb.helpers.rg import ReverseGeocoder
+from idb.helpers.rg import get_rg, get_rg_eez
 
-rg = ReverseGeocoder()
-rg_eez = ReverseGeocoder(shapefile="data/EEZ_land_v2_201410.shp", cc_key="ISO_3digit")
 
 b = Biodiversity()
+
+
+def get_country(eez=False, *args):
+    if eez:
+        return get_rg_eez.get_country(*args)
+    else:
+        return get_rg.get_country(*args)
 
 PARENT_MAP = {
     "records": "recordsets",
@@ -500,9 +505,9 @@ def geoGrabber(t, d):
                 r["flag_geopoint_datum_missing"] = True
 
             # get_country takes lon, lat
-            result = rg.get_country(r["geopoint"][0], r["geopoint"][1])
+            result = get_country(r["geopoint"][0], r["geopoint"][1], eez=False)
             if result is None:
-                result_eez = rg_eez.get_country(r["geopoint"][0], r["geopoint"][1])
+                result_eez = get_country(r["geopoint"][0], r["geopoint"][1], eez=True)
                 if result_eez is not None:
                     result = result_eez
                     r["flag_rev_geocode_eez"] = True
@@ -536,7 +541,9 @@ def geoGrabber(t, d):
                         [(-r["geopoint"][1], -r["geopoint"][0]),
                          4, "rev_geocode_flip_both_sign"]
                     ])
-                for i, f in enumerate([rg.get_country(*f[0]) for f in flip_queries] + [rg_eez.get_country(*f[0]) for f in flip_queries]):
+                results = [get_country(*f[0], eez=False) for f in flip_queries] + \
+                          [get_country(*f[0], eez=True) for f in flip_queries]
+                for i, f in enumerate():
                     if f is not None and f.lower() == d["idigbio:isocountrycode"]:
                         # Flip back to lon, lat
                         real_i = i % len(flip_queries)

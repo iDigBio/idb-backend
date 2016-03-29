@@ -1,11 +1,13 @@
 from __future__ import absolute_import
 
+import re
 import os
 import fiona
 from shapely.geometry import shape, Point
 from shapely.prepared import prep
 
-import re
+from .memoize import memoized
+
 
 pattern = re.compile('[\W_]+')
 
@@ -46,3 +48,13 @@ class ReverseGeocoder:
             if self.countries[c].contains(p):
                 return c
         return None
+
+
+@memoized()
+def get_rg():
+    return ReverseGeocoder()
+
+
+@memoized()
+def get_rg_eez():
+    return ReverseGeocoder(shapefile="data/EEZ_land_v2_201410.shp", cc_key="ISO_3digit")

@@ -237,7 +237,7 @@ def upload():
     else:
         mobject = MediaObject.frometag(etag, idbmodel)
         if not mobject or not mobject.get_key(media_store).exists():
-            return json_error(404, "Unknown etag")
+            return json_error(404, "Unknown etag {0!r}".format(etag))
 
     mobject.filereference = filereference
     mobject.owner = request.authorization.username

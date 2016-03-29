@@ -8,6 +8,7 @@ import os
 import sys
 
 from psycopg2.extras import DictCursor
+from psycopg2.extensions import cursor
 from psycopg2.extensions import (ISOLATION_LEVEL_READ_COMMITTED,
                                  ISOLATION_LEVEL_AUTOCOMMIT,
                                  TRANSACTION_STATUS_IDLE)
@@ -575,9 +576,31 @@ class MediaObject(object):
             mo.etag, mo.mtype, mo.mime = r
             return mo
 
+    @classmethod
+    def fromurl(klass, url, idbmodel):
+        sql = ("""SELECT objects.bucket, objects.etag, objects.detected_mime, media.owner
+                  FROM media
+                  LEFT JOIN media_objects ON media.url = media_objects.url
+                  LEFT JOIN objects on media_objects.etag = objects.etag
+                  WHERE media.url=%(url)s
+        """, {"url": url})
+        r = idbmodel.fetchone(*sql, cursor_factory=cursor)
+        if r:
+            mo = klass()
+            mo.filereference = url
+            mo.mtype, mo.etag, mo.mime, mo.owner = r
+            return mo
+
     def get_key(self, media_store):
-        bucket = "idigbio-{0}-{1}".format(self.mtype, os.environ["ENV"])
-        return media_store.get_key(self.etag, bucket)
+        return media_store.get_key(self.keyname, self.bucketname)
+
+    @property
+    def keyname(self):
+        return self.etag
+
+    @property
+    def bucketname(self):
+        return "idigbio-{0}-{1}".format(self.mtype, os.environ["ENV"])
 
     def upload(self, media_store, fobj, force=False):
         k = self.get_key(media_store)

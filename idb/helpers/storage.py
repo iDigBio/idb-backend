@@ -12,7 +12,8 @@ import boto.s3.connection
 from boto.s3.key import Key
 
 from idb.helpers.media_validation import get_validator
-from idb.postgres_backend import apidbpool, NamedTupleCursor
+from idb.postgres_backend import apidbpool
+from idb.postgres_backend.db import MediaObject
 from idb.helpers.etags import calcFileHash
 from idb.config import config
 
@@ -100,17 +101,10 @@ class IDigBioStorage(object):
         return k
 
     def get_key_by_url(self, url):
-        sql = ("""SELECT objects.bucket, objects.etag
-            FROM media
-            LEFT JOIN media_objects ON media.url = media_objects.url
-            LEFT JOIN objects on media_objects.etag = objects.etag
-            WHERE media.url=%(url)s
-        """, {"url": url})
-
-        r = apidbpool.fetchone(*sql, cursor_factory=NamedTupleCursor)
-        if r is None:
+        mo = MediaObject.fromurl(url, apidbpool)
+        if mo is None:
             raise Exception("No media with url {0!r}".format(url))
-        return self.get_key(r.etag, "idigbio-{}-prod".format(r.bucket))
+        return self.get_key(mo.keyname, mo.bucketname)
 
     def get_file_by_url(self, url, file_name=None):
         k = self.get_key_by_url(url)

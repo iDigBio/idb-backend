@@ -611,7 +611,7 @@ class MediaObject(object):
                SELECT %(url)s, %(etag)s WHERE NOT EXISTS (
                  SELECT 1 FROM media_objects WHERE url=%(url)s AND etag=%(etag)s
                )""",
-            (self.filereference, self.etag))
+            {"url": self.filereference, "etag": self.etag})
 
 
 def main():

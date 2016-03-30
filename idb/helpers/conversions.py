@@ -23,12 +23,11 @@ from idb.data_tables.rights_strings import acceptable_licenses_trans, licenses
 from idb.data_tables.locality_data import iso_two_to_three
 
 from .biodiversity_socket_connector import Biodiversity
-from idb.helpers.rg import ReverseGeocoder
+from idb.helpers.rg import get_country
 
-rg = ReverseGeocoder()
-rg_eez = ReverseGeocoder(shapefile="data/EEZ_land_v2_201410.shp", cc_key="ISO_3digit")
 
 b = Biodiversity()
+
 
 PARENT_MAP = {
     "records": "recordsets",
@@ -407,8 +406,8 @@ def floatGrabber(t, d):
     r = {}
     ef = {
         "records": [
-            ["individualcount", "dwc:individualCount"],
-            ["coordinateuncertainty", "dwc:coordinateUncertaintyInMeters"],
+            ("individualcount", "dwc:individualCount"),
+            ("coordinateuncertainty", "dwc:coordinateUncertaintyInMeters"),
         ],
         "mediarecords": [
         ],
@@ -417,17 +416,17 @@ def floatGrabber(t, d):
         "recordsets": [
         ]
     }
-    for f in ef[t]:
-        fv = getfield(f[1], d)
+    for resultkey, fieldkey in ef[t]:
+        fv = getfield(fieldkey, d)
         if fv is not None:
             try:
                 n = grabFirstNumber(fv)
                 if n is not None:
-                    r[f[0]] = locale.atof(n)
+                    r[resultkey] = locale.atof(n)
             except:
                 pass
-        if f[0] not in r:
-            r[f[0]] = None
+        if resultkey not in r:
+            r[resultkey] = None
     return r
 
 
@@ -500,9 +499,9 @@ def geoGrabber(t, d):
                 r["flag_geopoint_datum_missing"] = True
 
             # get_country takes lon, lat
-            result = rg.get_country(r["geopoint"][0], r["geopoint"][1])
+            result = get_country(r["geopoint"][0], r["geopoint"][1], eez=False)
             if result is None:
-                result_eez = rg_eez.get_country(r["geopoint"][0], r["geopoint"][1])
+                result_eez = get_country(r["geopoint"][0], r["geopoint"][1], eez=True)
                 if result_eez is not None:
                     result = result_eez
                     r["flag_rev_geocode_eez"] = True
@@ -536,7 +535,9 @@ def geoGrabber(t, d):
                         [(-r["geopoint"][1], -r["geopoint"][0]),
                          4, "rev_geocode_flip_both_sign"]
                     ])
-                for i, f in enumerate([rg.get_country(*f[0]) for f in flip_queries] + [rg_eez.get_country(*f[0]) for f in flip_queries]):
+                results = [get_country(*f[0], eez=False) for f in flip_queries] + \
+                          [get_country(*f[0], eez=True) for f in flip_queries]
+                for i, f in enumerate(results):
                     if f is not None and f.lower() == d["idigbio:isocountrycode"]:
                         # Flip back to lon, lat
                         real_i = i % len(flip_queries)

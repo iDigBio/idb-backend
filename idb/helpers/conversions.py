@@ -406,8 +406,8 @@ def floatGrabber(t, d):
     r = {}
     ef = {
         "records": [
-            ["individualcount", "dwc:individualCount"],
-            ["coordinateuncertainty", "dwc:coordinateUncertaintyInMeters"],
+            ("individualcount", "dwc:individualCount"),
+            ("coordinateuncertainty", "dwc:coordinateUncertaintyInMeters"),
         ],
         "mediarecords": [
         ],
@@ -416,17 +416,17 @@ def floatGrabber(t, d):
         "recordsets": [
         ]
     }
-    for f in ef[t]:
-        fv = getfield(f[1], d)
+    for resultkey, fieldkey in ef[t]:
+        fv = getfield(fieldkey, d)
         if fv is not None:
             try:
                 n = grabFirstNumber(fv)
                 if n is not None:
-                    r[f[0]] = locale.atof(n)
+                    r[resultkey] = locale.atof(n)
             except:
                 pass
-        if f[0] not in r:
-            r[f[0]] = None
+        if resultkey not in r:
+            r[resultkey] = None
     return r
 
 

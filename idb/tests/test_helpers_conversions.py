@@ -62,19 +62,18 @@ class TestVerbatimGrabber(unittest.TestCase):
     def test_verbatim_grabber(self):
         for t in conversions.fields.keys():
             for f in conversions.fields[t]:
-                if f[1] != "":
-                    if f[2] == "text" or f[2] == "longtext":
+                resultkey, fieldkey, fieldtype, _, _ = f
+                if fieldkey != "":
+                    if fieldtype == "text" or fieldtype == "longtext":
                         r = conversions.verbatimGrabber(t, {
-                            f[1]: "blah"
+                            fieldkey: "blah"
                         })
-                        self.assertEqual("blah", r[f[0]])
-                    elif f[2] == "list":
+                        self.assertEqual("blah", r[resultkey])
+                    elif fieldtype == "list":
                         r = conversions.verbatimGrabber(t, {
-                            f[1]: ["blah"]
+                            fieldkey: ["blah"]
                         })
-                        self.assertEqual(["blah"], r[f[0]])
-                    else:
-                        assert False
+                        self.assertEqual(["blah"], r[resultkey])
 
 
 class TestGrabFirstNumber(unittest.TestCase):
@@ -156,7 +155,7 @@ class TestIntGrabber(unittest.TestCase):
         }, conversions.intGrabber("records", r))
 
 
-def test_int_grabber_float(self):
+    def test_int_grabber_float(self):
         r = {
             "idigbio:version": 1.0,
         }
@@ -172,7 +171,13 @@ class TestGeoGrabber(unittest.TestCase):
             "dwc:decimalLongitude": "134.567",
             "dwc:geodeticDatum": "WGS84"
         }
-        self.assertEqual({'geopoint': (134.567, 34.567)}, conversions.geoGrabber("records", r))
+        self.assertEqual({'geopoint': (134.567, 34.567), 'flag_rev_geocode_eez': True},
+                         conversions.geoGrabber("records", r))
+
+        r["dwc:decimalLatitude"] = 34.703
+        r["dwc:decimalLongitude"] = 135.722
+        self.assertEqual({'geopoint': (135.722, 34.703),},
+                         conversions.geoGrabber("records", r))
 
 
 class TestDateGrabber(unittest.TestCase):
@@ -188,6 +193,7 @@ class TestDateGrabber(unittest.TestCase):
         self.assertEqual({
             "datemodified": datetime.datetime(2014, 1, 10, tzinfo=pytz.utc),
             "datecollected": datetime.datetime(2014, 1, 10, tzinfo=pytz.utc),
+            "startdayofyear": 10,
         }, conversions.dateGrabber("records", r))
         self.assertEqual({
             "datemodified": datetime.datetime(2014, 1, 10, tzinfo=pytz.utc),
@@ -204,6 +210,7 @@ class TestDateGrabber(unittest.TestCase):
         self.assertEqual({
             "datemodified": datetime.datetime(2014, 1, 10, tzinfo=pytz.utc),
             "datecollected": datetime.date(2014,01,10),
+            "startdayofyear": 10,
         }, conversions.dateGrabber("records", r))
 
 
@@ -232,6 +239,7 @@ class TestRelationsGrabber(unittest.TestCase):
         }
         self.assertEqual({
             "hasImage": True,
+            "hasMedia": True,
             "mediarecords": [
                 'ae175cc6-82f4-456b-910c-34da322e768d',
                 'd0ca23cd-d4eb-43b5-aaba-cb75f8aef9e3'
@@ -320,6 +328,7 @@ class TestGrabAll(unittest.TestCase):
             ]
         }
         e = {
+            'accessuri': None,
             'barcodevalue': None,
             'basisofrecord': 'preservedspecimen',
             'bed': None,
@@ -331,12 +340,13 @@ class TestGrabAll(unittest.TestCase):
             'collector': 'p. acevedo; a. reilly',
             'commonname': None,
             'continent': None,
+            'coordinateuncertainty': 2000.0,
             'country': 'u.s. virgin islands',
             'countrycode': None,
             'county': None,
             'datecollected': datetime.datetime(1987, 8, 21, tzinfo=pytz.utc),
             'datemodified': datetime.datetime(2015, 1, 17, 8, 35, 59, 395000, tzinfo=pytz.utc),
-            'dqs': 0.35714285714285715,
+            'dqs': 0.3492063492063492,
             'earliestageorloweststage': None,
             'earliestepochorlowestseries': None,
             'earliesteraorlowesterathem': None,
@@ -346,11 +356,18 @@ class TestGrabAll(unittest.TestCase):
             'family': 'myrtaceae',
             'fieldnumber': None,
             'flags': ['geopoint_datum_missing'],
+            'format': None,
             'formation': None,
+            'gbif_cannonicalname': None,
+            'gbif_genus': None,
+            'gbif_specificepithet': None,
+            'gbif_taxonid': None,
             'genus': 'eugenia',
             'geopoint': (-64.7131, 18.348),
+            'geoshape': None,
             'group': None,
             'hasImage': True,
+            'hasMedia': True,
             'highertaxon': None,
             'individualcount': None,
             'infraspecificepithet': None,
@@ -369,6 +386,7 @@ class TestGrabAll(unittest.TestCase):
             'maxelevation': None,
             'mediarecords': ['ae175cc6-82f4-456b-910c-34da322e768d',
                              'd0ca23cd-d4eb-43b5-aaba-cb75f8aef9e3'],
+            'mediatype': None,
             'member': None,
             'mindepth': None,
             'minelevation': None,
@@ -381,6 +399,7 @@ class TestGrabAll(unittest.TestCase):
             'recordset': '40250f4d-7aa6-4fcc-ac38-2868fa4846bd',
             'scientificname': 'eugenia monticola',
             'specificepithet': 'monticola',
+            'startdayofyear': 233,
             'stateprovince': 'saint john',
             'typestatus': None,
             'uuid': '0000012b-9bb8-42f4-ad3b-c958cb22ae45',
@@ -439,7 +458,8 @@ class TestFloatGrabber(unittest.TestCase):
             "dwc:individualCount": "100.0"
         }
         self.assertEqual({
-            "individualcount": 100.0
+            "individualcount": 100.0,
+            "coordinateuncertainty": None,
         }, conversions.floatGrabber("records", r))
 
 

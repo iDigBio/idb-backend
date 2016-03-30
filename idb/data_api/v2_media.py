@@ -234,6 +234,7 @@ def upload():
     if obj:
         mobject = MediaObject.fromobj(obj)
         mobject.upload(media_store, obj)
+        mobject.insert_object(idbmodel)
     else:
         mobject = MediaObject.frometag(etag, idbmodel)
         if not mobject or not mobject.get_key(media_store).exists():

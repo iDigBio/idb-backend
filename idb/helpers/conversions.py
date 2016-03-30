@@ -23,17 +23,11 @@ from idb.data_tables.rights_strings import acceptable_licenses_trans, licenses
 from idb.data_tables.locality_data import iso_two_to_three
 
 from .biodiversity_socket_connector import Biodiversity
-from idb.helpers.rg import get_rg, get_rg_eez
+from idb.helpers.rg import get_country
 
 
 b = Biodiversity()
 
-
-def get_country(eez=False, *args):
-    if eez:
-        return get_rg_eez.get_country(*args)
-    else:
-        return get_rg.get_country(*args)
 
 PARENT_MAP = {
     "records": "recordsets",
@@ -543,7 +537,7 @@ def geoGrabber(t, d):
                     ])
                 results = [get_country(*f[0], eez=False) for f in flip_queries] + \
                           [get_country(*f[0], eez=True) for f in flip_queries]
-                for i, f in enumerate():
+                for i, f in enumerate(results):
                     if f is not None and f.lower() == d["idigbio:isocountrycode"]:
                         # Flip back to lon, lat
                         real_i = i % len(flip_queries)

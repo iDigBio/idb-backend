@@ -12,7 +12,6 @@ from idb.postgres_backend.db import PostgresDB, MediaObject
 prodonly = pytest.mark.skipif(os.environ['ENV'] != 'prod', reason='Requires production DB')
 
 
-
 def test_mobj_fromobj_jpg(jpgpath):
     mobj = MediaObject.fromobj(jpgpath.open('rb'))
     assert mobj.mime == 'image/jpeg'

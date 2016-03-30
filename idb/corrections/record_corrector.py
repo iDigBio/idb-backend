@@ -1,53 +1,53 @@
-from . import *
+from __future__ import absolute_import
+from idb.postgres_backend import apidbpool, DictCursor
 
 import uuid
 import copy
 
-class RecordCorrector(object):
 
+class RecordCorrector(object):
     def __init__(self):
         self.reload()
 
     def reload(self):
-        cursor = pg.cursor(str(uuid.uuid4()),cursor_factory=DictCursor)
-        cursor.execute("select k::json,v::json from corrections where source = ANY('{\"data_dictionaries_2\",\"data_dictionaries_1\",\"gbif_checklist\"}')")
+        sql = "select k::json,v::json from corrections where source = ANY('{\"data_dictionaries_2\",\"data_dictionaries_1\",\"gbif_checklist\"}')"
 
         self.corrections = {}
-        for r in cursor:
+        for r in apidbpool.fetchiter(sql, name=str(uuid.uuid4()), cursor_factory=DictCursor):
             uk = tuple(r["k"].keys())
             uv = tuple([r["k"][k] for k in uk])
             if uk not in self.corrections:
                 self.corrections[uk] = {}
 
             self.corrections[uk][uv] = r["v"]
-        pg.rollback()
 
     def create_schema(self):
-        cur = pg.cursor(cursor_factory=DictCursor)
-        cur.execute(""" CREATE TABLE IF NOT EXISTS corrections (
-                id bigserial PRIMARY KEY,
-                k jsonb NOT NULL,
-                v jsonb NOT NULL,
-                approved boolean NOT NULL DEFAULT false,
-                source varchar(50) NOT NULL,
-                updated_at timestamp DEFAULT now()
-            )
-        """)
-        cur.execute(""" CREATE TABLE IF NOT EXISTS annotations (
-                id bigserial PRIMARY KEY,
-                uuids_id uuid NOT NULL REFERENCES uuids(id),
-                v jsonb NOT NULL,
-                approved boolean NOT NULL DEFAULT false,
-                source varchar(50) NOT NULL,
-                updated_at timestamp DEFAULT now()
-            )
-        """)
-        pg.commit()
-        try:
-            cur.execute("CREATE INDEX corrections_source ON corrections (source)")
-            pg.commit()
-        except:
-            pg.rollback()
+        with apidbpool.connection() as conn:
+            with conn.cursor() as cur:
+                cur.execute(""" CREATE TABLE IF NOT EXISTS corrections (
+                        id bigserial PRIMARY KEY,
+                        k jsonb NOT NULL,
+                        v jsonb NOT NULL,
+                        approved boolean NOT NULL DEFAULT false,
+                        source varchar(50) NOT NULL,
+                        updated_at timestamp DEFAULT now()
+                    )
+                """)
+                cur.execute(""" CREATE TABLE IF NOT EXISTS annotations (
+                        id bigserial PRIMARY KEY,
+                        uuids_id uuid NOT NULL REFERENCES uuids(id),
+                        v jsonb NOT NULL,
+                        approved boolean NOT NULL DEFAULT false,
+                        source varchar(50) NOT NULL,
+                        updated_at timestamp DEFAULT now()
+                    )
+                """)
+                conn.commit()
+                try:
+                    cur.execute("CREATE INDEX corrections_source ON corrections (source)")
+                    conn.commit()
+                except:
+                    pass
 
     def correct_record(self,d):
         corrected_dict = copy.deepcopy(d)

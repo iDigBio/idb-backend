@@ -6,7 +6,7 @@ import pytz
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(__file__)))))
 
-from helpers.conversions import *
+from helpers.conversions import *  # noqa
 import copy
 
 class TestGetExponent(unittest.TestCase):
@@ -15,9 +15,10 @@ class TestGetExponent(unittest.TestCase):
         for i,exp in enumerate(exponents):
             self.assertEqual(i, getExponent(exp))
 
+
 class TestSetFlags(unittest.TestCase):
     def test_set_flags(self):
-        self.assertEqual([], setFlags({}))        
+        self.assertEqual([], setFlags({}))
 
     def test_set_flags_returns_list_for_dict(self):
         self.assertEqual(['geopoint_similar_coord'], setFlags({'geopoint': [-38, 38]}))
@@ -40,6 +41,7 @@ class TestSetFlags(unittest.TestCase):
     def test_set_flags_returns_list_for_dict_case_7(self):
         self.assertEqual(['geopoint_0_coord'], setFlags({'geopoint': [0, 1]}))
 
+
 class TestScore(unittest.TestCase):
     def test_score(self):
         self.assertEqual(0, score("records", {}))
@@ -56,6 +58,7 @@ class TestScore(unittest.TestCase):
             "scientificname": "blah",
             "flags": ["blah", "blah"]
         }))
+
 
 class TestVerbatimGrabber(unittest.TestCase):
     def test_verbatim_grabber(self):
@@ -74,6 +77,7 @@ class TestVerbatimGrabber(unittest.TestCase):
                         self.assertEqual(["blah"], r[f[0]])
                     else:
                         assert False
+
 
 class TestGrabFirstNumber(unittest.TestCase):
     def test_grab_first_number(self):
@@ -96,6 +100,7 @@ class TestGrabFirstNumber(unittest.TestCase):
         for n in e:
             self.assertEqual(n[0], grabFirstNumber(n[1]))
 
+
 class TestMangleString(unittest.TestCase):
     def test_mangle_string(self):
         e = [
@@ -105,7 +110,8 @@ class TestMangleString(unittest.TestCase):
             ("BLAHBLAH","blah blah!"),
         ]
         for n in e:
-            self.assertEqual(n[0], mangleString(n[1]))        
+            self.assertEqual(n[0], mangleString(n[1]))
+
 
 class TestGrabFirstUUID(unittest.TestCase):
     def test_grab_first_uui_d(self):
@@ -115,7 +121,8 @@ class TestGrabFirstUUID(unittest.TestCase):
             ("0072bf11-a354-4998-8730-c0cb4cfc9517","http://blah.blah/blah/0072bf11-a354-4998-8730-c0cb4cfc9517"),
         ]
         for n in e:
-            self.assertEqual(n[0], grabFirstUUID(n[1]))        
+            self.assertEqual(n[0], grabFirstUUID(n[1]))
+
 
 class TestElevGrabber(unittest.TestCase):
     def test_elev_grabber(self):
@@ -132,6 +139,7 @@ class TestElevGrabber(unittest.TestCase):
             "maxdepth": 100.0,
         }, elevGrabber("records", r))
 
+
 class TestIntGrabber(unittest.TestCase):
     def test_int_grabber(self):
         r = {
@@ -140,6 +148,7 @@ class TestIntGrabber(unittest.TestCase):
         self.assertEqual({
             "version": 1,
         }, intGrabber("records", r))
+
     def test_int_grabber_int(self):
         r = {
             "idigbio:version": 1,
@@ -147,7 +156,9 @@ class TestIntGrabber(unittest.TestCase):
         self.assertEqual({
             "version": 1,
         }, intGrabber("records", r))
-    def test_int_grabber_float(self):
+
+
+def test_int_grabber_float(self):
         r = {
             "idigbio:version": 1.0,
         }
@@ -164,6 +175,7 @@ class TestGeoGrabber(unittest.TestCase):
             "dwc:geodeticDatum": "WGS84"
         }
         self.assertEqual({'geopoint': (134.567, 34.567)}, geoGrabber("records", r))
+
 
 class TestDateGrabber(unittest.TestCase):
     def test_date_grabber(self):
@@ -195,6 +207,7 @@ class TestDateGrabber(unittest.TestCase):
             "datemodified": datetime.datetime(2014, 1, 10, tzinfo=pytz.utc),
             "datecollected": datetime.date(2014,01,10),
         }, dateGrabber("records", r))
+
 
 class TestRelationsGrabber(unittest.TestCase):
     def test_relations_grabber(self):
@@ -235,6 +248,7 @@ class TestRelationsGrabber(unittest.TestCase):
             'recordset': '40250f4d-7aa6-4fcc-ac38-2868fa4846bd'
         }, relationsGrabber("mediarecords", mr))
 
+
 class TestScientificNameFiller(unittest.TestCase):
     def test_scientific_name_filler(self):
         r = {
@@ -242,7 +256,7 @@ class TestScientificNameFiller(unittest.TestCase):
             "specificepithet": "concolor"
         }
         self.assertEqual("puma concolor", scientificNameFiller("records",r))
-        
+
 
 class TestGrabAll(unittest.TestCase):
     def test_grab_all(self):
@@ -384,6 +398,7 @@ class TestGrabAll(unittest.TestCase):
         # pprint(grabAll("records", d))
         self.assertEqual(e, grabAll("records", d))
 
+
 class TestGetfield(unittest.TestCase):
     def test_getfield(self):
         r = {
@@ -397,7 +412,7 @@ class TestGetfield(unittest.TestCase):
             "dwc:scientificname": "puma concolor",
             "dwc:institutioncode": "BLAH"
         }
-        self.assertEqual("puma concolor", getfield("dwc:scientificName", r, "text"))        
+        self.assertEqual("puma concolor", getfield("dwc:scientificName", r, "text"))
 
     def test_getfield_lower_str(self):
         r = {
@@ -405,7 +420,7 @@ class TestGetfield(unittest.TestCase):
             "dwc:institutionCode": "BLAH"
         }
         self.assertEqual("blah", getfield("dwc:institutionCode", r, "text"))
-    
+
     def test_getfield_lower_unicode(self):
         r = {
             "dwc:scientificName": "puma concolor",
@@ -419,6 +434,7 @@ class TestGetfield(unittest.TestCase):
         }
         self.assertEqual(None, getfield("idigbio:recordIds", r, "list"))
 
+
 class TestFloatGrabber(unittest.TestCase):
     def test_float_grabber(self):
         r = {
@@ -427,6 +443,7 @@ class TestFloatGrabber(unittest.TestCase):
         self.assertEqual({
             "individualcount": 100.0
         }, floatGrabber("records", r))
+
 
 if __name__ == '__main__':
     unittest.main()

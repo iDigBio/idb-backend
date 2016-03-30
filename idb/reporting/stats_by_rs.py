@@ -2,7 +2,7 @@ import os
 import sys
 import json
 
-from idb.postgres_backend.stats_db import pg, DictCursor
+from idb.postgres_backend.stats_db import statsdbpool, DictCursor
 
 filter_by = {
     "taxon": [
@@ -58,13 +58,17 @@ def format_row(r):
     return "\t".join([str(r["id"]), qt, str(r["count"])]) + "\n"
 
 def get_queries(recordset, filt="taxon"):
-    cur = pg.cursor(cursor_factory=DictCursor)
-
-    cur.execute("select queries.id, queries.query, count(*) as count from stats join queries on stats.query_id=queries.id where type='search' and payload ? %s group by queries.id order by count(*);", [recordset])
+    sql = ("""select queries.id, queries.query, count(*) as count
+                from stats
+                join queries on stats.query_id=queries.id
+                where type='search' and payload ? %s
+                group by queries.id
+                order by count(*);""",
+           [recordset])
 
     with open(recordset +"_report.tsv", "wb") as outf:
         outf.write("queryID\tquery\tcount\n")
-        for r in cur:
+        for r in statsdbpool.fetchiter(*sql, cursor_factory=DictCursor):
             if filt is not None:
                 for t in filter_by[filt]:
                     if t in r["query"]:

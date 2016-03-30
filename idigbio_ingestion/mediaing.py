@@ -58,7 +58,8 @@ def create_schema():
 
 ignore_prefix = [
     "http://media.idigbio.org/",
-    "http://firuta.huh.harvard.edu/"
+    "http://firuta.huh.harvard.edu/",
+    "http://http://www.tropicos.org/"
 ]
 
 user_agent = {'User-Agent': 'iDigBio Media Ingestor (idigbio@acis.ufl.edu https://www.idigbio.org/wiki/index.php/Media_Ingestor)'}

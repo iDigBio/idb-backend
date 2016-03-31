@@ -173,11 +173,15 @@ def get_media_img(key):
     if 'sounds' in key.bucket.name:
         log.debug("Converting wave to img %s", key.name)
         return wave_to_img(buff)
-    else:
+    elif 'images' in key.bucket.name:
         img = Image.open(buff)
         if img.mode != 'RGB':
             img = img.convert('RGB')
         return img
+    else:
+        raise ValueError(
+            "Unknown mediatype in bucket {0!r}, expected images or sounds".format(
+                key.bucket.name))
 
 def wave_to_img(buff):
     from idigbio_ingestion.lib.waveform import Waveform
@@ -190,4 +194,7 @@ if __name__ == '__main__':
         for bucket in sys.argv[1:]:
             main(bucket)
     else:
-        print("Usage:  derivatives.py <bucket ...>")
+        print("""Usage:  derivatives.py <BUCKET ...>
+
+    BUCKET can be one of {images, sounds}
+        """, file=sys.stderr)

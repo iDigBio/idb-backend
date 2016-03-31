@@ -7,3 +7,4 @@ cover
 */\#*#
 .cache/
 /idigbio*.json
+/.dir-locals.el

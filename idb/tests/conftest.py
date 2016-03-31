@@ -15,10 +15,15 @@ from py.path import local
 log = logging.getLogger('idb.tests')
 
 @pytest.fixture(scope="session", autouse=True)
-def setuplogging():
-    from idb.config import FORMAT
-    logging.basicConfig(format=FORMAT)
+def logger():
     logging.root.setLevel(logging.DEBUG)
+    return logging.getLogger('idb.tests')
+
+
+@pytest.fixture
+def app():
+    from idb.data_api.api import app
+    return app
 
 
 @pytest.fixture()

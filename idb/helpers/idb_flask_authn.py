@@ -4,7 +4,7 @@ from flask import request, jsonify, current_app
 import os
 
 from .encryption import _encrypt
-from idb.config import config
+from idb.config import config, logger
 
 
 def check_auth(username, password):
@@ -33,6 +33,7 @@ def check_auth(username, password):
         else:
             return False
     except:
+        logger.exception("Error verifying auth")
         return False
 
 

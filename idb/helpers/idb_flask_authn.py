@@ -1,8 +1,7 @@
 from __future__ import absolute_import
 from functools import wraps
-from flask import request, Response, jsonify, current_app
+from flask import request, jsonify, current_app
 import os
-import traceback
 
 from .encryption import _encrypt
 from idb.config import config

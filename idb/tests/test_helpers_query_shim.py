@@ -192,7 +192,7 @@ class TestObjectType(unittest.TestCase):
 
     def test_object_type_fulltext(self):
         self.assertEqual(
-            "aster",
+            {'query': {'match': {'_all': {'operator': 'and', 'query': 'aster'}}}},
             objectType("data", {
                 "type": "fulltext",
                 "value": "aster"
@@ -210,8 +210,11 @@ class TestQueryFromShim(unittest.TestCase):
 
     def test_query_from_shim_fulltext(self):
         self.assertEqual(
-            {"query": {"filtered": {"filter": {},
-                                    "query": {"match": {"_all": {"operator": "and", "query": "aster"}}}}}},
+            {"query": {
+                "filtered": {
+                    "filter": {
+                        'and': [{"query": {"match": {"_all": {"operator": "and", "query": "aster"}}}}]},
+                }}},
             queryFromShim({"data": {
                 "type": "fulltext",
                 "value": "aster"

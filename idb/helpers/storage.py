@@ -100,8 +100,8 @@ class IDigBioStorage(object):
         k.make_public()
         return k
 
-    def get_key_by_url(self, url):
-        mo = MediaObject.fromurl(url, apidbpool)
+    def get_key_by_url(self, url, idbmodel=None):
+        mo = MediaObject.fromurl(url, idbmodel)
         if mo is None:
             raise Exception("No media with url {0!r}".format(url))
         return self.get_key(mo.keyname, mo.bucketname)

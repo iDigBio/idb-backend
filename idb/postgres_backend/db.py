@@ -12,6 +12,7 @@ from psycopg2.extensions import cursor
 from psycopg2.extensions import (ISOLATION_LEVEL_READ_COMMITTED,
                                  ISOLATION_LEVEL_AUTOCOMMIT,
                                  TRANSACTION_STATUS_IDLE)
+from idb.config import logger
 from idb.postgres_backend import apidbpool
 from idb.helpers.etags import calcEtag, calcFileHash
 from idb.helpers.media_validation import sniff_validation
@@ -568,7 +569,9 @@ class MediaObject(object):
         return mo
 
     @classmethod
-    def frometag(klass, etag, idbmodel):
+    def frometag(klass, etag, idbmodel=None):
+        if idbmodel is None:
+            idbmodel = apidbpool
         sql = "SELECT etag, bucket, detected_mime FROM objects WHERE etag=%s"
         r = idbmodel.fetchone(sql, (etag,))
         if r:
@@ -577,7 +580,9 @@ class MediaObject(object):
             return mo
 
     @classmethod
-    def fromurl(klass, url, idbmodel):
+    def fromurl(klass, url, idbmodel=None):
+        if idbmodel is None:
+            idbmodel = apidbpool
         sql = ("""SELECT objects.bucket, objects.etag, objects.detected_mime, media.owner
                   FROM media
                   LEFT JOIN media_objects ON media.url = media_objects.url
@@ -635,6 +640,50 @@ class MediaObject(object):
                  SELECT 1 FROM media_objects WHERE url=%(url)s AND etag=%(etag)s
                )""",
             {"url": self.filereference, "etag": self.etag})
+
+
+class RecordSet(object):
+    __slots__ = [
+        "id", "uuid", "publisher_uuid", "name", "recordids",
+        "eml_link", "file_link", "ingest", "first_seen",
+        "last_seen", "pub_date", "file_harvest_date",
+        "file_harvest_etag","eml_harvest_date", "eml_harvest_etag"
+    ]
+
+    def __init__(self, **kwargs):
+        for p in kwargs.items():
+            setattr(self, *p)
+
+    @classmethod
+    def fromuuid(cls, uuid, idbmodel=apidbpool):
+        sql = """
+        SELECT id, uuid, publisher_uuid, name, recordids, eml_link, file_link,
+            ingest, first_seen, last_seen, pub_date, file_harvest_date, file_harvest_etag,
+            eml_harvest_date, eml_harvest_etag
+        FROM recordsets
+        WHERE uuid = %s"""
+        r = idbmodel.fetchone(sql, (uuid, ), cursor_factory=DictCursor)
+        if r:
+            return RecordSet(**r)
+
+    @staticmethod
+    def fetch_file(uuid, filename, idbmodel=apidbpool, media_store=None):
+        sql = """
+            SELECT uuid, etag, objects.bucket
+            FROM recordsets
+            LEFT JOIN objects on recordsets.file_harvest_etag = objects.etag
+            WHERE recordsets.uuid = %s
+        """
+        r = idbmodel.fetchone(sql, (uuid,))
+        if not r:
+            raise ValueError("No recordset with uuid {0!r}".format(uuid))
+        uuid, etag, bucket = r
+        if not etag:
+            raise ValueError("Recordset {0!r} doesn't have a stored object")
+        logger.info("Fetching etag {0!r} to {1!r}".format(etag, filename))
+        bucketname = "idigbio-{0}-{1}".format(bucket, os.environ["ENV"])
+        k = media_store.get_key(etag, bucketname)
+        k.get_contents_to_filename(filename)
 
 
 def main():

@@ -93,8 +93,7 @@ def get_file(rsid):
             # download_file("https://beta-media.idigbio.org/v2/media/datasets", fname, params={
             #                  "filereference": "http://api.idigbio.org/v1/recordsets/" + rsid})
         except:
-            logger.error("Failed get_file_by_url on: {0}".format(rsurl))
-            logger.error(traceback.format_exc())
+            logger.exception("Failed get_file_by_url on: %s", rsurl)
     m = magic.from_file(fname)
     return (fname, m)
 
@@ -330,7 +329,7 @@ def process_subfile(rf, rsid, rs_uuid_etag, rs_id_uuid, ingest=False, db=None):
                 db.delete_item(u)
                 deleted += 1
             except:
-                logger.info(traceback.format_exc())
+                logger.info("Failed deleting %r", u, exc_info=True)
 
     return {
         "create": count - found,

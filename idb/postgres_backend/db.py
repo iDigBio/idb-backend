@@ -583,11 +583,14 @@ class MediaObject(object):
     def fromurl(klass, url, idbmodel=None):
         if idbmodel is None:
             idbmodel = apidbpool
-        sql = ("""SELECT objects.bucket, objects.etag, objects.detected_mime, media.owner
-                  FROM media
-                  LEFT JOIN media_objects ON media.url = media_objects.url
-                  LEFT JOIN objects on media_objects.etag = objects.etag
-                  WHERE media.url=%(url)s
+        sql = ("""
+            SELECT DISTINCT ON (media_objects.url)
+                objects.bucket, objects.etag, objects.detected_mime, media.owner
+            FROM media
+            LEFT JOIN media_objects ON media.url = media_objects.url
+            LEFT JOIN objects on media_objects.etag = objects.etag
+            WHERE media_objects.url=%(url)s
+            ORDER BY media_objects.url, media_objects.modified DESC;
         """, {"url": url})
         r = idbmodel.fetchone(*sql, cursor_factory=cursor)
         if r:

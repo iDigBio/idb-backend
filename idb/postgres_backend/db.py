@@ -163,7 +163,7 @@ class PostgresDB(object):
             self._pool.put(self.conn)
 
     def __enter__(self):
-        pass
+        return self
 
     def __exit__(self, type, value, traceback):
         self.close()

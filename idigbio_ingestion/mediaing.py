@@ -388,8 +388,8 @@ def get_media_consumer(urlfilter):
         count += 1
 
         if count % 10000 == 0:
-            logger.info("Count: %8d; codecounts: %r", counts.most_common())
-    logger.info("Count: %8d; codecounts: %r (Finished)", counts.most_common())
+            logger.info("Count: %8d; codecounts: %r", count, counts.most_common())
+    logger.info("Count: %8d; codecounts: %r (Finished)", count, counts.most_common())
 
 
 def main(urlfilter=None):

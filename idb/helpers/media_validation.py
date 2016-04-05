@@ -26,8 +26,13 @@ def get_validator(m):
 
 class UnknownMediaTypeError(Exception):
     "Exception for unknown/undeterminable media, call with mime as the only arg"
+    def __init__(self, mime):
+        self.mime = mime
+        self.args = (mime,)
+        self.message = "Could not determine media type for mime: {0!r}".format(mime)
+
     def __str__(self):
-        return "Could not determine media type for mime: {0!r}".format(*self.args)
+        return self.message
 
 
 def sniff_validation(content):

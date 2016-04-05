@@ -559,10 +559,14 @@ class PostgresDB(object):
 class MediaObject(object):
     __slots__ = 'filereference etag mime mtype size owner'.split(' ')
 
+    def __init__(self, **attrs):
+        for i in attrs.items():
+            setattr(self, *i)
+
     @classmethod
-    def fromobj(klass, obj):
+    def fromobj(klass, obj, **attrs):
         obj.seek(0)
-        mo = klass()
+        mo = klass(**attrs)
         mo.mime, mo.mtype = sniff_validation(obj.read(1024))
         obj.seek(0)
         mo.etag, mo.size = calcFileHash(obj, op=False, return_size=True)

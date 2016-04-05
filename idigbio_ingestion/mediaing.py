@@ -1,21 +1,22 @@
-from gevent.pool import Pool
+from __future__ import absolute_import
 from gevent import monkey
-
 monkey.patch_all()
+
+import os
+import traceback
+import datetime
+
+import magic
+import requests
+from requests.auth import HTTPBasicAuth
+from psycopg2.extensions import cursor
+from gevent.pool import Pool
 
 from idb.postgres_backend import apidbpool
 from idb.helpers.storage import IDigBioStorage
 from idb.helpers.media_validation import get_validator
 from idb.helpers.conversions import get_accessuri, get_media_type
 
-import magic
-import os
-import requests
-from requests.auth import HTTPBasicAuth
-import traceback
-import datetime
-
-from psycopg2.extensions import cursor
 
 s = requests.Session()
 adapter = requests.adapters.HTTPAdapter(pool_connections=100, pool_maxsize=100)
@@ -79,7 +80,7 @@ def get_media(tup, cache_bad=False):
                 print "Skip", url, t, fmt, p
                 return False
 
-        media_req = s.get(url, headers = user_agent)
+        media_req = s.get(url, headers=user_agent)
         media_status = media_req.status_code
         media_req.raise_for_status()
 

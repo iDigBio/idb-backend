@@ -93,7 +93,7 @@ class GetMediaError(Exception):
         self.url = url
         self.status = status
         self.inner = inner
-        self.message = "Fetch %r failed with %r" % (self.url, self.status)
+        self.message = "Fetch of   %r failed with %r" % (self.url, self.status)
 
     def __str__(self):
         return self.message
@@ -111,17 +111,14 @@ class ValidationFailure(GetMediaError):
         self.detected_mime = detected_mime
         self.content = content
         self.args = (expected_mime, detected_mime, content)
-        self.message = "%r has invalid mime; expected %r found %r" % (
+        self.message = "InvalidMime %r; expected %r found %r" % (
             expected_mime, detected_mime)
-
-    def __str__(self):
-        return self.message
 
 
 def get_media_wrapper(tup, cache_bad=False):
     "This calls get_media and handles all the failure scenarios"
     url, t, fmt = tup
-    logger.debug("Starting on %r", url)
+    logger.debug("Starting   %r", url)
 
     def update_status(status):
         apidbpool.execute(
@@ -130,7 +127,7 @@ def get_media_wrapper(tup, cache_bad=False):
 
     try:
         get_media(url, t, fmt)
-        logger.info("Finished %r successfully", url)
+        logger.info("Finished   %r successfully", url)
         return 200
     except KeyboardInterrupt:
         raise
@@ -164,7 +161,7 @@ def get_media(url, t, fmt):
     valid, detected_mime = validator(url, t, fmt, response.content)
     if not valid:
         raise ValidationFailure(url, fmt, detected_mime, response.content)
-    logger.debug("Validated Media: %r %s %s %s", url, t, fmt, detected_mime)
+    logger.debug("Validated: %r %s %s %s", url, t, fmt, detected_mime)
 
     fobj = StringIO(response.content)
     try:

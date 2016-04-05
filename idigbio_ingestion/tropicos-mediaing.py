@@ -39,14 +39,14 @@ def get_media_wrapper(tup, cache_bad=False):
         retries -= 1
         try:
             mediaing.get_media(url, t, fmt)
-            logger.info("Finished %r successfully", url)
+            logger.info("Finished   %r successfully", url)
             return 200
         except KeyboardInterrupt:
             raise
         except mediaing.ReqFailure as rf:
             resp = rf.inner.response
             media_status, reason = resp.status_code, resp.reason
-            logger.warning("%s %s on %r", media_status, reason, url)
+            logger.warning("%s on      %r, %r", media_status, url, reason)
             if media_status == 404:
                 update_status(media_status)
                 return media_status
@@ -57,7 +57,7 @@ def get_media_wrapper(tup, cache_bad=False):
                 time.sleep(retry_sleep)
                 continue
             else:
-                logger.warning("No more retries for %r", url)
+                logger.error("No retries %r", url)
                 time.sleep(1)
                 update_status(media_status)
                 return media_status

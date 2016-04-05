@@ -4,9 +4,9 @@ import json
 
 import logging
 
-FORMAT = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-logging.basicConfig(format=FORMAT)
-formatter = logging.Formatter(FORMAT)
+logging.basicConfig(
+    format="%(asctime)s %(levelname)-5.5s [%(name)s] %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S")
 
 
 def getIDigBioLogger(name=""):

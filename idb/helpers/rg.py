@@ -1,15 +1,17 @@
 from __future__ import absolute_import
 
+import re
 import os
 import fiona
 from shapely.geometry import shape, Point
 from shapely.prepared import prep
 
-import re
+from .memoize import memoized
+
 
 pattern = re.compile('[\W_]+')
 
-class ReverseGeocoder:
+class ReverseGeocoder(object):
 
     def __init__(self, shapefile="data/world_borders.shp", cc_key="ISO3"):
         path = shapefile
@@ -46,3 +48,31 @@ class ReverseGeocoder:
             if self.countries[c].contains(p):
                 return c
         return None
+
+
+@memoized()
+def get_rg():
+    return ReverseGeocoder()
+
+
+@memoized()
+def get_rg_eez():
+    return ReverseGeocoder(shapefile="data/EEZ_land_v2_201410.shp", cc_key="ISO_3digit")
+
+
+def get_country(lon, lat, **kwargs):
+    """Use a ReverseGeocoder to lookup the country code.
+
+    Args like ReverseGeocoder.get_country()
+
+    Additional Keyword args:
+
+     * eez: boolean (Default: False). If set use the EEZ shapefiles
+
+    """
+    eez = kwargs.pop('eez', False)
+    assert len(kwargs) == 0, "Unknown kwargs to get_country: {0!r}".format(kwargs)
+    if eez:
+        return get_rg_eez().get_country(lon, lat)
+    else:
+        return get_rg().get_country(lon, lat)

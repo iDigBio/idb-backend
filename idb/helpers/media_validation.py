@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 import magic
+from . import conversions
 
 
 def default_format_validator(url, t, fmt, content):
@@ -21,3 +22,17 @@ format_validators = {
 
 def get_validator(m):
     return format_validators.get(m, default_format_validator)
+
+
+class UnknownMediaTypeError(Exception):
+    "Exception for unknown/undeterminable media, call with mime as the only arg"
+    def __str__(self):
+        return "Could not determine media type for mime: {0!r}".format(*self.args)
+
+
+def sniff_validation(content):
+    mime = magic.from_buffer(content, mime=True)
+    mt = conversions.mime_mapping.get(mime)
+    if not mt:
+        raise UnknownMediaTypeError(mime)
+    return mime, mt

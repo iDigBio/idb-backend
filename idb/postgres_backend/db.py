@@ -4,14 +4,18 @@ import datetime
 import random
 import json
 import hashlib
+import os
 import sys
 
 from psycopg2.extras import DictCursor
+from psycopg2.extensions import cursor
 from psycopg2.extensions import (ISOLATION_LEVEL_READ_COMMITTED,
                                  ISOLATION_LEVEL_AUTOCOMMIT,
                                  TRANSACTION_STATUS_IDLE)
-from idb.helpers.etags import calcEtag
+from idb.config import logger
 from idb.postgres_backend import apidbpool
+from idb.helpers.etags import calcEtag, calcFileHash
+from idb.helpers.media_validation import sniff_validation
 
 TEST_SIZE = 10000
 TEST_COUNT = 10
@@ -550,6 +554,139 @@ class PostgresDB(object):
                 "sibling": sorted(x)[1]
             } for x in usl
         ])
+
+
+class MediaObject(object):
+    __slots__ = 'filereference etag mime mtype size owner'.split(' ')
+
+    @classmethod
+    def fromobj(klass, obj):
+        obj.seek(0)
+        mo = klass()
+        mo.mime, mo.mtype = sniff_validation(obj.read(1024))
+        obj.seek(0)
+        mo.etag, mo.size = calcFileHash(obj, op=False, return_size=True)
+        return mo
+
+    @classmethod
+    def frometag(klass, etag, idbmodel=None):
+        if idbmodel is None:
+            idbmodel = apidbpool
+        sql = "SELECT etag, bucket, detected_mime FROM objects WHERE etag=%s"
+        r = idbmodel.fetchone(sql, (etag,))
+        if r:
+            mo = klass()
+            mo.etag, mo.mtype, mo.mime = r
+            return mo
+
+    @classmethod
+    def fromurl(klass, url, idbmodel=None):
+        if idbmodel is None:
+            idbmodel = apidbpool
+        sql = ("""
+            SELECT DISTINCT ON (media_objects.url)
+                objects.bucket, objects.etag, objects.detected_mime, media.owner
+            FROM media
+            LEFT JOIN media_objects ON media.url = media_objects.url
+            LEFT JOIN objects on media_objects.etag = objects.etag
+            WHERE media_objects.url=%(url)s
+            ORDER BY media_objects.url, media_objects.modified DESC;
+        """, {"url": url})
+        r = idbmodel.fetchone(*sql, cursor_factory=cursor)
+        if r:
+            mo = klass()
+            mo.filereference = url
+            mo.mtype, mo.etag, mo.mime, mo.owner = r
+            return mo
+
+    def get_key(self, media_store):
+        return media_store.get_key(self.keyname, self.bucketname)
+
+    @property
+    def keyname(self):
+        return self.etag
+
+    @property
+    def bucketname(self):
+        return "idigbio-{0}-{1}".format(self.mtype, os.environ["ENV"])
+
+    def upload(self, media_store, fobj, force=False):
+        k = self.get_key(media_store)
+        if force or not k.exists():
+            fobj.seek(0)
+            k.set_contents_from_file(fobj, md5=k.get_md5_from_hexdigest(self.etag))
+            k.make_public()
+
+    def insert_object(self, idbmodel):
+        idbmodel.execute(
+            """INSERT INTO objects (bucket, etag, detected_mime)
+               SELECT %s, %s, %s WHERE NOT EXISTS (SELECT 1 FROM objects WHERE etag=%s)""",
+            (self.mtype, self.etag, self.mime, self.etag))
+
+    def update_media(self, idbmodel, status=200):
+        idbmodel.execute(
+            """UPDATE media
+               SET last_check=now(), last_status=%s, type=%s, mime=%s
+               WHERE url=%s""",
+            (status, self.mtype, self.mime, self.filereference))
+
+    def insert_media(self, idbmodel, status=200):
+        idbmodel.execute(
+            """INSERT INTO media (url, type, mime, last_status, last_check, owner)
+               VALUES (%s, %s, %s, %s, now(), %s)""",
+            (self.filereference, self.mtype, self.mime, status, self.owner))
+
+    def ensure_media_object(self, idbmodel):
+        idbmodel.execute(
+            """INSERT INTO media_objects (url, etag)
+               SELECT %(url)s, %(etag)s WHERE NOT EXISTS (
+                 SELECT 1 FROM media_objects WHERE url=%(url)s AND etag=%(etag)s
+               )""",
+            {"url": self.filereference, "etag": self.etag})
+
+
+class RecordSet(object):
+    __slots__ = [
+        "id", "uuid", "publisher_uuid", "name", "recordids",
+        "eml_link", "file_link", "ingest", "first_seen",
+        "last_seen", "pub_date", "file_harvest_date",
+        "file_harvest_etag","eml_harvest_date", "eml_harvest_etag"
+    ]
+
+    def __init__(self, **kwargs):
+        for p in kwargs.items():
+            setattr(self, *p)
+
+    @classmethod
+    def fromuuid(cls, uuid, idbmodel=apidbpool):
+        sql = """
+        SELECT id, uuid, publisher_uuid, name, recordids, eml_link, file_link,
+            ingest, first_seen, last_seen, pub_date, file_harvest_date, file_harvest_etag,
+            eml_harvest_date, eml_harvest_etag
+        FROM recordsets
+        WHERE uuid = %s"""
+        r = idbmodel.fetchone(sql, (uuid, ), cursor_factory=DictCursor)
+        if r:
+            return RecordSet(**r)
+
+    @staticmethod
+    def fetch_file(uuid, filename, idbmodel=apidbpool, media_store=None):
+        sql = """
+            SELECT uuid, etag, objects.bucket
+            FROM recordsets
+            LEFT JOIN objects on recordsets.file_harvest_etag = objects.etag
+            WHERE recordsets.uuid = %s
+        """
+        r = idbmodel.fetchone(sql, (uuid,))
+        if not r:
+            raise ValueError("No recordset with uuid {0!r}".format(uuid))
+        uuid, etag, bucket = r
+        if not etag:
+            raise ValueError("Recordset {0!r} doesn't have a stored object")
+        logger.info("Fetching etag {0!r} to {1!r}".format(etag, filename))
+        bucketname = "idigbio-{0}-{1}".format(bucket, os.environ["ENV"])
+        k = media_store.get_key(etag, bucketname)
+        k.get_contents_to_filename(filename)
 
 
 def main():

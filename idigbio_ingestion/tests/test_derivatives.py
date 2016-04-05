@@ -21,13 +21,19 @@ class FakeKey(object):
     _exists = True
     name = None
 
-    def __init__(self, name, bucket, exists):
+    def __init__(self, name, bucket, exists, contents=None):
         self.name = name
         self._exists = exists
         self.bucket = NamedThing(bucket)
+        self.contents = contents
 
     def exists(self):
         return self._exists
+
+    def get_contents_to_file(self, buff):
+        if self.contents:
+            buff.write(self.contents)
+        return buff
 
 
 @pytest.fixture()
@@ -104,6 +110,12 @@ def test_img_fetch(img):
 def test_sounds_fetch(sounds_key):
     assert sounds_key.bucket.name in ('idigbio-sounds-prod', 'idigbio-sounds-beta')
     assert derivatives.get_media_img(sounds_key)
+
+
+def test_bad_key_bucket():
+    key = FakeKey("foo", "jimmy", False)
+    with pytest.raises(ValueError):
+        derivatives.get_media_img(key)
 
 
 def test_resize(img, monkeypatch):

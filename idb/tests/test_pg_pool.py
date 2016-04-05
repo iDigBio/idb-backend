@@ -1,5 +1,3 @@
-import logging
-
 import gevent
 import psycopg2
 import psycopg2.extensions
@@ -7,9 +5,6 @@ import pytest
 from psycopg2.extras import RealDictCursor, DictCursor
 
 from idb.postgres_backend.gevent_helpers import GeventedConnPool
-
-
-log = logging.getLogger("testpgpool")
 
 
 def pytest_generate_tests(metafunc):
@@ -37,8 +32,8 @@ def pool1(testdb):
 
 
 @pytest.fixture()
-def pool(testdb, request):
-    log.debug("Making pool of size %d", request.param)
+def pool(testdb, request, logger):
+    logger.debug("Making pool of size %d", request.param)
     p = GeventedConnPool(maxsize=request.param, **testdb)
     request.addfinalizer(gevent.wait)
     return p
@@ -59,7 +54,7 @@ def test_exception_rollback(pool1):
     except PassException:
         pass
     gevent.wait()
-    assert _conn.get_transaction_status() ==  psycopg2.extensions.TRANSACTION_STATUS_IDLE
+    assert _conn.get_transaction_status() == psycopg2.extensions.TRANSACTION_STATUS_IDLE
     assert pool1.pool.qsize() <= pool1.maxsize
 
 
@@ -73,14 +68,14 @@ def test_repeated_conn(pool):
     assert pool.pool.qsize() <= pool.maxsize
 
 
-def test_closing_outside_of_block(pool):
+def test_closing_outside_of_block(pool, logger):
     for i in range(0, 10):
         try:
             conn = pool.get()
             conn.close()
             pool.put(conn)
         except:
-            log.exception("Error")
+            logger.exception("Error")
     gevent.wait(timeout=5)
     assert pool.pool.qsize() <= pool.maxsize
 

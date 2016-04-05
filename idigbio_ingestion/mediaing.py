@@ -89,11 +89,14 @@ class GetMediaError(Exception):
     url = None
     inner = None
 
-    def __init__(self, url, status, inner):
+    def __init__(self, url, status, inner=None):
         self.url = url
         self.status = status
         self.inner = inner
         self.message = "Fetch %r failed with %r" % (self.url, self.status)
+
+    def __str__(self):
+        return self.message
 
 
 class ReqFailure(GetMediaError):
@@ -118,6 +121,7 @@ class ValidationFailure(GetMediaError):
 def get_media_wrapper(tup, cache_bad=False):
     "This calls get_media and handles all the failure scenarios"
     url, t, fmt = tup
+    logger.debug("Starting on %r", url)
 
     def update_status(status):
         apidbpool.execute(
@@ -125,7 +129,8 @@ def get_media_wrapper(tup, cache_bad=False):
             (status, url))
 
     try:
-        get_media(url, t, fmt, cache_bad)
+        get_media(url, t, fmt)
+        logger.info("Finished %r successfully", url)
         return 200
     except KeyboardInterrupt:
         raise
@@ -150,23 +155,23 @@ def get_media(url, t, fmt):
         raise GetMediaError(url, 1002)
 
     try:
-        req = rsess().get(url)
-        req.raise_for_status()
+        response = rsess().get(url)
+        response.raise_for_status()
     except requests.exceptions.HTTPError as httpe:
         raise ReqFailure(url, httpe.response.status_code, httpe)
 
     validator = get_validator(fmt)
-    valid, detected_mime = validator(url, t, fmt, media_req.content)
+    valid, detected_mime = validator(url, t, fmt, response.content)
     if not valid:
-        raise ValidationFailure(url, fmt, detected_mime, media_req.content)
+        raise ValidationFailure(url, fmt, detected_mime, response.content)
     logger.debug("Validated Media: %r %s %s %s", url, t, fmt, detected_mime)
 
-    fobj = StringIO(media_req.content)
+    fobj = StringIO(response.content)
     try:
         mo = MediaObject.fromobj(fobj, filereference=url)
     except UnknownMediaTypeError as umte:
         # This shouldn't happen given the above validation...
-        raise ValidationFailure(url, fmt, umte.mime, media_req.content)
+        raise ValidationFailure(url, fmt, umte.mime, response.content)
 
     try:
         mo.upload(IDigBioStorage(), fobj)
@@ -176,7 +181,7 @@ def get_media(url, t, fmt):
             mo.insert_object(idbmodel)
             mo.ensure_media_object(idbmodel)
             idbmodel.commit()
-            return True
+        return True
     except KeyboardInterrupt:
         raise
     except Exception as e:
@@ -228,7 +233,7 @@ def write_urls_to_db(media_urls):
 
 def get_postgres_media_urls(urlfilter=None):
     media_urls = dict()
-    logger.info("Get Media URLs")
+    logger.info("Get Media URLs, urlfilter: %r", urlfilter)
     sql = "SELECT url,type,mime FROM media"
     params = []
     if urlfilter:
@@ -237,6 +242,7 @@ def get_postgres_media_urls(urlfilter=None):
 
     for r in apidbpool.fetchiter(sql, params, cursor_factory=cursor):
         media_urls[r[0]] = (r[1], r[2])
+    logger.info("Fetch %d urls", len(media_urls))
     return media_urls
 
 
@@ -340,6 +346,7 @@ def get_media_generator_filtered(urlfilter):
     url_rows = apidbpool.fetchall(
         sql, {'urlfilter': urlfilter, 'interval': LAST_CHECK_INTERVAL},
         cursor_factory=cursor)
+    logger.info("Found %d urls to check for filter %r", len(url_rows), urlfilter)
     return url_rows
 
 
@@ -389,7 +396,7 @@ def main(urlfilter=None):
     import sys
     #create_schema()
 
-    if len(sys.argv) > 1 and sys.argv[1] == "get_media":
+    if len(sys.argv) > 1 and sys.argv[1] in ("get_media", "get-media"):
         get_media_consumer(urlfilter)
     else:
         media_urls = get_postgres_media_urls(urlfilter)

@@ -25,6 +25,7 @@ TROPICOS_URLFILTER = 'http://www.tropicos.org/%'
 def get_media_wrapper(tup, cache_bad=False):
     "This calls get_media and handles all the failure scenarios"
     url, t, fmt = tup
+    logger.debug("Starting on %r", url)
 
     retry_sleep = 18
     unavailable_sleep = 360
@@ -37,7 +38,8 @@ def get_media_wrapper(tup, cache_bad=False):
     while True:
         retries -= 1
         try:
-            mediaing.get_media(url, t, fmt, cache_bad)
+            mediaing.get_media(url, t, fmt)
+            logger.info("Finished %r successfully", url)
             return 200
         except KeyboardInterrupt:
             raise
@@ -79,4 +81,8 @@ mediaing.get_media_wrapper = get_media_wrapper
 
 
 if __name__ == '__main__':
+    import logging
+    logging.root.setLevel(logging.INFO)
+    logging.getLogger('boto').setLevel(logging.WARNING)
+    logging.getLogger('requests').setLevel(logging.WARNING)
     mediaing.main(TROPICOS_URLFILTER)

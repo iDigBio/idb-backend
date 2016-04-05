@@ -2,28 +2,36 @@ from __future__ import absolute_import
 from gevent import monkey
 monkey.patch_all()
 
-import os
-import traceback
-import datetime
+from cStringIO import StringIO
+from collections import Counter
 
 import magic
 import requests
-from requests.auth import HTTPBasicAuth
 from psycopg2.extensions import cursor
 from gevent.pool import Pool
 
+from idb.helpers.memoize import memoized
 from idb.postgres_backend import apidbpool
+from idb.postgres_backend.db import MediaObject, PostgresDB
+
 from idb.helpers.storage import IDigBioStorage
-from idb.helpers.media_validation import get_validator
+from idb.helpers.media_validation import UnknownMediaTypeError, get_validator
 from idb.helpers.conversions import get_accessuri, get_media_type
 
+from idigbio_ingestion.lib.log import logger
 
-s = requests.Session()
-adapter = requests.adapters.HTTPAdapter(pool_connections=100, pool_maxsize=100)
-s.mount('http://', adapter)
-s.mount('https://', adapter)
+POOL_SIZE = 5
+LAST_CHECK_INTERVAL = '1 month'
 
-auth = HTTPBasicAuth(os.environ.get("IDB_UUID"), os.environ.get("IDB_APIKEY"))
+USER_AGENT = 'iDigBio Media Ingestor (idigbio@acis.ufl.edu https://www.idigbio.org/wiki/index.php/Media_Ingestor)'
+
+IGNORE_PREFIXES = [
+    "http://media.idigbio.org/",
+    "http://firuta.huh.harvard.edu/",
+    "http://www.tropicos.org/"
+]
+
+
 
 
 def create_schema():
@@ -55,83 +63,132 @@ def create_schema():
         """)
 
 
-ignore_prefix = [
-    "http://media.idigbio.org/",
-    "http://firuta.huh.harvard.edu/",
-    "http://www.tropicos.org/"
-]
+@memoized()
+def rsess():
+    s = requests.Session()
+    adapter = requests.adapters.HTTPAdapter(pool_connections=POOL_SIZE, pool_maxsize=POOL_SIZE)
+    s.mount('http://', adapter)
+    s.mount('https://', adapter)
+    s.headers['User-Agent'] = USER_AGENT
+    return s
 
-user_agent = {'User-Agent': 'iDigBio Media Ingestor (idigbio@acis.ufl.edu https://www.idigbio.org/wiki/index.php/Media_Ingestor)'}
 
-def get_media(tup, cache_bad=False):
+def check_ignore_media(url):
+    for p in IGNORE_PREFIXES:
+        if url.startswith(p):
+            return True
+    return False
+
+
+def write_bad(url, content):
+    url_path = "bad_media/" + url.replace("/", "^^")
+    with open(url_path, "wb") as outf:
+        outf.write(content)
+
+
+class GetMediaError(Exception):
+    status = None
+    url = None
+    inner = None
+
+    def __init__(self, url, status, inner):
+        self.url = url
+        self.status = status
+        self.inner = inner
+        self.message = "Fetch %r failed with %r" % (self.url, self.status)
+
+
+class ReqFailure(GetMediaError):
+    pass
+
+
+class ValidationFailure(GetMediaError):
+    status = 1001
+
+    def __init__(self, url, expected_mime, detected_mime, content):
+        self.expected_mime = expected_mime
+        self.detected_mime = detected_mime
+        self.content = content
+        self.args = (expected_mime, detected_mime, content)
+        self.message = "%r has invalid mime; expected %r found %r" % (
+            expected_mime, detected_mime)
+
+    def __str__(self):
+        return self.message
+
+
+def get_media_wrapper(tup, cache_bad=False):
+    "This calls get_media and handles all the failure scenarios"
     url, t, fmt = tup
 
-    url_path = "bad_media/" + url.replace("/", "^^")
-
-    media_status = 1000
-    apiimg_post_status = 0
+    def update_status(status):
+        apidbpool.execute(
+            "UPDATE media SET last_status=%s, last_check=now() WHERE url=%s",
+            (status, url))
 
     try:
-        for p in ignore_prefix:
-            if url.startswith(p):
-                apidbpool.execute(
-                    "UPDATE media SET last_status=%s, last_check=now() WHERE url=%s",
-                    (1002, url))
-                print "Skip", url, t, fmt, p
-                return False
+        get_media(url, t, fmt, cache_bad)
+        return 200
+    except KeyboardInterrupt:
+        raise
+    except ValidationFailure as vf:
+        update_status(vf.status)
+        if cache_bad:
+            write_bad(url, vf.content)
+        logger.error(str(vf))
+        return vf.status
+    except GetMediaError as gme:
+        update_status(gme.status)
+        logger.error(str(gme))
+        return gme.status
+    except Exception:
+        update_status(1000)
+        logger.exception("Unhandled error processing: %r", url)
+        return 1000
 
-        media_req = s.get(url, headers=user_agent)
-        media_status = media_req.status_code
-        media_req.raise_for_status()
 
-        validator = get_validator(fmt)
-        valid, detected_mime = validator(url, t, fmt, media_req.content)
-        if valid:
-            print datetime.datetime.now(), "Validated Media:", url, t, fmt, detected_mime
-            apiimg_req = s.post("http://media.idigbio.org/upload/" + t,
-                                data={"filereference": url},
-                                files={'file': media_req.content},
-                                auth=auth)
-            apiimg_post_status = apiimg_req.status_code
-            apiimg_req.raise_for_status()
-            apiimg_o = apiimg_req.json()
-            with apidbpool.cursor() as cur:
-                cur.execute("UPDATE media SET last_status=%s, last_check=now() WHERE url=%s",
-                            (200, url))
-                cur.execute("""INSERT INTO objects (etag, bucket, detected_mime)
-                                   SELECT %(etag)s, %(type)s, %(mime)s
-                                   WHERE NOT EXISTS (SELECT 1 FROM objects WHERE etag=%(etag)s)""",
-                            {"etag": apiimg_o["file_md5"], "type": t, "mime": detected_mime})
-                cur.execute("INSERT INTO media_objects (url,etag) VALUES (%s,%s)",
-                            (url, apiimg_o["file_md5"]))
+def get_media(url, t, fmt):
+    if check_ignore_media(url):
+        raise GetMediaError(url, 1002)
+
+    try:
+        req = rsess().get(url)
+        req.raise_for_status()
+    except requests.exceptions.HTTPError as httpe:
+        raise ReqFailure(url, httpe.response.status_code, httpe)
+
+    validator = get_validator(fmt)
+    valid, detected_mime = validator(url, t, fmt, media_req.content)
+    if not valid:
+        raise ValidationFailure(url, fmt, detected_mime, media_req.content)
+    logger.debug("Validated Media: %r %s %s %s", url, t, fmt, detected_mime)
+
+    fobj = StringIO(media_req.content)
+    try:
+        mo = MediaObject.fromobj(fobj, filereference=url)
+    except UnknownMediaTypeError as umte:
+        # This shouldn't happen given the above validation...
+        raise ValidationFailure(url, fmt, umte.mime, media_req.content)
+
+    try:
+        mo.upload(IDigBioStorage(), fobj)
+        logger.debug("Finished uploading to ceph")
+        with PostgresDB() as idbmodel:
+            mo.update_media(idbmodel, status=200)
+            mo.insert_object(idbmodel)
+            mo.ensure_media_object(idbmodel)
+            idbmodel.commit()
             return True
-        else:
-            apidbpool.execute(
-                "UPDATE media SET last_status=%s, last_check=now() WHERE url=%s",
-                (1001, url))
-            if cache_bad:
-                with open(url_path, "wb") as outf:
-                    outf.write(media_req.content)
-            print datetime.datetime.now(), "Failure", url, t, valid, fmt, detected_mime
-            return False
-    except KeyboardInterrupt as e:
-        raise e
-    except:
-        if apiimg_post_status > 200:
-            # had a problem posting valid media, set status code at 2000 + the actual status code.
-            sql = ("UPDATE media SET last_status=%s, last_check=now() WHERE url=%s",
-                   (apiimg_post_status+2000, url))
-        else:
-            sql = ("UPDATE media SET last_status=%s, last_check=now() WHERE url=%s",
-                   (media_status, url))
-        apidbpool.execute(*sql)
-        print url, t, fmt, "GET media status:", media_status, "POST media status:", apiimg_post_status
-        traceback.print_exc()
-        return False
+    except KeyboardInterrupt:
+        raise
+    except Exception as e:
+        logger.exception("Error saving url: %r", url)
+        status = 2000
+        raise GetMediaError(url, status, inner=e)
 
 
 def write_urls_to_db(media_urls):
-    print "Start Inserts"
+    logger.info("Start Inserts")
     inserted_urls = set()
 
     scanned = 0
@@ -149,11 +206,7 @@ def write_urls_to_db(media_urls):
 
         if url is not None:
             url = url.replace("&amp;", "&").strip()
-
-            for p in ignore_prefix:
-                if url.startswith(p):
-                    break
-            else:
+            if not check_ignore_media(url):
                 if url in media_urls:
                     # We're going to change something, but only if we're
                     # adding/replacing things, not nulling existing values.
@@ -164,25 +217,33 @@ def write_urls_to_db(media_urls):
                     inserted_urls.add(url)
 
         if scanned % 100000 == 0:
-            print len(to_insert), len(to_update), scanned
+            logger.info("Inserting: %8d, Updating: %8d, Scanned: %8d",
+                        len(to_insert), len(to_update), scanned)
     with apidbpool.cursor() as cur:
         cur.executemany("INSERT INTO media (url,type,mime) VALUES (%s,%s,%s)", to_insert)
         cur.executemany("UPDATE media SET type=%s, mime=%s, last_status=NULL, last_check=NULL WHERE url=%s",
                         to_update)
 
-    print len(to_insert), len(to_update), scanned
+    logger.info("Inserting: %8d, Updating: %8d, Scanned: %8d (Finished)",
+                len(to_insert), len(to_update), scanned)
 
 
-def get_postgres_media_urls():
+def get_postgres_media_urls(urlfilter=None):
     media_urls = dict()
-    print "Get Media URLs"
+    logger.info("Get Media URLs")
     sql = "SELECT url,type,mime FROM media"
-    for r in apidbpool.fetchiter(sql, cursor_factory=cursor):
+    params = []
+    if urlfilter:
+        sql += "\nWHERE url LIKE %s"
+        params.append(urlfilter)
+
+    for r in apidbpool.fetchiter(sql, params, cursor_factory=cursor):
         media_urls[r[0]] = (r[1], r[2])
     return media_urls
 
 
-def get_postgres_media_objects():
+def get_postgres_media_objects(urlfilter):
+    assert urlfilter is None, "urlfilter isn't implemented on this function"
     count, rowcount, lrc = 0, 0, 0
     sql = "SELECT lookup_key, etag, date_modified FROM idb_object_keys"
     with apidbpool.connection() as insertconn:
@@ -200,17 +261,17 @@ def get_postgres_media_objects():
 
                 if rowcount != lrc and rowcount % 10000 == 0:
                     insertconn.commit()
-                    print count, rowcount
+                    logger.info("Count: %8d,  rowcount: %8d", count, rowcount)
                     lrc = rowcount
     insertconn.commit()
-    print count, rowcount
+    logger.info("Count: %8d,  rowcount: %8d", count, rowcount)
 
 
 def get_objects_from_ceph():
     existing_objects = set(
         r[0] for r in apidbpool.fetchiter("SELECT etag FROM objects", cursor_factory=cursor))
 
-    print len(existing_objects)
+    logger.info("Found %d objects", len(existing_objects))
 
     s = IDigBioStorage()
     buckets = ["datasets", "images"]
@@ -235,17 +296,20 @@ def get_objects_from_ceph():
                             existing_objects.add(k.name)
                             rowcount += cur.rowcount
                         except:
-                            print "Ceph Error", b_k, k.name
+                            logger.exception("Ceph Error; bucket:%s keyname:%s", b_k, k.name)
                     count += 1
 
                     if rowcount != lrc and rowcount % 10000 == 0:
-                        print count, rowcount
+                        logger.info("Count: %8d,  rowcount: %8d", count, rowcount)
+
                         conn.commit()
                         lrc = rowcount
-                print count, rowcount
                 conn.commit()
+                logger.info("Count: %8d,  rowcount: %8d  (Finished %s)", count, rowcount, b_k)
+
 
 def set_deriv_from_ceph():
+    # TODO: I think this should go away, derivatives.py handles this shortcut.
     s = IDigBioStorage()
     b = s.get_bucket("idigbio-images-prod-thumbnail")
     count = 0
@@ -256,73 +320,86 @@ def set_deriv_from_ceph():
                 count += 1
 
                 if count % 10000 == 0:
-                    print count
+                    logger.info("Count: %8d", count)
                     conn.commit()
-            print count
             conn.commit()
+            logger.info("Count: %8d (Finished set_deriv_from_ceph)", count)
 
-def get_media_generator():
-    sql = """SELECT * FROM (
-        SELECT substring(url from 'https?://[^/]*[/?]'), count(*)
+
+def get_media_generator_filtered(urlfilter):
+    sql = """
+        SELECT url,type,mime
         FROM (
-            SELECT media.url, media_objects.etag
-            FROM media
-            LEFT JOIN media_objects ON media.url = media_objects.url
-            WHERE type IS NOT NULL
-              AND (last_status IS NULL or (last_status >= 400 and last_check < now() - '1 month'::interval))
-        ) AS a
-        WHERE a.etag IS NULL GROUP BY substring(url from 'https?://[^/]*[/?]')
-    ) AS b WHERE substring != '' ORDER BY count"""
-    subs_rows = apidbpool.fetchall(sql)
+           SELECT media.url,type,mime,etag
+           FROM media
+           LEFT JOIN media_objects ON media.url = media_objects.url
+           WHERE media.url LIKE %(urlfilter)s
+             AND type IS NOT NULL
+             AND (last_status IS NULL
+                  OR (last_status >= 400 AND last_check < now() - %(interval)s::interval))
+           ) AS a
+        WHERE a.etag IS NULL"""
+    url_rows = apidbpool.fetchall(
+        sql, {'urlfilter': urlfilter, 'interval': LAST_CHECK_INTERVAL},
+        cursor_factory=cursor)
+    return url_rows
+
+
+def get_media_generator(urlfilter=None):
+    sql = """
+        SELECT * FROM (
+            SELECT substring(url from 'https?://[^/]*[/?]'), count(*)
+            FROM (
+                SELECT media.url, media_objects.etag
+                FROM media
+                LEFT JOIN media_objects ON media.url = media_objects.url
+                WHERE type IS NOT NULL
+                  AND (last_status IS NULL OR (last_status >= 400 and last_check < now() - %s::interval))
+
+            ) AS a
+            WHERE a.etag IS NULL
+            GROUP BY substring(url from 'https?://[^/]*[/?]')
+        ) AS b WHERE substring != ''
+        ORDER BY count
+    """
+
+    subs_rows = apidbpool.fetchall(sql, (LAST_CHECK_INTERVAL,))
     for sub_row in subs_rows:
         subs = sub_row[0]
-        sql = ("""SELECT url,type,mime
-            FROM (
-               SELECT media.url,type,mime,etag
-               FROM media
-               LEFT JOIN media_objects ON media.url = media_objects.url
-               WHERE media.url LIKE %s
-                 AND type IS NOT NULL
-                 AND (last_status IS NULL
-                      OR (last_status >= 400 AND last_check < now() - '1 month'::interval))
-               ) AS a
-            WHERE a.etag IS NULL""", (subs + "%",))
-        url_rows = apidbpool.fetchall(*sql)
-        for url_row in url_rows:
-            yield tuple(url_row[0:3])
+        for r in get_media_generator_filtered(subs + '%'):
+            yield r
 
-def get_media_consumer():
-    p = Pool(5)
+def get_media_consumer(urlfilter):
+    logger.info("Starting get_media, urlfilter:%s", urlfilter)
+    p = Pool(POOL_SIZE)
     count = 0
-    t = 0
-    f = 0
-    for r in p.imap_unordered(get_media, get_media_generator()):
-        if r:
-            t += 1
-        else:
-            f += 1
+    counts = Counter()
+    if urlfilter:
+        urls = get_media_generator_filtered(urlfilter)
+    else:
+        urls = get_media_generator()
+    for r in p.imap_unordered(get_media_wrapper, urls):
+        counts[r] += 1
         count += 1
 
         if count % 10000 == 0:
-            print count, t, f
-    print count, t, f
+            logger.info("Count: %8d; codecounts: %r", counts.most_common())
+    logger.info("Count: %8d; codecounts: %r (Finished)", counts.most_common())
 
-def main():
+
+def main(urlfilter=None):
     import sys
     #create_schema()
 
     if len(sys.argv) > 1 and sys.argv[1] == "get_media":
-        print "Starting get_media operations at ", datetime.datetime.now()
-        get_media_consumer()
-        print "Finished get_media operations at ", datetime.datetime.now()
+        get_media_consumer(urlfilter)
     else:
-        print "Starting media_urls operations at ", datetime.datetime.now()
-        media_urls = get_postgres_media_urls()
+        media_urls = get_postgres_media_urls(urlfilter)
         write_urls_to_db(media_urls)
         # get_objects_from_ceph()
-        # get_postgres_media_objects()
+        # get_postgres_media_objects(urlfilter)
         #set_deriv_from_ceph()
-        print "Finished media_urls operations at ", datetime.datetime.now()
+
 
 if __name__ == '__main__':
     main()

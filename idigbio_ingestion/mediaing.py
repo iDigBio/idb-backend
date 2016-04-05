@@ -32,8 +32,6 @@ IGNORE_PREFIXES = [
 ]
 
 
-
-
 def create_schema():
     with apidbpool.cursor() as cur:
         cur.execute("BEGIN")
@@ -66,7 +64,7 @@ def create_schema():
 @memoized()
 def rsess():
     s = requests.Session()
-    adapter = requests.adapters.HTTPAdapter(pool_connections=POOL_SIZE, pool_maxsize=POOL_SIZE)
+    adapter = requests.adapters.HTTPAdapter(pool_connections=POOL_SIZE*2, pool_maxsize=POOL_SIZE*2)
     s.mount('http://', adapter)
     s.mount('https://', adapter)
     s.headers['User-Agent'] = USER_AGENT

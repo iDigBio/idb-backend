@@ -46,14 +46,14 @@ def get_media_wrapper(tup, cache_bad=False):
         attempt += 1
         try:
             mediaing.get_media(url, t, fmt)
-            logger.info("Finished   %s successfully", url)
+            logger.info("Success: %s", url)
             return 200
         except KeyboardInterrupt:
             raise
         except mediaing.ReqFailure as rf:
             media_status = rf.status
             reason = rf.response.reason if rf.response is not None else None
-            logger.warning("%s on      %s, '%s'", media_status, url, reason)
+            logger.warning("%s %s '%s'", url, media_status, reason)
             if media_status == 404:
                 update_status(media_status)
                 return media_status
@@ -64,7 +64,7 @@ def get_media_wrapper(tup, cache_bad=False):
                 time.sleep(RETRY_SLEEP)
                 continue
             else:
-                logger.error("No retries %s", url)
+                logger.error("%s No More Retries.", url)
                 time.sleep(1)
                 update_status(media_status)
                 return media_status
@@ -84,7 +84,7 @@ def get_media_wrapper(tup, cache_bad=False):
             return gme.status
         except Exception:
             update_status(1000)
-            logger.exception("Unhandled error processing: %s", url)
+            logger.exception("*Unhandled error processing* %s", url)
             return 1000
 
 mediaing.get_media_wrapper = get_media_wrapper

@@ -52,6 +52,8 @@ mime_mapping = {
     None: None
 }
 
+valid_buckets = set([v for v in mime_mapping.values() if not v is None]) | set(['datasets'])
+
 locale.setlocale(locale.LC_ALL, '')
 
 # [indexname, rawfield, type, include_in_max]

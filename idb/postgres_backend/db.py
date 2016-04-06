@@ -16,6 +16,7 @@ from idb.config import logger
 from idb.postgres_backend import apidbpool
 from idb.helpers.etags import calcEtag, calcFileHash
 from idb.helpers.media_validation import sniff_validation
+from idb.helpers.conversions import valid_buckets
 
 TEST_SIZE = 10000
 TEST_COUNT = 10
@@ -567,7 +568,12 @@ class MediaObject(object):
     def fromobj(klass, obj, **attrs):
         obj.seek(0)
         mo = klass(**attrs)
-        mo.mime, mo.mtype = sniff_validation(obj.read(1024))
+
+        if mo.mtype not in valid_buckets:
+            mo.mime, mo.mtype = sniff_validation(obj.read(1024))
+        elif mo.mime is None:
+            mo.mime, _ = sniff_validation(obj.read(1024), raises=False)
+
         obj.seek(0)
         mo.etag, mo.size = calcFileHash(obj, op=False, return_size=True)
         return mo

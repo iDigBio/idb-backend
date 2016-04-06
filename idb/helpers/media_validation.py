@@ -35,9 +35,9 @@ class UnknownMediaTypeError(Exception):
         return self.message
 
 
-def sniff_validation(content):
+def sniff_validation(content, raises=True):
     mime = magic.from_buffer(content, mime=True)
     mt = conversions.mime_mapping.get(mime)
-    if not mt:
+    if not mt and raises:
         raise UnknownMediaTypeError(mime)
     return mime, mt

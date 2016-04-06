@@ -219,6 +219,8 @@ def upload():
     except KeyError:
         return json_error(400, "Missing filereference")
 
+    media_type = request.values.get("media_type")
+
     r = idbmodel.fetchone(
         """SELECT url, type, owner FROM media WHERE url=%s""", (filereference,))
     if (r is not None and r["owner"] != request.authorization.username):
@@ -232,7 +234,7 @@ def upload():
     media_store = IDigBioStorage()
 
     if obj:
-        mobject = MediaObject.fromobj(obj)
+        mobject = MediaObject.fromobj(obj, mtype=media_type)
         mobject.upload(media_store, obj)
         mobject.insert_object(idbmodel)
     else:

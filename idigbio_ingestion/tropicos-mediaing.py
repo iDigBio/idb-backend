@@ -52,7 +52,7 @@ def get_media_wrapper(tup, cache_bad=False):
             raise
         except mediaing.ReqFailure as rf:
             media_status = rf.status
-            reason = rf.response and rf.response.reason
+            reason = rf.response.reason if rf.response is not None else None
             logger.warning("%s on      %s, '%s'", media_status, url, reason)
             if media_status == 404:
                 update_status(media_status)

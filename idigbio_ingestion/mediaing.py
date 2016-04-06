@@ -93,7 +93,7 @@ class GetMediaError(Exception):
         self.url = url
         self.status = status
         self.inner = inner
-        self.message = "Fetch of   %r failed with %r" % (self.url, self.status)
+        self.message = "Fetch of   %s failed with %r" % (self.url, self.status)
 
     def __str__(self):
         return self.message
@@ -111,14 +111,14 @@ class ValidationFailure(GetMediaError):
         self.detected_mime = detected_mime
         self.content = content
         self.args = (expected_mime, detected_mime, content)
-        self.message = "InvalidMime %r; expected %r found %r" % (
-            expected_mime, detected_mime)
+        self.message = "InvalidMime %s; expected '%s' found '%s'" % (
+            url, expected_mime, detected_mime)
 
 
 def get_media_wrapper(tup, cache_bad=False):
     "This calls get_media and handles all the failure scenarios"
     url, t, fmt = tup
-    logger.debug("Starting   %r", url)
+    logger.debug("Starting   %s", url)
 
     def update_status(status):
         apidbpool.execute(
@@ -127,7 +127,7 @@ def get_media_wrapper(tup, cache_bad=False):
 
     try:
         get_media(url, t, fmt)
-        logger.info("Finished   %r successfully", url)
+        logger.info("Finished   %s successfully", url)
         return 200
     except KeyboardInterrupt:
         raise
@@ -143,7 +143,7 @@ def get_media_wrapper(tup, cache_bad=False):
         return gme.status
     except Exception:
         update_status(1000)
-        logger.exception("Unhandled error processing: %r", url)
+        logger.exception("Unhandled error processing: %s", url)
         return 1000
 
 
@@ -161,7 +161,7 @@ def get_media(url, t, fmt):
     valid, detected_mime = validator(url, t, fmt, response.content)
     if not valid:
         raise ValidationFailure(url, fmt, detected_mime, response.content)
-    logger.debug("Validated: %r %s %s %s", url, t, fmt, detected_mime)
+    logger.debug("Validated: %s %s %s %s", url, t, fmt, detected_mime)
 
     fobj = StringIO(response.content)
     try:
@@ -182,7 +182,7 @@ def get_media(url, t, fmt):
     except KeyboardInterrupt:
         raise
     except Exception as e:
-        logger.exception("Error saving url: %r", url)
+        logger.exception("Error saving url: %s", url)
         status = 2000
         raise GetMediaError(url, status, inner=e)
 
@@ -380,6 +380,7 @@ def get_media_consumer(urlfilter):
         urls = get_media_generator_filtered(urlfilter)
     else:
         urls = get_media_generator()
+
     for r in p.imap_unordered(get_media_wrapper, urls):
         counts[r] += 1
         count += 1

@@ -22,6 +22,8 @@ conf_paths = ["/etc/idigbio/", "~/", "."]
 
 config = {}
 
+ENV = 'dev'
+
 for p in conf_paths:
     p = os.path.abspath(os.path.expanduser(p)) + "/"
     if os.path.exists(p + "idigbio.json"):
@@ -32,3 +34,4 @@ if "env" in config:
     for k in config["env"]:
         if k not in os.environ:
             os.environ[k] = config["env"][k]
+    ENV = config['env']['ENV']

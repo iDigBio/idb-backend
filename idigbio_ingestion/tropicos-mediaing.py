@@ -21,22 +21,29 @@ mediaing.IGNORE_PREFIXES = [
 
 TROPICOS_URLFILTER = 'http://www.tropicos.org/%'
 
+#All sleep counts are in seconds
+BLACKLIST_SLEEP = 49 * 60
+RETRY_SLEEP = 18
+UNAVAILABLE_SLEEP = 360
+RETRIES = 4
+
+
+def wait_for_new_external_ip(attempt):
+    time.sleep(BLACKLIST_SLEEP)
+
 
 def get_media_wrapper(tup, cache_bad=False):
     "This calls get_media and handles all the failure scenarios"
     url, t, fmt = tup
     logger.debug("Starting on %r", url)
-
-    retry_sleep = 18
-    unavailable_sleep = 360
-    retries = 4
+    attempt = 0
 
     def update_status(status):
         apidbpool.execute(
             "UPDATE media SET last_status=%s, last_check=now() WHERE url=%s",
             (status, url))
     while True:
-        retries -= 1
+        attempt += 1
         try:
             mediaing.get_media(url, t, fmt)
             logger.info("Finished   %r successfully", url)
@@ -51,10 +58,10 @@ def get_media_wrapper(tup, cache_bad=False):
                 update_status(media_status)
                 return media_status
             if media_status == 503:
-                time.sleep(unavailable_sleep)
+                time.sleep(UNAVAILABLE_SLEEP)
                 continue
-            if retries > 0:
-                time.sleep(retry_sleep)
+            if attempt < RETRIES:
+                time.sleep(RETRY_SLEEP)
                 continue
             else:
                 logger.error("No retries %r", url)
@@ -66,6 +73,9 @@ def get_media_wrapper(tup, cache_bad=False):
             update_status(vf.status)
             if cache_bad:
                 mediaing.write_bad(url, vf.content)
+            if "IP Address Blocked" in vf.content:
+                wait_for_new_external_ip(attempt)
+                continue
             logger.error(str(vf))
             return vf.status
         except mediaing.GetMediaError as gme:

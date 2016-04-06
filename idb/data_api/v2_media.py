@@ -81,16 +81,16 @@ def respond_to_record(r, deriv=None, format=None):
 @this_version.route('/view/mediarecords/<uuid:u>/media',
                     methods=['GET', 'OPTIONS'],
                     defaults={"format": None})
-@this_version.route('/view/records/<uuid:u>/media',
-                    methods=['GET', 'OPTIONS'],
-                    defaults={"format": None})
+# @this_version.route('/view/records/<uuid:u>/media',
+#                     methods=['GET', 'OPTIONS'],
+#                     defaults={"format": None})
 @this_version.route('/media/<uuid:u>',
                     methods=['GET', 'OPTIONS'],
                     defaults={"format": None})
 @this_version.route('/view/mediarecords/<uuid:u>/media.<string:format>',
                     methods=['GET', 'OPTIONS'])
-@this_version.route('/view/records/<uuid:u>/media.<string:format>',
-                    methods=['GET', 'OPTIONS'])
+# @this_version.route('/view/records/<uuid:u>/media.<string:format>',
+#                     methods=['GET', 'OPTIONS'])
 @this_version.route('/media/<uuid:u>.<string:format>',
                     methods=['GET', 'OPTIONS'])
 @crossdomain(origin="*")

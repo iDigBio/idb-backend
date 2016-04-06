@@ -163,6 +163,7 @@ class GeventedConnPool(object):
         kwargs to cursor, positional args to executemany"""
         with self.cursor(**kwargs) as cursor:
             cursor.executemany(*args)
+            return cursor.rowcount
 
     def fetchone(self, *args, **kwargs):
         """like cursor.fetchone

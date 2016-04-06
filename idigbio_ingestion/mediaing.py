@@ -404,6 +404,10 @@ def main(urlfilter=None):
 
 
 if __name__ == '__main__':
+    import logging
+    logging.root.setLevel(logging.INFO)
+    logging.getLogger('boto').setLevel(logging.WARNING)
+    logging.getLogger('requests').setLevel(logging.WARNING)
     main()
 
 # SQL Queries to import from old table:

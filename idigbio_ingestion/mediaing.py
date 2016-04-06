@@ -100,7 +100,12 @@ class GetMediaError(Exception):
 
 
 class ReqFailure(GetMediaError):
-    pass
+    @property
+    def response(self):
+        try:
+            return self.inner.response
+        except AttributeError:
+            pass
 
 
 class ValidationFailure(GetMediaError):

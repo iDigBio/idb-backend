@@ -51,8 +51,8 @@ def get_media_wrapper(tup, cache_bad=False):
         except KeyboardInterrupt:
             raise
         except mediaing.ReqFailure as rf:
-            resp = rf.inner.response
-            media_status, reason = resp.status_code, resp.reason
+            media_status = rf.status
+            reason = rf.response and rf.response.reason
             logger.warning("%s on      %s, '%s'", media_status, url, reason)
             if media_status == 404:
                 update_status(media_status)

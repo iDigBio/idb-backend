@@ -561,6 +561,8 @@ class MediaObject(object):
     __slots__ = 'filereference etag mime mtype size owner'.split(' ')
 
     def __init__(self, **attrs):
+        for i in self.__slots__:
+            setattr(self, i, None)
         for i in attrs.items():
             setattr(self, *i)
 
@@ -663,9 +665,11 @@ class RecordSet(object):
         "file_harvest_etag","eml_harvest_date", "eml_harvest_etag"
     ]
 
-    def __init__(self, **kwargs):
-        for p in kwargs.items():
-            setattr(self, *p)
+    def __init__(self, **attrs):
+        for i in self.__slots__:
+            setattr(self, i, None)
+        for i in attrs.items():
+            setattr(self, *i)
 
     @classmethod
     def fromuuid(cls, uuid, idbmodel=apidbpool):

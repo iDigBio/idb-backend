@@ -32,33 +32,6 @@ IGNORE_PREFIXES = [
 ]
 
 
-def create_schema():
-    with apidbpool.cursor() as cur:
-        cur.execute("BEGIN")
-        cur.execute("""CREATE TABLE IF NOT EXISTS media (
-            id BIGSERIAL PRIMARY KEY,
-            url text UNIQUE,
-            type varchar(20),
-            mime varchar(255),
-            last_status integer,
-            last_check timestamp
-        )
-        """)
-        cur.execute("""CREATE TABLE IF NOT EXISTS objects (
-            id BIGSERIAL PRIMARY KEY,
-            bucket varchar(255) NOT NULL,
-            etag varchar(41) NOT NULL UNIQUE,
-            detected_mime varchar(255),
-            derivatives boolean DEFAULT false
-        )
-        """)
-        cur.execute("""CREATE TABLE IF NOT EXISTS media_objects (
-            id BIGSERIAL PRIMARY KEY,
-            url text NOT NULL REFERENCES media(url),
-            etag varchar(41) NOT NULL REFERENCES objects(etag),
-            modified timestamp NOT NULL DEFAULT now()
-        )
-        """)
 
 
 @memoized()
@@ -389,7 +362,7 @@ def get_media_consumer(urlfilter):
 
 def main(urlfilter=None):
     import sys
-    #create_schema()
+    #MediaObject.create_schema()
 
     if len(sys.argv) > 1 and sys.argv[1] in ("get_media", "get-media"):
         get_media_consumer(urlfilter)

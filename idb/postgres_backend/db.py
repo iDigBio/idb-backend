@@ -675,6 +675,39 @@ class MediaObject(object):
                )""",
             {"url": self.filereference, "etag": self.etag})
 
+    @staticmethod
+    def create_schema(idbmodel=None):
+        "Create the schema for media and objects"
+        if idbmodel is None:
+            idbmodel = PostgresDB()
+        with idbmodel:
+            idbmodel.execute("BEGIN")
+            idbmodel.execute("""CREATE TABLE IF NOT EXISTS media (
+                id BIGSERIAL PRIMARY KEY,
+                url text UNIQUE,
+                type varchar(20),
+                mime varchar(255),
+                last_status integer,
+                last_check timestamp
+            )
+            """)
+            idbmodel.execute("""CREATE TABLE IF NOT EXISTS objects (
+                id BIGSERIAL PRIMARY KEY,
+                bucket varchar(255) NOT NULL,
+                etag varchar(41) NOT NULL UNIQUE,
+                detected_mime varchar(255),
+                derivatives boolean DEFAULT false
+            )
+            """)
+            idbmodel.execute("""CREATE TABLE IF NOT EXISTS media_objects (
+                id BIGSERIAL PRIMARY KEY,
+                url text NOT NULL REFERENCES media(url),
+                etag varchar(41) NOT NULL REFERENCES objects(etag),
+                modified timestamp NOT NULL DEFAULT now()
+            )
+            """)
+            idbmodel.commit()
+
 
 class RecordSet(object):
     __slots__ = [

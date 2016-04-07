@@ -371,6 +371,7 @@ def get_media_generator(urlfilter=None):
     """
 
     subs_rows = apidbpool.fetchall(sql, (LAST_CHECK_INTERVAL,))
+    logger.info("Found %d urlprefixes", len(subs_rows))
     for sub_row in subs_rows:
         subs = sub_row[0]
         for r in get_media_generator_filtered(subs + '%'):

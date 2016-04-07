@@ -696,8 +696,8 @@ class RecordSet(object):
             raise ValueError("No recordset with uuid {0!r}".format(uuid))
         uuid, etag, bucket = r
         if not etag:
-            raise ValueError("Recordset {0!r} doesn't have a stored object")
-        logger.info("Fetching etag {0!r} to {1!r}".format(etag, filename))
+            raise ValueError("Recordset {0!r} doesn't have a stored object".format(uuid))
+        logger.info("Fetching etag %s to %r", etag, filename)
         bucketname = "idigbio-{0}-{1}".format(bucket, os.environ["ENV"])
         k = media_store.get_key(etag, bucketname)
         k.get_contents_to_filename(filename)

@@ -323,24 +323,6 @@ def get_objects_from_ceph():
                 logger.info("Count: %8d,  rowcount: %8d  (Finished %s)", count, rowcount, b_k)
 
 
-def set_deriv_from_ceph():
-    # TODO: I think this should go away, derivatives.py handles this shortcut.
-    s = IDigBioStorage()
-    b = s.get_bucket("idigbio-images-prod-thumbnail")
-    count = 0
-    with apidbpool.connection() as conn:
-        with apidbpool.cursor() as cur:
-            for k in b.list():
-                cur.execute("UPDATE objects SET derivatives=true WHERE etag=%s", (k.name.split(".")[0],))
-                count += 1
-
-                if count % 10000 == 0:
-                    logger.info("Count: %8d", count)
-                    conn.commit()
-            conn.commit()
-            logger.info("Count: %8d (Finished set_deriv_from_ceph)", count)
-
-
 def get_media_generator_filtered(urlfilter):
     sql = """
         SELECT url,type,mime
@@ -416,7 +398,7 @@ def main(urlfilter=None):
         write_urls_to_db(media_urls)
         # get_objects_from_ceph()
         # get_postgres_media_objects(urlfilter)
-        #set_deriv_from_ceph()
+
 
 
 if __name__ == '__main__':

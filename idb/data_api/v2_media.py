@@ -56,25 +56,25 @@ def respond_to_record(r, deriv=None, format=None):
                 "user": owner
             })
     else:
-        if media_type is None:  # We haven't assigned the mime to a type bucket yet.
+        if media_mime is not None:  # We haven't generated an image derivative yet.
             return Response(
                 render_template("_default.svg",
-                                text="Unsupported Media Format"),
+                                text=media_mime),
+                mimetype="image/svg+xml")
+        elif media_type is None or mime_type is None:  # We haven't assigned the mime to a type bucket yet.
+            return Response(
+                render_template("_default.svg",
+                                text="Unknown Media Format"),
                 mimetype="image/svg+xml")
         elif last_status is None:  # We haven't checked the file yet.
             return Response(
                 render_template("_default.svg",
                                 text="Media Download Pending"),
                 mimetype="image/svg+xml")
-        elif media_mime is not None:  # We haven't generated an image derivative yet.
+        else:
             return Response(
                 render_template("_default.svg",
-                                text=media_mime),
-                mimetype="image/svg+xml")
-        elif media_mime is None:  # No Mime Type supplied
-            return Response(
-                render_template("_default.svg",
-                                text="Unknown Media Format"),
+                                text="Media Error"),
                 mimetype="image/svg+xml")
 
 

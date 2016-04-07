@@ -9,7 +9,6 @@ pycrypto
 flask
 Flask-UUID
 Flask-CORS
-riak
 coverage
 numpy
 scipy

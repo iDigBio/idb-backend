@@ -1,4 +1,4 @@
-from __future__ import absolute_import
+#from __future__ import absolute_import
 from __future__ import print_function
 import os
 import sys
@@ -14,9 +14,9 @@ from psycopg2 import DatabaseError
 from idb.postgres_backend.db import PostgresDB, RecordSet
 from idb.helpers.etags import calcEtag, calcFileHash
 
-from .lib.log import getIDigBioLogger, formatter
-from .lib.dwca import Dwca
-from .lib.delimited import DelimitedFile
+from lib.log import getIDigBioLogger, formatter
+from lib.dwca import Dwca
+from lib.delimited import DelimitedFile
 
 from idb.helpers.storage import IDigBioStorage
 

@@ -3,3 +3,4 @@ pillow
 Python-fontconfig
 lxml
 chardet
+pyquery>=1.2

@@ -186,11 +186,13 @@ class PostgresDB(object):
 
     def execute(self, *args, **kwargs):
         with self.cursor(**kwargs) as cur:
-            return cur.execute(*args)
+            cur.execute(*args)
+            return cur.rowcount
 
     def executemany(self, *args, **kwargs):
         with self.cursor(**kwargs) as cur:
-            return cur.executemany(*args)
+            cur.executemany(*args)
+            return cur.rowcount
 
     def commit(self):
         self.conn.commit()

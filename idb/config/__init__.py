@@ -34,4 +34,12 @@ if "env" in config:
     for k in config["env"]:
         if k not in os.environ:
             os.environ[k] = config["env"][k]
-    ENV = config['env']['ENV']
+
+ENV = os.environ.get('ENV')
+IDB_UUID = os.environ.get('IDB_UUID')
+IDB_APIKEY = os.environ.get('IDB_APIKEY')
+IDB_DBPASS = os.environ.get('IDB_DBPASS')
+IDB_STORAGE_ACCESS_KEY = os.environ.get('IDB_STORAGE_ACCESS_KEY')
+IDB_STORAGE_SECRET_KEY = os.environ.get('IDB_STORAGE_SECRET_KEY')
+IDB_CRYPT_KEY = os.environ.get('IDB_CRYPT_KEY')
+

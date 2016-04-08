@@ -10,7 +10,7 @@ import magic
 import json
 import logging
 from psycopg2 import DatabaseError
-
+from boto.exception import S3ResponseError
 from idb.postgres_backend.db import PostgresDB, RecordSet
 from idb.helpers.etags import calcEtag, calcFileHash
 
@@ -492,7 +492,12 @@ def main():
     fh.setFormatter(formatter)
     logger.addHandler(fh)
 
-    name, mime = get_file(rsid)
+    try:
+        name, mime = get_file(rsid)
+    except S3ResponseError:
+        logger.exception("Failed fetching rsid: %s", rsid)
+        sys.exit(1)
+
     if os.path.exists(rsid + "_uuids.json") and os.path.exists(rsid + "_ids.json"):
         with open(rsid + "_uuids.json", "rb") as uuidf:
             db_u_d = json.load(uuidf)

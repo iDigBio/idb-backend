@@ -10,6 +10,7 @@ import requests
 import feedparser
 assert feedparser.__version__ >= "5.2.0"
 
+from idb import config
 from idb.postgres_backend.db import PostgresDB, MediaObject, DictCursor
 from idb.helpers.etags import calcFileHash
 from idb.helpers.storage import IDigBioStorage
@@ -338,9 +339,8 @@ def harvest_file(r, db):
     fname = "{0}.file".format(r["id"])
     try:
         download_file(r["file_link"], fname)
-        etag = calcFileHash(fname)
-        if etag != r["file_harvest_etag"]:
-            upload_recordset(r["uuid"], fname, db)
+        etag = upload_recordset(r["uuid"], fname, db)
+
         sql = ("""UPDATE recordsets
                   SET file_harvest_etag=%s, file_harvest_date=%s
                   WHERE id=%s""",
@@ -354,12 +354,19 @@ def harvest_file(r, db):
 def upload_recordset(rsid, fname, idbmodel):
     filereference = "http://api.idigbio.org/v1/recordsets/" + rsid
     logger.debug("Uploading media for %r", rsid)
-    with open(fname, 'rb') as inf:
-        mo = MediaObject.fromobj(inf, filereference=filereference, mtype='datasets')
-        mo.upload(IDigBioStorage(), inf)
-        logger.debug("Finished uploading %r to ceph", fname)
-        mo.update_media(idbmodel, status=200)
-        mo.insert_object(idbmodel)
+    stor = IDigBioStorage()
+    with open(fname, 'rb') as fobj:
+        mo = MediaObject.fromobj(
+            fobj, filereference=filereference, mtype='datasets', owner=config.IDB_UUID)
+        k = mo.get_key(stor)
+        if k.exists():
+            logger.debug("ETAG %s already present in ceph", mo.etag)
+        else:
+            mo.upload(stor, fobj)
+            logger.debug("ETAG %s uploading from %r", mo.etag, fname)
+
+        mo.ensure_media(idbmodel, status=200)
+        mo.ensure_object(idbmodel)
         mo.ensure_media_object(idbmodel)
 
 
@@ -372,7 +379,7 @@ def main():
     logger.info("Finished all updates")
 
 if __name__ == '__main__':
-    #logging.root.setLevel(logging.DEBUG)
+    logging.root.setLevel(logging.DEBUG)
     #logging.root.setLevel(logging.INFO)
     logging.getLogger('boto').setLevel(logging.WARNING)
     logging.getLogger('requests').setLevel(logging.WARNING)

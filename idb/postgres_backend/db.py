@@ -580,6 +580,7 @@ class MediaObject(object):
 
         obj.seek(0)
         mo.etag, mo.size = calcFileHash(obj, op=False, return_size=True)
+        obj.seek(0)
         return mo
 
     @classmethod
@@ -630,28 +631,44 @@ class MediaObject(object):
             fobj.seek(0)
             k.set_contents_from_file(fobj, md5=k.get_md5_from_hexdigest(self.etag))
             k.make_public()
+        return k
 
-    def insert_object(self, idbmodel):
-        idbmodel.execute(
+    def ensure_object(self, idbmodel):
+        return idbmodel.execute(
             """INSERT INTO objects (bucket, etag, detected_mime)
                SELECT %s, %s, %s WHERE NOT EXISTS (SELECT 1 FROM objects WHERE etag=%s)""",
             (self.mtype, self.etag, self.mime, self.etag))
 
+    def insert_object(self, idbmodel):
+        return self.ensure_object(idbmodel)
+
     def update_media(self, idbmodel, status=200):
-        idbmodel.execute(
+        return idbmodel.execute(
             """UPDATE media
                SET last_check=now(), last_status=%s, type=%s, mime=%s
                WHERE url=%s""",
             (status, self.mtype, self.mime, self.filereference))
 
     def insert_media(self, idbmodel, status=200):
-        idbmodel.execute(
+        return idbmodel.execute(
             """INSERT INTO media (url, type, mime, last_status, last_check, owner)
                VALUES (%s, %s, %s, %s, now(), %s)""",
             (self.filereference, self.mtype, self.mime, status, self.owner))
 
+    def ensure_media(self, idbmodel, status=200):
+        kwargs = {
+            'idbmodel': idbmodel,
+            'status': status
+        }
+        rc = self.update_media(**kwargs)
+        if rc == 0:
+            return self.insert_media(**kwargs)
+        else:
+            return rc
+
+
     def ensure_media_object(self, idbmodel):
-        idbmodel.execute(
+        return idbmodel.execute(
             """INSERT INTO media_objects (url, etag)
                SELECT %(url)s, %(etag)s WHERE NOT EXISTS (
                  SELECT 1 FROM media_objects WHERE url=%(url)s AND etag=%(etag)s

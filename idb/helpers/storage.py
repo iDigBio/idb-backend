@@ -13,7 +13,7 @@ from boto.s3.key import Key
 
 from idb.helpers.media_validation import get_validator
 from idb.postgres_backend import apidbpool
-from idb.postgres_backend.db import MediaObject
+from idb.postgres_backend.db import MediaObject, PostgresDB
 from idb.helpers.etags import calcFileHash
 from idb.config import config
 
@@ -113,6 +113,11 @@ class IDigBioStorage(object):
 
         k.get_contents_to_filename(file_name)
         return file_name
+
+    def get_key_by_etag(self, etag, idbmodel=None):
+        mo = MediaObject.frometag(etag, idbmodel=idbmodel)
+        return self.get_key(mo.keyname, mo.bucketname)
+
 
     # def set_file_by_url(self, url, fil, typ, mime=None):
     #     fname = fil.filename

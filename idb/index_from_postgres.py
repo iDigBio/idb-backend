@@ -230,21 +230,11 @@ def type_yield_resume(ei, rc, typ, also_delete=False, yield_record=False):
     if also_delete and len(es_ids) > 0:
         print "Deleting", len(es_ids), "extra", typ
         for r in es_ids:
-            ei.es.delete_by_query(**{
+            ei.es.delete(
                 "index": ei.indexName,
                 "doc_type": typ,
-                "body": {
-                    "query": {
-                        "filtered": {
-                            "filter": {
-                                "term": {
-                                    "uuid": r
-                                }
-                            }
-                        }
-                    }
-                }
-            })
+                "id": r
+            )
 
 def queryIter(query, ei, rc, typ, yield_record=False):
     q = {
@@ -284,21 +274,11 @@ def delete(ei, no_index=False):
     for r in apidbpool.fetchiter(sql, name=str(uuid.uuid4()), cursor_factory=DictCursor):
         count += 1
         if not no_index:
-            ei.es.delete_by_query(**{
+            ei.es.delete(
                 "index": ei.indexName,
                 "doc_type": r["type"],
-                "body": {
-                    "query": {
-                        "filtered": {
-                            "filter": {
-                                "term": {
-                                    "uuid": r["id"]
-                                }
-                            }
-                        }
-                    }
-                }
-            })
+                "id": r["id"]
+            )
 
         if count % 10000 == 0:
             print count

@@ -170,7 +170,7 @@ def key_to_buffer(key):
         buff.seek(0)
         return buff
     except S3ResponseError as e:
-        log.error("%r failed downloading with %r", key, e)
+        log.error("%r failed downloading with %r %s", key, e, key)
         raise
 
 
@@ -220,5 +220,5 @@ if __name__ == '__main__':
     else:
         print("""Usage:  derivatives.py <BUCKET ...>
 
-    BUCKET can be one of {images, sounds}
+    BUCKET can be any of {images, sounds}
         """, file=sys.stderr)

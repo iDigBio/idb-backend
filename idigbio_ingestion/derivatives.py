@@ -170,7 +170,7 @@ def key_to_buffer(key):
         buff.seek(0)
         return buff
     except S3ResponseError as e:
-        log.error("%r failed downloading with %r %s %s", key, e.code, e.reason, key.name)
+        log.error("%r failed downloading with %r %s %s", key, e.status, e.reason, key.name)
         raise
 
 

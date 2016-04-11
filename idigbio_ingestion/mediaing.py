@@ -177,7 +177,7 @@ def get_media(url, t, fmt):
 
     try:
         mo.upload(IDigBioStorage(), fobj)
-        logger.debug("Finished uploading to ceph")
+        logger.debug("Finished uploading to Storage.")
         with PostgresDB() as idbmodel:
             mo.update_media(idbmodel, status=200)
             mo.insert_object(idbmodel)

@@ -360,7 +360,7 @@ def upload_recordset(rsid, fname, idbmodel):
             fobj, filereference=filereference, mtype='datasets', owner=config.IDB_UUID)
         k = mo.get_key(stor)
         if k.exists():
-            logger.debug("ETAG %s already present in ceph", mo.etag)
+            logger.debug("ETAG %s already present in Storage", mo.etag)
         else:
             mo.upload(stor, fobj)
             logger.debug("ETAG %s uploading from %r", mo.etag, fname)

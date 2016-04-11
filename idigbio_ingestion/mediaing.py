@@ -165,7 +165,11 @@ def get_media(url, t, fmt):
     validator = get_validator(fmt)
     valid, detected_mime = validator(url, t, fmt, response.content)
     if not valid:
-        raise ValidationFailure(url, fmt, detected_mime, response.content)
+        if "Access Denied" in response.content:
+            # Want to set status code to 1403
+            raise ReqFailure(url, 1403)
+        else:
+            raise ValidationFailure(url, fmt, detected_mime, response.content)
     logger.debug("Validated: %s %s %s %s", url, t, fmt, detected_mime)
 
     fobj = StringIO(response.content)

@@ -22,14 +22,15 @@ mediaing.IGNORE_PREFIXES = [
 TROPICOS_URLFILTER = 'http://www.tropicos.org/%'
 
 #All sleep counts are in seconds
-BLACKLIST_SLEEP = 49 * 60
-RETRY_SLEEP = 18
-UNAVAILABLE_SLEEP = 360
+SLEEP_BLACKLIST = 49 * 60
+SLEEP_RETRY = 18
+SLEEP_UNAVAILABLE = 360
+SLEEP_NOTFOUND = 0.25
 RETRIES = 4
 
 
 def wait_for_new_external_ip(attempt):
-    time.sleep(BLACKLIST_SLEEP)
+    time.sleep(SLEEP_BLACKLIST)
 
 
 def get_media_wrapper(tup, cache_bad=False):
@@ -42,6 +43,7 @@ def get_media_wrapper(tup, cache_bad=False):
         apidbpool.execute(
             "UPDATE media SET last_status=%s, last_check=now() WHERE url=%s",
             (status, url))
+
     while True:
         attempt += 1
         try:
@@ -56,12 +58,13 @@ def get_media_wrapper(tup, cache_bad=False):
             logger.warning("%s %s '%s'", url, media_status, reason)
             if media_status == 404:
                 update_status(media_status)
+                time.sleep(SLEEP_NOTFOUND)
                 return media_status
             if media_status == 503:
-                time.sleep(UNAVAILABLE_SLEEP)
+                time.sleep(SLEEP_UNAVAILABLE)
                 continue
             if attempt < RETRIES:
-                time.sleep(RETRY_SLEEP)
+                time.sleep(SLEEP_RETRY)
                 continue
             else:
                 logger.error("%s No More Retries.", url)

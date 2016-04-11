@@ -164,7 +164,7 @@ def get_media(url, t, fmt):
 
     validator = get_validator(fmt)
     valid, detected_mime = validator(url, t, fmt, response.content)
-    if not valid and detected_mime = "text/html":
+    if not valid and detected_mime == "text/html":
         logger.debug("Found - media is not valid and detected_mime is text/html")
         if "Access Denied" in response.content:
             logger.debug ("Found Access Denied. Trying to set status to 1403...")

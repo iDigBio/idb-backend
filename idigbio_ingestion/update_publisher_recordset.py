@@ -246,7 +246,7 @@ def _do_rss(r, db, recordsets, existing_recordsets):
                    })
             db.execute(*sql)
             logger.info("Update Recordset id:%s %s %s",
-                        recordset["id"], recordid, name)
+                        recordset["id"], recordid, rs_name)
 
     db.set_record(pub_uuid, "publisher", "872733a2-67a3-4c54-aa76-862735a5f334",
                   {

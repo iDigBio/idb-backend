@@ -225,7 +225,7 @@ def _do_rss(r, db, recordsets, existing_recordsets):
                 """,
                 (rsid, pub_uuid, rs_name, recordids, eml_link, file_link, ingest, date))
             db.execute(*sql)
-            logger.info("Create Recordset %s %s", recordid, name)
+            logger.info("Create Recordset for recordid:%s %s", recordid, name)
         else:
             sql = ("""UPDATE recordsets
                       SET publisher_uuid=%(publisher_uuid)s,
@@ -245,8 +245,8 @@ def _do_rss(r, db, recordsets, existing_recordsets):
                        "id": recordset["id"]
                    })
             db.execute(*sql)
-            logger.info("Update Recordset id:%s %s %s",
-                        recordset["id"], recordid, name)
+            logger.info("Update Recordset id:%s %s %s %s",
+                        recordset["id"], recordset["uuid"], file_link, rs_name)
 
     db.set_record(pub_uuid, "publisher", "872733a2-67a3-4c54-aa76-862735a5f334",
                   {
@@ -340,7 +340,7 @@ def harvest_file(r, db):
     try:
         download_file(r["file_link"], fname)
         etag = upload_recordset(r["uuid"], fname, db)
-
+        assert etag
         sql = ("""UPDATE recordsets
                   SET file_harvest_etag=%s, file_harvest_date=%s
                   WHERE id=%s""",
@@ -353,14 +353,14 @@ def harvest_file(r, db):
 
 def upload_recordset(rsid, fname, idbmodel):
     filereference = "http://api.idigbio.org/v1/recordsets/" + rsid
-    logger.debug("Uploading media for %r", rsid)
+    logger.debug("Starting Upload of %r", rsid)
     stor = IDigBioStorage()
     with open(fname, 'rb') as fobj:
         mo = MediaObject.fromobj(
             fobj, filereference=filereference, mtype='datasets', owner=config.IDB_UUID)
         k = mo.get_key(stor)
         if k.exists():
-            logger.debug("ETAG %s already present in ceph", mo.etag)
+            logger.debug("ETAG %s already present in Storage.", mo.etag)
         else:
             mo.upload(stor, fobj)
             logger.debug("ETAG %s uploading from %r", mo.etag, fname)
@@ -368,13 +368,17 @@ def upload_recordset(rsid, fname, idbmodel):
         mo.ensure_media(idbmodel, status=200)
         mo.ensure_object(idbmodel)
         mo.ensure_media_object(idbmodel)
-
+        return mo.etag
+    logger.debug("Finished Upload of %r", rsid)
 
 def main():
     # create_tables()
     # Re-work from canonical db
+    logger.info("Begin main()")
     update_db_from_rss()
+    logger.info("*** Begin harvest of eml files...")
     harvest_all_eml()
+    logger.info("*** Begin harvest of dataset files...")
     harvest_all_file()
     logger.info("Finished all updates")
 

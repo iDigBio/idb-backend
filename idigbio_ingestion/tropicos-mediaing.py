@@ -48,26 +48,28 @@ def get_media_wrapper(tup, cache_bad=False):
         attempt += 1
         try:
             mediaing.get_media(url, t, fmt)
-            logger.info("Success: %s", url)
+            logger.info("Success! %s %s", url, 200)
             return 200
         except KeyboardInterrupt:
             raise
         except mediaing.ReqFailure as rf:
             media_status = rf.status
             reason = rf.response.reason if rf.response is not None else None
-            logger.warning("%s %s '%s'", url, media_status, reason)
-            if media_status == 404:
+            if media_status in (403, 404, 1403):
+                logger.info("%s %s '%s'", url, media_status, reason)
                 update_status(media_status)
                 time.sleep(SLEEP_NOTFOUND)
                 return media_status
-            if media_status == 503:
+            elif media_status in (503, 1503):
+                logger.warning("Remote Service Unavailable. %s %s '%s'", url, media_status, reason)
                 time.sleep(SLEEP_UNAVAILABLE)
                 continue
-            if attempt < RETRIES:
+            elif attempt < RETRIES:
+                logger.warning("Will Retry. %s %s '%s'", url, media_status, reason)
                 time.sleep(SLEEP_RETRY)
                 continue
             else:
-                logger.error("%s No More Retries.", url)
+                logger.error("No More Retries. %s %s '%s'", url, media_status, reason)
                 time.sleep(1)
                 update_status(media_status)
                 return media_status

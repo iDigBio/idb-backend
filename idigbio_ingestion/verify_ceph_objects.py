@@ -74,6 +74,25 @@ def log_counts(results, filename='bad-etags.csv', errfilename='err-etags.csv'):
                 idx, counts[True], counts[False], counts.most_common())
 
 
+def reverify(media_objects, poolsize=50):
+    p = Pool(poolsize)
+    check_results = p.imap_unordered(check_object, media_objects)
+    for cr in check_results:
+        mo = cr.mo
+        if cr.exists:
+            logger.warning("Now exists: %s in %s", mo.etag, mo.mtype)
+            continue
+        yield cr.mo
+
+def delete_etags(media_objects):
+    sql = """
+        DELETE FROM media_objects where etag = %(etag)s;
+        DELETE FROM objects WHERE etag = %(etag)s;
+    """
+    c = apidbpool.executemany(sql, ({'etag': mo.etag} for mo in media_objects))
+    logger.info("DELETEd %s media_objects and objects", c)
+
+
 def main(poolsize=50, limit=5000):
     p = Pool(poolsize)
     try:

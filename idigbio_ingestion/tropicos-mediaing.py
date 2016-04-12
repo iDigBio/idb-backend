@@ -60,11 +60,11 @@ def get_media_wrapper(tup, cache_bad=False):
                 update_status(media_status)
                 time.sleep(SLEEP_NOTFOUND)
                 return media_status
-            if media_status == 503:
+            elif media_status in (503, 1503):
                 logger.warning("Remote Service Unavailable. %s %s '%s'", url, media_status, reason)
                 time.sleep(SLEEP_UNAVAILABLE)
                 continue
-            if attempt < RETRIES:
+            elif attempt < RETRIES:
                 logger.warning("Will Retry. %s %s '%s'", url, media_status, reason)
                 time.sleep(SLEEP_RETRY)
                 continue

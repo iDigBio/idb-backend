@@ -48,7 +48,7 @@ def get_media_wrapper(tup, cache_bad=False):
         attempt += 1
         try:
             media_status = mediaing.get_media(url, t, fmt)
-            logger.debug("** media_status is %s", media_status)
+            logger.info("** media_status is %s", media_status)
             logger.info("Success! %s %s", url, media_status)
             return media_status
         except KeyboardInterrupt:

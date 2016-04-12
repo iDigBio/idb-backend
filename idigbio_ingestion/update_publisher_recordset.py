@@ -355,23 +355,20 @@ def upload_recordset(rsid, fname, idbmodel):
     filereference = "http://api.idigbio.org/v1/recordsets/" + rsid
     logger.debug("Starting Upload of %r", rsid)
     stor = IDigBioStorage()
-    try:
-        with open(fname, 'rb') as fobj:
-            mo = MediaObject.fromobj(
-                fobj, filereference=filereference, mtype='datasets', owner=config.IDB_UUID)
-            k = mo.get_key(stor)
-            if k.exists():
-                logger.debug("ETAG %s already present in Storage. Failed recordset %s", mo.etag, rsid)
-            else:
-                mo.upload(stor, fobj)
-                logger.debug("ETAG %s uploading from %r", mo.etag, fname)
+    with open(fname, 'rb') as fobj:
+        mo = MediaObject.fromobj(
+            fobj, filereference=filereference, mtype='datasets', owner=config.IDB_UUID)
+        k = mo.get_key(stor)
+        if k.exists():
+            logger.debug("ETAG %s already present in Storage.", mo.etag)
+        else:
+            mo.upload(stor, fobj)
+            logger.debug("ETAG %s uploading from %r", mo.etag, fname)
 
-            mo.ensure_media(idbmodel, status=200)
-            mo.ensure_object(idbmodel)
-            mo.ensure_media_object(idbmodel)
-            return mo.etag
-    except:
-        logger.exception("EXCEPTION during upload of recordset %s with ETAG %s", rsid, mo.etag)
+        mo.ensure_media(idbmodel, status=200)
+        mo.ensure_object(idbmodel)
+        mo.ensure_media_object(idbmodel)
+        return mo.etag
     logger.debug("Finished Upload of %r", rsid)
 
 def main():

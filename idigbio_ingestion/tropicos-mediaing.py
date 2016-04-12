@@ -55,7 +55,7 @@ def get_media_wrapper(tup, cache_bad=False):
         except mediaing.ReqFailure as rf:
             media_status = rf.status
             reason = rf.response.reason if rf.response is not None else None
-            if media_status in (403, 404):
+            if media_status in (403, 404, 1403):
                 logger.info("%s %s '%s'", url, media_status, reason)
                 update_status(media_status)
                 time.sleep(SLEEP_NOTFOUND)

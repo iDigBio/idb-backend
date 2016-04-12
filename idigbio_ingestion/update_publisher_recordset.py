@@ -340,7 +340,7 @@ def harvest_file(r, db):
     try:
         download_file(r["file_link"], fname)
         etag = upload_recordset(r["uuid"], fname, db)
-
+        assert etag
         sql = ("""UPDATE recordsets
                   SET file_harvest_etag=%s, file_harvest_date=%s
                   WHERE id=%s""",
@@ -369,6 +369,7 @@ def upload_recordset(rsid, fname, idbmodel):
             mo.ensure_media(idbmodel, status=200)
             mo.ensure_object(idbmodel)
             mo.ensure_media_object(idbmodel)
+            return mo.etag
     except:
         logger.exception("EXCEPTION during upload of recordset %s with ETAG %s", rsid, mo.etag)
     logger.debug("Finished Upload of %r", rsid)

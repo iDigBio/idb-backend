@@ -60,7 +60,7 @@ def get_media_wrapper(tup, cache_bad=False):
                 update_status(media_status)
                 time.sleep(SLEEP_NOTFOUND)
                 return media_status
-            elif media_status in (503, 1503):
+            elif media_status in (503):
                 logger.warning("Remote Service Unavailable. %s %s '%s'", url, media_status, reason)
                 time.sleep(SLEEP_UNAVAILABLE)
                 continue
@@ -87,6 +87,10 @@ def get_media_wrapper(tup, cache_bad=False):
             update_status(gme.status)
             logger.error(str(gme))
             return gme.status
+        except mediaing.ConnectionError as connectione:
+                logger.warning("Connection Error. %s %s %s", url, connectione.exceptions.errno, connectione.exceptions.message)
+                time.sleep(SLEEP_UNAVAILABLE)
+                continue           
         except Exception:
             update_status(1000)
             logger.exception("*Unhandled error processing* %s", url)

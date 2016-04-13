@@ -161,8 +161,6 @@ def get_media(url, t, fmt):
         response.raise_for_status()
     except requests.exceptions.HTTPError as httpe:
         raise ReqFailure(url, httpe.response.status_code, httpe)
-    except requests.exceptions.ConnectionError as connectione:
-        raise ReqFailure(url, 1503, connectione.exceptions.message)
     
     validator = get_validator(fmt)
     valid, detected_mime = validator(url, t, fmt, response.content)

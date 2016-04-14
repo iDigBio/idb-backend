@@ -87,10 +87,15 @@ def get_media_wrapper(tup, cache_bad=False):
             update_status(gme.status)
             logger.error(str(gme))
             return gme.status
-        except mediaing.ConnectionError as connectione:
-                logger.warning("Connection Error. %s %s %s", url, connectione.exceptions.errno, connectione.exceptions.message)
-                time.sleep(SLEEP_UNAVAILABLE)
-                continue           
+        # except mediaing.ConnectionError as connectione:
+        #         logger.warning("Connection Error. %s %s %s", url, connectione.exceptions.errno, connectione.exceptions.message)
+        #         time.sleep(SLEEP_UNAVAILABLE)
+        #         continue
+        ## causes traceback (excerpt):
+        # File "/root/idb-backend/idigbio_ingestion/tropicos-mediaing.py", line 90, in get_media_wrapper
+        #  except mediaing.ConnectionError as connectione:
+        #   AttributeError: 'module' object has no attribute 'ConnectionError'
+            
         except Exception:
             update_status(1000)
             logger.exception("*Unhandled error processing* %s", url)

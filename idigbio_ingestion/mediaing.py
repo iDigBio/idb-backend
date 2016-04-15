@@ -162,7 +162,7 @@ def get_media(url, t, fmt):
         logger.debug("Finished uploading to Storage.")
         with PostgresDB() as idbmodel:
             mo.update_media(idbmodel, status=200)
-            mo.insert_object(idbmodel)
+            mo.ensure_object(idbmodel)
             mo.ensure_media_object(idbmodel)
             idbmodel.commit()
         return True

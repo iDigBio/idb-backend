@@ -145,7 +145,7 @@ def upload_item(item):
     key = item.key
     data = item.data
     if isinstance(item, CopyItem):
-        log.debug("%s copying from %s", key, data)
+        log.debug("%s copying from bucket %s", key, data.bucket.name)
         data.copy(dst_bucket=key.bucket,
                   dst_key=key.name,
                   metadata={'Content-Type': 'image/jpeg'})

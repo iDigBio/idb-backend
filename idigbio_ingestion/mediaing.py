@@ -158,8 +158,13 @@ def get_media(url, t, fmt):
         raise ValidationFailure(url, fmt, umte.mime, response.content)
 
     try:
-        mo.upload(IDigBioStorage(), fobj)
-        logger.debug("Finished uploading to Storage.")
+        stor = IDigBioStorage()
+        k = mo.get_key(stor)
+        if k.exists():
+            logger.debug("Skipped  etag %s, already present", mo.etag)
+        else:
+            mo.upload(stor, fobj)
+            logger.debug("Uploaded etag %s, already present")
         with PostgresDB() as idbmodel:
             mo.update_media(idbmodel, status=200)
             mo.ensure_object(idbmodel)

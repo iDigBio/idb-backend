@@ -64,7 +64,7 @@ def main(bucket):
 
 def count_results(results, update_freq=100):
     c = Counter()
-    for count, result in enumerate(results):
+    for count, result in enumerate(results, 1):
         if result is None:
             c['erred'] += 1
         elif len(result.items) > 0:
@@ -73,12 +73,13 @@ def count_results(results, update_freq=100):
             c['existed'] += 1
 
         if count % update_freq == 0:
-            log.info("Generated: %6d  Existed:%6d  Erred: %6d",
-                     c['generated'], c['existed'], c['erred'])
+            log.info("Checked:%6d  Generated:%6d  Existed:%6d  Erred:%6d",
+                     count, c['generated'], c['existed'], c['erred'])
         yield result
 
-    log.info("Generated: %6d  Existed:%6d  Erred: %6d  (FINISHED)",
-             c['generated'], c['existed'], c['erred'])
+    log.info("Checked:%6d  Generated:%6d  Existed:%6d  Erred:%6d",
+             count, c['generated'], c['existed'], c['erred'])
+
 
 def get_keys(obj):
     etag, bucket = obj.etag, obj.bucket
@@ -93,7 +94,12 @@ def get_keys(obj):
 
 def check_and_generate(item):
     try:
-        results = list(filter(None, generate_all(item)))
+        # check if thumbnail exists as proxy for everything existing
+        if item.thumbnail.exists():
+            log.debug("%s Thumbnail shortcut", item.etag)
+            return GenerateResult(item.etag, [])
+        else:
+            return GenerateResult(item.etag, generate_all(item))
     except KeyboardInterrupt:
         raise
     except S3ResponseError:
@@ -101,19 +107,13 @@ def check_and_generate(item):
     except Exception:
         log.exception("%s: Failed generating", item.etag)
         return None
-    else:
-        return GenerateResult(item.etag, results)
 
 
 def generate_all(item):
-    # check if thumbnail exists as proxy for everything existing
-    if item.thumbnail.exists():
-        log.debug("%s Thumbnail shortcut", item.etag)
-        return
     img = get_media_img(item.media)
-    yield build_deriv(item, img, 'fullsize')
-    yield build_deriv(item, img, 'thumbnail')
-    yield build_deriv(item, img, 'webview')
+    dtypes = ('fullsize', 'thumbnail', 'webview')
+    derivs = [build_deriv(item, img, dtype) for dtype in dtypes]
+    return list(filter(None, derivs))
 
 
 def build_deriv(item, img, deriv):
@@ -150,6 +150,7 @@ def upload_item(item):
                   dst_key=key.name,
                   metadata={'Content-Type': 'image/jpeg'})
     else:
+        # no key exists check here, that was done in build_deriv
         log.debug("%s uploading", key)
         key.set_metadata('Content-Type', 'image/jpeg')
         key.set_contents_from_file(data)

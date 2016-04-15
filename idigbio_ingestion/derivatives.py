@@ -1,5 +1,5 @@
 from __future__ import division, absolute_import
-from __future__ import print_function, unicode_literals
+from __future__ import print_function
 from future_builtins import map, filter
 
 import os
@@ -84,8 +84,8 @@ def count_results(results, update_freq=100):
 def get_keys(obj):
     etag, bucket = obj.etag, obj.bucket
     s = IDigBioStorage()
-    bucketbase = "idigbio-{0}-{1}".format(bucket, ENV)
-    return CheckItem(etag, bucket,
+    bucketbase = u"idigbio-{0}-{1}".format(bucket, ENV)
+    return CheckItem(unicode(etag), bucket,
                      s.get_key(etag, bucketbase),
                      s.get_key(etag + ".jpg", bucketbase + "-thumbnail"),
                      s.get_key(etag + ".jpg", bucketbase + "-fullsize"),

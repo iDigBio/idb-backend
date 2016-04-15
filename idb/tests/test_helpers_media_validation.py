@@ -1,5 +1,5 @@
 from __future__ import division, absolute_import
-from __future__ import print_function, unicode_literals
+from __future__ import print_function
 
 import pytest
 
@@ -8,8 +8,8 @@ from idb.helpers import media_validation as medval
 
 def test_sniff_validation_jpg(jpgpath):
     mime, mtype = medval.sniff_validation(jpgpath.open('rb').read(1024))
-    assert mime == 'image/jpeg'
-    assert mtype == 'images'
+    assert mime == u'image/jpeg'
+    assert mtype == u'images'
 
 
 def test_sniff_validation_png(pngpath):
@@ -19,5 +19,5 @@ def test_sniff_validation_png(pngpath):
 
 def test_sniff_validation_mp3(mp3path):
     mime, mtype = medval.sniff_validation(mp3path.open('rb').read(1024))
-    assert mime == 'audio/mpeg'
-    assert mtype == 'sounds'
+    assert mime == u'audio/mpeg'
+    assert mtype == u'sounds'

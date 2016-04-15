@@ -4,7 +4,7 @@
 https://www.idigbio.org/redmine/issues/1863
 """
 from __future__ import division, absolute_import
-from __future__ import print_function, unicode_literals
+from __future__ import print_function
 
 import io
 import logging

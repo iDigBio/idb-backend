@@ -9,7 +9,7 @@ from idb.postgres_backend import apidbpool
 from idigbio_ingestion.lib.log import logger
 from idigbio_ingestion import mediaing
 
-mediaing.POOL_SIZE = 1
+mediaing.POOL_SIZE = 2
 mediaing.LAST_CHECK_INTERVAL = '10 days'
 mediaing.IGNORE_PREFIXES = [
     "http://media.idigbio.org/",

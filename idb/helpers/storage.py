@@ -25,7 +25,7 @@ class IDigBioStorage(object):
             You must either set access_key and secret_key when
             initializing the object, or (prefered) set the
             IDB_STORAGE_ACCESS_KEY and IDB_STORAGE_SECRET_KEY
-            environemtn variables.
+            environment variables.
     """
 
     def __init__(self,host="s.idigbio.org",access_key=None,secret_key=None):

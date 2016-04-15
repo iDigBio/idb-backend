@@ -119,6 +119,7 @@ def generate_all(item):
 def build_deriv(item, img, deriv):
     key = getattr(item, deriv)
     if key.exists():
+        log.debug("derivative exists %s", key)
         return
 
     if deriv == 'fullsize' and item.bucket == 'images' and img.format == 'JPEG':

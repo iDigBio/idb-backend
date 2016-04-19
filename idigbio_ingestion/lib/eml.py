@@ -53,7 +53,7 @@ def parseEml(id, emlText):
     rights = getElement(eml.root.getroot(),"dataset/intellectualRights/para/ulink/citetitle")
     if rights is not None:
         rights_text = rights.text
-        logger.debug('Found license in citetitle: {0}'.format(rights_text))
+        #logger.debug('Found license in citetitle: {0}'.format(rights_text))
     else:
         rights = getElement(eml.root.getroot(),"dataset/intellectualRights")
         if rights is not None:

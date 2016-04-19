@@ -1,57 +1,72 @@
 from __future__ import absolute_import
 import socket
 import json
-import traceback
 
 from idb.config import logger
 
 
 class Biodiversity(object):
+    #: the socket object, None: not yet connected; False: failed connection
+    _sock = None
+    __recvBuf = ""
 
     def __init__(self, host="localhost", port=4334):
         self.host = host
         self.port = port
-        self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
+    def _connect(self):
+        if not self._sock:
+            self._sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         try:
-            self.sock.connect((host, port))
-        except:
-            logger.error("Biodiversity socket server unavailable")
-            self.sock = None
+            self._sock.connect((self.host, self.port))
+        except socket.error as e:
+            logger.error("Biodiversity socket server unavailable: %s", e)
+            self._sock = False
 
-        self.__recvBuf = ""
+    @property
+    def sock(self):
+        if self._sock is None:
+            self._connect()
+        return self._sock
+
+    @sock.setter
+    def sock(self, value):
+        if value is None and self._sock:
+            try:
+                self._sock.close()
+            except:
+                logger.exception("Failed closing")
+        self._sock = value
 
     def _sendOne(self, namestr):
-        if self.sock is not None:
+        if self.sock:
             try:
                 self.sock.send(namestr.encode("utf-8") + "\n")
-            except:
-                logger.warn("Socket send error" + traceback.format_exc())
-                try:
-                    self.sock.connect((self.host, self.port))
-                    self.sock.send(namestr.encode("utf-8") + "\n")
-                except:
-                    logger.error("Biodiversity socket server unavailable")
-                    self.sock = None
+            except socket.error as e:
+                logger.warn("Biodiversity send error: %s; retrying", e)
+                self.sock = None
+                self._sendOne(namestr)
 
     def _sendMany(self, namestr_list):
-        if self.sock is not None:
+        if self.sock:
             for ns in namestr_list:
                 self._sendOne(ns)
 
     def _recvOne(self):
-        if self.sock is not None:
+        if self.sock:
             try:
                 self.__recvBuf += self.sock.recv(2048)
+            except socket.error as e:
+                logger.warning("Biodiversity recv error: %s", e)
+                self.sock = None
+            else:
+                try:
+                    resp, self.__recvBuf = self.__recvBuf.split("\n", 1)
+                    return json.loads(resp)
+                except ValueError as e:
+                    logger.warning("Error parsing json: %s", e)
 
-                resp, self.__recvBuf = self.__recvBuf.split("\n", 1)
-
-                return json.loads(resp)
-            except:
-                # traceback.print_exc()
-                return {"scientificName": {"parsed": False}}
-        else:
-            return {"scientificName": {"parsed": False}}
+        return {"scientificName": {"parsed": False}}
 
     def _recvMany(self, count):
         resp_l = []

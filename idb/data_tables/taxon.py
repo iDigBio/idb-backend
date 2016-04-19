@@ -125,6 +125,3 @@ def main():
         count += 1
         # print dr
     print count
-
-if __name__ == '__main__':
-    main()

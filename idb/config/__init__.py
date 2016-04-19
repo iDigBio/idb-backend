@@ -9,20 +9,28 @@ conf_paths = ["/etc/idigbio/", "~/", "."]
 
 config = {}
 
-ENV = 'dev'
+def update_environment(config):
+    env = config.get('env')
+    if not env:
+        return
+    os.environ.update(env)
+
+def load_config_file(p):
+    with open(p, "rb") as conf:
+        logger.debug("Reading config from %r", p)
+        json_config = json.load(conf)
+        config.update(json_config)
+        update_environment(json_config)
 
 for p in conf_paths:
-    p = os.path.abspath(os.path.expanduser(p)) + "/"
-    if os.path.exists(p + "idigbio.json"):
-        with open(p + "idigbio.json", "rb") as conf:
-            config.update(json.load(conf))
+    fp = os.path.join(os.path.abspath(os.path.expanduser(p)), "idigbio.json")
+    try:
+        load_config_file(fp)
+    except IOError:
+        pass
 
-if "env" in config:
-    for k in config["env"]:
-        if k not in os.environ:
-            os.environ[k] = config["env"][k]
 
-ENV = os.environ.get('ENV')
+ENV = os.environ.get('ENV', 'dev')
 IDB_UUID = os.environ.get('IDB_UUID')
 IDB_APIKEY = os.environ.get('IDB_APIKEY')
 IDB_DBPASS = os.environ.get('IDB_DBPASS')

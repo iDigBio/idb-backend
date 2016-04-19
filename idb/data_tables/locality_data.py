@@ -1,4 +1,3 @@
-#!/usr/bin/python
 # -*- coding: utf-8
 
 iso_two_to_three = {
@@ -2480,6 +2479,3 @@ def main():
     for k,v in kl["country"].iteritems():
         if v not in iso_countries and v != "None":
             print k,v
-
-if __name__ == '__main__':
-    main()

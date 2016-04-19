@@ -249,6 +249,3 @@ def main():
             print
             print s, acceptable_licenses_trans[s]
             pick_license(s, debug=True)
-
-if __name__ == '__main__':
-    main()

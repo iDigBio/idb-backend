@@ -87,7 +87,7 @@ def get_media_wrapper(tup, cache_bad=False):
         except requests.exceptions.ConnectionError as connectione:
             logger.warning(
                 "Connection Error. %s %s %s",
-                url, connectione.exceptions.errno, connectione.exceptions.message)
+                url, connectione.errno, connectione.message)
             time.sleep(SLEEP_UNAVAILABLE)
             continue
         except Exception:

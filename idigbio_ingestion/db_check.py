@@ -349,6 +349,7 @@ def process_subfile(rf, rsid, rs_uuid_etag, rs_id_uuid, ingest=False, db=None):
 
 
 def process_file(fname, mime, rsid, existing_etags, existing_ids, ingest=False, commit_force=False):
+    logger.info("Processing %s, type: %s", fname, mime)
     counts = {}
     t = datetime.datetime.now()
     filehash = calcFileHash(fname)

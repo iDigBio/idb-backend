@@ -125,7 +125,7 @@ def update_db_from_rss():
 
 
 def _do_rss(r, db, recordsets, existing_recordsets):
-    logger.info("Publisher Feed: %s %s", r['uuid'], r['rss_url'])
+    logger.info("Starting Publisher Feed: %s %s", r['uuid'], r['rss_url'])
     feed = feedparser.parse(r["rss_url"])
     pub_uuid = r["uuid"]
     if pub_uuid is None:
@@ -134,20 +134,16 @@ def _do_rss(r, db, recordsets, existing_recordsets):
     name = r["name"]
     if name is None or name == "":
         if "title" in feed["feed"]:
-            logger.debug("_title_ in feed[feed]")
             name = feed["feed"]["title"]
             if name == "":
-                logger.debug("feed title is empty, using rss_url instead.")
                 name = r["rss_url"]
         else:
-            logger.debug("feed title is empty, using rss_url instead.")
             name = r["rss_url"]
 
     if "\\x" in name:
         name = name.decode("utf8")
 
-    logger.debug("RSS Feed *Name*: %s", name)
-    logger.info("Update Publisher id:%s %s %s", r["id"], pub_uuid, name)
+    logger.info("Update Publisher id:%s %s '%s'", r["id"], pub_uuid, name)
 
     auto_publish = r["auto_publish"]
 

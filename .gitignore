@@ -192,3 +192,7 @@ idb/.pythoscope
 /idigbio*.json
 /.dir-locals.el
 /cover/
+summary.csv
+suspects.csv
+suspects.pretty.txt
+summary.pretty.txt

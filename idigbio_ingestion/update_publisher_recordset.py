@@ -227,7 +227,7 @@ def _do_rss(r, db, recordsets, existing_recordsets):
                 """,
                 (rsid, pub_uuid, rs_name, recordids, eml_link, file_link, ingest, date))
             db.execute(*sql)
-            logger.info("Create Recordset for recordid:%s %s", recordid, name)
+            logger.info("Create Recordset for recordid:%s '%s'", recordid, name)
         else:
             sql = ("""UPDATE recordsets
                       SET publisher_uuid=%(publisher_uuid)s,
@@ -247,7 +247,7 @@ def _do_rss(r, db, recordsets, existing_recordsets):
                        "id": recordset["id"]
                    })
             db.execute(*sql)
-            logger.info("Update Recordset id:%s %s %s %s",
+            logger.info("Update Recordset id:%s %s %s '%s'",
                         recordset["id"], recordset["uuid"], file_link, rs_name)
 
     db.set_record(pub_uuid, "publisher", "872733a2-67a3-4c54-aa76-862735a5f334",
@@ -284,10 +284,10 @@ def harvest_all_eml():
                 logger.exception("failed Harvest EML %s %s", r["id"], r["name"])
 
 def harvest_eml(r, db):
-    logger.info("Harvest EML %s %s", r["id"], r["name"])
+    logger.info("Harvest EML %s '%s'", r["id"], r["name"])
     fname = "{0}.eml".format(r["id"])
     if not download_file(r["eml_link"], fname):
-        logger.error("failed Harvest EML %s %s", r["id"], r["name"])
+        logger.error("failed Harvest EML %s '%s'", r["id"], r["name"])
         return
     try:
         etag = calcFileHash(fname)
@@ -337,7 +337,7 @@ def harvest_all_file():
                 db.rollback()
 
 def harvest_file(r, db):
-    logger.info("Harvest File %s %s", r["id"], r["name"])
+    logger.info("Harvest File %s '%s'", r["id"], r["name"])
     fname = "{0}.file".format(r["id"])
     try:
         download_file(r["file_link"], fname)

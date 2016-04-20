@@ -143,6 +143,8 @@ def _do_rss(r, db, recordsets, existing_recordsets):
     if "\\x" in name:
         name = name.decode("utf8")
 
+    logger.debug("RSS Feed *Name*: %s", name)
+
     auto_publish = r["auto_publish"]
 
     logger.info("Update Publisher id:%s %s %s", r["id"], pub_uuid, name)

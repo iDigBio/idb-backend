@@ -134,8 +134,10 @@ def _do_rss(r, db, recordsets, existing_recordsets):
     name = r["name"]
     if name is None:
         if "title" in feed["feed"]:
+            logger.debug("_title_ in feed[feed]")
             name = feed["feed"]["title"]
         else:
+            logger.debug("no feed title specified, using rss_url instead.")
             name = r["rss_url"]
 
     if "\\x" in name:

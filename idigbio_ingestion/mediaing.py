@@ -130,7 +130,7 @@ def get_media(url, t, fmt):
         raise GetMediaError(url, 1002)
 
     try:
-        response = rsess().get(url)
+        response = rsess().get(url, timeout=0.25)
         response.raise_for_status()
     except requests.exceptions.HTTPError as httpe:
         raise ReqFailure(url, httpe.response.status_code, httpe)

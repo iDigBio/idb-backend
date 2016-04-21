@@ -22,6 +22,7 @@ from idigbio_ingestion.lib.log import logger
 
 POOL_SIZE = 5
 LAST_CHECK_INTERVAL = '1 month'
+REQ_CONNECT_TIMEOUT = 0.5 # seconds
 
 USER_AGENT = 'iDigBio Media Ingestor (idigbio@acis.ufl.edu https://www.idigbio.org/wiki/index.php/Media_Ingestor)'
 
@@ -135,7 +136,7 @@ def get_media(url, t, fmt):
         raise GetMediaError(url, 1002)
 
     try:
-        response = rsess().get(url, timeout=0.25)
+        response = rsess().get(url, timeout=REQ_CONNECT_TIMEOUT)
         response.raise_for_status()
     except requests.exceptions.HTTPError as httpe:
         raise ReqFailure(url, httpe.response.status_code, httpe)

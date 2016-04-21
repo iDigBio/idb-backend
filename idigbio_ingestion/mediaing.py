@@ -113,11 +113,11 @@ def get_media_wrapper(tup, cache_bad=False):
         update_status(vf.status)
         if cache_bad:
             write_bad(url, vf.content)
-        logger.error(str(vf))
+        logger.error("{0}".format(vf))
         return vf.status
     except GetMediaError as gme:
         update_status(gme.status)
-        logger.error(str(gme))
+        logger.error("{0}".format(gme))
         return gme.status
     except Exception:
         update_status(1000)

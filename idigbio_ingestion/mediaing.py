@@ -90,7 +90,7 @@ class ValidationFailure(GetMediaError):
         self.content = content
         self.args = (expected_mime, detected_mime, content)
         self.message = "InvalidMime expected '%s' found '%s' %s %s" % (
-            expected_mime, detected_mime, url, status)
+            expected_mime, detected_mime, url, self.status)
 
 
 def get_media_wrapper(tup, cache_bad=False):

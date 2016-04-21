@@ -119,9 +119,14 @@ def get_media_wrapper(tup, cache_bad=False):
         update_status(gme.status)
         logger.error(u"{0}".format(gme))
         return gme.status
+    except requests.exceptions.ConnectionError as connectione:
+        logger.error(
+            "ConnectionError %s %s %s 1503",
+            url, connectione.errno, connectione.message)
+        return 1503
     except Exception:
         update_status(1000)
-        logger.exception("Unhandled error processing: %s", url)
+        logger.exception("Unhandled error processing: %s 1000", url)
         return 1000
 
 

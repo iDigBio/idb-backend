@@ -66,7 +66,7 @@ class GetMediaError(Exception):
         self.url = url
         self.status = status
         self.inner = inner
-        self.message = "Fetch of   %s failed with %r" % (self.url, self.status)
+        self.message = "Failed GET %s %r" % (self.url, self.status)
 
     def __str__(self):
         return self.message
@@ -105,7 +105,7 @@ def get_media_wrapper(tup, cache_bad=False):
 
     try:
         get_media(url, t, fmt)
-        logger.info("Finished   %s successfully", url)
+        logger.info("Success! %s %s %s 200", fmt, t, url)
         return 200
     except KeyboardInterrupt:
         raise

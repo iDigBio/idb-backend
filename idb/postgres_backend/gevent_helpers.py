@@ -1,5 +1,4 @@
 from __future__ import absolute_import
-import logging
 import contextlib
 import uuid
 import sys
@@ -12,7 +11,9 @@ import gevent.lock
 from gevent.queue import Queue
 from gevent.socket import wait_read, wait_write
 
-log = logging.getLogger(__name__)
+from idb.helpers.logging import idblogger
+
+log = idblogger.getChild('gevent_helpers')
 
 
 def gevent_wait_callback(conn, timeout=None):

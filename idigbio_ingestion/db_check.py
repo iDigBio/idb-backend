@@ -13,8 +13,8 @@ from psycopg2 import DatabaseError
 from boto.exception import S3ResponseError
 from idb.postgres_backend.db import PostgresDB, RecordSet
 from idb.helpers.etags import calcEtag, calcFileHash
+from idb.helpers.logging import add_file_handler, idblogger
 
-from lib.log import getIDigBioLogger, formatter
 from lib.dwca import Dwca
 from lib.delimited import DelimitedFile
 
@@ -27,11 +27,7 @@ magic = magic.Magic(mime=True)
 bad_chars = u"\ufeff"
 bad_char_re = re.compile("[%s]" % re.escape(bad_chars))
 
-logger = getIDigBioLogger("idigbio")
-for h in logger.handlers:
-    h.setFormatter(formatter)
-logger.setLevel(logging.INFO)
-
+logger = idblogger.getChild("db-check")
 
 uuid_re = re.compile(
     "([a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12})")
@@ -488,10 +484,10 @@ def main():
     ingest = sys.argv[1] == "ingest"
     rsid = sys.argv[-1]
 
-    fh = logging.FileHandler(rsid + ".db_check.log")
-    fh.setLevel(logging.INFO)
-    fh.setFormatter(formatter)
-    logger.addHandler(fh)
+    add_file_handler(logger,
+                     logdir=os.getcwd(), filename=rsid + ".db_check.log",
+                     level=logging.INFO)
+    logger.info("DB Check %s, ingest: %r", rsid, ingest)
 
     try:
         name, mime = get_file(rsid)

@@ -1,22 +1,9 @@
 import os
-import sys
 import json
 
 import logging
 
-logging.basicConfig(
-    format="%(asctime)s %(levelname)-5.5s [%(name)s] %(message)s",
-    datefmt="%Y-%m-%d %H:%M:%S")
-
-
-def getIDigBioLogger(name=""):
-    logname = name
-    if logname == "":
-        logname = "idigbio"
-    logger = logging.getLogger(logname)
-    return logger
-
-logger = getIDigBioLogger()
+logger = logging.getLogger('idb.cfg')
 
 conf_paths = ["/etc/idigbio/", "~/", "."]
 
@@ -42,4 +29,3 @@ IDB_DBPASS = os.environ.get('IDB_DBPASS')
 IDB_STORAGE_ACCESS_KEY = os.environ.get('IDB_STORAGE_ACCESS_KEY')
 IDB_STORAGE_SECRET_KEY = os.environ.get('IDB_STORAGE_SECRET_KEY')
 IDB_CRYPT_KEY = os.environ.get('IDB_CRYPT_KEY')
-

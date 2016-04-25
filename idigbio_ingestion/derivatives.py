@@ -19,7 +19,7 @@ from idb.config import ENV
 from idb.helpers.memoize import memoized
 from idb.helpers.storage import IDigBioStorage
 from idb.postgres_backend import apidbpool, NamedTupleCursor
-from idigbio_ingestion.lib.log import getIDigBioLogger
+from idb.helpers.logging import idblogger
 
 
 WIDTHS = {
@@ -29,7 +29,7 @@ WIDTHS = {
 
 POOLSIZE = 50
 
-log = getIDigBioLogger('derivatives')
+log = idblogger.getChild('deriv')
 
 
 CheckItem = namedtuple(

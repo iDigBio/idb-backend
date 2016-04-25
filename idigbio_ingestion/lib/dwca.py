@@ -6,8 +6,9 @@ import os
 import chardet
 import traceback
 import shutil
+import logging
 
-from .log import getIDigBioLogger
+from idb.helpers.logging import idblogger
 from .delimited import DelimitedFile
 from idb.helpers.fieldnames import namespaces
 from .xmlDictTools import xml2d
@@ -43,12 +44,11 @@ class Dwca(object):
 
         self.archive.extractall(self.path)
 
-        if logname is None:
-            self.logger = getIDigBioLogger(name.split(".")[0])
-            self.logname = name.split(".")[0]
+        if logname:
+            logbase = logging.getLogger(logname)
         else:
-            self.logger = getIDigBioLogger(logname + "." + name.split(".")[0])
-            self.logname = logname + "." + name.split(".")[0]
+            logbase = idblogger.getChild('dwca')
+        self.logger = logbase.getChild(name.split(".")[0])
 
         root=None
         meta_filename = self.path + "/" + archiveFile(self.archive,"meta.xml")
@@ -85,20 +85,28 @@ class Dwca(object):
             self.metadata = None
 
         corefile = archiveFile(self.archive,self.archdict["core"]["files"]["location"])
-        self.core = DwcaRecordFile(self.archdict["core"], self.path + "/" + corefile,logname=self.logname)
-        
+        self.core = DwcaRecordFile(self.archdict["core"],
+                                   self.path + "/" + corefile,
+                                   logname=self.logger.name)
+
         self.extensions = []
         if "extension" in self.archdict:
             if isinstance(self.archdict["extension"],list):
                 for x in self.archdict["extension"]:
                     extfile = archiveFile(self.archive,x["files"]["location"])
                     try:
-                        self.extensions.append(DwcaRecordFile(x, self.path + "/" + extfile,logname=self.logname))
+                        self.extensions.append(
+                            DwcaRecordFile(x,
+                                           self.path + "/" + extfile,
+                                           logname=self.logger.name))
                     except:
                         pass
             else:            
                 extfile = archiveFile(self.archive,self.archdict["extension"]["files"]["location"])
-                self.extensions.append(DwcaRecordFile(self.archdict["extension"], self.path + "/" + extfile,logname=self.logname))
+                self.extensions.append(
+                    DwcaRecordFile(self.archdict["extension"],
+                                   self.path + "/" + extfile,
+                                   logname=self.logger.name))
 
     def close(self):
         shutil.rmtree(self.path)
@@ -117,12 +125,12 @@ class DwcaRecordFile(DelimitedFile):
         # Avoid Setting attributes on self that conflict with attributes in DelimitedFile to enforce namespace separation
         self.name = filedict['files']['location']
 
-        if logname is None:
-            self.logger = getIDigBioLogger(name.split(".")[0])
-            self.logname = self.name.split(".")[0]
+        if logname:
+            logbase = logging.getLogger(logname)
         else:
-            self.logger = getIDigBioLogger(logname + "." + self.name.split(".")[0])
-            self.logname = logname + "." + self.name.split(".")[0]
+            logbase = idblogger.getChild('dwca')
+        self.logger = logbase.getChild(self.name.split(".")[0])
+
 
         fields = {}
         self.linebuf = deque()
@@ -173,7 +181,9 @@ class DwcaRecordFile(DelimitedFile):
                 self.defaults[term] = fld['#default']
         # print self.defaults
 
-        super(DwcaRecordFile,self).__init__(fh,encoding=encoding,delimiter=fieldsplit,fieldenc=fieldenc,header=fields,rowtype=rowtype,logname=logname)
+        super(DwcaRecordFile,self).__init__(
+            fh,encoding=encoding,delimiter=fieldsplit,fieldenc=fieldenc,header=fields,rowtype=rowtype,
+            logname=self.logger.name)
 
         while ignoreheader > 0:
             _ = self._reader.next()    

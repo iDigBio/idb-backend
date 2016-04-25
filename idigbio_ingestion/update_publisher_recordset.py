@@ -118,6 +118,11 @@ def update_db_from_rss():
                 except KeyboardInterrupt:
                     db.rollback()
                     raise
+                except IntegrityError:
+                    # IntegrityError is raised (for example) when dataset identifier changes in rss feed but file_link remains the same.
+                    # This happens during GBIF dataset registration.
+                    logger.exception("Database Integrity Error: %s", r)
+                    # Do not rollback, keep processing this publisher.
                 except:
                     logger.exception("Error with %s", r)
                     db.rollback()

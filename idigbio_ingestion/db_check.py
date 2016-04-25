@@ -477,13 +477,7 @@ def metadataToSummaryJSON(rsid, metadata, writeFile=True, doStats=True):
         return summary
 
 
-def main():
-    if len(sys.argv) == 1:
-        print("Usage: db_check.py [ingest] <RSID>", file=sys.stderr)
-        sys.exit(1)
-    ingest = sys.argv[1] == "ingest"
-    rsid = sys.argv[-1]
-
+def main(rsid, ingest=False):
     add_file_handler(logger,
                      logdir=os.getcwd(), filename=rsid + ".db_check.log",
                      level=logging.INFO)
@@ -501,6 +495,7 @@ def main():
         with open(rsid + "_ids.json", "rb") as idf:
             db_i_d = json.load(idf)
     else:
+        logger.info("Building ids/uuids json")
         db_u_d, db_i_d = get_db_dicts(rsid)
         with open(rsid + "_uuids.json", "wb") as uuidf:
             json.dump(db_u_d, uuidf)
@@ -513,6 +508,3 @@ def main():
 
     metadata = process_file(name, mime, rsid, db_u_d, db_i_d, ingest=ingest, commit_force=commit_force)
     metadataToSummaryJSON(rsid, metadata)
-
-if __name__ == '__main__':
-    main()

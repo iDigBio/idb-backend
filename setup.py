@@ -41,5 +41,6 @@ setup(
     entry_points='''
         [console_scripts]
         idb=idb.cli:cli
+        idigbio-ingestion=idigbio_ingestion.cli:cli
     '''
 )

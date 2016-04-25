@@ -373,20 +373,14 @@ def upload_recordset(rsid, fname, idbmodel):
         return mo.etag
     logger.debug("Finished Upload of %r", rsid)
 
+
 def main():
     # create_tables()
     # Re-work from canonical db
-    logger.info("Begin main()")
+    logger.info("Begin update_publisher_recordset()")
     update_db_from_rss()
     logger.info("*** Begin harvest of eml files...")
     harvest_all_eml()
     logger.info("*** Begin harvest of dataset files...")
     harvest_all_file()
     logger.info("Finished all updates")
-
-if __name__ == '__main__':
-    logging.root.setLevel(logging.DEBUG)
-    #logging.root.setLevel(logging.INFO)
-    logging.getLogger('boto').setLevel(logging.WARNING)
-    logging.getLogger('requests').setLevel(logging.WARNING)
-    main()

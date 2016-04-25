@@ -371,27 +371,6 @@ def get_media_consumer(urlfilter):
     logger.info("Count: %8d; codecounts: %r (Finished)", count, counts.most_common())
 
 
-def main(urlfilter=None):
-    import sys
-    #MediaObject.create_schema()
-
-    if len(sys.argv) > 1 and sys.argv[1] in ("get_media", "get-media"):
-        get_media_consumer(urlfilter)
-    else:
-        media_urls = get_postgres_media_urls(urlfilter)
-        write_urls_to_db(media_urls)
-        # get_objects_from_ceph()
-        # get_postgres_media_objects(urlfilter)
-
-
-
-if __name__ == '__main__':
-    import logging
-    logging.root.setLevel(logging.INFO)
-    logging.getLogger('boto').setLevel(logging.WARNING)
-    logging.getLogger('requests').setLevel(logging.WARNING)
-    main()
-
 # SQL Queries to import from old table:
 #insert into media (url,type,owner) (select lookup_key,type,user_uuid::uuid from (select media.url, idb_object_keys.lookup_key, idb_object_keys.type, idb_object_keys.user_uuid from idb_object_keys left join media on lookup_key=url) as a where url is null);
 #insert into objects (bucket,etag) (select type,etag from (select lookup_key, type, a.etag, b.etag as n from idb_object_keys as a left join objects as b on a.etag=b.etag) as c where n is null);

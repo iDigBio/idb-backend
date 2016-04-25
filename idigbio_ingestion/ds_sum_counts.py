@@ -8,7 +8,6 @@ import logging
 
 import json
 import os
-import sys
 import io
 
 from collections import Counter
@@ -117,8 +116,3 @@ def main(base, sum_filename, susp_filename):
             write_header(fp)
             for row in suspect_rows:
                 write_row(fp, row)
-
-
-if __name__ == '__main__':
-    base, sum_filename, susp_filename = sys.argv[1:]
-    main(base, sum_filename, susp_filename)

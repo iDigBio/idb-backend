@@ -97,11 +97,3 @@ def get_media_wrapper(tup, cache_bad=False):
             return 1000
 
 mediaing.get_media_wrapper = get_media_wrapper
-
-
-if __name__ == '__main__':
-    import logging
-    logging.root.setLevel(logging.INFO)
-    logging.getLogger('boto').setLevel(logging.WARNING)
-    logging.getLogger('requests').setLevel(logging.WARNING)
-    mediaing.main(TROPICOS_URLFILTER)

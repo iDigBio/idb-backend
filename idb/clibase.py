@@ -1,6 +1,7 @@
 from __future__ import division, absolute_import
 from __future__ import print_function
 
+import functools
 import itertools
 import logging
 import functools
@@ -55,3 +56,47 @@ def handle_std_options(verbose=None, env=None, config=None, **kwargs):
 def cli(**kwargs):
     handle_std_options(**kwargs)
 add_std_options(cli)
+
+
+# Dry run helper logic
+DRY_RUN = False
+
+def maybe_dry_run(fn=None, logcallback=None, logmsg=None, logfn=idblogger.debug, retval=None):
+    def wrapper(*args, **kwargs):
+        if DRY_RUN:
+            if logcallback:
+                logcallback(*args, **kwargs)
+            elif logfn:
+                if logmsg:
+                    logfn(logmsg)
+                else:
+                    fnname = getattr(fn, 'func_name', fn)
+                    argsreprs = itertools.chain(
+                        itertools.imap(repr, args),
+                        itertools.starmap(u'{0!s}={1!r}'.format, kwargs.items()))
+                    logfn('DRY_RUN: {0}({1})', fnname, u', '.join(argsreprs))
+            return retval
+        return fn(*args, **kwargs)
+
+    if fn:
+        return functools.wraps(fn)(wrapper)
+    else:
+        # save any passed params and return a partial that waits for the `fn`
+        return functools.partial(
+            maybe_dry_run, logcallback=logcallback, logmsg=logmsg,
+            logfn=logfn, retval=retval)
+
+
+def dry_run_aware(fn):
+    def drcallback(ctx, param, value):
+        global DRY_RUN
+        if value is not None and not ctx.resilient_parsing:
+            clilog.notice("Setting DRY_RUN = {0}", value)
+            DRY_RUN = value
+    dropt = click.Option(['--dry-run/--no-dry-run'],
+                         callback=drcallback, expose_value=False,
+                         default=None,
+                         help="Enable DRY RUN mode, simulates but prevents external actions.")
+    click.decorators._param_memo(fn, dropt)
+
+    return fn

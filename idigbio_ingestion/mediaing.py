@@ -22,7 +22,7 @@ from idigbio_ingestion.lib.log import logger
 
 POOL_SIZE = 5
 LAST_CHECK_INTERVAL = '1 month'
-REQ_CONNECT_TIMEOUT = 5 # seconds
+REQ_CONNECT_TIMEOUT = 15 # seconds
 
 USER_AGENT = 'iDigBio Media Ingestor (idigbio@acis.ufl.edu https://www.idigbio.org/wiki/index.php/Media_Ingestor)'
 

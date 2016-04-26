@@ -40,6 +40,15 @@ GenerateItem = namedtuple('GenerateItem', ['key', 'data'])
 CopyItem = namedtuple('CopyItem', ['key', 'data'])
 
 
+class BadImageError(Exception):
+    etag = None
+    inner = None
+
+    def __init__(self, message, inner=None):
+        self.message = message
+        self.inner = inner
+
+
 def main(bucket):
     sql = ("SELECT etag, bucket FROM objects WHERE derivatives=false AND bucket=%s",
            (bucket,))
@@ -66,21 +75,27 @@ def main(bucket):
 def count_results(results, update_freq=100):
     c = Counter()
     count = 0
-    for count, result in enumerate(results, 1):
-        if result is None:
-            c['erred'] += 1
-        elif len(result.items) > 0:
-            c['generated'] += 1
-        else:
-            c['existed'] += 1
 
-        if count % update_freq == 0:
-            log.info("Checked:%6d  Generated:%6d  Existed:%6d  Erred:%6d",
-                     count, c['generated'], c['existed'], c['erred'])
-        yield result
+    def output():
+        log.info("Checked:%6d  Generated:%6d  Existed:%6d  Erred:%6d",
+                 count, c['generated'], c['existed'], c['erred'])
 
-    log.info("Checked:%6d  Generated:%6d  Existed:%6d  Erred:%6d",
-             count, c['generated'], c['existed'], c['erred'])
+    try:
+        for count, result in enumerate(results, 1):
+            if result is None:
+                c['erred'] += 1
+            elif len(result.items) > 0:
+                c['generated'] += 1
+            else:
+                c['existed'] += 1
+
+            if count % update_freq == 0:
+                output()
+            yield result
+    except KeyboardInterrupt:
+        output()
+        raise
+    output()
 
 
 get_store = memoized()(lambda: IDigBioStorage())
@@ -97,24 +112,34 @@ def get_keys(obj):
 
 
 def check_and_generate(item):
+    # check if thumbnail exists as proxy for everything existing
+    if False and item.thumbnail.exists():
+        log.debug("%s Thumbnail shortcut", item.etag)
+        return GenerateResult(item.etag, [])
+
+    img = None
     try:
-        # check if thumbnail exists as proxy for everything existing
-        if item.thumbnail.exists():
-            log.debug("%s Thumbnail shortcut", item.etag)
-            return GenerateResult(item.etag, [])
-        else:
-            return GenerateResult(item.etag, generate_all(item))
-    except KeyboardInterrupt:
-        raise
+        img = get_media_img(item.media)
     except S3ResponseError:
         return None
+    except BadImageError as bie:
+        log.error("%s: %s", item.etag, bie.message)
+        return None
+
+    try:
+        items = generate_all(item, img)
+        return GenerateResult(item.etag, items)
+    except BadImageError as bie:
+        log.error("%s: %s", item.etag, bie.message)
+        return None
+    except KeyboardInterrupt:
+        raise
     except Exception:
         log.exception("%s: Failed generating", item.etag)
         return None
 
 
-def generate_all(item):
-    img = get_media_img(item.media)
+def generate_all(item, img):
     dtypes = ('fullsize', 'thumbnail', 'webview')
     derivs = [build_deriv(item, img, dtype) for dtype in dtypes]
     return list(filter(None, derivs))
@@ -123,7 +148,7 @@ def generate_all(item):
 def build_deriv(item, img, deriv):
     key = getattr(item, deriv)
     if key.exists():
-        log.debug("derivative exists %s", key)
+        log.debug("%s: derivative exists", key)
         return
 
     if deriv == 'fullsize' and item.bucket == 'images' and img.format == 'JPEG':
@@ -189,27 +214,35 @@ def resize_image(img, deriv):
         derivative_width_percent = (derivative_width / float(img.size[0]))
         derivative_horizontal_size = int(
             (float(img.size[1]) * float(derivative_width_percent)))
-        derv = img.resize(
-            (derivative_width, derivative_horizontal_size), Image.BILINEAR)
-        return derv
+        try:
+            return img.resize(
+                (derivative_width, derivative_horizontal_size), Image.BILINEAR)
+        except IOError as ioe:
+            raise BadImageError("Error resizing {0}".format(ioe), inner=ioe)
     else:
         return img
 
 
 def get_media_img(key):
     buff = key_to_buffer(key)
-    if 'sounds' in key.bucket.name:
-        log.debug("%s converting wave to img", key.name)
-        return wave_to_img(buff)
-    elif 'images' in key.bucket.name:
-        img = Image.open(buff)
-        if img.mode != 'RGB':
-            img = img.convert('RGB')
-        return img
-    else:
-        raise ValueError(
+    try:
+        if 'sounds' in key.bucket.name:
+            log.debug("%s converting wave to img", key.name)
+            return wave_to_img(buff)
+
+        if 'images' in key.bucket.name:
+            img = Image.open(buff)
+            img.load()  # Make sure Pillow actually processes it
+            if img.mode != 'RGB':
+                img = img.convert('RGB')
+            return img
+        raise BadImageError(
             "Unknown mediatype in bucket {0!r}, expected images or sounds".format(
                 key.bucket.name))
+
+    except IOError as ioe:
+        raise BadImageError("Error loading image {0!r}".format(ioe), inner=ioe)
+
 
 def wave_to_img(buff):
     from idigbio_ingestion.lib.waveform import Waveform

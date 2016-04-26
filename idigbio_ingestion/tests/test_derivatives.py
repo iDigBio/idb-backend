@@ -114,7 +114,7 @@ def test_sounds_fetch(sounds_key):
 
 def test_bad_key_bucket():
     key = FakeKey("foo", "jimmy", False)
-    with pytest.raises(ValueError):
+    with pytest.raises(derivatives.BadImageError):
         derivatives.get_media_img(key)
 
 
@@ -126,9 +126,8 @@ def test_resize(img, monkeypatch):
 
 
 def test_check_and_gen_existed(existing_CheckItem):
-    gr = derivatives.check_and_generate(existing_CheckItem)
-    assert gr.etag is existing_CheckItem.etag
-    assert len(gr.items) == 0
+    lst = derivatives.generate_all(existing_CheckItem, None)
+    assert len(lst) == 0
 
 
 def test_check_and_gen_nonexist(nonexisting_CheckItem, img, monkeypatch):

@@ -64,21 +64,32 @@ def is_row_suspect(row):
     mediarecords_update = row.get('mediarecords_update', 0)
     mediarecords_delete = row.get('mediarecords_delete', 0)
 
-    if records_count == 0:
-        return True
-    if records_delete / records_count > 0.05:
-        return True
-    if records_create / records_count > 0.4:
-        return True
-    if records_delete > 0:
-        if 0.9 < (records_create / records_delete) < 1.1:
-            return True
+    if records_count == 0 and mediarecords_count == 0:
+        return "NO_RECORDS"
 
-    if mediarecords_delete > 0:
-        if mediarecords_count == 0:
-            return True
+    if records_create == records_count and records_update == 0 and records_delete == 0:
+        return "ALLNEW_RECORDS"
+    if records_count == 0 and records_delete > 0:
+        return "DELETED_ALL_RECORDS"
+    if records_count > 0:
+        if records_delete / records_count > 0.05:
+            return "DELETED_MANY_RECORDS"
+        if records_create / records_count > 0.4:
+            return "MANY_NEW_RECORDS"
+    if records_delete > 0 and 0.9 < (records_create / records_delete) < 1.1:
+        return "RECORDS_CHURN"
+
+    if mediarecords_create == mediarecords_count and mediarecords_update == 0 and mediarecords_delete == 0:
+        return "ALLNEW_MEDIA"
+    if mediarecords_count == 0 and mediarecords_delete > 0:
+        return "DELETED_ALL_MEDIA"
+    if mediarecords_count > 0:
         if mediarecords_delete / mediarecords_count > 0.05:
-            return True
+            return "DELETED_MANY_MEDIA"
+        if mediarecords_create / mediarecords_count > 0.4:
+            return "MANY_NEW_MEDIA"
+    if mediarecords_delete > 0 and 0.9 < (mediarecords_create / mediarecords_delete) < 1.1:
+        return "MEDIA_CHURN"
 
     return False
 
@@ -108,7 +119,9 @@ def main(base, sum_filename, susp_filename):
             write_row(fp, row)
             for fld in fields:
                 totals[fld] += row.get(fld, 0)
-            if is_row_suspect(row):
+            suspect_tag = is_row_suspect(row)
+            if suspect_tag:
+                row['tag'] = suspect_tag
                 suspect_rows.append(row)
         write_row(fp, totals, 'totals')
         filehashcompare(fp, sum_filename)
@@ -117,13 +130,11 @@ def main(base, sum_filename, susp_filename):
 
     with io.open(susp_filename, 'w', encoding='utf-8') as fp:
         if len(suspect_rows) > 0:
-            totals = Counter()
+            header.append('tag')
+            fields.append('tag')
             write_header(fp)
             for row in suspect_rows:
                 write_row(fp, row)
-                for fld in fields:
-                    totals[fld] += row.get(fld, 0)
-            write_row(fp, totals, 'totals')
 
 
 if __name__ == '__main__':

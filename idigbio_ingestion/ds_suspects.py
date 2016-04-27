@@ -130,8 +130,8 @@ def main(base, sum_filename, susp_filename):
 
     with io.open(susp_filename, 'w', encoding='utf-8') as fp:
         if len(suspect_rows) > 0:
-            header.append('tag')
-            fields.append('tag')
+            header.insert(1, 'tag')
+            fields.insert(1, 'tag')
             write_header(fp)
             for row in suspect_rows:
                 write_row(fp, row)

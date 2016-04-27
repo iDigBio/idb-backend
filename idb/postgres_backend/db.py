@@ -815,6 +815,3 @@ def main():
     #     print "Imported ", reccount, "records and ", len(mediarecords), "mediarecords."
     # else:
     #     print "ENV not test, refusing to run"
-
-if __name__ == '__main__':
-    main()

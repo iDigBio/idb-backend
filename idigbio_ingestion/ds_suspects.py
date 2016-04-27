@@ -20,9 +20,9 @@ from idb.helpers.etags import calcFileHash
 
 
 header = [
-    "file", "csv line count", "record count", "record create", "record update",
-    "record delete", "mediarecord count", "mediarecord create", "mediarecord update",
-    "mediarecord delete", "duplicated occurence ids", "no recordid count"
+    "file", "csv line cnt", "R cnt", "R cr8", "R upd8",
+    "R del", "MR cnt", "MR cr8", "MR upd8",
+    "MR del", "dup occ ids", "no recordid cnt"
 ]
 
 fields = [

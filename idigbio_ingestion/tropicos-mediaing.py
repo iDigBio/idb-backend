@@ -10,6 +10,7 @@ from idigbio_ingestion.lib.log import logger
 from idigbio_ingestion import mediaing
 
 mediaing.POOL_SIZE = 1
+mediaing.REQ_CONNECT_TIMEOUT = 5 * 60
 mediaing.LAST_CHECK_INTERVAL = '10 days'
 mediaing.IGNORE_PREFIXES = [
     "http://media.idigbio.org/",

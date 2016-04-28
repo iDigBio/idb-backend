@@ -13,10 +13,10 @@ coverage
 numpy
 scipy
 gevent>=1.1.0
-unicodecsv
+unicodecsv==0.14.1
 shapely
 celery
-boto
+boto==2.39.0
 fiona
-python-magic
+python-magic=0.4.11
 feedparser>=5.2.0

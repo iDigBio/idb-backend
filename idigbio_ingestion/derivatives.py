@@ -64,6 +64,7 @@ def main(bucket):
 
 def count_results(results, update_freq=100):
     c = Counter()
+    count = 0
     for count, result in enumerate(results, 1):
         if result is None:
             c['erred'] += 1

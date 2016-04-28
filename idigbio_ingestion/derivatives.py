@@ -16,6 +16,7 @@ from boto.exception import S3ResponseError
 
 
 from idb.config import ENV
+from idb.helpers.memoize import memoized
 from idb.helpers.storage import IDigBioStorage
 from idb.postgres_backend import apidbpool, NamedTupleCursor
 from idigbio_ingestion.lib.log import getIDigBioLogger
@@ -46,9 +47,9 @@ def main(bucket):
     log.info("Checking derivatives for %d objects", len(objects))
 
     pool = Pool(POOLSIZE)
-    check_items = pool.imap_unordered(get_keys, objects, maxsize=1000)
+    check_items = pool.imap_unordered(get_keys, objects, maxsize=400)
     # this step produces the resized images: lots of mem, keep a choke on it.
-    results = pool.imap_unordered(check_and_generate, check_items, maxsize=500)
+    results = pool.imap_unordered(check_and_generate, check_items, maxsize=200)
     results = pool.imap_unordered(upload_all, results)
     results = count_results(results, update_freq=100)
     etags = ((gr.etag,) for gr in results if gr)
@@ -82,9 +83,11 @@ def count_results(results, update_freq=100):
              count, c['generated'], c['existed'], c['erred'])
 
 
+get_store = memoized()(lambda: IDigBioStorage())
+
 def get_keys(obj):
     etag, bucket = obj.etag, obj.bucket
-    s = IDigBioStorage()
+    s = get_store()
     bucketbase = u"idigbio-{0}-{1}".format(bucket, ENV)
     return CheckItem(unicode(etag), bucket,
                      s.get_key(etag, bucketbase),

@@ -59,7 +59,7 @@ def main(bucket):
     check_items = pool.imap_unordered(get_keys, objects, maxsize=400)
     # this step produces the resized images: lots of mem, keep a choke on it.
     results = pool.imap_unordered(check_and_generate, check_items, maxsize=100)
-    results = pool.imap_unordered(upload_all, results)
+    results = pool.imap_unordered(upload_all, results, maxsize=100)
     results = count_results(results, update_freq=100)
     etags = ((gr.etag,) for gr in results if gr)
 

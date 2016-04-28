@@ -141,7 +141,10 @@ def upload_all(gr):
         return gr
     except S3ResponseError:
         log.exception("%s failed uploading derivatives", gr.etag)
-
+    except KeyboardInterrupt:
+        raise
+    except:
+        log.exception("Unexpected error")
 
 def upload_item(item):
     key = item.key

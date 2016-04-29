@@ -5,7 +5,6 @@ from future_builtins import map, filter
 import os
 import cStringIO
 import sys
-import logging
 
 from collections import Counter, namedtuple
 

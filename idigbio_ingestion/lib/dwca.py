@@ -6,9 +6,8 @@ import os
 import chardet
 import traceback
 import shutil
-import logging
 
-from idb.helpers.logging import idblogger
+from idb.helpers.logging import idblogger, getLogger
 from .delimited import DelimitedFile
 from idb.helpers.fieldnames import namespaces
 from .xmlDictTools import xml2d
@@ -45,7 +44,7 @@ class Dwca(object):
         self.archive.extractall(self.path)
 
         if logname:
-            logbase = logging.getLogger(logname)
+            logbase = getLogger(logname)
         else:
             logbase = idblogger.getChild('dwca')
         self.logger = logbase.getChild(name.split(".")[0])

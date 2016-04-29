@@ -12,12 +12,6 @@ import string
 from shapely import wkt
 from shapely.geometry import Polygon, mapping
 
-import logging
-
-# Mute Shapely logging
-l = logging.getLogger("shapely")
-l.setLevel(logging.CRITICAL)
-
 
 from idb.data_tables.rights_strings import acceptable_licenses_trans, licenses
 from idb.data_tables.locality_data import iso_two_to_three

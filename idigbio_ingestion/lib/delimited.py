@@ -7,7 +7,7 @@ import logging
 from collections import defaultdict
 
 from .fileproxy import FileProxy
-from idb.helpers.logging import idblogger
+from idb.helpers.logging import idblogger, getLogger
 from idb.helpers.fieldnames import get_canonical_name, types
 
 
@@ -64,7 +64,7 @@ class DelimitedFile(object):
         if logname is None:
             self.logger = idblogger.getChild('df')
         else:
-            self.logger = logging.getLogger(logname)
+            self.logger = getLogger(logname)
 
         encoded_lines = (l.encode("utf-8") for l in self.filehandle)
         if self.fieldenc is None or self.fieldenc == "":

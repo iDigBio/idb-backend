@@ -1,61 +1,96 @@
 from __future__ import absolute_import
 
+import logging
 import os
 import os.path
 import sys
 
-import logging
 
 idblogger = logging.getLogger('idb')
 
-STD_FORMAT = "%(asctime)s %(levelname)-5.5s %(name)s\u10fb %(message)s"
+DEFAULT_LOGDIR = u'/var/log/idb/'
+
+STD_FORMAT = u"%(asctime)s %(levelname)-5.5s %(name)s\u10fb %(message)s"
 DATETIME_FORMAT = "%Y-%m-%d %H:%M:%S"
 TIME_FORMAT = "%H:%M:%S"
 
-PRECISE_FORMAT = "%(asctime)s.%(msecs)03d %(levelname)-5.5s %(name)s\u10fb %(message)s"
+PRECISE_FORMAT = u"%(asctime)s.%(msecs)03d %(levelname)-5.5s %(name)s\u10fb %(message)s"
 
 LOGBOOK_FORMAT_STRING = u'{record.time:%Y-%m-%d %H:%M:%S.%f} {record.level_name:<5.5} ' \
                         u'{record.channel}\u10fb {record.message}'
 
-LIBRARY_LOGGERS = ('boto', 'requests', 'urllib3', 'elasticsearch')
+#: Libaries used whos logs should be at a higher level.
+LIBRARY_LOGGERS = ('boto', 'requests', 'urllib3', 'elasticsearch', 'shapely')
 
 
-def configure_app_log(verbose, fmt=PRECISE_FORMAT,
-                      stderr_handler=True,
-                      filename=None):
-    logging_level = ({
+def getLogger(l):
+    "Wrapper around logging.getLogger that returns the original if its already a logger"
+    if hasattr(l, 'addHandler') and hasattr(l, 'setLevel'):
+        return l
+    else:
+        return logging.getLogger(l)
+
+
+def configure_app_log(verbose, logfile=None, fmt=PRECISE_FORMAT):
+    "Tries to do the right thing for configuring logging for command line applications"
+    lvls = {
+        -1: logging.ERROR,
         0: logging.WARNING,
         1: logging.INFO,
         2: logging.DEBUG,
         3: 0
-    }).get(verbose, logging.DEBUG)
+    }
+    idblogger.setLevel(0)  # doing filtering in handlers
 
-    idblogger.setLevel(logging_level)
+    for l in LIBRARY_LOGGERS:
+        # libraries should be one level less verbose
+        getLogger(l).setLevel(lvls.get(verbose - 1, logging.WARNING))
 
-    idblogger.getChild('cli').debug(
-        "Running with verbose level %s - %s",
-        logging_level, logging.getLevelName(logging_level))
+    if logfile:
+        # logging to a file should be at one level more verbose
+        add_file_handler(filename=logfile, level=lvls.get(verbose + 1, logging.INFO))
+
+    logging_level = lvls.get(verbose, logging.DEBUG)
+    add_stderr_handler(level=logging_level)
 
 
-# def configure(root=idblogger, root_level=logging.DEBUG,
-#               filename=None, logdir=None,
-#               file_level=None,
-#               stderr_level=None,
-#               clear_existing_handlers=True):
-#     if root is None:
-#         root = logging.root
-#     if filename:
-#         root.addHandler(logging.FileHandler)
+def configure(root=idblogger, root_level=None,
+              filename=None, logdir=None,
+              file_level=None,
+              stderr_level=None,
+              clear_existing_handlers=True):
+    if root is None:
+        root = logging.root
+    else:
+        root = getLogger(root)
+
+    if clear_existing_handlers:
+        root.handlers = []
+
+    if filename:
+        add_file_handler(logger=root, filename=filename, logdir=logdir, level=file_level)
+    if stderr_level:
+        add_stderr_handler(logger=root, level=stderr_level)
 
 
 def add_file_handler(logger=logging.root, level=logging.INFO,
-                     filename=None, logdir='/var/log/idb/'):
+                     filename=None, logdir=None):
+    logdir = logdir or DEFAULT_LOGDIR
     if logger.getEffectiveLevel() > level:
         logger.setLevel(level)
     if filename is None:
         filename = os.path.split(sys.argv[0])[1] + '.log'
-
-    fh = logging.FileHandler(os.path.join(logdir, filename))
+    path = filename if os.path.sep in filename else os.path.join(logdir, filename)
+    fh = logging.FileHandler(path, encoding='utf-8')
     fh.setLevel(level)
     fh.setFormatter(logging.Formatter(PRECISE_FORMAT))
     logger.addHandler(fh)
+
+
+def add_stderr_handler(logger=logging.root, level=logging.INFO):
+    if logger.getEffectiveLevel() > level:
+        logger.setLevel(level)
+    se = logging.StreamHandler()
+    se.setLevel(level)
+    se.setFormatter(logging.Formatter(PRECISE_FORMAT))
+    logger.addHandler(se)

@@ -4,13 +4,13 @@
 from __future__ import division, absolute_import
 from __future__ import print_function
 
-import logging
-
 import json
 import os
 import io
 
 from collections import Counter
+
+from idb.helpers.logging import idblogger as log
 
 
 header = [
@@ -107,7 +107,7 @@ def main(base, sum_filename, susp_filename):
                 suspect_rows.append(row)
         write_row(fp, totals, 'totals')
 
-    logging.debug("Found %d suspect rows", len(suspect_rows))
+    log.debug("Found %d suspect rows", len(suspect_rows))
 
     with io.open(susp_filename, 'w', encoding='utf-8') as fp:
         if len(suspect_rows) > 0:

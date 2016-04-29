@@ -6,6 +6,7 @@ import itertools
 import logging
 import functools
 import os
+import sys
 
 import click
 
@@ -24,6 +25,9 @@ def get_std_options():
         click.Option(['--env'], envvar="ENV",
                      default=None,
                      type=click.Choice(['dev', 'test', 'beta', 'prod'])),
+        click.Option(['--logfile'], envvar="LOGFILE",
+                     type=click.Path(file_okay=True, dir_okay=False, writable=True),
+                     help="If specified path to write logfile to"),
         click.Option(['--idb-uuid'], envvar="IDB_UUID", type=click.UUID),
         click.Option(['--idb-apikey'], envvar="IDB_APIKEY"),
         click.Option(['--idb-dbpass'], envvar="IDB_DBPASS"),
@@ -35,8 +39,8 @@ def get_std_options():
 def add_std_options(fn):
     fn.params += get_std_options()
 
-def handle_std_options(verbose=None, env=None, config=None, **kwargs):
-    configure_app_log(verbose)
+def handle_std_options(verbose=None, env=None, config=None, logfile=None, **kwargs):
+    configure_app_log(verbose=verbose, logfile=logfile)
     from . import config as _config  # noqa
 
     if config is not None:

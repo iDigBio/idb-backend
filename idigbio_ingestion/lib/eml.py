@@ -1,11 +1,9 @@
 from pyquery import PyQuery as pq
 
 from idb.data_tables.rights_strings import acceptable_licenses_trans
+from idb.helpers.logging import idblogger
 
-import logging
-from .log import logger
-logger.setLevel(logging.DEBUG)
-# logger.addHandler(logging.FileHandler("update_pubs.log"))
+logger = idblogger.getChild('eml')
 
 def getElement(root,name):
     return root.find(name)

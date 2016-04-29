@@ -5,16 +5,20 @@ from idb.postgres_backend import apidbpool, cursor
 from idb.postgres_backend.db import PostgresDB
 
 
-def get_active_rsids():
+def get_active_rsids(since=None):
     sql = """
         SELECT uuid
         FROM recordsets
         WHERE ingest=true
           AND uuid IS NOT NULL
           AND file_harvest_date IS NOT NULL
-        ORDER BY file_harvest_date DESC
     """
-    return [r[0] for r in apidbpool.fetchall(sql, cursor_factory=cursor)]
+    params = []
+    if since:
+        sql += "AND file_harvest_date >= %s"
+        params.append(since)
+    sql += "ORDER BY file_harvest_date DESC"
+    return [r[0] for r in apidbpool.fetchall(sql, params, cursor_factory=cursor)]
 
 
 def main3():

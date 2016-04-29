@@ -65,6 +65,14 @@ def db_check(ingest, rsid):
     main(rsid, ingest=ingest)
 
 
+@cli.command(name="db-check-all",
+             help="Run db-check in parallel against all datasets")
+@click.option("--since", help="Only check sets harvested since the given date")
+def db_check_all(since):
+    from idigbio_ingestion.db_check import all
+    all(since)
+
+
 @cli.command(name="ingest",
              help="Ingest a dataset, by rsid")
 @click.option("--ingest/--no-ingest", default=False)

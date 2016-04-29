@@ -19,7 +19,7 @@ def get_std_options():
     return [
         click.Option(['--verbose', '-v'], count=True,
                      help="Output more log messages, repeat for increased verbosity"),
-        click.Option(['--config'], type=click.Path(exists=True, dir_okay=False),
+        click.Option(['--config'], type=click.Path(exists=True, dir_okay=False, resolve_path=True),
                      help="JSON config file to load. config value precedence: "
                      "default config path < PATH < environment values < command line values."),
         click.Option(['--env'], envvar="ENV",

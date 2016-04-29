@@ -1,16 +1,22 @@
 #from __future__ import absolute_import
 from __future__ import print_function
-import os
-import sys
-import re
 import datetime
+import functools
+import io
+import json
+import logging
+import multiprocessing
+import os
+import re
+import subprocess
+import sys
 import traceback
 
 import magic
-import json
-import logging
+
 from psycopg2 import DatabaseError
 from boto.exception import S3ResponseError
+from idb.postgres_backend import apidbpool
 from idb.postgres_backend.db import PostgresDB, RecordSet
 from idb.helpers.etags import calcEtag, calcFileHash
 from idb.helpers.logging import add_file_handler, idblogger
@@ -508,3 +514,34 @@ def main(rsid, ingest=False):
 
     metadata = process_file(name, mime, rsid, db_u_d, db_i_d, ingest=ingest, commit_force=commit_force)
     metadataToSummaryJSON(rsid, metadata)
+
+
+def all(since=None, ingest=False):
+    from .db_rsids import get_active_rsids
+    from .ds_sum_counts import main as ds_sum_counts
+
+    rsids = get_active_rsids(since=since)
+    logger.info("Checking %s recordsets", len(rsids))
+
+    # Need to ensure all the connections are closed before multiprocessing forks
+    apidbpool.closeall()
+
+    pool = multiprocessing.Pool()
+    list(pool.imap_unordered(main, rsids))
+    pool.join()
+
+    logger.info("Generating... summary.csv")
+    ds_sum_counts('./', 'summary.csv', 'suspects.csv')
+    logger.info("Converting summary.csv (all recordsets subject to ingestion) to columnar human readable report... summary.pretty.txt")
+    columnize('summary.csv', 'summary.pretty.txt')
+    logger.info("Converting suspects.csv (recordsets with questionable updates) to columnar human readable report... suspects.pretty.txt")
+    columnize('suspects.csv', 'suspects.pretty.txt')
+
+
+def columnize(ifile, ofile):
+    #column -ts ',' summary.csv | sort > summary.pretty.txt
+    p = subprocess.popen(['column' '-ts', ',', ifile], stdout=subprocess.PIPE)
+    lines = p.stdout.readlines()
+    with io.open(ofile, 'w', encoding='utf-8') as out:
+        for l in sorted(lines):
+            out.write(l)

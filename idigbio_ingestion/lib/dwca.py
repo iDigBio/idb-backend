@@ -127,7 +127,7 @@ class DwcaRecordFile(DelimitedFile):
         self.name = filedict['files']['location']
 
         if logname:
-            logbase = logging.getLogger(logname)
+            logbase = getLogger(logname)
         else:
             logbase = idblogger.getChild('dwca')
         self.logger = logbase.getChild(self.name.split(".")[0])

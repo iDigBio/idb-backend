@@ -12,7 +12,7 @@ def get_active_rsids():
         WHERE ingest=true
           AND uuid IS NOT NULL
           AND file_harvest_date IS NOT NULL
-        ORDER BY file_harvest_date
+        ORDER BY file_harvest_date DESC
     """
     return [r[0] for r in apidbpool.fetchall(sql, cursor_factory=cursor)]
 

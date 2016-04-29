@@ -352,7 +352,7 @@ def process_file(fname, mime, rsid, existing_etags, existing_ids, ingest=False, 
     db = PostgresDB()
 
     if mime == "application/zip":
-        dwcaobj = Dwca(fname, skipeml=True, logname="idigbio")
+        dwcaobj = Dwca(fname, skipeml=True, logname="idb")
         for dwcrf in dwcaobj.extensions:
             counts[dwcrf.name] = process_subfile(
                 dwcrf, rsid, existing_etags, existing_ids, ingest=ingest, db=db)

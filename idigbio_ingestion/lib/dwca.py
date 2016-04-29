@@ -34,14 +34,9 @@ class Dwca(object):
     extensions = None
 
     def __init__(self,name="dwca.zip",skipeml=False,logname=None):
-        self.archive = zipfile.ZipFile(name, 'r')
-
         self.path = name.split(".")[0]
-
         if self.path == name:
             self.path += "_extracted"
-
-        self.archive.extractall(self.path)
 
         if logname:
             logbase = getLogger(logname)
@@ -49,7 +44,14 @@ class Dwca(object):
             logbase = idblogger.getChild('dwca')
         self.logger = logbase.getChild(name.split(".")[0])
 
-        root=None
+        try:
+            self.archive = zipfile.ZipFile(name, 'r')
+            self.archive.extractall(self.path)
+        except zipfile.BadZipfile:
+            self.logger.fatal("Couldn't extract '%s'", name)
+            raise
+
+        root = None
         meta_filename = self.path + "/" + archiveFile(self.archive,"meta.xml")
         try:
             schema_parser = etree.XMLParser(no_network=False)

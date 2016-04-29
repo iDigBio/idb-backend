@@ -119,6 +119,8 @@ class GeventedConnPool(object):
             except Exception:
                 pass
         self.closed = True
+        gevent.wait()
+        self.closed = False
 
     @contextlib.contextmanager
     def connection(self, isolation_level=None, autocommit=None):

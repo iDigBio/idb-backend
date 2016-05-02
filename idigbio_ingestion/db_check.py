@@ -66,6 +66,7 @@ identifier_fields = {
 ingestion_types = {
     "dwc:Occurrence": "records",
     "dwc:Multimedia": "mediarecords",
+    "dcterms": "mediarecords",
     "records": "records",
     "mediarecords": "mediarecords",
 }

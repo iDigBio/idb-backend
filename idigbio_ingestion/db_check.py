@@ -13,9 +13,10 @@ import sys
 import traceback
 
 import magic
-
+from atomicfile import AtomicFile
 from psycopg2 import DatabaseError
-from boto.exception import S3ResponseError
+from boto.exception import S3ResponseError, S3DataError
+
 from idb.postgres_backend import apidbpool
 from idb.postgres_backend.db import PostgresDB, RecordSet
 from idb.helpers.etags import calcEtag, calcFileHash
@@ -427,11 +428,12 @@ def process_file(fname, mime, rsid, existing_etags, existing_ids, ingest=False, 
 
 
 def save_summary_json(rsid, counts):
-    with open(rsid + ".summary.json", "wb") as sumf:
+    with AtomicFile(rsid + ".summary.json", "wb") as sumf:
         json.dump(counts, sumf, indent=2)
 
 
 def metadataToSummaryJSON(rsid, metadata, writeFile=True, doStats=True):
+    logger.info("%s writing summary json", rsid)
     summary = {
         "recordset_id": rsid,
         "filename": metadata["name"],
@@ -475,9 +477,9 @@ def metadataToSummaryJSON(rsid, metadata, writeFile=True, doStats=True):
         es.index(index=indexName,doc_type="digest",body=summary)
 
     if writeFile:
-        with open(rsid + ".summary.json", "wb") as jf:
+        with AtomicFile(rsid + ".summary.json", "wb") as jf:
             json.dump(summary, jf, indent=2)
-        with open(rsid + ".metadata.json", "wb") as jf:
+        with AtomicFile(rsid + ".metadata.json", "wb") as jf:
             json.dump(metadata, jf, indent=2)
     else:
         return summary
@@ -487,12 +489,12 @@ def main(rsid, ingest=False):
     add_file_handler(logger,
                      logdir=os.getcwd(), filename=rsid + ".db_check.log",
                      level=logging.INFO)
-    logger.info("DB Check %s, ingest: %r", rsid, ingest)
-
+    logger.info("%s: Starting db_check ingest: %r", rsid, ingest)
+    t = datetime.datetime.now()
     try:
         name, mime = get_file(rsid)
-    except S3ResponseError:
-        logger.exception("Failed fetching rsid: %s", rsid)
+    except (S3ResponseError, S3DataError):
+        logger.exception("%s: failed fetching archive", rsid)
         sys.exit(1)
 
     if os.path.exists(rsid + "_uuids.json") and os.path.exists(rsid + "_ids.json"):
@@ -501,11 +503,11 @@ def main(rsid, ingest=False):
         with open(rsid + "_ids.json", "rb") as idf:
             db_i_d = json.load(idf)
     else:
-        logger.info("Building ids/uuids json")
+        logger.info("%s: Building ids/uuids json", rsid)
         db_u_d, db_i_d = get_db_dicts(rsid)
-        with open(rsid + "_uuids.json", "wb") as uuidf:
+        with AtomicFile(rsid + "_uuids.json", "wb") as uuidf:
             json.dump(db_u_d, uuidf)
-        with open(rsid + "_ids.json", "wb") as idf:
+        with AtomicFile(rsid + "_ids.json", "wb") as idf:
             json.dump(db_i_d, idf)
 
     commit_force = False
@@ -514,6 +516,8 @@ def main(rsid, ingest=False):
 
     metadata = process_file(name, mime, rsid, db_u_d, db_i_d, ingest=ingest, commit_force=commit_force)
     metadataToSummaryJSON(rsid, metadata)
+    logger.info("%s: Finished db_check in %0.3fs", rsid, (datetime.datetime.now() - t).total_seconds())
+    return rsid
 
 
 def all(since=None, ingest=False):

@@ -113,7 +113,7 @@ def main(base, sum_filename, susp_filename):
     with io.open(susp_filename, 'w', encoding='utf-8') as fp:
         if len(suspect_rows) > 0:
             header.insert(1, 'tag')
-            fields.insert(1, 'tag')
+            fields.insert(0, 'tag')  # the fields don't include the filename column
             write_header(fp)
             for row in suspect_rows:
                 write_row(fp, row)

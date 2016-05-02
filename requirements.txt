@@ -3,7 +3,7 @@ redis>=2.9.1
 python-dateutil>=2.2
 elasticsearch>=1.2.0
 pyproj>=1.9.3
-pytz>=2014.4
+pytz>=2016.4
 requests>=2.4.0
 pycrypto
 flask>=0.10.0
@@ -13,10 +13,10 @@ coverage
 numpy
 scipy
 gevent>=1.1.0
-unicodecsv
+unicodecsv==0.14.1
 shapely
 celery
-boto
+boto==2.39.0
 fiona
-python-magic
+python-magic=0.4.11
 feedparser>=5.2.0

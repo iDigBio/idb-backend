@@ -66,7 +66,7 @@ def get_queries(recordset, filt="taxon"):
                 order by count(*);""",
            [recordset])
 
-    with open(recordset +"_report.tsv", "wb") as outf:
+    with open(recordset + "_report.tsv", "wb") as outf:
         outf.write("queryID\tquery\tcount\n")
         for r in statsdbpool.fetchiter(*sql, cursor_factory=DictCursor):
             if filt is not None:

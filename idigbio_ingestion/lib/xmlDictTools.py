@@ -1,4 +1,4 @@
-# Based on http://code.activestate.com/recipes/577722-xml-to-python-dictionary-and-back/ 
+# Based on http://code.activestate.com/recipes/577722-xml-to-python-dictionary-and-back/
 # Create python xml structures compatible with
 # http://search.cpan.org/~grantm/XML-Simple-2.18/lib/XML/Simple.pm
 
@@ -12,17 +12,17 @@ def xml2d(e):
     @param e: the root of the tree
     @return: The dictionary representation of the XML tree
     """
-    # Namespace magic   
+    # Namespace magic
     defns = ""
     if None in e.nsmap:
         defns = "{{{0}}}".format(e.nsmap[None])
-    
-    def _xml2d(e):      
+
+    def _xml2d(e):
         kids = {}
         for key in dict(e.attrib):
-            kids["#" + key] = e.attrib[key]        
+            kids["#" + key] = e.attrib[key]
         for k, g in groupby(e, lambda x: x.tag):
-            g = [ _xml2d(x) for x in g ] 
+            g = [ _xml2d(x) for x in g ]
             if len(g) == 1:
                 g = g[0]
             if k.startswith(defns):
@@ -39,14 +39,14 @@ def xml2d(e):
     tag = e.tag
     if tag.startswith(defns):
         tag = tag.replace(defns,"")
-    
+
     return { tag : _xml2d(e), '!namespaces': e.nsmap }
 
 
 def d2xml(d):
     """convert dict to xml
 
-       1. The top level d must contain a single entry i.e. the root element       
+       1. The top level d must contain a single entry i.e. the root element
        2.  Keys of the dictionary become sublements or attributes
        3.  Keys that start with # are attributes
        4.  If a value is a simple string, then the key subelement and the value is text.
@@ -67,14 +67,14 @@ def d2xml(d):
        <tag name="c" value="d"/>
     </module>
 
-    @type  d: dict 
+    @type  d: dict
     @param d: A dictionary formatted as an XML document
     @return:  A etree Root element
     """
-    def _d2xml(d, p):          
+    def _d2xml(d, p):
         for k,v in d.items():
             if k.startswith("#"):
-               p.set(k[1:],v) 
+               p.set(k[1:],v)
             elif isinstance(v,dict):
                 node = etree.SubElement(p, k)
                 _d2xml(v, node)
@@ -84,7 +84,7 @@ def d2xml(d):
                     _d2xml(item, node)
             else:
                 node = etree.SubElement(p, k)
-                node.text = v                
+                node.text = v
 
     # Namespace magic
     nsmap = None
@@ -98,8 +98,8 @@ def d2xml(d):
     _d2xml(v, node)
 
     return node
-    
-    
+
+
 
 if __name__=="__main__":
 

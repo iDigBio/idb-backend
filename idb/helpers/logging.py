@@ -45,6 +45,8 @@ def configure_app_log(verbose, logfile=None, fmt=PRECISE_FORMAT):
     for l in LIBRARY_LOGGERS:
         # libraries should be one level less verbose
         getLogger(l).setLevel(lvls.get(verbose - 1, logging.WARNING))
+    getLogger('elasticsearch.trace').addHandler(logging.NullHandler())
+    getLogger('elasticsearch.trace').propagate = False
 
     if logfile:
         # logging to a file should be at one level more verbose

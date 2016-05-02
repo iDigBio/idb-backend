@@ -12,7 +12,8 @@ from psycopg2.extensions import cursor
 from psycopg2.extensions import (ISOLATION_LEVEL_READ_COMMITTED,
                                  ISOLATION_LEVEL_AUTOCOMMIT,
                                  TRANSACTION_STATUS_IDLE)
-from idb.config import logger
+from idb import config
+from idb.helpers.logging import idblogger as logger
 from idb.postgres_backend import apidbpool
 from idb.helpers.etags import calcEtag, calcFileHash
 from idb.helpers.media_validation import sniff_validation

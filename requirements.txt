@@ -22,3 +22,4 @@ python-magic=0.4.11
 feedparser>=5.2.0
 click==6.3
 Flask-CLI==0.2.1
+atomicfile==1.0

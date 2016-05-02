@@ -10,7 +10,7 @@ from collections import Counter, namedtuple
 
 from gevent.pool import Pool
 from PIL import Image
-from boto.exception import S3ResponseError
+from boto.exception import S3ResponseError, S3DataError
 
 
 from idb.helpers.memoize import memoized
@@ -126,7 +126,7 @@ def check_and_generate(item):
     img = None
     try:
         img = get_media_img(item.media)
-    except S3ResponseError:
+    except (S3ResponseError, S3DataError):
         return None
     except BadImageError as bie:
         log.error("%s: %s", item.etag, bie.message)
@@ -203,17 +203,6 @@ def img_to_buffer(img, **kwargs):
     return dervbuff
 
 
-def key_to_buffer(key):
-    try:
-        buff = cStringIO.StringIO()
-        key.get_contents_to_file(buff)
-        buff.seek(0)
-        return buff
-    except S3ResponseError as e:
-        log.error("%r failed downloading with %r %s %s", key, e.status, e.reason, key.name)
-        raise
-
-
 def resize_image(img, deriv):
     derivative_width = WIDTHS[deriv]
     if img.size[0] > derivative_width:
@@ -230,7 +219,15 @@ def resize_image(img, deriv):
 
 
 def get_media_img(key):
-    buff = key_to_buffer(key)
+    try:
+        buff = IDigBioStorage.get_contents_to_mem(key, md5=key.name)
+    except S3ResponseError as e:
+        log.error("%r failed downloading with %r %s %s", key, e.status, e.reason, key.name)
+        raise
+    except S3DataError as e:
+        log.error("%r failed downloading on md5 mismatch", key)
+        raise
+
     try:
         if 'sounds' in key.bucket.name:
             log.debug("%s converting wave to img", key.name)

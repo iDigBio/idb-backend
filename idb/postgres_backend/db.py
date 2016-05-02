@@ -752,7 +752,8 @@ class RecordSet(object):
         logger.info("Fetching etag %s to %r", etag, filename)
         bucketname = "idigbio-{0}-{1}".format(bucket, os.environ["ENV"])
         k = media_store.get_key(etag, bucketname)
-        k.get_contents_to_filename(filename)
+        media_store.get_contents_to_filename(k, filename, md5=etag)
+
 
 
 def main():

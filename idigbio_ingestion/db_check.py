@@ -520,6 +520,13 @@ def main(rsid, ingest=False):
     return rsid
 
 
+def _main_ignore_interrupts(*args, **kwargs):
+    try:
+        return main(*args, **kwargs)
+    except KeyboardInterrupt:
+        logger.debug("Child KeyboardInterrupt")
+        pass
+
 def all(since=None, ingest=False):
     from .db_rsids import get_active_rsids
     from .ds_sum_counts import main as ds_sum_counts
@@ -531,8 +538,14 @@ def all(since=None, ingest=False):
     apidbpool.closeall()
 
     pool = multiprocessing.Pool()
-    list(pool.imap_unordered(main, rsids))
-    pool.join()
+    try:
+        results = list(
+            pool.imap_unordered(
+                functools.partial(_main_ignore_interrupts, ingest=ingest),
+                rsids))
+    except KeyboardInterrupt:
+        logger.debug("Got KeyboardInterrupt")
+        raise
 
     logger.info("Generating... summary.csv")
     ds_sum_counts('./', 'summary.csv', 'suspects.csv')

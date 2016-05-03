@@ -17,18 +17,28 @@ clilog = idblogger.getChild('cli')
 
 def get_std_options():
     return [
-        click.Option(['--verbose', '-v'], count=True,
-                     help="Output more log messages, repeat for increased verbosity"),
-        click.Option(['--config'], type=click.Path(exists=True, dir_okay=False, resolve_path=True),
-                     help="JSON config file to load. config value precedence: "
-                     "default config path < PATH < environment values < command line values."),
-        click.Option(['--env'], envvar="ENV",
-                     default=None,
-                     type=click.Choice(['dev', 'test', 'beta', 'prod'])),
-        click.Option(['--logfile'], envvar="LOGFILE",
-                     type=click.Path(file_okay=True, dir_okay=False, writable=True),
-                     help="If specified path to write logfile to"),
-        click.Option(['--idb-uuid'], envvar="IDB_UUID", type=click.UUID),
+        click.Option(
+            ['--verbose', '-v'],
+            count=True,
+            help="Output more log messages, repeat for increased verbosity"),
+        click.Option(
+            ['--config'],
+            type=click.Path(exists=True, dir_okay=False, resolve_path=True),
+            help="JSON config file to load. config value precedence: "
+            "default config path < PATH < environment values < command line"),
+        click.Option(
+            ['--env'],
+            envvar="ENV",
+            default=None,
+            type=click.Choice(['dev', 'test', 'beta', 'prod'])),
+        click.Option(
+            ['--logfile'],
+            envvar="LOGFILE",
+            type=click.Path(file_okay=True, dir_okay=False, writable=True),
+            help="If specified path to write logfile to"),
+        click.Option(['--idb-uuid'],
+                     envvar="IDB_UUID",
+                     type=click.UUID),
         click.Option(['--idb-apikey'], envvar="IDB_APIKEY"),
         click.Option(['--idb-dbpass'], envvar="IDB_DBPASS"),
         click.Option(['--idb-storage-access-key'], envvar="IDB_STORAGE_ACCESS_KEY"),

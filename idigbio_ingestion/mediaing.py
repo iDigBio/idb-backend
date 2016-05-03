@@ -18,7 +18,9 @@ from idb.helpers.storage import IDigBioStorage
 from idb.helpers.media_validation import UnknownMediaTypeError, get_validator
 from idb.helpers.conversions import get_accessuri, get_media_type
 
-from idigbio_ingestion.lib.log import logger
+from idb.helpers.logging import idblogger
+
+logger = idblogger.getChild('mediaing')
 
 POOL_SIZE = 5
 LAST_CHECK_INTERVAL = '1 month'
@@ -31,8 +33,6 @@ IGNORE_PREFIXES = [
     "http://firuta.huh.harvard.edu/",
     "http://www.tropicos.org/"
 ]
-
-
 
 
 @memoized()

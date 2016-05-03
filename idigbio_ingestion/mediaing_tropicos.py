@@ -6,8 +6,9 @@ monkey.patch_all()
 import time
 import requests.exceptions
 from idb.postgres_backend import apidbpool
-from idigbio_ingestion.lib.log import logger
 from idigbio_ingestion import mediaing
+
+logger = mediaing.logger
 
 mediaing.POOL_SIZE = 1
 mediaing.REQ_CONNECT_TIMEOUT = 5 * 60

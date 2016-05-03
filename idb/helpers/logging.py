@@ -31,7 +31,7 @@ def getLogger(l):
         return logging.getLogger(l)
 
 
-def configure_app_log(verbose, logfile=None, fmt=PRECISE_FORMAT):
+def configure_app_log(verbose, logfile=None):
     "Tries to do the right thing for configuring logging for command line applications"
     lvls = {
         -1: logging.ERROR,
@@ -85,7 +85,7 @@ def add_file_handler(logger=logging.root, level=logging.INFO,
     path = filename if os.path.sep in filename else os.path.join(logdir, filename)
     fh = logging.FileHandler(path, encoding='utf-8')
     fh.setLevel(level)
-    fh.setFormatter(logging.Formatter(PRECISE_FORMAT))
+    fh.setFormatter(logging.Formatter(PRECISE_FORMAT, datefmt=DATETIME_FORMAT))
     logger.addHandler(fh)
 
 
@@ -94,5 +94,5 @@ def add_stderr_handler(logger=logging.root, level=logging.INFO):
         logger.setLevel(level)
     se = logging.StreamHandler()
     se.setLevel(level)
-    se.setFormatter(logging.Formatter(PRECISE_FORMAT))
+    se.setFormatter(logging.Formatter(PRECISE_FORMAT, datefmt=TIME_FORMAT))
     logger.addHandler(se)

@@ -14,10 +14,10 @@ from idb import config
 from idb.postgres_backend.db import PostgresDB, MediaObject, DictCursor
 from idb.helpers.etags import calcFileHash
 from idb.helpers.storage import IDigBioStorage
+from idb.helpers.logging import idblogger
 
 from idigbio_ingestion.lib.util import download_file
 from idigbio_ingestion.lib.eml import parseEml
-from idigbio_ingestion.lib.log import logger
 
 #### disabling warnings per https://urllib3.readthedocs.org/en/latest/security.html#disabling-warnings
 ## Would rather have warnings go to log but could not get logging.captureWarnings(True) to work.
@@ -28,6 +28,8 @@ from idigbio_ingestion.lib.log import logger
 #urllib3.disable_warnings()
 ####
 
+
+logger = idblogger.getChild('upr')
 
 def struct_to_datetime(s):
     return datetime.datetime.fromtimestamp(time.mktime(s))

@@ -62,6 +62,7 @@ def handle_std_options(verbose=None, env=None, config=None, logfile=None, **kwar
 
     for k,v in kwargs.items():
         if k.startswith('idb_') and v is not None:
+            v = u"{0}".format(v)
             setattr(_config, k.upper(), v)
             os.environ[k.upper()] = v
 

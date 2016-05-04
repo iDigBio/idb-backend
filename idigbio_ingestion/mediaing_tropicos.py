@@ -18,7 +18,7 @@ mediaing.IGNORE_PREFIXES = [
     "http://firuta.huh.harvard.edu/"
 ]
 
-TROPICOS_URLFILTER = 'http://www.tropicos.org/%'
+TROPICOS_PREFIX = 'http://www.tropicos.org/'
 
 #All sleep counts are in seconds
 SLEEP_BLACKLIST = 49 * 60

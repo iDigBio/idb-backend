@@ -8,15 +8,31 @@ This is the collection of code that makes up the iDigBio server side.
 
 Currently this project only works in python2.7.
 
-The following library packages will need to be installed to run the api (assuming
-Ubuntu 14.04):
+The following library packages will need to be installed to run the api:
+
+In Ubuntu 14.04:
 
     apt-get install python2.7-dev libgeos-c1 libblas-dev liblapack-dev \
-      libatlas-base-dev gfortran libgdal-dev`
+      libatlas-base-dev gfortran libgdal-dev
+
+In Ubuntu 16.04:
+
+    apt-get install python2.7-dev libblas-dev liblapack-dev \
+      libatlas-base-dev gfortran libgdal-dev
+    #TODO figure out replacement for libgeos-c1
+
 
 For ingestion the following are also needed:
 
-    apt-get install libfontconfig-dev libav-tools libxml2 libxslt1-dev
+In Ubuntu 14.04:
+
+    apt-get install libfontconfig-dev libxml2 libxslt1-dev libav-tools
+
+In Ubuntu 16.04:
+
+    apt-get install libfontconfig1-dev libxml2 libxslt1-dev ffmpeg
+
+
 
 ### Python Dependencies
 

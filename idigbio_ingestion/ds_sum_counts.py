@@ -70,7 +70,9 @@ def is_row_suspect(row):
             return "DELETED_MANY_RECORDS"
         if records_create / records_count > 0.4:
             return "MANY_NEW_RECORDS"
-    if records_delete > 0 and 0.9 < (records_create / records_delete) < 1.1:
+    if records_delete > 0 and \
+       0.9 < (records_create / records_delete) < 1.1 and \
+       records_create / records_count > 0.1:
         return "RECORDS_CHURN"
 
     if mediarecords_count > 0 and mediarecords_create == mediarecords_count and mediarecords_update == 0 and mediarecords_delete == 0:
@@ -82,7 +84,9 @@ def is_row_suspect(row):
             return "DELETED_MANY_MEDIA"
         if mediarecords_create / mediarecords_count > 0.4:
             return "MANY_NEW_MEDIA"
-    if mediarecords_delete > 0 and 0.9 < (mediarecords_create / mediarecords_delete) < 1.1:
+    if mediarecords_delete > 0 and \
+       0.9 < (mediarecords_create / mediarecords_delete) < 1.1 and \
+       mediarecords_create / mediarecords_count > 0.1:
         return "MEDIA_CHURN"
 
     return False

@@ -94,6 +94,7 @@ class DelimitedFile(object):
             items = t.items()
             items.sort(key=lambda item: (item[1], item[0]), reverse=True)
             self.rowtype = items[0][0]
+            self.logger.info("Setting row type to %s", self.rowtype)
         elif self.rowtype in types:
             self.rowtype = types[self.rowtype]["shortname"]
 

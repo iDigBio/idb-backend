@@ -237,7 +237,7 @@ def get_postgres_media_urls(urlfilter=None):
 
     for r in apidbpool.fetchiter(sql, params, cursor_factory=cursor):
         media_urls[r[0]] = (r[1], r[2])
-    logger.info("Fetch %d urls", len(media_urls))
+    logger.info("Found %d urls already in DB", len(media_urls))
     return media_urls
 
 

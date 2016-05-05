@@ -63,12 +63,20 @@ identifier_fields = {
         ("ac:providerManagedID", lambda r, rs: mungeid(r)),
         ("dcterms:identifier", lambda r, rs: rs + "\\media\\" + mungeid(r)),
         # ("coreid", lambda r,rs: rs + "\\" + r)
+    ],
+    "dcterms": [
+        ("idigbio:recordId", lambda r, rs: mungeid(r)),
+        ("idigbio:recordID", lambda r, rs: mungeid(r)),
+        ("ac:providerManagedID", lambda r, rs: mungeid(r)),
+        ("dcterms:identifier", lambda r, rs: rs + "\\media\\" + mungeid(r)),
+        # ("coreid", lambda r,rs: rs + "\\" + r)
     ]
 }
 
 ingestion_types = {
     "dwc:Occurrence": "records",
     "dwc:Multimedia": "mediarecords",
+    "dcterms": "mediarecords",
     "records": "records",
     "mediarecords": "mediarecords",
 }

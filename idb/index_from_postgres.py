@@ -41,9 +41,9 @@ def type_yield(ei, rc, typ, yield_record=False):
             "select * from idigbio_uuids_data where type=%s and deleted=false", (pg_typ,))
 
         start_time = datetime.datetime.now()
-        count = 0.0
+        count = 0
         for r in cursor:
-            count += 1.0
+            count += 1
             if yield_record:
                 yield r
             else:
@@ -154,9 +154,9 @@ def type_yield_modified(ei, rc, typ, yield_record=False):
     with apidbpool.cursor(name=str(uuid.uuid4()), cursor_factory=DictCursor) as cursor:
         cursor.execute(*sql)
         start_time = datetime.datetime.now()
-        count = 0.0
+        count = 0
         for r in cursor:
-            count += 1.0
+            count += 1
 
             if yield_record:
                 yield r
@@ -181,9 +181,9 @@ def type_yield_resume(ei, rc, typ, also_delete=False, yield_record=False):
         "size": 10000,
         "scroll": "10m"
     }
-    cache_count = 0.0
+    cache_count = 0
     for r in elasticsearch.helpers.scan(ei.es, **q):
-        cache_count += 1.0
+        cache_count += 1
         k = r["_id"]
         etag = None
         if "etag" in r["_source"]:
@@ -205,9 +205,9 @@ def type_yield_resume(ei, rc, typ, also_delete=False, yield_record=False):
     with apidbpool.cursor(name=str(uuid.uuid4()), cursor_factory=DictCursor) as cursor:
         cursor.execute(*sql)
         start_time = datetime.datetime.now()
-        count = 0.0
+        count = 0
         for r in cursor:
-            count += 1.0
+            count += 1
             if r["uuid"] in es_ids:
                 etag = es_ids[r["uuid"]]
                 del es_ids[r["uuid"]]

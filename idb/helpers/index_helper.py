@@ -25,7 +25,7 @@ def index_record(ei, rc, typ, r, do_index=True):
             })
 
             g = grabAll(typ, d)
-            i =  prepForEs(typ, g)
+            i = prepForEs(typ, g)
             i["data"] = r["data"]
 
             if do_index:

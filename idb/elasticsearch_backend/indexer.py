@@ -11,7 +11,7 @@ local_tz = timezone('US/Eastern')
 def prepForEs(t, i):
     value = {}
     for f in fields[t]:
-        if f[0] not in i or i[f[0]] == None:
+        if f[0] not in i or i[f[0]] is None:
             continue
 
         if f[2] == "point":

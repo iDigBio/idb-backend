@@ -3,6 +3,7 @@
 This is a collection of scripts and helpers for ingesting data into
 iDigBio.
 
+## Ingestion Procedure
 
 1. If there are new publishers, add them with new
    [Adding a new Publisher procedure][]
@@ -18,7 +19,7 @@ iDigBio.
 
 [Adding a new Publisher procedure]: https://www.idigbio.org/redmine/projects/infrastructure/wiki/Adding_a_new_Publisher
 
-## Running Commands ##
+## Command information ##
 
 All the commands are entered through the top level `idigbio-ingestion`
 script. When invoking this script there is no need to set the
@@ -30,7 +31,7 @@ Notable toplevel options for `idigbio-ingestion`
 * `--config=$PATH`: read a `idigbio.json` file at the given path.
 * `--logfile=$PATH`: write a logfile at the given location.
 
-### running ingestion ###
+### Recordset Ingestion ###
 
 The following subcommands are related to recordset ingestion
 
@@ -49,7 +50,7 @@ The following subcommands are related to recordset ingestion
   directory.
 * `ds-sum-counts`: Generate summary and
 
-### Media ###
+### Media Ingestion ###
 
 * `mediaing`:
   * Common options:

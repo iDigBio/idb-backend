@@ -36,7 +36,8 @@ def mediaing(ctx, tropicos, prefix):
 
 
 @mediaing.command(name="get-media", help="Fetch the actual media")
-@click.option("--last-check-interval", default=None)
+@click.option("--last-check-interval", default=None,
+              help="Postgres interval for minimum time since the media url was last checked.")
 @click.pass_obj
 def mediaing_get_media(mediaing_params, last_check_interval=None):
     from idigbio_ingestion import mediaing

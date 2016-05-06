@@ -20,14 +20,16 @@ import time
 import gc
 import os
 import math
+import signal
+
 
 from idb.postgres_backend import apidbpool, DictCursor
 from idb.helpers.index_helper import index_record
 from idb.corrections.record_corrector import RecordCorrector
 from idb.elasticsearch_backend.indexer import ElasticSearchIndexer
 from idb.config import config
+from idb.helpers.signals import signalcm, ignored
 from idb.helpers.logging import idblogger, configure_app_log
-
 
 import elasticsearch.helpers
 
@@ -44,15 +46,17 @@ def rate_logger(prefix, iterator):
     count = 0
     start_time = datetime.datetime.now()
     rate = lambda: count / (datetime.datetime.now() - start_time).total_seconds()
-    for e in iterator:
-        yield e
-        count += 1
+    output = lambda: log.info("%s %s %.1f/s", prefix, count, rate())
 
-        if count % 10000 == 0:
-            log.info("%s %s %.1f/s", prefix, count, rate())
+    with signalcm(signal.SIGUSR1, lambda s,f: output()):
+        for e in iterator:
+            yield e
+            count += 1
+            if count % 10000 == 0:
+                output()
 
-    log.info("%s %s %.1f/s FINISHED in %s",
-             prefix, count, rate(), datetime.datetime.now() - start_time)
+        log.info("%s %s %.1f/s FINISHED in %s",
+                 prefix, count, rate(), datetime.datetime.now() - start_time)
 
 
 def type_yield(ei, rc, typ, yield_record=False):
@@ -421,4 +425,5 @@ def main():
 
 if __name__ == '__main__':
     configure_app_log(1)
-    main()
+    with ignored(signal.SIGUSR1):
+        main()

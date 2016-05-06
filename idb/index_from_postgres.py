@@ -324,11 +324,15 @@ def consume(ei, rc, iter_func, no_index=False):
         # Construct a version of index record that can be just called with the
         # record
         index_func = functools.partial(index_record, ei, rc, typ, do_index=False)
+
+        to_index = iter_func(ei, rc, typ, yield_record=True)
+        index_record_tuples = p.imap(index_func, to_index)
+
         if no_index:
-            for _ in p.imap(index_func, iter_func(ei, rc, typ, yield_record=True)):
+            for _ in index_record_tuples:
                 pass
         else:
-            for ok, item in ei.bulk_index(p.imap(index_func, iter_func(ei, rc, typ, yield_record=True))):
+            for ok, item in ei.bulk_index(index_record_tuples):
                 pass
         gc.collect()
 

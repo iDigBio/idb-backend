@@ -2,6 +2,22 @@
 
 This is a collection of scripts and helpers for ingesting data into
 iDigBio.
+## New Ingestion Procedure
+
+0. If there are new publishers, add them with new Adding a new Publisher procedure.
+0. ~~Check to see if any recordsets were erroneously set to ingest=False since last run~~
+0. ~~Check disk space available, archive previous datasets folder to remote~~
+0. ~~run weekly.sh - this includes digestor.py~~
+0. run the run_checks.sh script
+0. Verify errors, possibly need to make correction and re-run.
+0. Restart idigbio-api-service on each api node to help avoid memory leak
+0. run the run_checks.sh script with the "ingest" parameter
+0. ~~ingestor.py - adds new records to API which are then auto-indexed~~
+0. Verify errors, possibly need to make correction and re-run.
+0. ~~Run Imaging processes including rethumb~~
+0. Validate that recordset, records, and media appear in the portal
+0. Update redmine tickets
+0. Update Data Ingestion Report on the iDigBio wiki
 
 ## Ingestion Procedure
 

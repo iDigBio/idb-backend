@@ -12,7 +12,6 @@ else:
     from gevent.pool import Pool, Timeout
 
 
-import uuid
 import json
 import functools
 import datetime
@@ -63,15 +62,14 @@ def type_yield(ei, rc, typ, yield_record=False):
     # drop the trailing s
     pg_typ = "".join(typ[:-1])
 
-    with apidbpool.cursor(name=str(uuid.uuid4()), cursor_factory=DictCursor) as cursor:
-        cursor.execute(
-            "select * from idigbio_uuids_data where type=%s and deleted=false", (pg_typ,))
-
-        for r in rate_logger(typ, cursor):
-            if yield_record:
-                yield r
-            else:
-                yield index_record(ei, rc, typ, r, do_index=False)
+    sql = "SELECT * FROM idigbio_uuids_data WHERE type=%s AND deleted=false"
+    results = apidbpool.fetchiter(sql, (pg_typ,),
+                                  named=True, cursor_factory=DictCursor)
+    for r in rate_logger(typ, results):
+        if yield_record:
+            yield r
+        else:
+            yield index_record(ei, rc, typ, r, do_index=False)
 
 
 def type_yield_modified(ei, rc, typ, yield_record=False):
@@ -115,7 +113,7 @@ def type_yield_modified(ei, rc, typ, yield_record=False):
     # imperative that the records are process in ascending modified
     # order.  in practice, this is unlikely to index more than one
     # record in a single run, but it is possible.
-    sql = ("""SELECT
+    sql = """SELECT
             uuids.id as uuid,
             type,
             deleted,
@@ -168,15 +166,16 @@ def type_yield_modified(ei, rc, typ, yield_record=False):
         ON sibs.subject=uuids.id
         WHERE type=%s and modified>%s
         ORDER BY modified ASC;
-        """, (pg_typ, after))
+        """
 
-    with apidbpool.cursor(name=str(uuid.uuid4()), cursor_factory=DictCursor) as cursor:
-        cursor.execute(*sql)
-        for r in rate_logger(typ, cursor):
-            if yield_record:
-                yield r
-            else:
-                yield index_record(ei, rc, typ, r, do_index=False)
+    results = apidbpool.fetchiter(
+        sql, (pg_typ, after), named=True, cursor_factory=DictCursor)
+
+    for r in rate_logger(typ, results):
+        if yield_record:
+            yield r
+        else:
+            yield index_record(ei, rc, typ, r, do_index=False)
 
 
 def type_yield_resume(ei, rc, typ, also_delete=False, yield_record=False):
@@ -205,22 +204,20 @@ def type_yield_resume(ei, rc, typ, also_delete=False, yield_record=False):
 
     log.info("%s: Indexing", typ)
 
-    sql = (
-        "select * from idigbio_uuids_data where type=%s and deleted=false", (pg_typ,))
-    with apidbpool.cursor(name=str(uuid.uuid4()), cursor_factory=DictCursor) as cursor:
-        cursor.execute(*sql)
+    sql = "SELECT * FROM idigbio_uuids_data WHERE type=%s AND deleted=false"
+    results = apidbpool.fetchiter(
+        sql, (pg_typ,), named=True, cursor_factory=DictCursor)
+    for r in rate_logger(typ, results):
+        if r["uuid"] in es_ids:
+            etag = es_ids[r["uuid"]]
+            del es_ids[r["uuid"]]
+            if etag == r["etag"]:
+                continue
 
-        for r in rate_logger(typ, cursor):
-            if r["uuid"] in es_ids:
-                etag = es_ids[r["uuid"]]
-                del es_ids[r["uuid"]]
-                if etag == r["etag"]:
-                    continue
-
-            if yield_record:
-                yield r
-            else:
-                yield index_record(ei, rc, typ, r, do_index=False)
+        if yield_record:
+            yield r
+        else:
+            yield index_record(ei, rc, typ, r, do_index=False)
 
     if also_delete and len(es_ids) > 0:
         log.info("%s: Deleting %s extra", len(es_ids))
@@ -241,9 +238,9 @@ def queryIter(query, ei, rc, typ, yield_record=False):
     }
 
     for r in elasticsearch.helpers.scan(ei.es, query=query, **q):
-        sql = ("SELECT * FROM idigbio_uuids_data WHERE uuid=%s and type=%s",
-               (r["_id"], typ[:-1]))
-        rec = apidbpool.fetchone(*sql, cursor_factory=DictCursor)
+        sql = "SELECT * FROM idigbio_uuids_data WHERE uuid=%s and type=%s"
+        params = (r["_id"], typ[:-1])
+        rec = apidbpool.fetchone(sql, params, cursor_factory=DictCursor)
         if rec is not None:
             if yield_record:
                 yield rec
@@ -252,9 +249,9 @@ def queryIter(query, ei, rc, typ, yield_record=False):
 
 def uuidsIter(uuid_l, ei, rc, typ, yield_record=False):
     for rid in uuid_l:
-        sql = ("SELECT * FROM idigbio_uuids_data WHERE uuid=%s and type=%s",
-               (rid.strip(), typ[:-1]))
-        rec = apidbpool.fetchone(*sql, cursor_factory=DictCursor)
+        sql = "SELECT * FROM idigbio_uuids_data WHERE uuid=%s and type=%s",
+        params = (rid.strip(), typ[:-1])
+        rec = apidbpool.fetchone(sql, params, cursor_factory=DictCursor)
         if rec is not None:
             if yield_record:
                 yield rec
@@ -266,7 +263,8 @@ def delete(ei, no_index=False):
 
     count = 0
     sql = "SELECT id,type FROM uuids WHERE deleted=true"
-    for r in apidbpool.fetchiter(sql, name=str(uuid.uuid4()), cursor_factory=DictCursor):
+    results = apidbpool.fetchiter(sql, named=True, cursor_factory=DictCursor)
+    for r in results:
         count += 1
         if not no_index:
             ei.es.delete(**{

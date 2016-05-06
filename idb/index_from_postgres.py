@@ -323,12 +323,7 @@ def consume(ei, rc, iter_func, no_index=False):
     for typ in ei.types:
         # Construct a version of index record that can be just called with the
         # record
-        def index_func(rec):
-            with Timeout(5) as timeout:
-                real_index_func = functools.partial(
-                    index_record, ei, rc, typ, do_index=False)
-                resp = real_index_func(rec)
-            return resp
+        index_func = functools.partial(index_record, ei, rc, typ, do_index=False)
         if no_index:
             for _ in p.imap(index_func, iter_func(ei, rc, typ, yield_record=True)):
                 pass

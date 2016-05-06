@@ -38,7 +38,7 @@ MAX_SLEEP = 600
 MIN_SLEEP = 120
 
 
-def rate_logger(prefix, iterator):
+def rate_logger(prefix, iterator, every=10000):
     count = 0
     start_time = datetime.datetime.now()
     rate = lambda: count / (datetime.datetime.now() - start_time).total_seconds()
@@ -48,7 +48,7 @@ def rate_logger(prefix, iterator):
         for e in iterator:
             yield e
             count += 1
-            if count % 10000 == 0:
+            if count % every == 0:
                 output()
 
         log.info("%s %s %.1f/s FINISHED in %s",
@@ -188,7 +188,9 @@ def type_yield_resume(ei, rc, typ, also_delete=False, yield_record=False):
         "scroll": "10m"
     }
     cache_count = 0
-    for r in elasticsearch.helpers.scan(ei.es, **q):
+    for r in rate_logger(typ + " resumecache",
+                         elasticsearch.helpers.scan(ei.es, **q),
+                         every=100000):
         cache_count += 1
         k = r["_id"]
         etag = None
@@ -204,7 +206,7 @@ def type_yield_resume(ei, rc, typ, also_delete=False, yield_record=False):
     sql = "SELECT * FROM idigbio_uuids_data WHERE type=%s AND deleted=false"
     results = apidbpool.fetchiter(
         sql, (pg_typ,), named=True, cursor_factory=DictCursor)
-    for r in rate_logger(typ, results):
+    for r in rate_logger(typ + " indexing", results):
         if r["uuid"] in es_ids:
             etag = es_ids[r["uuid"]]
             del es_ids[r["uuid"]]
@@ -218,7 +220,7 @@ def type_yield_resume(ei, rc, typ, also_delete=False, yield_record=False):
 
     if also_delete and len(es_ids) > 0:
         log.info("%s: Deleting %s extra", len(es_ids))
-        for r in es_ids:
+        for r in rate_logger(typ + " delete", es_ids):
             ei.es.delete(**{
                 "index": ei.indexName,
                 "doc_type": typ,

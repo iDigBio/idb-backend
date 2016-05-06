@@ -1,3 +1,7 @@
+from __future__ import division, absolute_import
+from __future__ import print_function
+
+
 MULTIPROCESS = False
 
 if MULTIPROCESS:
@@ -22,14 +26,33 @@ from idb.helpers.index_helper import index_record
 from idb.corrections.record_corrector import RecordCorrector
 from idb.elasticsearch_backend.indexer import ElasticSearchIndexer
 from idb.config import config
+from idb.helpers.logging import idblogger, configure_app_log
+
 
 import elasticsearch.helpers
+
+log = idblogger.getChild('index')
 
 last_afters = {}
 
 # Maximum number of seconds to sleep
 MAX_SLEEP = 600
 MIN_SLEEP = 120
+
+
+def rate_logger(prefix, iterator):
+    count = 0
+    start_time = datetime.datetime.now()
+    rate = lambda: count / (datetime.datetime.now() - start_time).total_seconds()
+    for e in iterator:
+        yield e
+        count += 1
+
+        if count % 10000 == 0:
+            log.info("%s %s %.1f/s", prefix, count, rate())
+
+    log.info("%s %s %.1f/s FINISHED in %s",
+             prefix, count, rate(), datetime.datetime.now() - start_time)
 
 
 def type_yield(ei, rc, typ, yield_record=False):
@@ -40,19 +63,11 @@ def type_yield(ei, rc, typ, yield_record=False):
         cursor.execute(
             "select * from idigbio_uuids_data where type=%s and deleted=false", (pg_typ,))
 
-        start_time = datetime.datetime.now()
-        count = 0
-        for r in cursor:
-            count += 1
+        for r in rate_logger(typ, cursor):
             if yield_record:
                 yield r
             else:
                 yield index_record(ei, rc, typ, r, do_index=False)
-
-            if count % 10000 == 0:
-                print typ, count, datetime.datetime.now() - start_time, count / (datetime.datetime.now() - start_time).total_seconds()
-
-    print typ, count, datetime.datetime.now() - start_time, count / (datetime.datetime.now() - start_time).total_seconds()
 
 
 def type_yield_modified(ei, rc, typ, yield_record=False):
@@ -83,14 +98,13 @@ def type_yield_modified(ei, rc, typ, yield_record=False):
     # I don't care whether ES has changed or not (although presumably it hasn't).
     # if typ in last_afters:
     #     if after == last_afters[typ]:
-    #         print typ, "after value", after, "same as last run, skipping"
+    #         log.info("%s after value %s same as last run, skipping", typ, after)
     #         return
     #     else:
     #         last_afters[typ] = after
     # else:
     #     last_afters[typ] = after
-
-    print "Indexing", typ, "after", after.isoformat()
+    log.info("Indexing %s after %s", typ, after.isoformat())
 
     # Note, a subtle distinction: The below query will index every _version_ of every record modified since the date
     # it is thus imperative that the records are process in ascending modified order.
@@ -153,27 +167,18 @@ def type_yield_modified(ei, rc, typ, yield_record=False):
 
     with apidbpool.cursor(name=str(uuid.uuid4()), cursor_factory=DictCursor) as cursor:
         cursor.execute(*sql)
-        start_time = datetime.datetime.now()
-        count = 0
-        for r in cursor:
-            count += 1
-
+        for r in rate_logger(typ, cursor):
             if yield_record:
                 yield r
             else:
                 yield index_record(ei, rc, typ, r, do_index=False)
 
-            if count % 10000 == 0:
-                print typ, count, datetime.datetime.now() - start_time, count / (datetime.datetime.now() - start_time).total_seconds()
-
-    print typ, count, datetime.datetime.now() - start_time, count / (datetime.datetime.now() - start_time).total_seconds()
-
 
 def type_yield_resume(ei, rc, typ, also_delete=False, yield_record=False):
     pg_typ = "".join(typ[:-1])
     es_ids = {}
+    log.info("%s Building Resume Cache", typ)
 
-    print "Building Resume Cache", typ
     q = {
         "index": ei.indexName,
         "doc_type": typ,
@@ -193,21 +198,14 @@ def type_yield_resume(ei, rc, typ, also_delete=False, yield_record=False):
 
         es_ids[k] = etag
 
-    #     if cache_count % 10000 == 0:
-    #         print cache_count
-
-    # print cache_count
-
-    print "Indexing", typ
+    log.info("%s: Indexing", typ)
 
     sql = (
         "select * from idigbio_uuids_data where type=%s and deleted=false", (pg_typ,))
     with apidbpool.cursor(name=str(uuid.uuid4()), cursor_factory=DictCursor) as cursor:
         cursor.execute(*sql)
-        start_time = datetime.datetime.now()
-        count = 0
-        for r in cursor:
-            count += 1
+
+        for r in rate_logger(typ, cursor):
             if r["uuid"] in es_ids:
                 etag = es_ids[r["uuid"]]
                 del es_ids[r["uuid"]]
@@ -219,13 +217,8 @@ def type_yield_resume(ei, rc, typ, also_delete=False, yield_record=False):
             else:
                 yield index_record(ei, rc, typ, r, do_index=False)
 
-            if count % 10000 == 0:
-                print typ, count, datetime.datetime.now() - start_time, count / (datetime.datetime.now() - start_time).total_seconds()
-
-    print typ, count, datetime.datetime.now() - start_time, count / (datetime.datetime.now() - start_time).total_seconds()
-
     if also_delete and len(es_ids) > 0:
-        print "Deleting", len(es_ids), "extra", typ
+        log.info("%s: Deleting %s extra", len(es_ids))
         for r in es_ids:
             ei.es.delete(**{
                 "index": ei.indexName,
@@ -264,7 +257,7 @@ def uuidsIter(uuid_l, ei, rc, typ, yield_record=False):
                 yield index_record(ei, rc, typ, rec, do_index=False)
 
 def delete(ei, no_index=False):
-    print "Running deletes"
+    log.info("Running deletes")
 
     count = 0
     sql = "SELECT id,type FROM uuids WHERE deleted=true"
@@ -278,9 +271,9 @@ def delete(ei, no_index=False):
             })
 
         if count % 10000 == 0:
-            print count
+            log.info("%s", count)
 
-    print count
+    log.info("%s", count)
     try:
         ei.optimize()
     except:
@@ -343,13 +336,14 @@ def consume(ei, rc, iter_func, no_index=False):
 def continuous_incremental(ei, rc, no_index=False):
     while True:
         t_start = datetime.datetime.now()
-        print "Starting Incremental Run at", t_start.isoformat()
+        log.info("Starting Incremental Run at %s", t_start.isoformat())
         incremental(ei, rc, no_index=no_index)
         t_end = datetime.datetime.now()
-        print "Ending Incremental Run from", t_start.isoformat(), "at", t_end
+        log.info("Ending Incremental Run from %s at %s",
+                 t_start.isoformat(), t_end)
         sleep_duration = max(
             [MAX_SLEEP - (t_end - t_start).total_seconds(), MIN_SLEEP])
-        print "Sleeping for", sleep_duration, "seconds"
+        log.info("Sleeping for %s seconds", sleep_duration)
         time.sleep(sleep_duration)
 
 
@@ -425,4 +419,5 @@ def main():
         parser.print_help()
 
 if __name__ == '__main__':
+    configure_app_log(1)
     main()

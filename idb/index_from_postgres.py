@@ -106,10 +106,11 @@ def type_yield_modified(ei, rc, typ, yield_record=False):
     #     last_afters[typ] = after
     log.info("Indexing %s after %s", typ, after.isoformat())
 
-    # Note, a subtle distinction: The below query will index every _version_ of every record modified since the date
-    # it is thus imperative that the records are process in ascending modified order.
-    # in practice, this is unlikely to index more than one record in a single
-    # run, but it is possible.
+    # Note, a subtle distinction: The below query will index every
+    # _version_ of every record modified since the date it is thus
+    # imperative that the records are process in ascending modified
+    # order.  in practice, this is unlikely to index more than one
+    # record in a single run, but it is possible.
     sql = ("""SELECT
             uuids.id as uuid,
             type,

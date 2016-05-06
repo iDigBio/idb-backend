@@ -1,17 +1,7 @@
 from __future__ import division, absolute_import
 from __future__ import print_function
 
-
-MULTIPROCESS = False
-
-if MULTIPROCESS:
-    from multiprocessing import Pool
-else:
-    # import gevent.monkey
-    # gevent.monkey.patch_all()
-    from gevent.pool import Pool, Timeout
-
-
+import itertools
 import json
 import functools
 import datetime
@@ -21,6 +11,13 @@ import os
 import math
 import signal
 
+MULTIPROCESS = False
+if MULTIPROCESS:
+    from multiprocessing import Pool
+else:
+    # import gevent.monkey
+    # gevent.monkey.patch_all()
+    from gevent.pool import Pool
 
 from idb.postgres_backend import apidbpool, DictCursor
 from idb.helpers.index_helper import index_record
@@ -317,14 +314,14 @@ def uuids(ei, rc, uuid_l, no_index=False):
         pass
 
 def consume(ei, rc, iter_func, no_index=False):
-    p = Pool(10)
     for typ in ei.types:
         # Construct a version of index record that can be just called with the
         # record
         index_func = functools.partial(index_record, ei, rc, typ, do_index=False)
 
         to_index = iter_func(ei, rc, typ, yield_record=True)
-        index_record_tuples = p.imap(index_func, to_index)
+        #index_record_tuples = Pool(10).imap(index_func, to_index, 100)
+        index_record_tuples = itertools.imap(index_func, to_index)
 
         if no_index:
             for _ in index_record_tuples:
@@ -421,6 +418,6 @@ def main():
         parser.print_help()
 
 if __name__ == '__main__':
-    configure_app_log(1)
+    configure_app_log(2)
     with ignored(signal.SIGUSR1):
         main()

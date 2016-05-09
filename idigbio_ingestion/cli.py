@@ -112,8 +112,3 @@ def db_rsids():
 def ds_sum_counts(base_dir, summary_filename, suspects_filename):
     from idigbio_ingestion.ds_sum_counts import main
     main(base_dir, summary_filename, suspects_filename)
-
-
-
-
-#def run_checks(name="run-checks", help="Report what would be ingested")

@@ -7,35 +7,35 @@ import datetime
 
 
 def post_delete_stats(rsid):
-    summary = {                                             
-            "recordset_id": rsid,
-            "harvest_date": datetime.datetime.now().isoformat(),
-            "records_count": 0,
-            "records_create": 0,
-            "records_update": 0,
-            "records_delete": 0,
-            "mediarecords_count": 0,
-            "mediarecords_create": 0,
-            "mediarecords_update": 0,
-            "mediarecords_delete": 0,
-            "deleted": True,
-            "commited": True,
-        }
+    summary = {
+        "recordset_id": rsid,
+        "harvest_date": datetime.datetime.now().isoformat(),
+        "records_count": 0,
+        "records_create": 0,
+        "records_update": 0,
+        "records_delete": 0,
+        "mediarecords_count": 0,
+        "mediarecords_create": 0,
+        "mediarecords_update": 0,
+        "mediarecords_delete": 0,
+        "deleted": True,
+        "commited": True,
+    }
     es.index(index=indexName, doc_type="digest", body=summary)
 
 
 def post_all_deleted_rs():
     deleted_query = {
-      "query": {
-        "filtered": {
-          "filter": {
-            "term": {
-              "deleted": True
+        "query": {
+            "filtered": {
+                "filter": {
+                    "term": {
+                        "deleted": True
+                    }
+                }
             }
-          }
-        }
-      },
-      "size": 10000
+        },
+        "size": 10000
     }
 
     deleted_recordsets = set()

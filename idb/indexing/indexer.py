@@ -37,10 +37,13 @@ def prepForEs(t, i):
 
 class ElasticSearchIndexer(object):
 
-    def __init__(self, indexName, types, commitCount=100000, disableRefresh=True, serverlist=["localhost"], timeout=30):
+    def __init__(self, indexName, types,
+                 commitCount=100000, disableRefresh=True,
+                 serverlist=["localhost"], timeout=30):
         log.info("Initializing ElasticSearchIndexer(%r, %r)", indexName, types)
         self.es = elasticsearch.Elasticsearch(
-            serverlist, sniff_on_start=False, sniff_on_connection_fail=False, retry_on_timeout=True, max_retries=10, timeout=timeout)
+            serverlist, sniff_on_start=False, sniff_on_connection_fail=False,
+            retry_on_timeout=True, max_retries=10, timeout=timeout)
         if not indexName.startswith('idigbio-'):
             indexName = "idigbio-" + indexName
         self.indexName = indexName
@@ -84,7 +87,11 @@ class ElasticSearchIndexer(object):
                 m["properties"][f[0]] = {"type": "date"}
             elif f[2] == "point":
                 m["properties"][f[0]] = {
-                    "type": "geo_point", "geohash": True, "geohash_prefix": True, "lat_lon": True}
+                    "type": "geo_point",
+                    "geohash": True,
+                    "geohash_prefix": True,
+                    "lat_lon": True
+                }
             elif f[2] == "shape":
                 m["properties"][f[0]] = {"type": "geo_shape"}
             elif f[2] == "custom":
@@ -131,7 +138,8 @@ class ElasticSearchIndexer(object):
             yield meta
 
     def bulk_index(self, tups):
-        return elasticsearch.helpers.streaming_bulk(self.es, self.bulk_formater(tups), chunk_size=10000)
+        return elasticsearch.helpers.streaming_bulk(
+            self.es, self.bulk_formater(tups), chunk_size=10000)
 
     def close(self):
         if self.disableRefresh:

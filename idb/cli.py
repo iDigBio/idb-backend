@@ -1,11 +1,6 @@
 from __future__ import division, absolute_import
 from __future__ import print_function
 
-import logging
-import os
-
-import click
-
 from .clibase import cli, clilog  # noqa
 
 # the following imports register subcommands.
@@ -17,8 +12,7 @@ from .clibase import cli, clilog  # noqa
 # sure the whole world isn't loaded for any and every subcommand
 # invokation.
 
-import idb.start_data_api  # noqa
-import idb.indexing  # noqa
+from idb import (data_api, indexing)  # noqa
 
 @cli.group()
 def datatables():

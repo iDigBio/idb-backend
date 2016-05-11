@@ -12,7 +12,7 @@ from .clibase import cli, clilog  # noqa
 # sure the whole world isn't loaded for any and every subcommand
 # invokation.
 
-from idb import (data_api, indexing)  # noqa
+from idb import (data_api, indexing, stats)  # noqa
 
 @cli.group()
 def datatables():

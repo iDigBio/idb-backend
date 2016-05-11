@@ -2,7 +2,7 @@ from __future__ import division, absolute_import, print_function
 import sys
 
 from idb.postgres_backend import apidbpool
-from idb.stats_collector import es, indexName
+from idb import stats
 import datetime
 
 
@@ -21,7 +21,7 @@ def post_delete_stats(rsid):
         "deleted": True,
         "commited": True,
     }
-    es.index(index=indexName, doc_type="digest", body=summary)
+    stats.index(doc_type="digest", body=summary)
 
 
 def post_all_deleted_rs():
@@ -39,8 +39,7 @@ def post_all_deleted_rs():
     }
 
     deleted_recordsets = set()
-
-    rsp = es.search(index=indexName, doc_type="digest", body=deleted_query)
+    rsp = stats.search(doc_type="digest", body=deleted_query)
     for rs in rsp["hits"]["hits"]:
         deleted_recordsets.add(rs["_source"]["recordset_id"])
 

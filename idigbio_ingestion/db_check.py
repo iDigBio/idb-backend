@@ -17,6 +17,7 @@ from atomicfile import AtomicFile
 from psycopg2 import DatabaseError
 from boto.exception import S3ResponseError, S3DataError
 
+from idb import stats
 from idb.postgres_backend import apidbpool
 from idb.postgres_backend.db import PostgresDB, RecordSet
 from idb.helpers.etags import calcEtag, calcFileHash
@@ -27,7 +28,6 @@ from lib.delimited import DelimitedFile
 
 from idb.helpers.storage import IDigBioStorage
 
-from idb.stats_collector import es, indexName
 
 magic = magic.Magic(mime=True)
 
@@ -482,7 +482,7 @@ def metadataToSummaryJSON(rsid, metadata, writeFile=True, doStats=True):
     summary["dublicate_occurence_ids"] = duplicate_id_count
 
     if doStats:
-        es.index(index=indexName,doc_type="digest",body=summary)
+        stats.index(doc_type='digest', body=summary)
 
     if writeFile:
         with AtomicFile(rsid + ".summary.json", "wb") as jf:

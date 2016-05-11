@@ -1,4 +1,4 @@
-import os
+from __future__ import division, absolute_import, print_function
 import sys
 
 from idb.postgres_backend import apidbpool
@@ -44,7 +44,8 @@ def post_all_deleted_rs():
     for rs in rsp["hits"]["hits"]:
         deleted_recordsets.add(rs["_source"]["recordset_id"])
 
-    print "{} recordsets already marked as deleted in stats.".format(len(deleted_recordsets))
+    print("{} recordsets already marked as deleted in stats.".format(
+        len(deleted_recordsets)))
 
     count = 0
     with apidbpool.cursor() as cursor:
@@ -53,10 +54,10 @@ def post_all_deleted_rs():
         for r in cursor:
             if r["id"] not in deleted_recordsets:
                 count += 1
-                print "Deleting {}.".format(r["id"])
+                print("Deleting {}.".format(r["id"]))
                 post_delete_stats(r["id"])
 
-    print "{} recordsets deleted from stats.".format(count)
+    print("{} recordsets deleted from stats.".format(count))
 
 
 def main():

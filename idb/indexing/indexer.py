@@ -1,11 +1,15 @@
+from __future__ import division, absolute_import, print_function
+
 from pytz import timezone
 
 import elasticsearch
 import elasticsearch.helpers
 
+from idb.helpers.logging import idblogger
 from idb.helpers.conversions import fields, custom_mappings
 
 local_tz = timezone('US/Eastern')
+log = idblogger.getChild('indexing')
 
 
 def prepForEs(t, i):
@@ -34,6 +38,7 @@ def prepForEs(t, i):
 class ElasticSearchIndexer(object):
 
     def __init__(self, indexName, types, commitCount=100000, disableRefresh=True, serverlist=["localhost"], timeout=30):
+        log.info("Initializing ElasticSearchIndexer(%r, %r)", indexName, types)
         self.es = elasticsearch.Elasticsearch(
             serverlist, sniff_on_start=False, sniff_on_connection_fail=False, retry_on_timeout=True, max_retries=10, timeout=timeout)
         if not indexName.startswith('idigbio-'):
@@ -88,7 +93,8 @@ class ElasticSearchIndexer(object):
             m["_parent"] = {
                 "type": "records"
             }
-        print self.es.indices.put_mapping(index=self.indexName, doc_type=t, body={t: m})
+        res = self.es.indices.put_mapping(index=self.indexName, doc_type=t, body={t: m})
+        log.debug("Built mapping for %s: %s", t, res)
 
     def index(self, t, i):
         if t == "mediarecords" and "records" in i and len(i["records"]) > 0:
@@ -102,6 +108,7 @@ class ElasticSearchIndexer(object):
                 index=self.indexName, doc_type=t, id=i["uuid"], body=i)
 
     def optimize(self):
+        log.info("Running index optimization on %r", self.indexName)
         self.es.indices.optimize(index=self.indexName, max_num_segments=5)
 
     def bulk_formater(self, tups):

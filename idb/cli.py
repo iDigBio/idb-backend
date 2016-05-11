@@ -8,7 +8,17 @@ import click
 
 from .clibase import cli, clilog  # noqa
 
+# the following imports register subcommands.
+#
+# Each of these modules has been constructed to import
+# lazily. E.g. indexing only builds the command object and doesn't
+# import any of the elasticsearch code until one of the commands in it
+# is actually invoked. This helps keep startup speed quickly and makes
+# sure the whole world isn't loaded for any and every subcommand
+# invokation.
+
 import idb.start_data_api  # noqa
+import idb.indexing  # noqa
 
 @cli.group()
 def datatables():

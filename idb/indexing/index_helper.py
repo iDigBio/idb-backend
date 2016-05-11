@@ -1,7 +1,8 @@
 from __future__ import absolute_import
 from idb.helpers.conversions import grabAll
-from idb.elasticsearch_backend.indexer import prepForEs
 from idb.postgres_backend.db import tombstone_etag
+
+from .indexer import prepForEs
 
 
 def index_record(ei, rc, typ, r, do_index=True):

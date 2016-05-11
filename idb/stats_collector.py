@@ -1,14 +1,14 @@
 from __future__ import absolute_import
 import json
 import dateutil.parser
-import elasticsearch
+from collections import defaultdict
+from datetime import datetime, timedelta
+
 
 from idb.config import config
 from idb.postgres_backend import apidbpool, DictCursor
 from idb.postgres_backend.stats_db import statsdbpool
-
-from collections import defaultdict
-from datetime import datetime, timedelta
+from idb.indexing.indexer import get_connection
 
 
 def json_serial(obj):
@@ -23,10 +23,7 @@ def json_serial(obj):
 indexName = "stats-2.5.0"
 typeName = "search"
 
-sl = config["elasticsearch"]["servers"]
-
-es = elasticsearch.Elasticsearch(
-    sl, retry_on_timeout=True, max_retries=10, timeout=30)
+es = get_connection()
 
 record_types = ["records", "mediarecords"]
 stat_types = ["download", "mapping", "search", "seen", "view"]

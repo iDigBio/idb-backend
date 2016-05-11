@@ -5,11 +5,22 @@ from pytz import timezone
 import elasticsearch
 import elasticsearch.helpers
 
+from idb import config
 from idb.helpers.logging import idblogger
 from idb.helpers.conversions import fields, custom_mappings
 
 local_tz = timezone('US/Eastern')
 log = idblogger.getChild('indexing')
+
+
+def get_connection(**kwargs):
+    kwargs.setdefault('hosts', config.config["elasticsearch"]["servers"])
+    kwargs.setdefault('retry_on_timeout', True)  # this isn't valid until >=1.3
+    kwargs.setdefault('sniff_on_start', False)
+    kwargs.setdefault('sniff_on_connection_fail', False)
+    kwargs.setdefault('max_retries', 10)
+    kwargs.setdefault('timeout', 30)
+    return elasticsearch.Elasticsearch(**kwargs)
 
 
 def prepForEs(t, i):
@@ -39,11 +50,10 @@ class ElasticSearchIndexer(object):
 
     def __init__(self, indexName, types,
                  commitCount=100000, disableRefresh=True,
-                 serverlist=["localhost"], timeout=30):
+                 serverlist=["localhost"]):
         log.info("Initializing ElasticSearchIndexer(%r, %r)", indexName, types)
-        self.es = elasticsearch.Elasticsearch(
-            serverlist, sniff_on_start=False, sniff_on_connection_fail=False,
-            retry_on_timeout=True, max_retries=10, timeout=timeout)
+        self.es = get_connection(hosts=serverlist)
+
         if not indexName.startswith('idigbio-'):
             indexName = "idigbio-" + indexName
         self.indexName = indexName

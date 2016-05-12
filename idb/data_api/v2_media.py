@@ -55,24 +55,26 @@ def respond_to_record(r, deriv=None, format=None):
     else:
         text = "Media Error"
 
+    if format == "json":
+        d = {
+            "url": media_url,
+            "etag": objects_etag,
+            "filereference": raw_media_url,
+            "modified": modified and modified.isoformat(),
+            "user": owner,
+            "text": text,
+            "mime": media_mime
+        }
+        return jsonify({k: v for k, v in d.items() if v})
+    elif format is not None:
+        return json_error(400, "Unknown format '{0}'".format(format))
 
     if media_url is not None:
-        if format is None:
-            return redirect(media_url)
-        elif format == "json":
-            return jsonify({
-                "url": media_url,
-                "etag": objects_etag,
-                "filereference": raw_media_url,
-                "modified": modified.isoformat(),
-                "user": owner,
-                "text": text,
-                "mime": media_mime
-            })
-    else:
-        return Response(
-            render_template("_default.svg", text=text, mime=media_mime),
-            mimetype="image/svg+xml")
+        return redirect(media_url)
+
+    return Response(
+        render_template("_default.svg", text=text, mime=media_mime),
+        mimetype="image/svg+xml")
 
 
 @this_version.route('/view/mediarecords/<uuid:u>/media',

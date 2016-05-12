@@ -10,10 +10,26 @@
      height="100%"
      x="0"
      y="0" />
-  <text 
+
+  {%- if text and mime %}
+  <text
+     x="50%"
+     y="40%"
+     text-anchor="middle"
+     dominant-baseline="middle">
+     {{ text }}</text>
+  <text
+     x="50%"
+     y="60%"
+     text-anchor="middle"
+     dominant-baseline="middle">
+     {{ mime }}</text>
+  {% else %}
+    <text
      x="50%"
      y="50%"
      text-anchor="middle"
      dominant-baseline="middle">
-     {{ text }}</text>
+     {{ text|default("", True) }}{{ mime|default("", True) }}</text>
+  {% endif %}
 </svg>

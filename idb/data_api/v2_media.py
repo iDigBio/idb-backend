@@ -44,6 +44,18 @@ def respond_to_record(r, deriv=None, format=None):
     (raw_media_url, media_type, objects_etag, modified, owner, derivatives,
      media_mime, last_status) = r
 
+    if media_mime is None:
+        text = "Unknown Media Format"
+    elif media_type is None:
+        text = "Unsupported Media Format"
+    elif last_status is None:  # haven't downloaded yet
+        text = "Media Download Pending"
+    elif last_status == 200:
+        text = None
+    else:
+        text = "Media Error"
+
+
     if media_url is not None:
         if format is None:
             return redirect(media_url)
@@ -53,29 +65,14 @@ def respond_to_record(r, deriv=None, format=None):
                 "etag": objects_etag,
                 "filereference": raw_media_url,
                 "modified": modified.isoformat(),
-                "user": owner
+                "user": owner,
+                "text": text,
+                "mime": media_mime
             })
     else:
-        if media_mime is not None:  # We haven't generated an image derivative yet.
-            return Response(
-                render_template("_default.svg",
-                                text=media_mime),
-                mimetype="image/svg+xml")
-        elif media_type is None or mime_type is None:  # We haven't assigned the mime to a type bucket yet.
-            return Response(
-                render_template("_default.svg",
-                                text="Unknown Media Format"),
-                mimetype="image/svg+xml")
-        elif last_status is None:  # We haven't checked the file yet.
-            return Response(
-                render_template("_default.svg",
-                                text="Media Download Pending"),
-                mimetype="image/svg+xml")
-        else:
-            return Response(
-                render_template("_default.svg",
-                                text="Media Error"),
-                mimetype="image/svg+xml")
+        return Response(
+            render_template("_default.svg", text=text, mime=media_mime),
+            mimetype="image/svg+xml")
 
 
 @this_version.route('/view/mediarecords/<uuid:u>/media',

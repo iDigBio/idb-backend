@@ -65,16 +65,25 @@ def respond_to_record(r, deriv=None, format=None):
             "text": text,
             "mime": media_mime
         }
-        return jsonify({k: v for k, v in d.items() if v})
+        r = jsonify({k: v for k, v in d.items() if v})
+        r.cache_control.public = True
+        r.cache_control.max_age = 24 * 60 * 60  # 1d
+        return r
     elif format is not None:
         return json_error(400, "Unknown format '{0}'".format(format))
 
     if media_url is not None:
-        return redirect(media_url)
+        r = redirect(media_url)
+        r.cache_control.public = True
+        r.cache_control.max_age = 4 * 24 * 60 * 60  # 4d
+        return r
 
-    return Response(
+    r = Response(
         render_template("_default.svg", text=text, mime=media_mime),
         mimetype="image/svg+xml")
+    r.cache_control.public = True
+    r.cache_control.max_age = 24 * 60 * 60  # 1d
+    return r
 
 
 @this_version.route('/view/mediarecords/<uuid:u>/media',

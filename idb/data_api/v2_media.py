@@ -104,14 +104,21 @@ def lookup_uuid(u, format):
     rec = idbmodel.get_item(str(u))
     if rec is not None:
         ref = get_accessuri(rec["type"], rec["data"])["accessuri"]
-        r = idbmodel.fetchone(
-            """SELECT media.url, media.type, objects.etag, modified, owner,
-                      derivatives, media.mime, last_status
-            FROM media
-            LEFT JOIN media_objects ON media.url = media_objects.url
-            LEFT JOIN objects on media_objects.etag = objects.etag
-            WHERE media.url=%s
-        """, (ref,))
+        if (
+            ref.startswith("http://media.idigbio.org/lookup/images/") or
+            ref.startswith("https://media.idigbio.org/lookup/images/")
+        ):
+            return lookup_etag(ref.split("/")[-1], format)
+        else:
+            r = idbmodel.fetchone(
+                """SELECT media.url, media.type, objects.etag, modified, owner,
+                          derivatives, media.mime, last_status
+                FROM media
+                LEFT JOIN media_objects ON media.url = media_objects.url
+                LEFT JOIN objects on media_objects.etag = objects.etag
+                WHERE media.url=%s
+            """, (ref,))
+
         return respond_to_record(r, deriv=deriv, format=format)
     else:
         return json_error(404)

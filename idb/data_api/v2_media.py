@@ -21,17 +21,17 @@ DERIVATIONS = {'thumbnail', 'webview', 'fullsize'}
 
 
 def get_media_url(r, deriv=None):
-    (raw_media_url, media_type, objects_etag, modified, owner, derivatives,
+    (raw_media_url, media_type, etag, modified, owner, derivatives,
      media_mime, last_status) = r
 
-    if media_type is not None and objects_etag is not None:
+    if media_type is not None and etag is not None:
         if deriv is None:
             return "https://s.idigbio.org/idigbio-{0}-prod/{1}".format(
-                media_type, objects_etag)
+                media_type, etag)
         elif media_type in MTYPES and deriv in DERIVATIONS:
             if derivatives:  # If derivatives have been generated
                 return "https://s.idigbio.org/idigbio-{0}-prod-{2}/{1}.jpg".format(
-                    media_type, objects_etag, deriv)
+                    media_type, etag, deriv)
     return None
 
 
@@ -41,7 +41,7 @@ def respond_to_record(r, deriv=None, format=None):
 
     media_url = get_media_url(r, deriv=deriv)
 
-    (raw_media_url, media_type, objects_etag, modified, owner, derivatives,
+    (raw_media_url, media_type, etag, modified, owner, derivatives,
      media_mime, last_status) = r
 
     if media_mime is None:
@@ -58,7 +58,7 @@ def respond_to_record(r, deriv=None, format=None):
     if format == "json":
         d = {
             "url": media_url,
-            "etag": objects_etag,
+            "etag": etag,
             "filereference": raw_media_url,
             "modified": modified and modified.isoformat(),
             "user": owner,

@@ -49,6 +49,7 @@ For testing you will also need to run
 
     pip install -r test-requirements.txt
 
+
 ### Package installation
 
 This package itself needs to be installed to generate the CLI
@@ -62,3 +63,8 @@ updates everything):
 The main entry point is the `idb` command; you can run `idb --help` to
 see what subcommands are available. When invoking this script there is
 no need to set the `PYTHONPATH`.
+
+## Testing
+
+relies on having a local postgresql with user/pass `test` / `test`
+that can create databases.

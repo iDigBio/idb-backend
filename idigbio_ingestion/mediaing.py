@@ -156,7 +156,9 @@ def get_media(url, t, fmt):
 
     fobj = StringIO(response.content)
     try:
-        mo = MediaObject.fromobj(fobj, filereference=url)
+        mo = MediaObject.fromobj(
+            fobj, type=t, mime=fmt, url=url,
+            detected_mime=detected_mime)
     except UnknownMediaTypeError as umte:
         # This shouldn't happen given the above validation...
         raise ValidationFailure(url, fmt, umte.mime, response.content)
@@ -170,7 +172,7 @@ def get_media(url, t, fmt):
             mo.upload(stor, fobj)
             logger.debug("Uploaded etag %s, already present")
         with PostgresDB() as idbmodel:
-            mo.update_media(idbmodel, status=200)
+            mo.update_media(idbmodel)
             mo.ensure_object(idbmodel)
             mo.ensure_media_object(idbmodel)
             idbmodel.commit()

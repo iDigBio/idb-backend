@@ -1,4 +1,6 @@
 from __future__ import absolute_import
+from datetime import datetime
+
 from flask import (Blueprint, jsonify, url_for, request, redirect,
                    Response, render_template)
 
@@ -227,17 +229,16 @@ def upload():
     except KeyError:
         return json_error(400, "Missing filereference")
 
-    media_type = request.values.get("media_type")
-
-    r = idbmodel.fetchone(
-        """SELECT url, type, owner FROM media WHERE url=%s""", (filereference,))
-    if (r is not None and r["owner"] != request.authorization.username):
-        return json_error(403)
-
-    etag = request.values.get('etag', None)
-    obj = request.files.get('file', None)
+    etag = request.values.get('etag')
+    obj = request.files.get('file')
     if not obj and not etag:
         return json_error(400, "No file or etag posted")
+
+    media_type = request.values.get("media_type")
+
+    r = MediaObject.fromurl(filereference, idbmodel=idbmodel)
+    if r and r.owner != request.authorization.username:
+        return json_error(403)
 
     media_store = IDigBioStorage()
 
@@ -250,8 +251,13 @@ def upload():
         if not mobject or not mobject.get_key(media_store).exists():
             return json_error(404, "Unknown etag {0!r}".format(etag))
 
-    mobject.filereference = filereference
+    mobject.url = filereference
     mobject.owner = request.authorization.username
+    mobject.last_status = 200
+    mobject.last_check = datetime.now()
+    mobject.mime = mobject.detected_mime
+    mobject.type = mobject.bucket
+
     if r:
         mobject.update_media(idbmodel)
     else:

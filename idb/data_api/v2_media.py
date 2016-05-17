@@ -1,91 +1,96 @@
 from __future__ import absolute_import
 from datetime import datetime
 
-from flask import (Blueprint, jsonify, url_for, request, redirect,
+from flask import (Blueprint, jsonify, request, redirect,
                    Response, render_template)
 
-from idb.helpers.conversions import get_accessuri
+from idb.helpers.logging import idblogger
 from idb.helpers.idb_flask_authn import requires_auth
 from idb.helpers.cors import crossdomain
 from idb.helpers.storage import IDigBioStorage
-
 from idb.postgres_backend.db import MediaObject
 
 from .common import json_error, idbmodel
 
 this_version = Blueprint(__name__, __name__)
 
+logger = idblogger.getChild('mediapi')
+
 # TODO:
 # List endpoints?
 
-MTYPES = {'images', 'sounds'}
+
 DERIVATIONS = {'thumbnail', 'webview', 'fullsize'}
 
 
 def get_media_url(r, deriv=None):
-    (raw_media_url, media_type, etag, modified, owner, derivatives,
-     media_mime, last_status) = r
+    "Build the url for accessing the media in storage"
 
-    if media_type is not None and etag is not None:
+    if r.bucket is not None and r.etag is not None:
         if deriv is None:
-            return "https://s.idigbio.org/idigbio-{0}-prod/{1}".format(
-                media_type, etag)
-        elif media_type in MTYPES and deriv in DERIVATIONS:
-            if derivatives:  # If derivatives have been generated
-                return "https://s.idigbio.org/idigbio-{0}-prod-{2}/{1}.jpg".format(
-                    media_type, etag, deriv)
+            return "https://s.idigbio.org/{0}/{1}".format(
+                r.bucketname, r.etag)
+        elif deriv in DERIVATIONS:
+            if r.derivatives:  # If derivatives have been generated
+                return "https://s.idigbio.org/{0}-{2}/{1}.jpg".format(
+                    r.bucketname, r.etag, deriv)
     return None
+
+
+def get_json_for_record(r, deriv, **extra):
+    media_url = get_media_url(r, deriv)
+    d = {
+        "filereference": r.url,
+        "url": media_url,
+        "type": r.type or r.bucket,
+        "etag": r.etag,
+        "modified": r.modified and r.modified.isoformat(),
+        "user": r.owner,
+        "mime": r.detected_mime or r.mime
+    }
+    d.update(extra)
+    # filter out nulls
+    return {k: v for k, v in d.items() if v}
 
 
 def respond_to_record(r, deriv=None, format=None):
     if r is None:
         return json_error(404)
-
     media_url = get_media_url(r, deriv=deriv)
+    mime = r.mime or r.detected_mime
 
-    (raw_media_url, media_type, etag, modified, owner, derivatives,
-     media_mime, last_status) = r
-
-    if media_mime is None:
-        text = "Unknown Media Format"
-    elif media_type is None:
-        text = "Unsupported Media Format"
-    elif last_status is None:  # haven't downloaded yet
-        text = "Media Download Pending"
-    elif last_status == 200:
+    if media_url:
         text = None
+    elif mime is None:
+        text = "Unknown Format"
+    elif (r.type or r.bucket) is None:
+        text = "Unsupported Format"
+    elif r.last_status is None:  # haven't downloaded yet
+        text = "Media Download Pending"
     else:
         text = "Media Error"
 
     if format == "json":
-        d = {
-            "url": media_url,
-            "etag": etag,
-            "filereference": raw_media_url,
-            "modified": modified and modified.isoformat(),
-            "user": owner,
-            "text": text,
-            "mime": media_mime
-        }
-        r = jsonify({k: v for k, v in d.items() if v})
-        r.cache_control.public = True
-        r.cache_control.max_age = 24 * 60 * 60  # 1d
-        return r
+        d = get_json_for_record(r, deriv, text=text)
+        response = jsonify(d)
+        response.cache_control.public = True
+        response.cache_control.max_age = 24 * 60 * 60  # 1d
+        return response
     elif format is not None:
         return json_error(400, "Unknown format '{0}'".format(format))
 
     if media_url is not None:
-        r = redirect(media_url)
-        r.cache_control.public = True
-        r.cache_control.max_age = 4 * 24 * 60 * 60  # 4d
-        return r
+        response = redirect(media_url)
+        response.cache_control.public = True
+        response.cache_control.max_age = 4 * 24 * 60 * 60  # 4d
+        return response
 
-    r = Response(
-        render_template("_default.svg", text=text, mime=media_mime),
+    response = Response(
+        render_template("_default.svg", text=text, mime=r.mime),
         mimetype="image/svg+xml")
-    r.cache_control.public = True
-    r.cache_control.max_age = 24 * 60 * 60  # 1d
-    return r
+    response.cache_control.public = True
+    response.cache_control.max_age = 24 * 60 * 60  # 1d
+    return response
 
 
 @this_version.route('/view/mediarecords/<uuid:u>/media',
@@ -111,27 +116,8 @@ def lookup_uuid(u, format):
     elif "size" in request.args:
         deriv = request.args["size"]
 
-    rec = idbmodel.get_item(str(u))
-    if rec is not None:
-        ref = get_accessuri(rec["type"], rec["data"])["accessuri"]
-        if (
-            ref.startswith("http://media.idigbio.org/lookup/images/") or
-            ref.startswith("https://media.idigbio.org/lookup/images/")
-        ):
-            return lookup_etag(ref.split("/")[-1], format)
-        else:
-            r = idbmodel.fetchone(
-                """SELECT media.url, media.type, objects.etag, modified, owner,
-                          derivatives, media.mime, last_status
-                FROM media
-                LEFT JOIN media_objects ON media.url = media_objects.url
-                LEFT JOIN objects on media_objects.etag = objects.etag
-                WHERE media.url=%s
-            """, (ref,))
-
-        return respond_to_record(r, deriv=deriv, format=format)
-    else:
-        return json_error(404)
+    r = MediaObject.fromuuid(u, idbmodel=idbmodel)
+    return respond_to_record(r, deriv=deriv, format=format)
 
 
 @this_version.route('/media/<string:etag>',
@@ -147,14 +133,8 @@ def lookup_etag(etag, format):
     elif "size" in request.args:
         deriv = request.args["size"]
 
-    r = idbmodel.fetchone(
-        """SELECT media.url, media.type, objects.etag, modified, owner,
-                  derivatives, media.mime, last_status
-        FROM media
-        LEFT JOIN media_objects ON media.url = media_objects.url
-        LEFT JOIN objects on media_objects.etag = objects.etag
-        WHERE objects.etag=%s
-    """, (etag,))
+    r = MediaObject.frometag(etag, idbmodel=idbmodel)
+
     return respond_to_record(r, deriv=deriv, format=format)
 
 
@@ -181,50 +161,20 @@ def lookup_ref(format):
                 params[pk] = request.args[ak]
 
     if "url" in params:
-        r = idbmodel.fetchone(
-            """SELECT media.url, media.type, objects.etag, modified, owner,
-                      derivatives, media.mime, last_status
-            FROM media
-            LEFT JOIN media_objects ON media.url = media_objects.url
-            LEFT JOIN objects on media_objects.etag = objects.etag
-            WHERE media.url=%(url)s
-        """, params)
-        return respond_to_record(r, deriv=deriv, format=format)
-    else:
-        where = "WHERE "
-        where_a = ["objects.etag IS NOT NULL"]
-        for k in params:
-            if k == "prefix":
-                where_a.append("media.url LIKE %({0})s".format(k))
-                params[k] += "%"
-            else:
-                where_a.append("{0}=%({0})s".format(k))
+        mo = MediaObject.fromurl(params['url'])
+        return respond_to_record(mo, deriv=deriv, format=format)
 
-        if len(where_a) > 0:
-            where += " AND ".join(where_a)
-
-        results = idbmodel.fetchall(
-            """SELECT media.url, media.type, objects.etag, modified, owner,
-                      derivatives, media.mime, last_status
-            FROM media
-            LEFT JOIN media_objects ON media.url = media_objects.url
-            LEFT JOIN objects on media_objects.etag = objects.etag
-        """ + where + " LIMIT 100", params)
-        files = []
-        for r in results:
-            files.append({
-                "filereference": r[0],
-                "url": url_for(".lookup_etag",
-                               etag=r[2],
-                               _external=True,
-                               _scheme='https',
-                               deriv=deriv),
-                "etag": r[2],
-                "user": r[4],
-                "type": r[1],
-                "mime": r[6]
-            })
-        return jsonify({"files": files, "count": len(files)})
+    where = []
+    for k in params:
+        if k == "prefix":
+            where.append("media.url LIKE %(prefix)s")
+            params["prefix"] += "%"
+        else:
+            where.append("{0}=%({0})s".format(k))
+    results = MediaObject.query(conditions=where, params=params, idbmodel=idbmodel)
+    logger.debug("Formatting %d results", len(results))
+    files = [get_json_for_record(r, deriv) for r in results]
+    return jsonify({"files": files, "count": len(files)})
 
 
 @this_version.route('/media', methods=['POST'])
@@ -250,35 +200,26 @@ def upload():
     media_store = IDigBioStorage()
 
     if obj:
-        mobject = MediaObject.fromobj(obj, mtype=media_type)
-        mobject.upload(media_store, obj)
-        mobject.insert_object(idbmodel)
+        mo = MediaObject.fromobj(obj, mtype=media_type)
+        mo.upload(media_store, obj)
+        mo.insert_object(idbmodel)
     else:
-        mobject = MediaObject.frometag(etag, idbmodel)
-        if not mobject or not mobject.get_key(media_store).exists():
+        mo = MediaObject.frometag(etag, idbmodel)
+        if not mo or not mo.get_key(media_store).exists():
             return json_error(404, "Unknown etag {0!r}".format(etag))
 
-    mobject.url = filereference
-    mobject.owner = request.authorization.username
-    mobject.last_status = 200
-    mobject.last_check = datetime.now()
-    mobject.mime = mobject.detected_mime
-    mobject.type = mobject.bucket
+    mo.url = filereference
+    mo.owner = request.authorization.username
+    mo.last_status = 200
+    mo.last_check = datetime.now()
+    mo.mime = mo.detected_mime
+    mo.type = mo.bucket
 
     if r:
-        mobject.update_media(idbmodel)
+        mo.update_media(idbmodel)
     else:
-        mobject.insert_media(idbmodel)
+        mo.insert_media(idbmodel)
 
-    mobject.ensure_media_object(idbmodel)
-
+    mo.ensure_media_object(idbmodel)
     idbmodel.commit()
-    r = idbmodel.fetchone(
-        """SELECT media.url, media.type, objects.etag, modified, owner,
-                  derivatives, media.mime, last_status
-        FROM media
-        LEFT JOIN media_objects ON media.url = media_objects.url
-        LEFT JOIN objects on media_objects.etag = objects.etag
-        WHERE objects.etag=%s
-    """, (mobject.etag,))
-    return respond_to_record(r, format='json')
+    return respond_to_record(mo, format='json')

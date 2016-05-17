@@ -16,7 +16,7 @@ from idb.helpers.logging import idblogger as logger
 from idb.postgres_backend import apidbpool
 from idb.helpers.etags import calcEtag, calcFileHash
 from idb.helpers.media_validation import sniff_validation
-from idb.helpers.conversions import valid_buckets
+from idb.helpers.conversions import valid_buckets, get_accessuri
 
 
 TEST_SIZE = 10000
@@ -559,6 +559,7 @@ class PostgresDB(object):
             } for x in usl
         ])
 
+
 class MediaObject(object):
     """Helper that represents media objects from the db.
 
@@ -591,6 +592,11 @@ class MediaObject(object):
 
     @classmethod
     def fromurl(cls, url, idbmodel=apidbpool):
+        # Patch special case from old media url.
+        if (url.startswith("http://media.idigbio.org/lookup/images/") or
+            url.startswith("https://media.idigbio.org/lookup/images/")):
+            return cls.frometag(url.split("/")[-1], idbmodel=idbmodel)
+
         sql = """
             SELECT DISTINCT ON(media.url)
                    media.url, media.type, media.owner, media.mime,
@@ -624,6 +630,36 @@ class MediaObject(object):
         r = idbmodel.fetchone(sql, (etag,), cursor_factory=cursor)
         if r:
             return cls(*r)
+
+    @classmethod
+    def query(cls, conditions=None, params=tuple([]), limit=100, idbmodel=apidbpool):
+        "A more general query, the conditions need to be only against media table."
+        if conditions:
+            where = "WHERE " + " AND ".join(conditions)
+        else:
+            where = ""
+
+        sql = """
+            SELECT DISTINCT ON(media.url)
+                   media.url, media.type, media.owner, media.mime,
+                   media.last_check, media.last_status, media_objects.modified,
+                   objects.etag, objects.detected_mime, objects.derivatives,
+                   objects.bucket
+                 FROM (SELECT * FROM media {0} LIMIT {1}) AS media
+                 JOIN media_objects ON media.url = media_objects.url
+                 JOIN objects ON media_objects.etag = objects.etag
+                 ORDER BY media.url, media_objects.modified DESC
+        """.format(where, limit)
+        results = idbmodel.fetchall(sql, params, cursor_factory=cursor)
+        return [cls(*r) for r in results]
+
+    @classmethod
+    def fromuuid(cls, uuid, idbmodel=None):
+        uuid = str(uuid)
+        rec = idbmodel.get_item(uuid)
+        if rec is not None:
+            ref = get_accessuri(rec["type"], rec["data"])["accessuri"]
+            return cls.fromurl(ref, idbmodel=idbmodel)
 
     @classmethod
     def fromobj(cls, obj, **attrs):

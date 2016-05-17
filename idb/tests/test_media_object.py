@@ -87,6 +87,18 @@ def test_mobj_full_run(testidbmodel, jpgpath):
             assert(getattr(mobj, s) == getattr(mfu, s))
 
 
+def test_mobj_media_idigibio_patch(testidbmodel):
+    etag = "924709c6ebbd34030468185a323a437"
+    url = "http://media.idigbio.org/lookup/images/" + etag
+    mo = MediaObject(etag=etag, bucket="images", detected_mime='image/jpeg')
+    mo.ensure_object(idbmodel=testidbmodel)
+
+    mfu = MediaObject.fromurl(url, idbmodel=testidbmodel)
+    assert mfu.etag == etag
+    assert mfu.detected_mime == 'image/jpeg'
+    assert mfu.url is None
+
+
 @prodonly
 def test_mobj_from_url_live(idbmodel):
     url = 'http://hasbrouck.asu.edu/imglib/seinet/DES/DES00043/DES00043839_lg.jpg'

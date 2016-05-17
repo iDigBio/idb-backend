@@ -6,5 +6,5 @@
         delaycompress
         notifempty
         create 660 root adm
-        su root adm
+#        su root adm
 }

@@ -12,7 +12,8 @@ from psycopg2.extensions import cursor
 from psycopg2.extensions import (ISOLATION_LEVEL_READ_COMMITTED,
                                  ISOLATION_LEVEL_AUTOCOMMIT,
                                  TRANSACTION_STATUS_IDLE)
-from idb.config import logger
+from idb import config
+from idb.helpers.logging import idblogger as logger
 from idb.postgres_backend import apidbpool
 from idb.helpers.etags import calcEtag, calcFileHash
 from idb.helpers.media_validation import sniff_validation
@@ -752,7 +753,8 @@ class RecordSet(object):
         logger.info("Fetching etag %s to %r", etag, filename)
         bucketname = "idigbio-{0}-{1}".format(bucket, os.environ["ENV"])
         k = media_store.get_key(etag, bucketname)
-        k.get_contents_to_filename(filename)
+        media_store.get_contents_to_filename(k, filename, md5=etag)
+
 
 
 def main():

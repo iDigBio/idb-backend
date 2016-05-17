@@ -1,18 +1,29 @@
 import requests
 import json
 
-
+from idb.postgres_backend import apidbpool, cursor
 from idb.postgres_backend.db import PostgresDB
 
-def main3():
-    db = PostgresDB()
-    sql = "SELECT * FROM recordsets WHERE ingest=true and uuid IS NOT NULL AND file_harvest_date IS NOT NULL ORDER BY file_harvest_date"
 
-    for r in db.fetchall(sql):
-        try:
-            print r["uuid"]
-        except:
-            traceback.print_exc()
+def get_active_rsids(since=None):
+    sql = """
+        SELECT uuid
+        FROM recordsets
+        WHERE ingest=true
+          AND uuid IS NOT NULL
+          AND file_harvest_date IS NOT NULL
+    """
+    params = []
+    if since:
+        sql += "AND file_harvest_date >= %s"
+        params.append(since)
+    sql += "ORDER BY file_harvest_date DESC"
+    return [r[0] for r in apidbpool.fetchall(sql, params, cursor_factory=cursor)]
+
+
+def main3():
+    for rsid in get_active_rsids():
+        print(rsid)
 
 def main2():
     for r in PostgresDB.get_type_list("recordset", limit=None):

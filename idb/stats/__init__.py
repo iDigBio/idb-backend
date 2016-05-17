@@ -1,0 +1,51 @@
+from __future__ import division, absolute_import, print_function
+import dateutil.parser
+from datetime import datetime
+
+import click
+from idb.indexing.indexer import get_connection
+
+
+indexName = "stats-2.5.0"
+typeName = "search"
+
+
+def index(index=indexName, body=None, doc_type=typeName, es=None):
+    if es is None:
+        es = get_connection()
+    return es.index(index=index, doc_type=doc_type, body=body)
+
+
+def search(index=indexName, body=None, doc_type=typeName, es=None):
+    if es is None:
+        es = get_connection()
+    return es.query(index=index, body=body, doc_type=doc_type)
+
+
+from idb.clibase import cli
+
+@cli.command(name="collect-stats",
+             help="Collect the stats for a day from postgres, defaults to yesterday")
+@click.option('--date', '-d', default=datetime.now().isoformat(),
+              help="date to collect for, '*' for all dates")
+@click.option('--mapping/--no-mapping', default=False, help="write mapping")
+def collect_stats(date, mapping):
+    from . import collect
+    if mapping:
+        collect.put_search_stats_mapping()
+
+    if date == '*':
+        for d in collect.get_stats_dates():
+            collect.collect_stats(d)
+    else:
+        collect_datetime = dateutil.parser.parse(date)
+        collect.collect_stats(collect_datetime)
+
+
+@cli.command(name="api-stats", help="write out the api stats")
+@click.option('--mapping/--no-mapping', default=False, help="write mapping")
+def api_stats(mapping):
+    from . import collect
+    if mapping:
+        collect.put_search_stats_mapping()
+    collect.api_stats()

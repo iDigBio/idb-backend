@@ -2,12 +2,12 @@ import unicodecsv as csv
 import traceback
 import codecs
 import io
+import logging
 
 from collections import defaultdict
 
-import logging
-from .log import getIDigBioLogger
 from .fileproxy import FileProxy
+from idb.helpers.logging import idblogger, getLogger
 from idb.helpers.fieldnames import get_canonical_name, types
 
 
@@ -62,9 +62,9 @@ class DelimitedFile(object):
             fh, "r", encoding=encoding, errors="flag_error")
 
         if logname is None:
-            self.logger = getIDigBioLogger(self.name)
+            self.logger = idblogger.getChild('df')
         else:
-            self.logger = getIDigBioLogger(logname + "." + self.name)
+            self.logger = getLogger(logname)
 
         encoded_lines = (l.encode("utf-8") for l in self.filehandle)
         if self.fieldenc is None or self.fieldenc == "":

@@ -1,37 +1,40 @@
 #from __future__ import absolute_import
 from __future__ import print_function
-import os
-import sys
-import re
 import datetime
+import functools
+import io
+import json
+import logging
+import multiprocessing
+import os
+import re
+import subprocess
+import sys
 import traceback
 
 import magic
-import json
-import logging
+from atomicfile import AtomicFile
 from psycopg2 import DatabaseError
-from boto.exception import S3ResponseError
+from boto.exception import S3ResponseError, S3DataError
+
+from idb import stats
+from idb.postgres_backend import apidbpool
 from idb.postgres_backend.db import PostgresDB, RecordSet
 from idb.helpers.etags import calcEtag, calcFileHash
+from idb.helpers.logging import add_file_handler, idblogger
 
-from lib.log import getIDigBioLogger, formatter
 from lib.dwca import Dwca
 from lib.delimited import DelimitedFile
 
 from idb.helpers.storage import IDigBioStorage
 
-from idb.stats_collector import es, indexName
 
 magic = magic.Magic(mime=True)
 
 bad_chars = u"\ufeff"
 bad_char_re = re.compile("[%s]" % re.escape(bad_chars))
 
-logger = getIDigBioLogger("idigbio")
-for h in logger.handlers:
-    h.setFormatter(formatter)
-logger.setLevel(logging.INFO)
-
+logger = idblogger.getChild("db-check")
 
 uuid_re = re.compile(
     "([a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12})")
@@ -364,7 +367,7 @@ def process_file(fname, mime, rsid, existing_etags, existing_ids, ingest=False, 
     db = PostgresDB()
 
     if mime == "application/zip":
-        dwcaobj = Dwca(fname, skipeml=True, logname="idigbio")
+        dwcaobj = Dwca(fname, skipeml=True, logname="idb")
         for dwcrf in dwcaobj.extensions:
             counts[dwcrf.name] = process_subfile(
                 dwcrf, rsid, existing_etags, existing_ids, ingest=ingest, db=db)
@@ -433,11 +436,12 @@ def process_file(fname, mime, rsid, existing_etags, existing_ids, ingest=False, 
 
 
 def save_summary_json(rsid, counts):
-    with open(rsid + ".summary.json", "wb") as sumf:
+    with AtomicFile(rsid + ".summary.json", "wb") as sumf:
         json.dump(counts, sumf, indent=2)
 
 
 def metadataToSummaryJSON(rsid, metadata, writeFile=True, doStats=True):
+    logger.info("%s writing summary json", rsid)
     summary = {
         "recordset_id": rsid,
         "filename": metadata["name"],
@@ -478,33 +482,27 @@ def metadataToSummaryJSON(rsid, metadata, writeFile=True, doStats=True):
     summary["dublicate_occurence_ids"] = duplicate_id_count
 
     if doStats:
-        es.index(index=indexName,doc_type="digest",body=summary)
+        stats.index(doc_type='digest', body=summary)
 
     if writeFile:
-        with open(rsid + ".summary.json", "wb") as jf:
+        with AtomicFile(rsid + ".summary.json", "wb") as jf:
             json.dump(summary, jf, indent=2)
-        with open(rsid + ".metadata.json", "wb") as jf:
+        with AtomicFile(rsid + ".metadata.json", "wb") as jf:
             json.dump(metadata, jf, indent=2)
     else:
         return summary
 
 
-def main():
-    if len(sys.argv) == 1:
-        print("Usage: db_check.py [ingest] <RSID>", file=sys.stderr)
-        sys.exit(1)
-    ingest = sys.argv[1] == "ingest"
-    rsid = sys.argv[-1]
-
-    fh = logging.FileHandler(rsid + ".db_check.log")
-    fh.setLevel(logging.INFO)
-    fh.setFormatter(formatter)
-    logger.addHandler(fh)
-
+def main(rsid, ingest=False):
+    add_file_handler(logger,
+                     logdir=os.getcwd(), filename=rsid + ".db_check.log",
+                     level=logging.INFO)
+    logger.info("%s: Starting db_check ingest: %r", rsid, ingest)
+    t = datetime.datetime.now()
     try:
         name, mime = get_file(rsid)
-    except S3ResponseError:
-        logger.exception("Failed fetching rsid: %s", rsid)
+    except (S3ResponseError, S3DataError):
+        logger.exception("%s: failed fetching archive", rsid)
         sys.exit(1)
 
     if os.path.exists(rsid + "_uuids.json") and os.path.exists(rsid + "_ids.json"):
@@ -513,10 +511,11 @@ def main():
         with open(rsid + "_ids.json", "rb") as idf:
             db_i_d = json.load(idf)
     else:
+        logger.info("%s: Building ids/uuids json", rsid)
         db_u_d, db_i_d = get_db_dicts(rsid)
-        with open(rsid + "_uuids.json", "wb") as uuidf:
+        with AtomicFile(rsid + "_uuids.json", "wb") as uuidf:
             json.dump(db_u_d, uuidf)
-        with open(rsid + "_ids.json", "wb") as idf:
+        with AtomicFile(rsid + "_ids.json", "wb") as idf:
             json.dump(db_i_d, idf)
 
     commit_force = False
@@ -525,6 +524,49 @@ def main():
 
     metadata = process_file(name, mime, rsid, db_u_d, db_i_d, ingest=ingest, commit_force=commit_force)
     metadataToSummaryJSON(rsid, metadata)
+    logger.info("%s: Finished db_check in %0.3fs", rsid, (datetime.datetime.now() - t).total_seconds())
+    return rsid
 
-if __name__ == '__main__':
-    main()
+
+def _main_ignore_interrupts(*args, **kwargs):
+    try:
+        return main(*args, **kwargs)
+    except KeyboardInterrupt:
+        logger.debug("Child KeyboardInterrupt")
+        pass
+
+def all(since=None, ingest=False):
+    from .db_rsids import get_active_rsids
+    from .ds_sum_counts import main as ds_sum_counts
+
+    rsids = get_active_rsids(since=since)
+    logger.info("Checking %s recordsets", len(rsids))
+
+    # Need to ensure all the connections are closed before multiprocessing forks
+    apidbpool.closeall()
+
+    pool = multiprocessing.Pool()
+    try:
+        results = list(
+            pool.imap_unordered(
+                functools.partial(_main_ignore_interrupts, ingest=ingest),
+                rsids))
+    except KeyboardInterrupt:
+        logger.debug("Got KeyboardInterrupt")
+        raise
+
+    logger.info("Generating... summary.csv")
+    ds_sum_counts('./', 'summary.csv', 'suspects.csv')
+    logger.info("Converting summary.csv (all recordsets subject to ingestion) to columnar human readable report... summary.pretty.txt")
+    columnize('summary.csv', 'summary.pretty.txt')
+    logger.info("Converting suspects.csv (recordsets with questionable updates) to columnar human readable report... suspects.pretty.txt")
+    columnize('suspects.csv', 'suspects.pretty.txt')
+
+
+def columnize(ifile, ofile):
+    #column -ts ',' summary.csv | sort > summary.pretty.txt
+    p = subprocess.popen(['column' '-ts', ',', ifile], stdout=subprocess.PIPE)
+    lines = p.stdout.readlines()
+    with io.open(ofile, 'w', encoding='utf-8') as out:
+        for l in sorted(lines):
+            out.write(l)

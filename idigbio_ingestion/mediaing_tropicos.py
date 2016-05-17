@@ -6,8 +6,9 @@ monkey.patch_all()
 import time
 import requests.exceptions
 from idb.postgres_backend import apidbpool
-from idigbio_ingestion.lib.log import logger
 from idigbio_ingestion import mediaing
+
+logger = mediaing.logger
 
 mediaing.POOL_SIZE = 1
 mediaing.REQ_CONNECT_TIMEOUT = 5 * 60
@@ -17,7 +18,7 @@ mediaing.IGNORE_PREFIXES = [
     "http://firuta.huh.harvard.edu/"
 ]
 
-TROPICOS_URLFILTER = 'http://www.tropicos.org/%'
+TROPICOS_PREFIX = 'http://www.tropicos.org/'
 
 #All sleep counts are in seconds
 SLEEP_BLACKLIST = 49 * 60
@@ -97,11 +98,3 @@ def get_media_wrapper(tup, cache_bad=False):
             return 1000
 
 mediaing.get_media_wrapper = get_media_wrapper
-
-
-if __name__ == '__main__':
-    import logging
-    logging.root.setLevel(logging.INFO)
-    logging.getLogger('boto').setLevel(logging.WARNING)
-    logging.getLogger('requests').setLevel(logging.WARNING)
-    mediaing.main(TROPICOS_URLFILTER)

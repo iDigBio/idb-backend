@@ -1,6 +1,4 @@
 from __future__ import absolute_import
-from gevent import monkey
-monkey.patch_all()
 
 from cStringIO import StringIO
 from collections import Counter
@@ -18,7 +16,9 @@ from idb.helpers.storage import IDigBioStorage
 from idb.helpers.media_validation import UnknownMediaTypeError, get_validator
 from idb.helpers.conversions import get_accessuri, get_media_type
 
-from idigbio_ingestion.lib.log import logger
+from idb.helpers.logging import idblogger
+
+logger = idblogger.getChild('mediaing')
 
 POOL_SIZE = 5
 LAST_CHECK_INTERVAL = '1 month'
@@ -31,8 +31,6 @@ IGNORE_PREFIXES = [
     "http://firuta.huh.harvard.edu/",
     "http://www.tropicos.org/"
 ]
-
-
 
 
 @memoized()
@@ -185,8 +183,8 @@ def get_media(url, t, fmt):
         raise GetMediaError(url, status, inner=e)
 
 
-def write_urls_to_db(media_urls):
-    logger.info("Start Inserts")
+def write_urls_to_db(media_urls, prefix=None):
+    logger.info("Searching for new URLs")
     inserted_urls = set()
 
     scanned = 0
@@ -196,44 +194,48 @@ def write_urls_to_db(media_urls):
                  WHERE type='mediarecord' and deleted=false"""
 
     for r in apidbpool.fetchiter(itersql, named=True):
+        if scanned % 100000 == 0:
+            logger.info("Inserting: %8d, Updating: %8d, Scanned: %8d",
+                        len(to_insert), len(to_update), scanned)
+
         scanned += 1
         url = get_accessuri(r["type"], r["data"])["accessuri"]
         o = get_media_type(r["type"], r["data"])
         form = o["format"]
         t = o["mediatype"]
 
-        if url is not None:
-            url = url.replace("&amp;", "&").strip()
-            if not check_ignore_media(url):
-                if url in media_urls:
-                    # We're going to change something, but only if we're
-                    # adding/replacing things, not nulling existing values.
-                    if not (t, form) == media_urls[url] and form is not None and (t is not None or media_urls[url][0] is None):
-                        to_update.append((t, form, url))
-                elif url not in inserted_urls:
-                    to_insert.append((url, t, form))
-                    inserted_urls.add(url)
+        if url is None:
+            continue
 
-        if scanned % 100000 == 0:
-            logger.info("Inserting: %8d, Updating: %8d, Scanned: %8d",
-                        len(to_insert), len(to_update), scanned)
+        url = url.replace("&amp;", "&").strip()
+        if check_ignore_media(url) or (prefix and not url.startswith(prefix)):
+            continue
+        if url in media_urls:
+            # We're going to change something, but only if we're
+            # adding/replacing things, not nulling existing values.
+            if not (t, form) == media_urls[url] and form is not None and (t is not None or media_urls[url][0] is None):
+                to_update.append((t, form, url))
+        elif url not in inserted_urls:
+            to_insert.append((url, t, form))
+            inserted_urls.add(url)
+
     with apidbpool.cursor() as cur:
         cur.executemany("INSERT INTO media (url,type,mime) VALUES (%s,%s,%s)", to_insert)
         cur.executemany("UPDATE media SET type=%s, mime=%s, last_status=NULL, last_check=NULL WHERE url=%s",
                         to_update)
 
-    logger.info("Inserting: %8d, Updating: %8d, Scanned: %8d (Finished)",
+    logger.info("Inserted : %8d, Updated : %8d, Scanned: %8d (Finished)",
                 len(to_insert), len(to_update), scanned)
 
 
-def get_postgres_media_urls(urlfilter=None):
+def get_postgres_media_urls(prefix=None):
     media_urls = dict()
-    logger.info("Get Media URLs, urlfilter: %r", urlfilter)
+    logger.info("Get Media URLs, prefix: %r", prefix)
     sql = "SELECT url,type,mime FROM media"
     params = []
-    if urlfilter:
-        sql += "\nWHERE url LIKE %s"
-        params.append(urlfilter)
+    if prefix:
+        sql += " WHERE url LIKE %s"
+        params.append(prefix + '%')
 
     for r in apidbpool.fetchiter(sql, params, cursor_factory=cursor):
         media_urls[r[0]] = (r[1], r[2])
@@ -241,8 +243,8 @@ def get_postgres_media_urls(urlfilter=None):
     return media_urls
 
 
-def get_postgres_media_objects(urlfilter):
-    assert urlfilter is None, "urlfilter isn't implemented on this function"
+def get_postgres_media_objects(prefix):
+    assert prefix is None, "prefix isn't implemented on this function"
     count, rowcount, lrc = 0, 0, 0
     sql = "SELECT lookup_key, etag, date_modified FROM idb_object_keys"
     with apidbpool.connection() as insertconn:
@@ -307,7 +309,7 @@ def get_objects_from_ceph():
                 logger.info("Count: %8d,  rowcount: %8d  (Finished %s)", count, rowcount, b_k)
 
 
-def get_media_generator_filtered(urlfilter):
+def get_media_generator_filtered(prefix):
     sql = """
         SELECT url,type,mime
         FROM (
@@ -321,13 +323,13 @@ def get_media_generator_filtered(urlfilter):
            ) AS a
         WHERE a.etag IS NULL"""
     url_rows = apidbpool.fetchall(
-        sql, {'urlfilter': urlfilter, 'interval': LAST_CHECK_INTERVAL},
+        sql, {'urlfilter': prefix + '%', 'interval': LAST_CHECK_INTERVAL},
         cursor_factory=cursor)
-    logger.info("Found %d urls to check for filter %r", len(url_rows), urlfilter)
+    logger.info("Found %d urls to check with prefix %r", len(url_rows), prefix)
     return url_rows
 
 
-def get_media_generator(urlfilter=None):
+def get_media_generator():
     sql = """
         SELECT * FROM (
             SELECT substring(url from 'https?://[^/]*[/?]'), count(*)
@@ -349,16 +351,16 @@ def get_media_generator(urlfilter=None):
     logger.info("Found %d urlprefixes", len(subs_rows))
     for sub_row in subs_rows:
         subs = sub_row[0]
-        for r in get_media_generator_filtered(subs + '%'):
+        for r in get_media_generator_filtered(subs):
             yield r
 
-def get_media_consumer(urlfilter):
-    logger.info("Starting get_media, urlfilter:%s", urlfilter)
+def get_media_consumer(prefix):
+    logger.info("Starting get_media, prefix:%s", prefix)
     p = Pool(POOL_SIZE)
     count = 0
     counts = Counter()
-    if urlfilter:
-        urls = get_media_generator_filtered(urlfilter)
+    if prefix:
+        urls = get_media_generator_filtered(prefix)
     else:
         urls = get_media_generator()
 
@@ -371,26 +373,9 @@ def get_media_consumer(urlfilter):
     logger.info("Count: %8d; codecounts: %r (Finished)", count, counts.most_common())
 
 
-def main(urlfilter=None):
-    import sys
-    #MediaObject.create_schema()
-
-    if len(sys.argv) > 1 and sys.argv[1] in ("get_media", "get-media"):
-        get_media_consumer(urlfilter)
-    else:
-        media_urls = get_postgres_media_urls(urlfilter)
-        write_urls_to_db(media_urls)
-        # get_objects_from_ceph()
-        # get_postgres_media_objects(urlfilter)
-
-
-
-if __name__ == '__main__':
-    import logging
-    logging.root.setLevel(logging.INFO)
-    logging.getLogger('boto').setLevel(logging.WARNING)
-    logging.getLogger('requests').setLevel(logging.WARNING)
-    main()
+def updatedb(prefix):
+    media_urls = get_postgres_media_urls(prefix)
+    write_urls_to_db(media_urls, prefix)
 
 # SQL Queries to import from old table:
 #insert into media (url,type,owner) (select lookup_key,type,user_uuid::uuid from (select media.url, idb_object_keys.lookup_key, idb_object_keys.type, idb_object_keys.user_uuid from idb_object_keys left join media on lookup_key=url) as a where url is null);

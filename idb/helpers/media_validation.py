@@ -10,7 +10,7 @@ def default_format_validator(url, t, fmt, content):
 
 def audio_mpeg3_validator(url, t, fmt, content):
     _, mime = default_format_validator(url, t, fmt, content)
-    return (mime in ["audo/mpeg3", "audio/mpeg", "audio/mp3"], mime)
+    return (mime in ["audo/mpeg3", "audio/mpeg"], mime)
 
 
 format_validators = {

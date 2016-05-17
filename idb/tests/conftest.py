@@ -7,18 +7,19 @@ that can create databases.
 
 """
 
-import logging
 import gevent
 import pytest
 import psycopg2
 from py.path import local
 
-log = logging.getLogger('idb.tests')
 
 @pytest.fixture(scope="session", autouse=True)
 def logger():
-    logging.root.setLevel(logging.DEBUG)
-    return logging.getLogger('idb.tests')
+    from idb.helpers.logging import idblogger, configure_app_log
+    configure_app_log(verbose=2)
+    from idb import config
+    idblogger.debug("Test Env: %s", config.ENV)
+    return idblogger.getChild('tests')
 
 
 @pytest.fixture
@@ -49,12 +50,12 @@ def mp3path():
 
 
 @pytest.fixture()
-def idbmodel(request):
+def idbmodel(request, logger):
     from idb.postgres_backend.db import PostgresDB
     i = PostgresDB()
 
     def cleanup():
-        log.info("Cleanup idbmodel")
+        logger.info("Cleanup idbmodel")
         i.rollback()
         i.close()
     request.addfinalizer(cleanup)
@@ -69,7 +70,7 @@ def schemapath():
 
 
 @pytest.fixture()
-def testdb(request, schemapath):
+def testdb(request, schemapath, logger):
     dbname = 'test_idigbio'
     template1 = {
         "host": "localhost",
@@ -91,7 +92,7 @@ def testdb(request, schemapath):
             cur.execute(schemapath.open('r', encoding='utf-8').read())
 
     def cleanup():
-        log.info("Cleanup testdb")
+        logger.info("Cleanup testdb")
         gevent.wait()
         with psycopg2.connect(**template1) as conn:
             conn.autocommit = True
@@ -102,12 +103,12 @@ def testdb(request, schemapath):
 
 
 @pytest.fixture()
-def testdbpool(request, testdb):
+def testdbpool(request, testdb, logger):
     from idb.postgres_backend.gevent_helpers import GeventedConnPool
     dbpool = GeventedConnPool(**testdb)
 
     def cleanup():
-        log.info("Cleanup testdbpool")
+        logger.info("Cleanup testdbpool")
         dbpool.closeall()
         gevent.wait()
     request.addfinalizer(cleanup)
@@ -115,12 +116,12 @@ def testdbpool(request, testdb):
 
 
 @pytest.fixture()
-def testidbmodel(request, testdbpool):
+def testidbmodel(request, testdbpool, logger):
     from idb.postgres_backend.db import PostgresDB
     i = PostgresDB(pool=testdbpool)
 
     def cleanup():
-        log.info("Cleanup testidbmodel")
+        logger.info("Cleanup testidbmodel")
         i.rollback()
         i.close()
         gevent.wait()

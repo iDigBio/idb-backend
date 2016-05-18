@@ -10,7 +10,7 @@ idblogger = logging.getLogger('idb')
 
 DEFAULT_LOGDIR = u'/var/log/idb/'
 
-STD_FORMAT = u"%(asctime)s %(levelname)-5.5s %(name)s\u10fb %(message)s"
+STD_FORMAT = u"%(asctime)s %(levelname)-5.8s %(name)s\u10fb %(message)s"
 DATETIME_FORMAT = "%Y-%m-%d %H:%M:%S"
 TIME_FORMAT = "%H:%M:%S"
 

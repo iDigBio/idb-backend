@@ -58,6 +58,8 @@ updates everything):
 
     pip install -e .
 
+To setup cron jobs symlink from etc/cron.d/* to /etc/cron.d/*
+
 ## Running
 
 The main entry point is the `idb` command; you can run `idb --help` to

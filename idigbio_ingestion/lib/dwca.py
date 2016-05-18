@@ -1,9 +1,6 @@
 import zipfile
 from lxml import etree
-import sys
 from collections import deque
-import os
-import chardet
 import traceback
 import shutil
 
@@ -26,9 +23,9 @@ class Dwca(object):
     """
         Internal representation of a Darwin Core Archive file.
     """
-    
+
     archdict = None
-    archive = None   
+    archive = None
     metadata = None
     core = None
     extensions = None
@@ -102,7 +99,7 @@ class Dwca(object):
                                            logname=self.logger.name))
                     except:
                         pass
-            else:            
+            else:
                 extfile = archiveFile(self.archive,self.archdict["extension"]["files"]["location"])
                 self.extensions.append(
                     DwcaRecordFile(self.archdict["extension"],
@@ -132,10 +129,8 @@ class DwcaRecordFile(DelimitedFile):
             logbase = idblogger.getChild('dwca')
         self.logger = logbase.getChild(self.name.split(".")[0])
 
-
         fields = {}
         self.linebuf = deque()
-        closed = False
 
         idtag = "id"
         idfld = None
@@ -154,11 +149,11 @@ class DwcaRecordFile(DelimitedFile):
 
         rowtype = filedict["#rowType"]
         encoding = filedict["#encoding"]
-        linesplit = filedict["#linesTerminatedBy"].decode('string_escape') 
-        fieldsplit = filedict["#fieldsTerminatedBy"].decode('string_escape') 
-        fieldenc = filedict["#fieldsEnclosedBy"].decode('string_escape') 
+        linesplit = filedict["#linesTerminatedBy"].decode('string_escape')
+        fieldsplit = filedict["#fieldsTerminatedBy"].decode('string_escape')
+        fieldenc = filedict["#fieldsEnclosedBy"].decode('string_escape')
         ignoreheader = int(filedict["#ignoreHeaderLines"])
-        
+
         self.defaults = {}
         if "field" not in filedict:
             filedict["field"] = []
@@ -187,9 +182,8 @@ class DwcaRecordFile(DelimitedFile):
             logname=self.logger.name)
 
         while ignoreheader > 0:
-            _ = self._reader.next()    
+            self._reader.next()
             ignoreheader -= 1
-
 
     def readline(self,size=None):
         lineDict = {}

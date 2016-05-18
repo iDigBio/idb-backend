@@ -17,11 +17,12 @@ from atomicfile import AtomicFile
 from psycopg2 import DatabaseError
 from boto.exception import S3ResponseError, S3DataError
 
+
 from idb import stats
 from idb.postgres_backend import apidbpool
 from idb.postgres_backend.db import PostgresDB, RecordSet
 from idb.helpers.etags import calcEtag, calcFileHash
-from idb.helpers.logging import add_file_handler, idblogger
+from idb.helpers.logging import idblogger, LoggingContext
 
 from lib.dwca import Dwca
 from lib.delimited import DelimitedFile
@@ -98,7 +99,7 @@ def idFromRR(r, rs=None):
 def get_file(rsid):
     fname = rsid
     if not os.path.exists(fname):
-        RecordSet.fetch_file(rsid, fname, media_store=IDigBioStorage())
+        RecordSet.fetch_file(rsid, fname, media_store=IDigBioStorage(), logger=logger.getChild(rsid))
 
     mime = magic.from_file(fname)
     return (fname, mime)
@@ -139,6 +140,8 @@ core_siblings = {}
 
 
 def process_subfile(rf, rsid, rs_uuid_etag, rs_id_uuid, ingest=False, db=None):
+    rlogger = logger.getChild(rsid)
+
     count = 0
     no_recordid_count = 0
     duplicate_record_count = 0
@@ -295,25 +298,25 @@ def process_subfile(rf, rsid, rs_uuid_etag, rs_id_uuid, ingest=False, db=None):
         except RecordException as e:
             ids_to_add = {}
             uuids_to_add = {}
-            logger.warn(e)
-            logger.info(traceback.format_exc())
+            rlogger.warn(e)
+            rlogger.info(traceback.format_exc())
             record_exceptions += 1
         except AssertionError as e:
             ids_to_add = {}
             uuids_to_add = {}
-            logger.warn(e)
-            logger.info(traceback.format_exc())
+            rlogger.warn(e)
+            rlogger.info(traceback.format_exc())
             assertions += 1
         except DatabaseError as e:
             ids_to_add = {}
             uuids_to_add = {}
-            logger.exception(e)
+            rlogger.exception(e)
             dberrors += 1
         except Exception as e:
             ids_to_add = {}
             uuids_to_add = {}
-            logger.warn(e)
-            logger.error(traceback.format_exc())
+            rlogger.warn(e)
+            rlogger.error(traceback.format_exc())
             exceptions += 1
 
         seen_ids.update(ids_to_add)
@@ -335,7 +338,7 @@ def process_subfile(rf, rsid, rs_uuid_etag, rs_id_uuid, ingest=False, db=None):
                 db.delete_item(u)
                 deleted += 1
             except:
-                logger.info("Failed deleting %r", u, exc_info=True)
+                rlogger.info("Failed deleting %r", u, exc_info=True)
 
     return {
         "create": count - found,
@@ -360,7 +363,8 @@ def process_subfile(rf, rsid, rs_uuid_etag, rs_id_uuid, ingest=False, db=None):
 
 
 def process_file(fname, mime, rsid, existing_etags, existing_ids, ingest=False, commit_force=False):
-    logger.info("Processing %s, type: %s", fname, mime)
+    rlogger = logger.getChild(rsid)
+    rlogger.info("Processing %s, type: %s", fname, mime)
     counts = {}
     t = datetime.datetime.now()
     filehash = calcFileHash(fname)
@@ -369,9 +373,11 @@ def process_file(fname, mime, rsid, existing_etags, existing_ids, ingest=False, 
     if mime == "application/zip":
         dwcaobj = Dwca(fname, skipeml=True, logname="idb")
         for dwcrf in dwcaobj.extensions:
+            rlogger.debug("Processing %r", dwcrf.name)
             counts[dwcrf.name] = process_subfile(
                 dwcrf, rsid, existing_etags, existing_ids, ingest=ingest, db=db)
             dwcrf.close()
+        rlogger.debug("processing core %r", dwcaobj.core.name)
         counts[dwcaobj.core.name] = process_subfile(
             dwcaobj.core, rsid, existing_etags, existing_ids, ingest=ingest, db=db)
         dwcaobj.core.close()
@@ -410,11 +416,11 @@ def process_file(fname, mime, rsid, existing_etags, existing_ids, ingest=False, 
         commit_ok = all(type_commits)
 
         if commit_ok:
-            logger.info("Ready to Commit")
+            rlogger.info("Ready to Commit")
             db.commit()
             commited = True
         else:
-            logger.error("Rollback")
+            rlogger.error("Rollback")
             db.rollback()
     else:
         db.rollback()
@@ -494,46 +500,59 @@ def metadataToSummaryJSON(rsid, metadata, writeFile=True, doStats=True):
 
 
 def main(rsid, ingest=False):
-    add_file_handler(logger,
-                     logdir=os.getcwd(), filename=rsid + ".db_check.log",
-                     level=logging.INFO)
-    logger.info("%s: Starting db_check ingest: %r", rsid, ingest)
-    t = datetime.datetime.now()
+    with LoggingContext(
+            filename='./{0}.db_check.log'.format(rsid),
+            file_level=logging.DEBUG,
+            clear_existing_handlers=False):
+        rlogger = logger.getChild(rsid)
+        rlogger.info("Starting db_check ingest: %r", ingest)
+        t = datetime.datetime.now()
+        try:
+            name, mime = get_file(rsid)
+        except (S3ResponseError, S3DataError):
+            rlogger.exception("failed fetching archive")
+            raise
+
+        if os.path.exists(rsid + "_uuids.json") and os.path.exists(rsid + "_ids.json"):
+            with open(rsid + "_uuids.json", "rb") as uuidf:
+                db_u_d = json.load(uuidf)
+            with open(rsid + "_ids.json", "rb") as idf:
+                db_i_d = json.load(idf)
+        else:
+            rlogger.info("Building ids/uuids json")
+            db_u_d, db_i_d = get_db_dicts(rsid)
+            with AtomicFile(rsid + "_uuids.json", "wb") as uuidf:
+                json.dump(db_u_d, uuidf)
+            with AtomicFile(rsid + "_ids.json", "wb") as idf:
+                json.dump(db_i_d, idf)
+
+        commit_force = False
+        if len(db_i_d) == 0 and len(db_u_d) == 0:
+            commit_force = True
+
+        metadata = process_file(name, mime, rsid, db_u_d, db_i_d, ingest=ingest, commit_force=commit_force)
+        metadataToSummaryJSON(rsid, metadata)
+        rlogger.info("Finished db_check in %0.3fs", (datetime.datetime.now() - t).total_seconds())
+        return rsid
+
+
+def launch_child(rsid, ingest):
     try:
-        name, mime = get_file(rsid)
-    except (S3ResponseError, S3DataError):
-        logger.exception("%s: failed fetching archive", rsid)
-        sys.exit(1)
+        import logging
+        # close any logging filehandlers on root, leave alone any
+        # other stream handlers (e.g. stderr) this way main can set up
+        # its own filehandler to `$RSID.db_check.log`
+        for fh in list(filter(lambda h: isinstance(h, logging.FileHandler), logging.root.handlers)):
+            logging.root.removeHandler(fh)
+            fh.close()
 
-    if os.path.exists(rsid + "_uuids.json") and os.path.exists(rsid + "_ids.json"):
-        with open(rsid + "_uuids.json", "rb") as uuidf:
-            db_u_d = json.load(uuidf)
-        with open(rsid + "_ids.json", "rb") as idf:
-            db_i_d = json.load(idf)
-    else:
-        logger.info("%s: Building ids/uuids json", rsid)
-        db_u_d, db_i_d = get_db_dicts(rsid)
-        with AtomicFile(rsid + "_uuids.json", "wb") as uuidf:
-            json.dump(db_u_d, uuidf)
-        with AtomicFile(rsid + "_ids.json", "wb") as idf:
-            json.dump(db_i_d, idf)
-
-    commit_force = False
-    if len(db_i_d) == 0 and len(db_u_d) == 0:
-        commit_force = True
-
-    metadata = process_file(name, mime, rsid, db_u_d, db_i_d, ingest=ingest, commit_force=commit_force)
-    metadataToSummaryJSON(rsid, metadata)
-    logger.info("%s: Finished db_check in %0.3fs", rsid, (datetime.datetime.now() - t).total_seconds())
-    return rsid
-
-
-def _main_ignore_interrupts(*args, **kwargs):
-    try:
-        return main(*args, **kwargs)
+        return main(rsid, ingest=ingest)
     except KeyboardInterrupt:
         logger.debug("Child KeyboardInterrupt")
         pass
+    except:
+        logger.getChild(rsid).critical("Child failed", exc_info=True)
+
 
 def all(since=None, ingest=False):
     from .db_rsids import get_active_rsids
@@ -549,7 +568,7 @@ def all(since=None, ingest=False):
     try:
         results = list(
             pool.imap_unordered(
-                functools.partial(_main_ignore_interrupts, ingest=ingest),
+                functools.partial(launch_child, ingest=ingest),
                 rsids))
     except KeyboardInterrupt:
         logger.debug("Got KeyboardInterrupt")
@@ -567,6 +586,6 @@ def columnize(ifile, ofile):
     #column -ts ',' summary.csv | sort > summary.pretty.txt
     p = subprocess.popen(['column' '-ts', ',', ifile], stdout=subprocess.PIPE)
     lines = p.stdout.readlines()
-    with io.open(ofile, 'w', encoding='utf-8') as out:
+    with AtomicFile(ofile, 'w', encoding='utf-8') as out:
         for l in sorted(lines):
             out.write(l)

@@ -549,7 +549,7 @@ def launch_child(rsid, ingest):
         logger.debug("Child KeyboardInterrupt")
         pass
     except:
-        logger.exception("Child failed")
+        logger.getChild(rsid).critical("Child failed", exc_info=True)
 
 
 def all(since=None, ingest=False):

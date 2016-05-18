@@ -737,7 +737,7 @@ class RecordSet(object):
             return RecordSet(**r)
 
     @staticmethod
-    def fetch_file(uuid, filename, idbmodel=apidbpool, media_store=None):
+    def fetch_file(uuid, filename, idbmodel=apidbpool, media_store=None, logger=logger):
         sql = """
             SELECT uuid, etag, objects.bucket
             FROM recordsets
@@ -754,7 +754,6 @@ class RecordSet(object):
         bucketname = "idigbio-{0}-{1}".format(bucket, os.environ["ENV"])
         k = media_store.get_key(etag, bucketname)
         media_store.get_contents_to_filename(k, filename, md5=etag)
-
 
 
 def main():

@@ -56,27 +56,33 @@ def configure_app_log(verbose, logfile=None):
     add_stderr_handler(level=logging_level)
 
 
-def configure(root=idblogger, root_level=None,
+def configure(logger=idblogger,
               filename=None, logdir=None,
               file_level=None,
               stderr_level=None,
               clear_existing_handlers=True):
-    if root is None:
-        root = logging.root
+    if logger is None:
+        logger = logging.root
     else:
-        root = getLogger(root)
+        logger = getLogger(logger)
 
     if clear_existing_handlers:
-        root.handlers = []
+        logger.handlers = []
 
+    handlers = []
     if filename:
-        add_file_handler(logger=root, filename=filename, logdir=logdir, level=file_level)
+        handlers.append(
+            add_file_handler(logger=logger, filename=filename, logdir=logdir, level=file_level))
     if stderr_level:
-        add_stderr_handler(logger=root, level=stderr_level)
+        handlers.append(
+            add_stderr_handler(logger=logger, level=stderr_level)
+        )
+    return handlers
 
 
-def add_file_handler(logger=logging.root, level=logging.INFO,
+def add_file_handler(logger=logging.root, level=None,
                      filename=None, logdir=None):
+    level = level or logging.INFO
     logdir = logdir or DEFAULT_LOGDIR
     if logger.getEffectiveLevel() > level:
         logger.setLevel(level)
@@ -87,6 +93,7 @@ def add_file_handler(logger=logging.root, level=logging.INFO,
     fh.setLevel(level)
     fh.setFormatter(logging.Formatter(PRECISE_FORMAT, datefmt=DATETIME_FORMAT))
     logger.addHandler(fh)
+    return fh
 
 
 def add_stderr_handler(logger=logging.root, level=logging.INFO):
@@ -96,3 +103,26 @@ def add_stderr_handler(logger=logging.root, level=logging.INFO):
     se.setLevel(level)
     se.setFormatter(logging.Formatter(PRECISE_FORMAT, datefmt=TIME_FORMAT))
     logger.addHandler(se)
+    return se
+
+
+class LoggingContext(object):
+    oldhandlers = None
+    handlers = None
+
+    configure_args = None
+
+    def __init__(self, **kwargs):
+        # eliminate None in dict
+        self.logger = kwargs['logger'] = kwargs.get('logger') or logging.root
+        self.configure_args = kwargs
+
+    def __enter__(self):
+        self.oldhandlers = self.logger.handlers
+        self.handlers = configure(**self.configure_args)
+
+    def __exit__(self, et, ev, tb):
+        self.logger.handlers = self.oldhandlers
+
+        for h in self.handlers:
+            h.close()

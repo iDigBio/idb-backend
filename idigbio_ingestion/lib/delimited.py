@@ -28,6 +28,7 @@ class LineLengthException(Exception):
     Expected Line Length: {2}, Actual Line Length: {4}
     Line Array: {3}
 """.format(name, lineNumber, lineLength, repr(lineArr), len(lineArr))
+        super(LineLengthException, self).__init__(message)
 
 
 def flag_unicode_error(e):

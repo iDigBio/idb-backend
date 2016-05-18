@@ -2,11 +2,9 @@ import unicodecsv as csv
 import traceback
 import codecs
 import io
-import logging
 
 from collections import defaultdict
 
-from .fileproxy import FileProxy
 from idb.helpers.logging import idblogger, getLogger
 from idb.helpers.fieldnames import get_canonical_name, types
 

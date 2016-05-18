@@ -1,9 +1,5 @@
-import contextlib
 import uuid
-import datetime
-import random
 import json
-import hashlib
 import os
 import sys
 
@@ -299,12 +295,12 @@ class PostgresDB(object):
             # Fetch by version ignores the deleted flag
             if version == "all":
                 sql = (self.__columns_master_query_data +
-                                  """ FROM uuids """ +
-                                  self.__join_uuids_etags_all_versions +
-                                  self.__join_uuids_identifiers +
-                                  self.__join_uuids_siblings +
-                                  self.__join_uuids_data +
-                                  """
+                       """ FROM uuids """ +
+                       self.__join_uuids_etags_all_versions +
+                       self.__join_uuids_identifiers +
+                       self.__join_uuids_siblings +
+                       self.__join_uuids_data +
+                       """
                     WHERE uuids.id=%s
                     ORDER BY version ASC
                 """, (u,))
@@ -666,7 +662,6 @@ class MediaObject(object):
             return self.insert_media(**kwargs)
         else:
             return rc
-
 
     def ensure_media_object(self, idbmodel):
         return idbmodel.execute(

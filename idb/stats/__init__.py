@@ -1,9 +1,9 @@
 from __future__ import division, absolute_import, print_function
-import dateutil.parser
 from datetime import datetime
 
 import click
-from idb.indexing.indexer import get_connection
+
+from idb.clibase import cli
 
 
 indexName = "stats-2.5.0"
@@ -12,17 +12,17 @@ typeName = "search"
 
 def index(index=indexName, body=None, doc_type=typeName, es=None):
     if es is None:
+        from idb.indexing.indexer import get_connection
         es = get_connection()
     return es.index(index=index, doc_type=doc_type, body=body)
 
 
 def search(index=indexName, body=None, doc_type=typeName, es=None):
     if es is None:
+        from idb.indexing.indexer import get_connection
         es = get_connection()
     return es.query(index=index, body=body, doc_type=doc_type)
 
-
-from idb.clibase import cli
 
 @cli.command(name="collect-stats",
              help="Collect the stats for a day from postgres, defaults to yesterday")
@@ -30,7 +30,9 @@ from idb.clibase import cli
               help="date to collect for, '*' for all dates")
 @click.option('--mapping/--no-mapping', default=False, help="write mapping")
 def collect_stats(date, mapping):
+    import dateutil.parser
     from . import collect
+
     if mapping:
         collect.put_search_stats_mapping()
 

@@ -12,10 +12,6 @@ from __future__ import print_function
 import click
 
 from idb.clibase import cli as _cli
-from idb import config
-from idb.helpers.logging import idblogger
-
-log = idblogger.getChild('indexing')
 
 
 @_cli.group(name="index", help="indexing into ElasticSearch")
@@ -29,6 +25,9 @@ log = idblogger.getChild('indexing')
 @click.option('--indexname')
 @click.pass_context
 def cli(ctx, index, types, indexname):
+    from idb.helpers.logging import idblogger
+    log = idblogger.getChild('indexing')
+    from idb import config
     from .indexer import ElasticSearchIndexer
     from idb.corrections.record_corrector import RecordCorrector
 

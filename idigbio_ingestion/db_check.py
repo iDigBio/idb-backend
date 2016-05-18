@@ -373,9 +373,11 @@ def process_file(fname, mime, rsid, existing_etags, existing_ids, ingest=False, 
     if mime == "application/zip":
         dwcaobj = Dwca(fname, skipeml=True, logname="idb")
         for dwcrf in dwcaobj.extensions:
+            rlogger.debug("Processing %r", dwcrf.name)
             counts[dwcrf.name] = process_subfile(
                 dwcrf, rsid, existing_etags, existing_ids, ingest=ingest, db=db)
             dwcrf.close()
+        rlogger.debug("processing core %r", dwcaobj.core.name)
         counts[dwcaobj.core.name] = process_subfile(
             dwcaobj.core, rsid, existing_etags, existing_ids, ingest=ingest, db=db)
         dwcaobj.core.close()

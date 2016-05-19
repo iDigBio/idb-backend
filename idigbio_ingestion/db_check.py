@@ -550,7 +550,7 @@ def launch_child(rsid, ingest):
         logger.getChild(rsid).critical("Child failed", exc_info=True)
 
 
-def all(since=None, ingest=False):
+def allrsids(since=None, ingest=False):
     from .db_rsids import get_active_rsids
 
     rsids = get_active_rsids(since=since)

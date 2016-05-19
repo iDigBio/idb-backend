@@ -9,6 +9,7 @@ from idb.helpers.idb_flask_authn import requires_auth
 from idb.helpers.cors import crossdomain
 from idb.helpers.storage import IDigBioStorage
 from idb.postgres_backend.db import MediaObject
+from idb.helpers.conversions import valid_buckets, mime_mapping
 
 from .common import json_error, idbmodel
 
@@ -188,38 +189,54 @@ def upload():
 
     etag = request.values.get('etag')
     obj = request.files.get('file')
-    if not obj and not etag:
-        return json_error(400, "No file or etag posted")
-
     media_type = request.values.get("media_type")
+    if media_type and media_type not in valid_buckets:
+        return json_error(400, "Invalid media_type")
+
+    mime = request.values.get("mime")
+    if mime and mime_mapping.get(mime) is None:
+        return json_error(400, "Invalid mime")
 
     r = MediaObject.fromurl(filereference, idbmodel=idbmodel)
     if r and r.owner != request.authorization.username:
         return json_error(403)
 
-    media_store = IDigBioStorage()
-
     if obj:
-        mo = MediaObject.fromobj(obj, mtype=media_type)
-        mo.upload(media_store, obj)
+        # if either type or mime are null it will be ignored, if
+        # present they change the behavior of fromobj
+        mo = MediaObject.fromobj(obj, type=media_type, mime=mime, url=filereference)
+        mo.upload(IDigBioStorage(), obj)
         mo.insert_object(idbmodel)
-    else:
+    elif etag:
         mo = MediaObject.frometag(etag, idbmodel)
-        if not mo or not mo.get_key(media_store).exists():
+        if not mo or not mo.get_key(IDigBioStorage()).exists():
             return json_error(404, "Unknown etag {0!r}".format(etag))
+
+        mo.last_status = 200
+        mo.last_check = datetime.now()
+        mo.mime = mime or mo.detected_mime
+        mo.type = media_type or mo.bucket
+
+    elif r is None:
+        return json_error(404, "filereference not found")
+    elif (media_type and mime):
+        mo = r
+        mo.type = media_type
+        mo.mime = mime
+        mo.last_check = None
+        mo.last_status = None
+    else:
+        return json_error(400, "Incomplete request")
 
     mo.url = filereference
     mo.owner = request.authorization.username
-    mo.last_status = 200
-    mo.last_check = datetime.now()
-    mo.mime = mo.detected_mime
-    mo.type = mo.bucket
 
     if r:
         mo.update_media(idbmodel)
     else:
         mo.insert_media(idbmodel)
+    if mo.etag:
+        mo.ensure_media_object(idbmodel)
 
-    mo.ensure_media_object(idbmodel)
     idbmodel.commit()
     return respond_to_record(mo, format='json')

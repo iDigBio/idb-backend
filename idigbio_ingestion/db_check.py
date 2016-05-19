@@ -1,15 +1,11 @@
-#from __future__ import absolute_import
-from __future__ import print_function
+from __future__ import absolute_import, print_function
 import datetime
 import functools
-import io
 import json
 import logging
 import multiprocessing
 import os
 import re
-import subprocess
-import sys
 import traceback
 
 import magic
@@ -23,11 +19,11 @@ from idb.postgres_backend import apidbpool
 from idb.postgres_backend.db import PostgresDB, RecordSet
 from idb.helpers.etags import calcEtag, calcFileHash
 from idb.helpers.logging import idblogger, LoggingContext
-
-from lib.dwca import Dwca
-from lib.delimited import DelimitedFile
-
 from idb.helpers.storage import IDigBioStorage
+
+from idigbio_ingestion.lib.dwca import Dwca
+from idigbio_ingestion.lib.delimited import DelimitedFile
+
 
 
 magic = magic.Magic(mime=True)

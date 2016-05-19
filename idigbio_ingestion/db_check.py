@@ -556,7 +556,6 @@ def launch_child(rsid, ingest):
 
 def all(since=None, ingest=False):
     from .db_rsids import get_active_rsids
-    from .ds_sum_counts import main as ds_sum_counts
 
     rsids = get_active_rsids(since=since)
     logger.info("Checking %s recordsets", len(rsids))
@@ -573,19 +572,29 @@ def all(since=None, ingest=False):
     except KeyboardInterrupt:
         logger.debug("Got KeyboardInterrupt")
         raise
+    summarize()
 
-    logger.info("Generating... summary.csv")
-    ds_sum_counts('./', 'summary.csv', 'suspects.csv')
-    logger.info("Converting summary.csv (all recordsets subject to ingestion) to columnar human readable report... summary.pretty.txt")
-    columnize('summary.csv', 'summary.pretty.txt')
-    logger.info("Converting suspects.csv (recordsets with questionable updates) to columnar human readable report... suspects.pretty.txt")
-    columnize('suspects.csv', 'suspects.pretty.txt')
+
+def summarize(base='./', sum_filename='summary.csv', susp_filename="suspects.csv"):
+    from .ds_sum_counts import main as ds_sum_counts
+
+    logger.info("Generating... %s", sum_filename)
+    ds_sum_counts(base, sum_filename, susp_filename)
+    sum_pretty_filename = sum_filename.replace('.csv', '.pretty.txt')
+    susp_pretty_filename = susp_filename.replace('.csv', '.pretty.txt')
+    logger.info("Converting %s (all recordsets subject to ingestion) to columnar human readable report... %r",
+                sum_filename, sum_pretty_filename)
+    columnize(sum_filename, sum_pretty_filename)
+
+    logger.info("Converting %s (recordsets with questionable updates) to columnar human readable report... %s",
+                susp_filename, susp_pretty_filename)
+    columnize(susp_filename, susp_pretty_filename)
 
 
 def columnize(ifile, ofile):
     #column -ts ',' summary.csv | sort > summary.pretty.txt
-    p = subprocess.popen(['column' '-ts', ',', ifile], stdout=subprocess.PIPE)
+    p = subprocess.Popen(['column', '-ts', ',', ifile], stdout=subprocess.PIPE)
     lines = p.stdout.readlines()
     with AtomicFile(ofile, 'w', encoding='utf-8') as out:
-        for l in sorted(lines):
+        for l in lines:
             out.write(l)

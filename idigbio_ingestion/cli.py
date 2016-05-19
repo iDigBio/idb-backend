@@ -80,6 +80,13 @@ def db_check_all(since):
     all(since)
 
 
+@cli.command(name="db-check-summarize",
+             help="Just do the summarization from a db-check/ingest run")
+def db_check_summariaze():
+    from idigbio_ingestion.db_check import summarize
+    summarize()
+
+
 @cli.command(name="ingest", help="Ingest a dataset, by rsid")
 @click.argument("rsid", type=click.UUID)
 def ingest(rsid):

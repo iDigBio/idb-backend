@@ -30,7 +30,8 @@ fields = [
 def read_all_files(base):
     for f in os.listdir(base):
         if f.endswith(".summary.json"):
-            with open(base + f, "rb") as fp:
+            p = os.path.join(base, f)
+            with open(p, "rb") as fp:
                 o = json.load(fp)
                 yield o
 

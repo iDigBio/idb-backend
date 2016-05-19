@@ -3,20 +3,15 @@
 """
 from __future__ import absolute_import
 import os
-import sys
 import glob
 import subprocess
 import cStringIO
 
 import boto
 import boto.s3.connection
-from boto.s3.key import Key
 
-from idb.helpers.media_validation import get_validator
-from idb.postgres_backend import apidbpool
-from idb.postgres_backend.db import MediaObject, PostgresDB
-from idb.helpers.etags import calcFileHash
-from idb.config import config
+from idb.postgres_backend.db import MediaObject
+
 
 class IDigBioStorage(object):
     """

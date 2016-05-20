@@ -7,7 +7,7 @@ import click
 
 from flask_cli import pass_script_info
 
-from idb.cli import cli
+from idb.clibase import cli
 
 
 @cli.command('run-server', short_help='Runs the data api server')

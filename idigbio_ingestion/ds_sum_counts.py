@@ -7,10 +7,11 @@ from __future__ import print_function
 import json
 import os
 import io
-
+import subprocess
 from collections import Counter
+from atomicfile import AtomicFile
 
-from idb.helpers.logging import idblogger as log
+from idb.helpers.logging import idblogger as logger
 
 
 header = [
@@ -30,7 +31,8 @@ fields = [
 def read_all_files(base):
     for f in os.listdir(base):
         if f.endswith(".summary.json"):
-            with open(base + f, "rb") as fp:
+            p = os.path.join(base, f)
+            with open(p, "rb") as fp:
                 o = json.load(fp)
                 yield o
 
@@ -95,10 +97,11 @@ def is_row_suspect(row):
 def main(base, sum_filename, susp_filename):
     summary_data = read_all_files(base)
     summary_data = sorted(summary_data, key=lambda r: r['filename'])
-
+    logger.info("Read in %d *.summary.json files", len(summary_data))
     suspect_rows = []
     totals = Counter()
 
+    logger.info("Generating... %s", sum_filename)
     with io.open(sum_filename, 'w', encoding='utf-8') as fp:
         write_header(fp)
         for row in summary_data:
@@ -111,7 +114,7 @@ def main(base, sum_filename, susp_filename):
                 suspect_rows.append(row)
         write_row(fp, totals, 'totals')
 
-    log.debug("Found %d suspect rows", len(suspect_rows))
+    logger.info("Found %d suspect rows", len(suspect_rows))
 
     with io.open(susp_filename, 'w', encoding='utf-8') as fp:
         if len(suspect_rows) > 0:
@@ -120,3 +123,21 @@ def main(base, sum_filename, susp_filename):
             write_header(fp)
             for row in suspect_rows:
                 write_row(fp, row)
+
+    sum_pretty_filename = sum_filename.replace('.csv', '.pretty.txt')
+    susp_pretty_filename = susp_filename.replace('.csv', '.pretty.txt')
+    logger.info("Converting %s (all recordsets subject to ingestion) to columnar human readable report... %s",
+                sum_filename, sum_pretty_filename)
+    columnize(sum_filename, sum_pretty_filename)
+
+    logger.info("Converting %s (recordsets with questionable updates) to columnar human readable report... %s",
+                susp_filename, susp_pretty_filename)
+    columnize(susp_filename, susp_pretty_filename)
+
+def columnize(ifile, ofile):
+    #column -ts ',' summary.csv | sort > summary.pretty.txt
+    p = subprocess.Popen(['column', '-ts', ',', ifile], stdout=subprocess.PIPE)
+    lines = p.stdout.readlines()
+    with AtomicFile(ofile, 'w', encoding='utf-8') as out:
+        for l in lines:
+            out.write(l)

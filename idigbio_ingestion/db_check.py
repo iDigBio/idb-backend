@@ -1,15 +1,11 @@
-#from __future__ import absolute_import
-from __future__ import print_function
+from __future__ import absolute_import, print_function
 import datetime
 import functools
-import io
 import json
 import logging
 import multiprocessing
 import os
 import re
-import subprocess
-import sys
 import traceback
 
 import magic
@@ -23,11 +19,11 @@ from idb.postgres_backend import apidbpool
 from idb.postgres_backend.db import PostgresDB, RecordSet
 from idb.helpers.etags import calcEtag, calcFileHash
 from idb.helpers.logging import idblogger, LoggingContext
-
-from lib.dwca import Dwca
-from lib.delimited import DelimitedFile
-
 from idb.helpers.storage import IDigBioStorage
+
+from idigbio_ingestion.lib.dwca import Dwca
+from idigbio_ingestion.lib.delimited import DelimitedFile
+
 
 
 magic = magic.Magic(mime=True)
@@ -554,9 +550,8 @@ def launch_child(rsid, ingest):
         logger.getChild(rsid).critical("Child failed", exc_info=True)
 
 
-def all(since=None, ingest=False):
+def allrsids(since=None, ingest=False):
     from .db_rsids import get_active_rsids
-    from .ds_sum_counts import main as ds_sum_counts
 
     rsids = get_active_rsids(since=since)
     logger.info("Checking %s recordsets", len(rsids))
@@ -573,19 +568,5 @@ def all(since=None, ingest=False):
     except KeyboardInterrupt:
         logger.debug("Got KeyboardInterrupt")
         raise
-
-    logger.info("Generating... summary.csv")
-    ds_sum_counts('./', 'summary.csv', 'suspects.csv')
-    logger.info("Converting summary.csv (all recordsets subject to ingestion) to columnar human readable report... summary.pretty.txt")
-    columnize('summary.csv', 'summary.pretty.txt')
-    logger.info("Converting suspects.csv (recordsets with questionable updates) to columnar human readable report... suspects.pretty.txt")
-    columnize('suspects.csv', 'suspects.pretty.txt')
-
-
-def columnize(ifile, ofile):
-    #column -ts ',' summary.csv | sort > summary.pretty.txt
-    p = subprocess.popen(['column' '-ts', ',', ifile], stdout=subprocess.PIPE)
-    lines = p.stdout.readlines()
-    with AtomicFile(ofile, 'w', encoding='utf-8') as out:
-        for l in sorted(lines):
-            out.write(l)
+    from .ds_sum_counts import main as ds_sum_counts
+    ds_sum_counts('./', sum_filename='summary.csv', susp_filename="suspects.csv")

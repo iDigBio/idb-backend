@@ -163,7 +163,7 @@ def lookup_ref(format):
                 params[pk] = request.args[ak]
 
     if "url" in params:
-        mo = MediaObject.fromurl(params['url'])
+        mo = MediaObject.fromurl(params['url'], idbmodel=idbmodel)
         return respond_to_record(mo, deriv=deriv, format=format)
 
     where = []

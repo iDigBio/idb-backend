@@ -250,3 +250,38 @@ def get_media_img(key):
 def wave_to_img(buff):
     from idigbio_ingestion.lib.waveform import Waveform
     return Waveform(buff).generate_waveform_image()
+
+def migrate():
+    sql = """INSERT INTO objects (bucket, etag)
+          (SELECT DISTINCT
+            type,
+            a.etag
+          FROM idb_object_keys AS a
+          LEFT JOIN objects AS b
+            ON a.etag = b.etag
+          WHERE b.etag IS NULL);
+
+        INSERT INTO media (url, type, owner, last_status, last_check)
+          (SELECT
+            idb_object_keys.lookup_key,
+            idb_object_keys.type,
+            idb_object_keys.user_uuid::uuid,
+            200,
+            now()
+          FROM idb_object_keys
+          LEFT JOIN media
+            ON lookup_key = url
+          WHERE media.url IS NULL);
+
+        INSERT INTO media_objects (url, etag, modified)
+          (SELECT
+            idb_object_keys.lookup_key,
+            idb_object_keys.etag,
+            idb_object_keys.date_modified
+          FROM idb_object_keys
+          LEFT JOIN media_objects
+            ON lookup_key = url
+            AND media_objects.etag = idb_object_keys.etag
+          WHERE media_objects.url IS NULL)
+    """
+    apidbpool.execute(sql)

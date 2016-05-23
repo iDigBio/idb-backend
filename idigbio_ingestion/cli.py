@@ -63,6 +63,11 @@ def derivatives(bucket):
     main(bucket)
 
 
+@cli.command(name="migrate-media-objects", help="Migrate database entries from old media api table.")
+def migrate_media_objects():
+    from idigbio_ingestion.derivatives import migrate
+    migrate()
+
 @cli.command(name="db-check",
              help="Check a dataset, by rsid, against the database "
              "and report what will be ingested")

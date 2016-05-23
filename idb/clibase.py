@@ -14,8 +14,6 @@ from idb.helpers.logging import configure_app_log, idblogger
 
 clilog = idblogger.getChild('cli')
 
-from . import config as _config  # noqa
-
 
 def get_std_options():
     return [
@@ -53,6 +51,11 @@ def add_std_options(fn):
 
 def handle_std_options(verbose=None, env=None, config=None, logfile=None, **kwargs):
     configure_app_log(verbose=verbose, logfile=logfile)
+
+    #it's important we don't import config (which will modify the
+    #environment) until after click gets a chance to inspect the
+    #environment to fill CLI parameters
+    from . import config as _config  # noqa
 
     if config is not None:
         _config.load_config_file(config)

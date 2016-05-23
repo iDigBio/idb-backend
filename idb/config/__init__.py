@@ -1,6 +1,5 @@
 import os
 import json
-
 import logging
 
 logger = logging.getLogger('idb.cfg')

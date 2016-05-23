@@ -96,8 +96,8 @@ def ingest(rsid):
 @cli.command(name="ingest-all", help="Ingest all datasets")
 @click.option("--since", help="Only ingest sets harvested since the given date")
 def ingest_all(since):
-    from idigbio_ingestion.db_check import all
-    all(since, ingest=True)
+    from idigbio_ingestion.db_check import allrsids
+    allrsids(since, ingest=True)
 
 
 @cli.command(name="db-rsids",

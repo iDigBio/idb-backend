@@ -1,9 +1,5 @@
-import contextlib
 import uuid
-import datetime
-import random
 import json
-import hashlib
 import os
 import sys
 
@@ -299,12 +295,12 @@ class PostgresDB(object):
             # Fetch by version ignores the deleted flag
             if version == "all":
                 sql = (self.__columns_master_query_data +
-                                  """ FROM uuids """ +
-                                  self.__join_uuids_etags_all_versions +
-                                  self.__join_uuids_identifiers +
-                                  self.__join_uuids_siblings +
-                                  self.__join_uuids_data +
-                                  """
+                       """ FROM uuids """ +
+                       self.__join_uuids_etags_all_versions +
+                       self.__join_uuids_identifiers +
+                       self.__join_uuids_siblings +
+                       self.__join_uuids_data +
+                       """
                     WHERE uuids.id=%s
                     ORDER BY version ASC
                 """, (u,))
@@ -667,7 +663,6 @@ class MediaObject(object):
         else:
             return rc
 
-
     def ensure_media_object(self, idbmodel):
         return idbmodel.execute(
             """INSERT INTO media_objects (url, etag)
@@ -737,7 +732,7 @@ class RecordSet(object):
             return RecordSet(**r)
 
     @staticmethod
-    def fetch_file(uuid, filename, idbmodel=apidbpool, media_store=None):
+    def fetch_file(uuid, filename, idbmodel=apidbpool, media_store=None, logger=logger):
         sql = """
             SELECT uuid, etag, objects.bucket
             FROM recordsets
@@ -754,7 +749,6 @@ class RecordSet(object):
         bucketname = "idigbio-{0}-{1}".format(bucket, os.environ["ENV"])
         k = media_store.get_key(etag, bucketname)
         media_store.get_contents_to_filename(k, filename, md5=etag)
-
 
 
 def main():

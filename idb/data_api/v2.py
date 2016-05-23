@@ -68,19 +68,16 @@ def subitem(t, u, st):
         offset = 0
 
     r = {}
-    l = [
-        format_list_item(st,
-                         v["uuid"],
-                         v["etag"],
-                         v["modified"],
-                         v["version"],
-                         v["parent"], )
-        for v in idbmodel.get_children_list(
-            str(u), "".join(st[:-1]),
-            limit=limit, offset=offset)
-    ]
+    l = idbmodel.get_children_list(
+        str(u), "".join(st[:-1]), limit=limit, offset=offset)
 
-    r["items"] = l
+    r["items"] = [format_list_item(st,
+                                   v["uuid"],
+                                   v["etag"],
+                                   v["modified"],
+                                   v["version"],
+                                   v["parent"], )
+                  for v in l]
     r["itemCount"] = idbmodel.get_children_count(str(u), "".join(st[:-1]))
     return jsonify(r)
 

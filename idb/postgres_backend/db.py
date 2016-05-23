@@ -27,6 +27,8 @@ tombstone_etag = "9a4e35834eb80d9af64bcd07ed996b9ec0e60d92"
 
 
 class PostgresDB(object):
+    _pool = apidbpool
+
     __join_uuids_etags_latest_version = """
         LEFT JOIN LATERAL (
             SELECT * FROM uuids_data
@@ -155,14 +157,13 @@ class PostgresDB(object):
     """
 
     def __init__(self, pool=None):
-
-        self._pool = (pool or apidbpool)
+        if pool:
+            self._pool = pool
         # Generic reusable cursor for normal ops
         self.conn = self._pool.get()
 
     def __del__(self):
-        if self.conn:
-            self._pool.put(self.conn)
+        self.close()
 
     def __enter__(self):
         return self
@@ -332,7 +333,6 @@ class PostgresDB(object):
         # Needs to be accompanied by a corresponding version insertion to obsolete the tombstone
         self.execute("UPDATE uuids SET deleted=false WHERE id=%s", (u,))
 
-    @classmethod
     def get_type_list(self, t, limit=100, offset=0, data=False):
         if data:
             if limit is not None:
@@ -354,16 +354,14 @@ class PostgresDB(object):
                 sql = ("SELECT * FROM (" + self.__item_master_query + """
                     WHERE deleted=false and type=%s
                 """ + ") AS a ORDER BY uuid", (t,))
-        return apidbpool.fetchiter(*sql)
+        return self._pool.fetchiter(*sql)
 
-    @staticmethod
-    def get_type_count(t):
+    def get_type_count(self, t):
         sql = ("""SELECT count(*) as count
                   FROM uuids
                   WHERE deleted=false and type=%s""", (t,))
-        return apidbpool.fetchone(*sql)[0]
+        return self._pool.fetchone(*sql)[0]
 
-    @classmethod
     def get_children_list(self, u, t, limit=100, offset=0, data=False):
         sql = None
         if data:
@@ -386,15 +384,14 @@ class PostgresDB(object):
                 sql = ("SELECT * FROM (" + self.__item_master_query + """
                     WHERE deleted=false and type=%s and parent=%s
                 """ + ") AS a ORDER BY uuid", (t, u))
-        return apidbpool.fetchiter(*sql, named=True)
+        return self._pool.fetchiter(*sql, named=True)
 
-    @classmethod
     def get_children_count(self, u, t):
         sql = (""" SELECT
             count(*) as count FROM uuids
             WHERE deleted=false and type=%s and parent=%s
         """, (t, u))
-        return apidbpool.fetchone(*sql)[0]
+        return self._pool.fetchone(*sql)[0]
 
     def _id_precheck(self, u, ids):
         rows = self.fetchall("""SELECT

@@ -17,16 +17,6 @@ class PassException(Exception):
 
 
 @pytest.fixture()
-def testdb(scope="module"):
-    dbparams = {"host": "localhost", "dbname": "test",
-                "user": "test", "password": "test"}
-    with psycopg2.connect(**dbparams) as conn:
-        with conn.cursor() as cur:
-            cur.execute("SELECT 1")
-    return dbparams
-
-
-@pytest.fixture()
 def pool1(testdb):
     return GeventedConnPool(maxsize=1, **testdb)
 
@@ -147,10 +137,10 @@ def test_closeall(pool):
     spawns = [gevent.spawn(pool.execute, 'select 1;')
               for _ in range(0, count)]
     pool.closeall()
-
-    with pytest.raises(psycopg2.pool.PoolError):
-        pool.get()
     gevent.wait()
+    assert pool.pool.qsize() == 0
+    assert pool.closed is False
+
 
 
 def test_fetchone(pool1):

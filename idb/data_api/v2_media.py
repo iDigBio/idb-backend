@@ -47,7 +47,8 @@ def get_json_for_record(r, deriv, **extra):
         "etag": r.etag,
         "modified": r.modified and r.modified.isoformat(),
         "user": r.owner,
-        "mime": r.detected_mime or r.mime
+        "mime": r.detected_mime or r.mime,
+        "last_status": r.last_status
     }
     d.update(extra)
     # filter out nulls

@@ -68,5 +68,25 @@ no need to set the `PYTHONPATH`.
 
 ## Testing
 
-relies on having a local postgresql with user/pass `test` / `test`
-that can create databases.
+Relies on having a local postgresql with user/pass `test` / `test`
+that can connect to DB `test_idigbio`. The data in the DB will be
+destroyed during the testing.
+
+### Schema and data
+
+Testing the DB uses the schema copied from the live DB with:
+
+    pg_dump --host c18node8.acis.ufl.edu --port 5432 --username "idigbio" \
+        --format plain --schema-only --no-owner --clean \
+        --no-privileges --no-tablespaces --no-unlogged-table-data
+        --file "~/projects/idigbio/idb-backend/idb/tests/data/schema.sql" \
+        "idb_api_prod"
+
+The data in the DB was built up, copying from the live DB and then
+snapshotted with:
+
+    pg_dump --port 5432 --format plain --data-only --encoding UTF8 \
+      --inserts --column-inserts --no-privileges --no-tablespaces \
+      --verbose --no-unlogged-table-data  \
+      --file ~/projects/idigbio/idb-backend/idb/tests/data/testdata.sql \
+      test_idigbio

@@ -10,6 +10,7 @@ from idb.helpers.cors import crossdomain
 from idb.helpers.storage import IDigBioStorage
 from idb.postgres_backend.db import MediaObject
 from idb.helpers.conversions import valid_buckets, mime_mapping
+from idb.helpers.media_validation import UnknownMediaTypeError
 
 from .common import json_error, idbmodel
 
@@ -60,6 +61,7 @@ def respond_to_record(r, deriv=None, format=None):
         return json_error(404)
     media_url = get_media_url(r, deriv=deriv)
     mime = r.mime or r.detected_mime
+    status = 200
 
     if media_url:
         text = None
@@ -71,6 +73,7 @@ def respond_to_record(r, deriv=None, format=None):
         text = "Media Download Pending"
     else:
         text = "Media Error"
+        status = 400
 
     if format == "json":
         d = get_json_for_record(r, deriv, text=text)
@@ -183,20 +186,22 @@ def lookup_ref(format):
 @crossdomain(origin="*")
 @requires_auth
 def upload():
-    try:
-        filereference = request.values["filereference"]
-    except KeyError:
+    filereference = request.values.get("filereference")
+    if not filereference:
         return json_error(400, "Missing filereference")
 
     etag = request.values.get('etag')
     obj = request.files.get('file')
     media_type = request.values.get("media_type")
+    mime = request.values.get("mime")
     if media_type and media_type not in valid_buckets:
         return json_error(400, "Invalid media_type")
 
-    mime = request.values.get("mime")
-    if mime and mime_mapping.get(mime) is None:
-        return json_error(400, "Invalid mime")
+    if media_type != 'datasets' and mime:
+        # we want to validate mime type, but only if not a datasets
+        mapped = mime_mapping.get(mime)
+        if mapped is None or (media_type and mapped != media_type):
+            return json_error(400, "Invalid mime")
 
     r = MediaObject.fromurl(filereference, idbmodel=idbmodel)
     if r and r.owner != request.authorization.username:
@@ -205,7 +210,10 @@ def upload():
     if obj:
         # if either type or mime are null it will be ignored, if
         # present they change the behavior of fromobj
-        mo = MediaObject.fromobj(obj, type=media_type, mime=mime, url=filereference)
+        try:
+            mo = MediaObject.fromobj(obj, type=media_type, mime=mime, url=filereference)
+        except UnknownMediaTypeError:
+            return json_error(400, "Invalid mime")
         mo.upload(IDigBioStorage(), obj)
         mo.insert_object(idbmodel)
     elif etag:
@@ -218,10 +226,8 @@ def upload():
         mo.mime = mime or mo.detected_mime
         mo.type = media_type or mo.bucket
 
-    elif r is None:
-        return json_error(404, "filereference not found")
     elif (media_type and mime):
-        mo = r
+        mo = r or MediaObject()
         mo.type = media_type
         mo.mime = mime
         mo.last_check = None

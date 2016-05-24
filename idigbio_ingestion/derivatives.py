@@ -85,7 +85,7 @@ def count_results(results, update_freq=100):
     count = 0
 
     def output():
-        rate = count / min([(datetime.now() - start).total_seconds(), 1])
+        rate = count / max([(datetime.now() - start).total_seconds(), 1])
         log.info("Checked:%6d  Generated:%6d  Existed:%6d  Erred:%6d Rate:%6.1f/s",
                  count, c['generated'], c['existed'], c['erred'], rate)
 

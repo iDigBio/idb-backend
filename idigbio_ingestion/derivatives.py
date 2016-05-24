@@ -6,6 +6,7 @@ import os
 import cStringIO
 import sys
 
+from datetime import datetime
 from collections import Counter, namedtuple
 
 from gevent.pool import Pool
@@ -70,7 +71,7 @@ def main(buckets):
 
 
 def get_objects(buckets):
-    assert isinstance(buckets, tuple)
+    assert isinstance(buckets, (tuple, list))
     sql = """SELECT etag, bucket
              FROM objects
              WHERE derivatives=false AND bucket IN %s
@@ -79,12 +80,14 @@ def get_objects(buckets):
 
 
 def count_results(results, update_freq=100):
+    start = datetime.now()
     c = Counter()
     count = 0
 
     def output():
-        log.info("Checked:%6d  Generated:%6d  Existed:%6d  Erred:%6d",
-                 count, c['generated'], c['existed'], c['erred'])
+        rate = count / max([(datetime.now() - start).total_seconds(), 1])
+        log.info("Checked:%6d  Generated:%6d  Existed:%6d  Erred:%6d Rate:%6.1f/s",
+                 count, c['generated'], c['existed'], c['erred'], rate)
 
     try:
         for count, result in enumerate(results, 1):
@@ -162,7 +165,7 @@ def build_deriv(item, img, deriv):
 
     if deriv != 'fullsize':
         img = resize_image(img, deriv)
-    buff = img_to_buffer(img, format='JPEG', quality=95)
+    buff = img_to_buffer(img)
     return GenerateItem(key, buff)
 
 
@@ -197,6 +200,8 @@ def upload_item(item):
 
 
 def img_to_buffer(img, **kwargs):
+    kwargs.setdefault('format', 'JPEG')
+    kwargs.setdefault('quality', 95)
     dervbuff = cStringIO.StringIO()
     img.save(dervbuff, **kwargs)
     dervbuff.seek(0)

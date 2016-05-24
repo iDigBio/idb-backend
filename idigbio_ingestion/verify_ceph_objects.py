@@ -35,7 +35,7 @@ def get_all_objects(limit=None):
         sql += "limit " + str(limit)
 
     for r in apidbpool.fetchiter(sql, cursor_factory=cursor, named=True):
-        yield MediaObject(mtype=r[0], etag=r[1])
+        yield MediaObject(bucket=r[0], etag=r[1])
 
 
 STORE = IDigBioStorage()
@@ -80,7 +80,7 @@ def reverify(media_objects, poolsize=50):
     for cr in check_results:
         mo = cr.mo
         if cr.exists:
-            logger.warning("Now exists: %s in %s", mo.etag, mo.mtype)
+            logger.warning("Now exists: %s in %s", mo.etag, mo.bucket)
             continue
         yield cr.mo
 

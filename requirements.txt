@@ -6,7 +6,7 @@ pyproj>=1.9.3
 pytz>=2016.4
 requests>=2.4.0
 pycrypto
-flask>=0.10.0
+flask>=0.10.0, <1.0.0
 Flask-UUID
 Flask-CORS
 coverage

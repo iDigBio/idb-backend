@@ -2,6 +2,9 @@ import uuid
 import json
 import os
 import sys
+import itertools
+
+from datetime import datetime
 
 from psycopg2.extras import DictCursor
 from psycopg2.extensions import cursor
@@ -13,7 +16,8 @@ from idb.helpers.logging import idblogger as logger
 from idb.postgres_backend import apidbpool
 from idb.helpers.etags import calcEtag, calcFileHash
 from idb.helpers.media_validation import sniff_validation
-from idb.helpers.conversions import valid_buckets
+from idb.helpers.conversions import valid_buckets, get_accessuri
+
 
 TEST_SIZE = 10000
 TEST_COUNT = 10
@@ -23,6 +27,8 @@ tombstone_etag = "9a4e35834eb80d9af64bcd07ed996b9ec0e60d92"
 
 
 class PostgresDB(object):
+    _pool = apidbpool
+
     __join_uuids_etags_latest_version = """
         LEFT JOIN LATERAL (
             SELECT * FROM uuids_data
@@ -151,14 +157,13 @@ class PostgresDB(object):
     """
 
     def __init__(self, pool=None):
-
-        self._pool = (pool or apidbpool)
+        if pool:
+            self._pool = pool
         # Generic reusable cursor for normal ops
         self.conn = self._pool.get()
 
     def __del__(self):
-        if self.conn:
-            self._pool.put(self.conn)
+        self.close()
 
     def __enter__(self):
         return self
@@ -328,7 +333,6 @@ class PostgresDB(object):
         # Needs to be accompanied by a corresponding version insertion to obsolete the tombstone
         self.execute("UPDATE uuids SET deleted=false WHERE id=%s", (u,))
 
-    @classmethod
     def get_type_list(self, t, limit=100, offset=0, data=False):
         if data:
             if limit is not None:
@@ -350,16 +354,14 @@ class PostgresDB(object):
                 sql = ("SELECT * FROM (" + self.__item_master_query + """
                     WHERE deleted=false and type=%s
                 """ + ") AS a ORDER BY uuid", (t,))
-        return apidbpool.fetchiter(*sql)
+        return self._pool.fetchiter(*sql)
 
-    @staticmethod
-    def get_type_count(t):
+    def get_type_count(self, t):
         sql = ("""SELECT count(*) as count
                   FROM uuids
                   WHERE deleted=false and type=%s""", (t,))
-        return apidbpool.fetchone(*sql)[0]
+        return self._pool.fetchone(*sql)[0]
 
-    @classmethod
     def get_children_list(self, u, t, limit=100, offset=0, data=False):
         sql = None
         if data:
@@ -382,15 +384,14 @@ class PostgresDB(object):
                 sql = ("SELECT * FROM (" + self.__item_master_query + """
                     WHERE deleted=false and type=%s and parent=%s
                 """ + ") AS a ORDER BY uuid", (t, u))
-        return apidbpool.fetchiter(*sql, named=True)
+        return self._pool.fetchiter(*sql, named=True)
 
-    @classmethod
     def get_children_count(self, u, t):
         sql = (""" SELECT
             count(*) as count FROM uuids
             WHERE deleted=false and type=%s and parent=%s
         """, (t, u))
-        return apidbpool.fetchone(*sql)[0]
+        return self._pool.fetchone(*sql)[0]
 
     def _id_precheck(self, u, ids):
         rows = self.fetchall("""SELECT
@@ -557,62 +558,137 @@ class PostgresDB(object):
 
 
 class MediaObject(object):
-    __slots__ = 'filereference etag mime mtype size owner'.split(' ')
+    """Helper that represents media objects from the db.
 
-    def __init__(self, **attrs):
-        for i in self.__slots__:
-            setattr(self, i, None)
-        for i in attrs.items():
-            setattr(self, *i)
+    This object represents the join between the media, media_objects,
+    and objects tables in the DB though not every instance of it will
+    have all that data.
+
+    the association of media to objects is many to many, when fetching
+    with this object by url or etag it will attempt to find the most
+    recently associated record on the other side of the join.
+
+    """
+
+    __slots__ = (
+        'url', 'type', 'owner', 'mime', 'last_check', 'last_status',
+        'modified', 'etag', 'detected_mime', 'derivatives', 'bucket'
+    )
+
+    def __init__(self, *args, **kwargs):
+        for s, a in itertools.izip_longest(self.__slots__, args):
+            setattr(self, s, a)
+        for kw in kwargs.items():
+            setattr(self, *kw)
+
+    def __repr__(self):
+        values = {k: getattr(self, k) for k in self.__slots__}
+        s = ", ".join("{0}={1!r}".format(k, v)
+                      for k, v in values.items() if v is not None)
+        return "{0}({1})".format(self.__class__.__name__, s)
 
     @classmethod
-    def fromobj(klass, obj, **attrs):
-        obj.seek(0)
-        mo = klass(**attrs)
+    def fromurl(cls, url, idbmodel=apidbpool):
+        # Patch special case from old media url.
+        if (url.startswith("http://media.idigbio.org/lookup/images/") or
+            url.startswith("https://media.idigbio.org/lookup/images/")):
+            return cls.frometag(url.split("/")[-1], idbmodel=idbmodel)
 
-        if mo.mtype not in valid_buckets:
-            mo.mime, mo.mtype = sniff_validation(obj.read(1024))
-        elif mo.mime is None:
-            mo.mime, _ = sniff_validation(obj.read(1024), raises=False)
+        sql = """
+            SELECT DISTINCT ON(media.url)
+                   media.url, media.type, media.owner, media.mime,
+                   media.last_check, media.last_status, media_objects.modified,
+                   objects.etag, objects.detected_mime, objects.derivatives,
+                   objects.bucket
+                 FROM media
+                 LEFT JOIN media_objects ON media.url = media_objects.url
+                 LEFT JOIN objects ON media_objects.etag = objects.etag
+                 WHERE media.url = %s
+                 ORDER BY media.url, media_objects.modified DESC
+        """
+        r = idbmodel.fetchone(sql, (url,), cursor_factory=cursor)
+        if r:
+            return cls(*r)
+
+    @classmethod
+    def frometag(cls, etag, idbmodel=apidbpool):
+        sql = """
+            SELECT DISTINCT ON(objects.etag)
+                   media.url, media.type, media.owner, media.mime,
+                   media.last_check, media.last_status, media_objects.modified,
+                   objects.etag, objects.detected_mime, objects.derivatives,
+                   objects.bucket
+                 FROM objects
+                 LEFT JOIN media_objects ON media_objects.etag = objects.etag
+                 LEFT JOIN media ON media.url = media_objects.url
+                 WHERE objects.etag = %s
+                 ORDER BY objects.etag, media_objects.modified DESC
+        """
+        r = idbmodel.fetchone(sql, (etag,), cursor_factory=cursor)
+        if r:
+            return cls(*r)
+
+    @classmethod
+    def query(cls, conditions=None, params=tuple([]), limit=100, idbmodel=apidbpool):
+        "A more general query, the conditions need to be only against media table."
+        if conditions:
+            where = "WHERE " + " AND ".join(conditions)
+        else:
+            where = ""
+
+        sql = """
+            SELECT DISTINCT ON(media.url)
+                   media.url, media.type, media.owner, media.mime,
+                   media.last_check, media.last_status, media_objects.modified,
+                   objects.etag, objects.detected_mime, objects.derivatives,
+                   objects.bucket
+                 FROM (SELECT * FROM media {0} LIMIT {1}) AS media
+                 JOIN media_objects ON media.url = media_objects.url
+                 JOIN objects ON media_objects.etag = objects.etag
+                 ORDER BY media.url, media_objects.modified DESC
+        """.format(where, limit)
+        results = idbmodel.fetchall(sql, params, cursor_factory=cursor)
+        return [cls(*r) for r in results]
+
+    @classmethod
+    def fromuuid(cls, uuid, idbmodel=None):
+        uuid = str(uuid)
+        rec = idbmodel.get_item(uuid)
+        if rec is not None:
+            ref = get_accessuri(rec["type"], rec["data"])["accessuri"]
+            return cls.fromurl(ref, idbmodel=idbmodel)
+
+    @classmethod
+    def fromobj(cls, obj, **attrs):
+        obj.seek(0)
+        attrs.setdefault('last_status', 200)
+        attrs.setdefault('last_check', datetime.now())
+        attrs.setdefault('derivatives', False)
+
+        mo = cls(**attrs)
+
+        if mo.bucket not in valid_buckets:
+            mo.bucket = None
+        if mo.type not in valid_buckets:
+            mo.type = None
+
+        hastype = mo.type or mo.bucket
+        if not hastype:
+            mo.detected_mime, mo.bucket = sniff_validation(obj.read(1024))
+        elif mo.detected_mime is None:
+            mo.detected_mime, _ = sniff_validation(obj.read(1024), raises=False)
+
+        if mo.type and not mo.bucket:
+            mo.bucket = mo.type
+        if mo.bucket and not mo.type:
+            mo.type = mo.bucket
+        if not mo.mime:
+            mo.mime = mo.detected_mime
 
         obj.seek(0)
-        mo.etag, mo.size = calcFileHash(obj, op=False, return_size=True)
+        mo.etag = calcFileHash(obj, op=False, return_size=False)
         obj.seek(0)
         return mo
-
-    @classmethod
-    def frometag(klass, etag, idbmodel=None):
-        if idbmodel is None:
-            idbmodel = apidbpool
-        sql = "SELECT etag, bucket, detected_mime FROM objects WHERE etag=%s"
-        r = idbmodel.fetchone(sql, (etag,))
-        if r:
-            mo = klass()
-            mo.etag, mo.mtype, mo.mime = r
-            return mo
-
-    @classmethod
-    def fromurl(klass, url, idbmodel=None):
-        if idbmodel is None:
-            idbmodel = apidbpool
-        sql = ("""
-            SELECT DISTINCT ON (media_objects.url)
-                objects.bucket, objects.etag, objects.detected_mime, media.owner
-            FROM media
-            LEFT JOIN media_objects ON media.url = media_objects.url
-            LEFT JOIN objects on media_objects.etag = objects.etag
-            WHERE media_objects.url=%(url)s
-            ORDER BY media_objects.url, media_objects.modified DESC;
-        """, {"url": url})
-        r = idbmodel.fetchone(*sql, cursor_factory=cursor)
-        if r:
-            mo = klass()
-            mo.filereference = url
-            mo.mtype, mo.etag, mo.mime, mo.owner = r
-            return mo
-
-    def get_key(self, media_store):
-        return media_store.get_key(self.keyname, self.bucketname)
 
     @property
     def keyname(self):
@@ -620,7 +696,10 @@ class MediaObject(object):
 
     @property
     def bucketname(self):
-        return "idigbio-{0}-{1}".format(self.mtype, os.environ["ENV"])
+        return "idigbio-{0}-{1}".format(self.bucket, config.ENV)
+
+    def get_key(self, media_store):
+        return media_store.get_key(self.keyname, self.bucketname)
 
     def upload(self, media_store, fobj, force=False):
         k = self.get_key(media_store)
@@ -632,34 +711,31 @@ class MediaObject(object):
 
     def ensure_object(self, idbmodel):
         return idbmodel.execute(
-            """INSERT INTO objects (bucket, etag, detected_mime)
-               SELECT %s, %s, %s WHERE NOT EXISTS (SELECT 1 FROM objects WHERE etag=%s)""",
-            (self.mtype, self.etag, self.mime, self.etag))
+            """INSERT INTO objects (bucket, etag, detected_mime, derivatives)
+               SELECT %s, %s, %s, false WHERE NOT EXISTS (SELECT 1 FROM objects WHERE etag=%s)""",
+            (self.bucket, self.etag, self.detected_mime, self.etag))
 
     def insert_object(self, idbmodel):
         return self.ensure_object(idbmodel)
 
-    def update_media(self, idbmodel, status=200):
+    def update_media(self, idbmodel):
         return idbmodel.execute(
             """UPDATE media
                SET last_check=now(), last_status=%s, type=%s, mime=%s
                WHERE url=%s""",
-            (status, self.mtype, self.mime, self.filereference))
+            (self.last_status, self.type, self.mime, self.url))
 
-    def insert_media(self, idbmodel, status=200):
+    def insert_media(self, idbmodel):
         return idbmodel.execute(
             """INSERT INTO media (url, type, mime, last_status, last_check, owner)
-               VALUES (%s, %s, %s, %s, now(), %s)""",
-            (self.filereference, self.mtype, self.mime, status, self.owner))
+               VALUES (%s, %s, %s, %s, %s, %s)""",
+            (self.url, self.type, self.mime, self.last_status, self.last_check,
+             self.owner))
 
-    def ensure_media(self, idbmodel, status=200):
-        kwargs = {
-            'idbmodel': idbmodel,
-            'status': status
-        }
-        rc = self.update_media(**kwargs)
+    def ensure_media(self, idbmodel):
+        rc = self.update_media(idbmodel)
         if rc == 0:
-            return self.insert_media(**kwargs)
+            return self.insert_media(idbmodel)
         else:
             return rc
 
@@ -669,7 +745,7 @@ class MediaObject(object):
                SELECT %(url)s, %(etag)s WHERE NOT EXISTS (
                  SELECT 1 FROM media_objects WHERE url=%(url)s AND etag=%(etag)s
                )""",
-            {"url": self.filereference, "etag": self.etag})
+            {"url": self.url, "etag": self.etag})
 
     @staticmethod
     def create_schema(idbmodel=None):

@@ -26,7 +26,7 @@ def main3():
         print(rsid)
 
 def main2():
-    for r in PostgresDB.get_type_list("recordset", limit=None):
+    for r in PostgresDB().get_type_list("recordset", limit=None):
         try:
             print r["uuid"]
         except:

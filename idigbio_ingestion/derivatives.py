@@ -165,7 +165,7 @@ def build_deriv(item, img, deriv):
 
     if deriv != 'fullsize':
         img = resize_image(img, deriv)
-    buff = img_to_buffer(img, format='JPEG', quality=95)
+    buff = img_to_buffer(img)
     return GenerateItem(key, buff)
 
 
@@ -200,6 +200,8 @@ def upload_item(item):
 
 
 def img_to_buffer(img, **kwargs):
+    kwargs.setdefault('format', 'JPEG')
+    kwargs.setdefault('quality', 95)
     dervbuff = cStringIO.StringIO()
     img.save(dervbuff, **kwargs)
     dervbuff.seek(0)

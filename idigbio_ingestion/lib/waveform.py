@@ -40,6 +40,8 @@ class Waveform(object):
         ]
 
         max_rms = max(loudness_of_chunks) * 1.00
+        if max_rms == 0:
+            return [0] * len(loudness_of_chunks)
 
         return [int((loudness // max_rms) * self.db_ceiling)
                 for loudness in loudness_of_chunks]

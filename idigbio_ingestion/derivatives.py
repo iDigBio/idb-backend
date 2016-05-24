@@ -260,8 +260,10 @@ def migrate():
           LEFT JOIN objects AS b
             ON a.etag = b.etag
           WHERE b.etag IS NULL);
-
-        INSERT INTO media (url, type, owner, last_status, last_check)
+    """
+    rc = apidbpool.execute(sql)
+    log.info("Objects Migrated: %s", rc)
+    sql = """INSERT INTO media (url, type, owner, last_status, last_check)
           (SELECT
             idb_object_keys.lookup_key,
             idb_object_keys.type,
@@ -272,8 +274,10 @@ def migrate():
           LEFT JOIN media
             ON lookup_key = url
           WHERE media.url IS NULL);
-
-        INSERT INTO media_objects (url, etag, modified)
+    """
+    rc = apidbpool.execute(sql)
+    log.info("Media Migrated: %s", rc)
+    sql = """INSERT INTO media_objects (url, etag, modified)
           (SELECT
             idb_object_keys.lookup_key,
             idb_object_keys.etag,
@@ -284,4 +288,5 @@ def migrate():
             AND media_objects.etag = idb_object_keys.etag
           WHERE media_objects.url IS NULL)
     """
-    apidbpool.execute(sql)
+    rc = apidbpool.execute(sql)
+    log.info("Media Objects Migrated: %s", rc)

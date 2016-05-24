@@ -9,6 +9,7 @@ import sys
 from datetime import datetime
 from collections import Counter, namedtuple
 
+import gevent
 from gevent.pool import Pool
 from PIL import Image
 from boto.exception import S3ResponseError, S3DataError
@@ -45,6 +46,19 @@ class BadImageError(Exception):
     def __init__(self, message, inner=None):
         self.message = message
         self.inner = inner
+
+
+def continuous(buckets):
+    "Continuously run the main loop, checking for derivatives"
+    minlooptime = 600  # 10minutes
+
+    while True:
+        t1 = datetime.now()
+        main(buckets)
+        log.info("Completed complete derivatives run in %s", (datetime.now() - t1))
+        sleeptime = minlooptime - (datetime.now() - t1).total_seconds()
+        if sleeptime:
+            gevent.sleep(max([sleeptime, 1]))
 
 
 def main(buckets):

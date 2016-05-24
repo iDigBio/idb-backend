@@ -56,11 +56,16 @@ def mediaing_updatedb(mediaing_params):
 @cli.command(help="Generate derivatives in the specified buckets."
              " Buckets currently can be {'images', 'sounds'}."
              " Defaults to both.")
+@click.option('--continuous/--no-continuous', default=False,
+              help="Run derivatives continuously w/o exiting")
 @click.argument('bucket', nargs=-1)
-def derivatives(bucket):
+def derivatives(continuous, bucket):
     monkey.patch_all()
-    from idigbio_ingestion.derivatives import main
-    main(bucket)
+    from idigbio_ingestion import derivatives
+    if continuous:
+        derivatives.continuous(bucket)
+    else:
+        derivatives.main(bucket)
 
 
 @cli.command(name="migrate-media-objects", help="Migrate database entries from old media api table.")

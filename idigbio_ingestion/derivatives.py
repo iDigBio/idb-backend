@@ -6,6 +6,7 @@ import os
 import cStringIO
 import sys
 
+from datetime import datetime
 from collections import Counter, namedtuple
 
 from gevent.pool import Pool
@@ -79,12 +80,14 @@ def get_objects(buckets):
 
 
 def count_results(results, update_freq=100):
+    start = datetime.now()
     c = Counter()
     count = 0
 
     def output():
-        log.info("Checked:%6d  Generated:%6d  Existed:%6d  Erred:%6d",
-                 count, c['generated'], c['existed'], c['erred'])
+        rate = count / min([(datetime.now() - start).total_seconds(), 1])
+        log.info("Checked:%6d  Generated:%6d  Existed:%6d  Erred:%6d Rate:%6.1f/s",
+                 count, c['generated'], c['existed'], c['erred'], rate)
 
     try:
         for count, result in enumerate(results, 1):

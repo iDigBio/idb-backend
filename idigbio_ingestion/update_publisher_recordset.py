@@ -361,7 +361,7 @@ def upload_recordset(rsid, fname, idbmodel):
     stor = IDigBioStorage()
     with open(fname, 'rb') as fobj:
         mo = MediaObject.fromobj(
-            fobj, filereference=filereference, mtype='datasets', owner=config.IDB_UUID)
+            fobj, url=filereference, type='datasets', owner=config.IDB_UUID)
         k = mo.get_key(stor)
         if k.exists():
             logger.debug("ETAG %s already present in Storage.", mo.etag)
@@ -369,7 +369,7 @@ def upload_recordset(rsid, fname, idbmodel):
             mo.upload(stor, fobj)
             logger.debug("ETAG %s uploading from %r", mo.etag, fname)
 
-        mo.ensure_media(idbmodel, status=200)
+        mo.ensure_media(idbmodel)
         mo.ensure_object(idbmodel)
         mo.ensure_media_object(idbmodel)
         return mo.etag

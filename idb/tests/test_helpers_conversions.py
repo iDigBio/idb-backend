@@ -154,7 +154,6 @@ class TestIntGrabber(unittest.TestCase):
             "version": 1,
         }, conversions.intGrabber("records", r))
 
-
     def test_int_grabber_float(self):
         r = {
             "idigbio:version": 1.0,

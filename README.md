@@ -49,6 +49,7 @@ For testing you will also need to run
 
     pip install -r test-requirements.txt
 
+
 ### Package installation
 
 This package itself needs to be installed to generate the CLI
@@ -64,3 +65,28 @@ To setup cron jobs symlink from etc/cron.d/* to /etc/cron.d/*
 The main entry point is the `idb` command; you can run `idb --help` to
 see what subcommands are available. When invoking this script there is
 no need to set the `PYTHONPATH`.
+
+## Testing
+
+Relies on having a local postgresql with user/pass `test` / `test`
+that can connect to DB `test_idigbio`. The data in the DB will be
+destroyed during the testing.
+
+### Schema and data
+
+Testing the DB uses the schema copied from the live DB with:
+
+    pg_dump --host c18node8.acis.ufl.edu --port 5432 --username "idigbio" \
+        --format plain --schema-only --no-owner --clean \
+        --no-privileges --no-tablespaces --no-unlogged-table-data
+        --file "~/projects/idigbio/idb-backend/idb/tests/data/schema.sql" \
+        "idb_api_prod"
+
+The data in the DB was built up, copying from the live DB and then
+snapshotted with:
+
+    pg_dump --port 5432 --format plain --data-only --encoding UTF8 \
+      --inserts --column-inserts --no-privileges --no-tablespaces \
+      --verbose --no-unlogged-table-data  \
+      --file ~/projects/idigbio/idb-backend/idb/tests/data/testdata.sql \
+      test_idigbio

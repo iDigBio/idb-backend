@@ -107,7 +107,7 @@ def get_db_dicts(rsid):
     for t in ["record", "mediarecord"]:
         id_uuid[t + "s"] = {}
         uuid_etag[t + "s"] = {}
-        for c in PostgresDB.get_children_list(rsid, t, limit=None):
+        for c in PostgresDB().get_children_list(rsid, t, limit=None):
             u = c["uuid"]
             e = c["etag"]
             uuid_etag[t + "s"][u] = e

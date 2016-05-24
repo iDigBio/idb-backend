@@ -3,8 +3,7 @@
 --
 
 -- Dumped from database version 9.4.4
--- Dumped by pg_dump version 9.4.6
--- Started on 2016-03-29 13:22:39 EDT
+-- Dumped by pg_dump version 9.5.3
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
@@ -12,25 +11,97 @@ SET client_encoding = 'UTF8';
 SET standard_conforming_strings = on;
 SET check_function_bodies = false;
 SET client_min_messages = warning;
-
---
--- TOC entry 1 (class 3079 OID 2436812)
--- Name: plpgsql; Type: EXTENSION; Schema: -; Owner: -
---
-
-CREATE EXTENSION IF NOT EXISTS plpgsql WITH SCHEMA pg_catalog;
-
-
+SET row_security = off;
 
 SET search_path = public, pg_catalog;
 
-SET default_tablespace = '';
+ALTER TABLE IF EXISTS ONLY public.uuids_siblings DROP CONSTRAINT uuids_siblings_r2_fkey;
+ALTER TABLE IF EXISTS ONLY public.uuids_siblings DROP CONSTRAINT uuids_siblings_r1_fkey;
+ALTER TABLE IF EXISTS ONLY public.uuids_identifier DROP CONSTRAINT uuids_identifier_uuids_id_fkey;
+ALTER TABLE IF EXISTS ONLY public.uuids_data DROP CONSTRAINT uuids_data_uuids_id_fkey;
+ALTER TABLE IF EXISTS ONLY public.uuids_data DROP CONSTRAINT uuids_data_data_etag_fkey;
+ALTER TABLE IF EXISTS ONLY public.recordsets DROP CONSTRAINT recordsets_publisher_uuid_fkey;
+ALTER TABLE IF EXISTS ONLY public.media_objects DROP CONSTRAINT media_objects_url_fkey;
+ALTER TABLE IF EXISTS ONLY public.media_objects DROP CONSTRAINT media_objects_etag_fkey;
+ALTER TABLE IF EXISTS ONLY public.annotations DROP CONSTRAINT annotations_uuids_id_fkey;
+DROP INDEX IF EXISTS public.uuids_type_parent;
+DROP INDEX IF EXISTS public.uuids_siblings_r2;
+DROP INDEX IF EXISTS public.uuids_siblings_r1;
+DROP INDEX IF EXISTS public.uuids_parent;
+DROP INDEX IF EXISTS public.uuids_identifier_uuids_id;
+DROP INDEX IF EXISTS public.uuids_identifier_reverse_idx;
+DROP INDEX IF EXISTS public.uuids_data_version;
+DROP INDEX IF EXISTS public.uuids_data_uuids_id;
+DROP INDEX IF EXISTS public.uuids_data_modified;
+DROP INDEX IF EXISTS public.media_objects_urls;
+DROP INDEX IF EXISTS public.media_objects_etags;
+DROP INDEX IF EXISTS public.idb_object_keys_etag;
+DROP INDEX IF EXISTS public.data_riak_etag;
+DROP INDEX IF EXISTS public.data_accessuris;
+DROP INDEX IF EXISTS public.corrections_source;
+ALTER TABLE IF EXISTS ONLY public.uuids_siblings DROP CONSTRAINT uuids_siblings_pkey;
+ALTER TABLE IF EXISTS ONLY public.uuids DROP CONSTRAINT uuids_pkey;
+ALTER TABLE IF EXISTS ONLY public.uuids_identifier DROP CONSTRAINT uuids_identifier_pkey;
+ALTER TABLE IF EXISTS ONLY public.uuids_identifier DROP CONSTRAINT uuids_identifier_identifier_key;
+ALTER TABLE IF EXISTS ONLY public.uuids_data DROP CONSTRAINT uuids_data_pkey;
+ALTER TABLE IF EXISTS ONLY public.recordsets DROP CONSTRAINT recordsets_uuid_key;
+ALTER TABLE IF EXISTS ONLY public.recordsets DROP CONSTRAINT recordsets_pkey;
+ALTER TABLE IF EXISTS ONLY public.publishers DROP CONSTRAINT publishers_uuid_key;
+ALTER TABLE IF EXISTS ONLY public.publishers DROP CONSTRAINT publishers_pkey;
+ALTER TABLE IF EXISTS ONLY public.objects DROP CONSTRAINT objects_pkey;
+ALTER TABLE IF EXISTS ONLY public.objects DROP CONSTRAINT objects_etag_key;
+ALTER TABLE IF EXISTS ONLY public.media DROP CONSTRAINT media_url_key;
+ALTER TABLE IF EXISTS ONLY public.media DROP CONSTRAINT media_pkey;
+ALTER TABLE IF EXISTS ONLY public.media_objects DROP CONSTRAINT media_objects_pkey;
+ALTER TABLE IF EXISTS ONLY public.recordsets DROP CONSTRAINT idx_file_link_unique;
+ALTER TABLE IF EXISTS ONLY public.idb_object_keys DROP CONSTRAINT idb_object_keys_pkey;
+ALTER TABLE IF EXISTS ONLY public.data DROP CONSTRAINT data_pkey;
+ALTER TABLE IF EXISTS ONLY public.corrections DROP CONSTRAINT corrections_pkey;
+ALTER TABLE IF EXISTS ONLY public.annotations DROP CONSTRAINT annotations_pkey;
+ALTER TABLE IF EXISTS public.uuids_siblings ALTER COLUMN id DROP DEFAULT;
+ALTER TABLE IF EXISTS public.uuids_identifier ALTER COLUMN id DROP DEFAULT;
+ALTER TABLE IF EXISTS public.uuids_data ALTER COLUMN id DROP DEFAULT;
+ALTER TABLE IF EXISTS public.recordsets ALTER COLUMN id DROP DEFAULT;
+ALTER TABLE IF EXISTS public.publishers ALTER COLUMN id DROP DEFAULT;
+ALTER TABLE IF EXISTS public.objects ALTER COLUMN id DROP DEFAULT;
+ALTER TABLE IF EXISTS public.media_objects ALTER COLUMN id DROP DEFAULT;
+ALTER TABLE IF EXISTS public.media ALTER COLUMN id DROP DEFAULT;
+ALTER TABLE IF EXISTS public.corrections ALTER COLUMN id DROP DEFAULT;
+ALTER TABLE IF EXISTS public.annotations ALTER COLUMN id DROP DEFAULT;
+DROP SEQUENCE IF EXISTS public.uuids_siblings_id_seq;
+DROP SEQUENCE IF EXISTS public.uuids_identifier_id_seq;
+DROP SEQUENCE IF EXISTS public.uuids_data_id_seq;
+DROP SEQUENCE IF EXISTS public.recordsets_id_seq;
+DROP TABLE IF EXISTS public.recordsets;
+DROP SEQUENCE IF EXISTS public.publishers_id_seq;
+DROP TABLE IF EXISTS public.publishers;
+DROP SEQUENCE IF EXISTS public.objects_id_seq;
+DROP TABLE IF EXISTS public.objects;
+DROP SEQUENCE IF EXISTS public.media_objects_id_seq;
+DROP TABLE IF EXISTS public.media_objects;
+DROP SEQUENCE IF EXISTS public.media_id_seq;
+DROP TABLE IF EXISTS public.media;
+DROP VIEW IF EXISTS public.idigbio_uuids_new;
+DROP VIEW IF EXISTS public.idigbio_uuids_data;
+DROP TABLE IF EXISTS public.uuids_identifier;
+DROP TABLE IF EXISTS public.uuids_data;
+DROP VIEW IF EXISTS public.idigbio_relations;
+DROP TABLE IF EXISTS public.uuids_siblings;
+DROP TABLE IF EXISTS public.uuids;
+DROP TABLE IF EXISTS public.idb_object_keys;
+DROP TABLE IF EXISTS public.idb_api_keys;
+DROP TABLE IF EXISTS public.data;
+DROP SEQUENCE IF EXISTS public.corrections_id_seq;
+DROP TABLE IF EXISTS public.corrections;
+DROP SEQUENCE IF EXISTS public.annotations_id_seq;
+DROP TABLE IF EXISTS public.annotations;
+
+SET search_path = public, pg_catalog;
 
 SET default_with_oids = false;
 
 --
--- TOC entry 173 (class 1259 OID 2436817)
--- Name: annotations; Type: TABLE; Schema: public; Owner: -; Tablespace: 
+-- Name: annotations; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE annotations (
@@ -44,7 +115,6 @@ CREATE TABLE annotations (
 
 
 --
--- TOC entry 174 (class 1259 OID 2436825)
 -- Name: annotations_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
@@ -57,8 +127,6 @@ CREATE SEQUENCE annotations_id_seq
 
 
 --
--- TOC entry 2223 (class 0 OID 0)
--- Dependencies: 174
 -- Name: annotations_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
 
@@ -66,8 +134,7 @@ ALTER SEQUENCE annotations_id_seq OWNED BY annotations.id;
 
 
 --
--- TOC entry 175 (class 1259 OID 2436827)
--- Name: corrections; Type: TABLE; Schema: public; Owner: -; Tablespace: 
+-- Name: corrections; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE corrections (
@@ -81,7 +148,6 @@ CREATE TABLE corrections (
 
 
 --
--- TOC entry 176 (class 1259 OID 2436835)
 -- Name: corrections_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
@@ -94,8 +160,6 @@ CREATE SEQUENCE corrections_id_seq
 
 
 --
--- TOC entry 2224 (class 0 OID 0)
--- Dependencies: 176
 -- Name: corrections_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
 
@@ -103,8 +167,7 @@ ALTER SEQUENCE corrections_id_seq OWNED BY corrections.id;
 
 
 --
--- TOC entry 177 (class 1259 OID 2436837)
--- Name: data; Type: TABLE; Schema: public; Owner: -; Tablespace: 
+-- Name: data; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE data (
@@ -115,8 +178,7 @@ CREATE TABLE data (
 
 
 --
--- TOC entry 178 (class 1259 OID 2436843)
--- Name: idb_api_keys; Type: TABLE; Schema: public; Owner: -; Tablespace: 
+-- Name: idb_api_keys; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE idb_api_keys (
@@ -130,8 +192,7 @@ CREATE TABLE idb_api_keys (
 
 
 --
--- TOC entry 179 (class 1259 OID 2436850)
--- Name: idb_object_keys; Type: TABLE; Schema: public; Owner: -; Tablespace: 
+-- Name: idb_object_keys; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE idb_object_keys (
@@ -144,8 +205,7 @@ CREATE TABLE idb_object_keys (
 
 
 --
--- TOC entry 180 (class 1259 OID 2436854)
--- Name: uuids; Type: TABLE; Schema: public; Owner: -; Tablespace: 
+-- Name: uuids; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE uuids (
@@ -157,8 +217,7 @@ CREATE TABLE uuids (
 
 
 --
--- TOC entry 181 (class 1259 OID 2436858)
--- Name: uuids_siblings; Type: TABLE; Schema: public; Owner: -; Tablespace: 
+-- Name: uuids_siblings; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE uuids_siblings (
@@ -169,7 +228,6 @@ CREATE TABLE uuids_siblings (
 
 
 --
--- TOC entry 182 (class 1259 OID 2436861)
 -- Name: idigbio_relations; Type: VIEW; Schema: public; Owner: -
 --
 
@@ -188,8 +246,7 @@ CREATE VIEW idigbio_relations AS
 
 
 --
--- TOC entry 183 (class 1259 OID 2436865)
--- Name: uuids_data; Type: TABLE; Schema: public; Owner: -; Tablespace: 
+-- Name: uuids_data; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE uuids_data (
@@ -202,8 +259,7 @@ CREATE TABLE uuids_data (
 
 
 --
--- TOC entry 184 (class 1259 OID 2436870)
--- Name: uuids_identifier; Type: TABLE; Schema: public; Owner: -; Tablespace: 
+-- Name: uuids_identifier; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE uuids_identifier (
@@ -214,7 +270,6 @@ CREATE TABLE uuids_identifier (
 
 
 --
--- TOC entry 185 (class 1259 OID 2436876)
 -- Name: idigbio_uuids_data; Type: VIEW; Schema: public; Owner: -
 --
 
@@ -270,7 +325,6 @@ CREATE VIEW idigbio_uuids_data AS
 
 
 --
--- TOC entry 186 (class 1259 OID 2436881)
 -- Name: idigbio_uuids_new; Type: VIEW; Schema: public; Owner: -
 --
 
@@ -323,8 +377,7 @@ CREATE VIEW idigbio_uuids_new AS
 
 
 --
--- TOC entry 187 (class 1259 OID 2436886)
--- Name: media; Type: TABLE; Schema: public; Owner: -; Tablespace: 
+-- Name: media; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE media (
@@ -339,7 +392,6 @@ CREATE TABLE media (
 
 
 --
--- TOC entry 188 (class 1259 OID 2436893)
 -- Name: media_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
@@ -352,8 +404,6 @@ CREATE SEQUENCE media_id_seq
 
 
 --
--- TOC entry 2225 (class 0 OID 0)
--- Dependencies: 188
 -- Name: media_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
 
@@ -361,8 +411,7 @@ ALTER SEQUENCE media_id_seq OWNED BY media.id;
 
 
 --
--- TOC entry 189 (class 1259 OID 2436895)
--- Name: media_objects; Type: TABLE; Schema: public; Owner: -; Tablespace: 
+-- Name: media_objects; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE media_objects (
@@ -374,7 +423,6 @@ CREATE TABLE media_objects (
 
 
 --
--- TOC entry 190 (class 1259 OID 2436902)
 -- Name: media_objects_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
@@ -387,8 +435,6 @@ CREATE SEQUENCE media_objects_id_seq
 
 
 --
--- TOC entry 2226 (class 0 OID 0)
--- Dependencies: 190
 -- Name: media_objects_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
 
@@ -396,8 +442,7 @@ ALTER SEQUENCE media_objects_id_seq OWNED BY media_objects.id;
 
 
 --
--- TOC entry 191 (class 1259 OID 2436904)
--- Name: objects; Type: TABLE; Schema: public; Owner: -; Tablespace: 
+-- Name: objects; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE objects (
@@ -410,7 +455,6 @@ CREATE TABLE objects (
 
 
 --
--- TOC entry 192 (class 1259 OID 2436911)
 -- Name: objects_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
@@ -423,8 +467,6 @@ CREATE SEQUENCE objects_id_seq
 
 
 --
--- TOC entry 2227 (class 0 OID 0)
--- Dependencies: 192
 -- Name: objects_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
 
@@ -432,8 +474,7 @@ ALTER SEQUENCE objects_id_seq OWNED BY objects.id;
 
 
 --
--- TOC entry 193 (class 1259 OID 2436913)
--- Name: publishers; Type: TABLE; Schema: public; Owner: -; Tablespace: 
+-- Name: publishers; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE publishers (
@@ -452,7 +493,6 @@ CREATE TABLE publishers (
 
 
 --
--- TOC entry 194 (class 1259 OID 2436924)
 -- Name: publishers_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
@@ -465,8 +505,6 @@ CREATE SEQUENCE publishers_id_seq
 
 
 --
--- TOC entry 2228 (class 0 OID 0)
--- Dependencies: 194
 -- Name: publishers_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
 
@@ -474,8 +512,7 @@ ALTER SEQUENCE publishers_id_seq OWNED BY publishers.id;
 
 
 --
--- TOC entry 195 (class 1259 OID 2436926)
--- Name: recordsets; Type: TABLE; Schema: public; Owner: -; Tablespace: 
+-- Name: recordsets; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE recordsets (
@@ -498,7 +535,6 @@ CREATE TABLE recordsets (
 
 
 --
--- TOC entry 196 (class 1259 OID 2436936)
 -- Name: recordsets_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
@@ -511,8 +547,6 @@ CREATE SEQUENCE recordsets_id_seq
 
 
 --
--- TOC entry 2229 (class 0 OID 0)
--- Dependencies: 196
 -- Name: recordsets_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
 
@@ -520,7 +554,6 @@ ALTER SEQUENCE recordsets_id_seq OWNED BY recordsets.id;
 
 
 --
--- TOC entry 197 (class 1259 OID 2436938)
 -- Name: uuids_data_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
@@ -533,8 +566,6 @@ CREATE SEQUENCE uuids_data_id_seq
 
 
 --
--- TOC entry 2230 (class 0 OID 0)
--- Dependencies: 197
 -- Name: uuids_data_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
 
@@ -542,7 +573,6 @@ ALTER SEQUENCE uuids_data_id_seq OWNED BY uuids_data.id;
 
 
 --
--- TOC entry 198 (class 1259 OID 2436940)
 -- Name: uuids_identifier_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
@@ -555,8 +585,6 @@ CREATE SEQUENCE uuids_identifier_id_seq
 
 
 --
--- TOC entry 2231 (class 0 OID 0)
--- Dependencies: 198
 -- Name: uuids_identifier_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
 
@@ -564,7 +592,6 @@ ALTER SEQUENCE uuids_identifier_id_seq OWNED BY uuids_identifier.id;
 
 
 --
--- TOC entry 199 (class 1259 OID 2436942)
 -- Name: uuids_siblings_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
@@ -577,8 +604,6 @@ CREATE SEQUENCE uuids_siblings_id_seq
 
 
 --
--- TOC entry 2232 (class 0 OID 0)
--- Dependencies: 199
 -- Name: uuids_siblings_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
 
@@ -586,469 +611,403 @@ ALTER SEQUENCE uuids_siblings_id_seq OWNED BY uuids_siblings.id;
 
 
 --
--- TOC entry 2010 (class 2604 OID 2436944)
 -- Name: id; Type: DEFAULT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY annotations ALTER COLUMN id SET DEFAULT nextval('annotations_id_seq'::regclass);
+ALTER TABLE IF EXISTS ONLY annotations ALTER COLUMN id SET DEFAULT nextval('annotations_id_seq'::regclass);
 
 
 --
--- TOC entry 2013 (class 2604 OID 2436945)
 -- Name: id; Type: DEFAULT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY corrections ALTER COLUMN id SET DEFAULT nextval('corrections_id_seq'::regclass);
+ALTER TABLE IF EXISTS ONLY corrections ALTER COLUMN id SET DEFAULT nextval('corrections_id_seq'::regclass);
 
 
 --
--- TOC entry 2026 (class 2604 OID 2436946)
 -- Name: id; Type: DEFAULT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY media ALTER COLUMN id SET DEFAULT nextval('media_id_seq'::regclass);
+ALTER TABLE IF EXISTS ONLY media ALTER COLUMN id SET DEFAULT nextval('media_id_seq'::regclass);
 
 
 --
--- TOC entry 2028 (class 2604 OID 2436947)
 -- Name: id; Type: DEFAULT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY media_objects ALTER COLUMN id SET DEFAULT nextval('media_objects_id_seq'::regclass);
+ALTER TABLE IF EXISTS ONLY media_objects ALTER COLUMN id SET DEFAULT nextval('media_objects_id_seq'::regclass);
 
 
 --
--- TOC entry 2030 (class 2604 OID 2436948)
 -- Name: id; Type: DEFAULT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY objects ALTER COLUMN id SET DEFAULT nextval('objects_id_seq'::regclass);
+ALTER TABLE IF EXISTS ONLY objects ALTER COLUMN id SET DEFAULT nextval('objects_id_seq'::regclass);
 
 
 --
--- TOC entry 2036 (class 2604 OID 2436949)
 -- Name: id; Type: DEFAULT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY publishers ALTER COLUMN id SET DEFAULT nextval('publishers_id_seq'::regclass);
+ALTER TABLE IF EXISTS ONLY publishers ALTER COLUMN id SET DEFAULT nextval('publishers_id_seq'::regclass);
 
 
 --
--- TOC entry 2041 (class 2604 OID 2436950)
 -- Name: id; Type: DEFAULT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY recordsets ALTER COLUMN id SET DEFAULT nextval('recordsets_id_seq'::regclass);
+ALTER TABLE IF EXISTS ONLY recordsets ALTER COLUMN id SET DEFAULT nextval('recordsets_id_seq'::regclass);
 
 
 --
--- TOC entry 2023 (class 2604 OID 2436951)
 -- Name: id; Type: DEFAULT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY uuids_data ALTER COLUMN id SET DEFAULT nextval('uuids_data_id_seq'::regclass);
+ALTER TABLE IF EXISTS ONLY uuids_data ALTER COLUMN id SET DEFAULT nextval('uuids_data_id_seq'::regclass);
 
 
 --
--- TOC entry 2024 (class 2604 OID 2436952)
 -- Name: id; Type: DEFAULT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY uuids_identifier ALTER COLUMN id SET DEFAULT nextval('uuids_identifier_id_seq'::regclass);
+ALTER TABLE IF EXISTS ONLY uuids_identifier ALTER COLUMN id SET DEFAULT nextval('uuids_identifier_id_seq'::regclass);
 
 
 --
--- TOC entry 2020 (class 2604 OID 2436953)
 -- Name: id; Type: DEFAULT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY uuids_siblings ALTER COLUMN id SET DEFAULT nextval('uuids_siblings_id_seq'::regclass);
+ALTER TABLE IF EXISTS ONLY uuids_siblings ALTER COLUMN id SET DEFAULT nextval('uuids_siblings_id_seq'::regclass);
 
 
 --
--- TOC entry 2043 (class 2606 OID 2436955)
--- Name: annotations_pkey; Type: CONSTRAINT; Schema: public; Owner: -; Tablespace: 
+-- Name: annotations_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY annotations
+ALTER TABLE IF EXISTS ONLY annotations
     ADD CONSTRAINT annotations_pkey PRIMARY KEY (id);
 
 
 --
--- TOC entry 2045 (class 2606 OID 2436957)
--- Name: corrections_pkey; Type: CONSTRAINT; Schema: public; Owner: -; Tablespace: 
+-- Name: corrections_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY corrections
+ALTER TABLE IF EXISTS ONLY corrections
     ADD CONSTRAINT corrections_pkey PRIMARY KEY (id);
 
 
 --
--- TOC entry 2049 (class 2606 OID 2436959)
--- Name: data_pkey; Type: CONSTRAINT; Schema: public; Owner: -; Tablespace: 
+-- Name: data_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY data
+ALTER TABLE IF EXISTS ONLY data
     ADD CONSTRAINT data_pkey PRIMARY KEY (etag);
 
 
 --
--- TOC entry 2053 (class 2606 OID 2436961)
--- Name: idb_object_keys_pkey; Type: CONSTRAINT; Schema: public; Owner: -; Tablespace: 
+-- Name: idb_object_keys_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY idb_object_keys
+ALTER TABLE IF EXISTS ONLY idb_object_keys
     ADD CONSTRAINT idb_object_keys_pkey PRIMARY KEY (lookup_key);
 
 
 --
--- TOC entry 2080 (class 2606 OID 2436963)
--- Name: media_objects_pkey; Type: CONSTRAINT; Schema: public; Owner: -; Tablespace: 
+-- Name: idx_file_link_unique; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY media_objects
+ALTER TABLE IF EXISTS ONLY recordsets
+    ADD CONSTRAINT idx_file_link_unique UNIQUE (file_link);
+
+
+--
+-- Name: media_objects_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE IF EXISTS ONLY media_objects
     ADD CONSTRAINT media_objects_pkey PRIMARY KEY (id);
 
 
 --
--- TOC entry 2075 (class 2606 OID 2436965)
--- Name: media_pkey; Type: CONSTRAINT; Schema: public; Owner: -; Tablespace: 
+-- Name: media_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY media
+ALTER TABLE IF EXISTS ONLY media
     ADD CONSTRAINT media_pkey PRIMARY KEY (id);
 
 
 --
--- TOC entry 2077 (class 2606 OID 2436967)
--- Name: media_url_key; Type: CONSTRAINT; Schema: public; Owner: -; Tablespace: 
+-- Name: media_url_key; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY media
+ALTER TABLE IF EXISTS ONLY media
     ADD CONSTRAINT media_url_key UNIQUE (url);
 
 
 --
--- TOC entry 2083 (class 2606 OID 2436969)
--- Name: objects_etag_key; Type: CONSTRAINT; Schema: public; Owner: -; Tablespace: 
+-- Name: objects_etag_key; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY objects
+ALTER TABLE IF EXISTS ONLY objects
     ADD CONSTRAINT objects_etag_key UNIQUE (etag);
 
 
 --
--- TOC entry 2085 (class 2606 OID 2436971)
--- Name: objects_pkey; Type: CONSTRAINT; Schema: public; Owner: -; Tablespace: 
+-- Name: objects_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY objects
+ALTER TABLE IF EXISTS ONLY objects
     ADD CONSTRAINT objects_pkey PRIMARY KEY (id);
 
 
 --
--- TOC entry 2087 (class 2606 OID 2436973)
--- Name: publishers_pkey; Type: CONSTRAINT; Schema: public; Owner: -; Tablespace: 
+-- Name: publishers_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY publishers
+ALTER TABLE IF EXISTS ONLY publishers
     ADD CONSTRAINT publishers_pkey PRIMARY KEY (id);
 
 
 --
--- TOC entry 2089 (class 2606 OID 2436975)
--- Name: publishers_uuid_key; Type: CONSTRAINT; Schema: public; Owner: -; Tablespace: 
+-- Name: publishers_uuid_key; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY publishers
+ALTER TABLE IF EXISTS ONLY publishers
     ADD CONSTRAINT publishers_uuid_key UNIQUE (uuid);
 
 
 --
--- TOC entry 2091 (class 2606 OID 2436977)
--- Name: recordsets_pkey; Type: CONSTRAINT; Schema: public; Owner: -; Tablespace: 
+-- Name: recordsets_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY recordsets
+ALTER TABLE IF EXISTS ONLY recordsets
     ADD CONSTRAINT recordsets_pkey PRIMARY KEY (id);
 
 
 --
--- TOC entry 2093 (class 2606 OID 2436979)
--- Name: recordsets_uuid_key; Type: CONSTRAINT; Schema: public; Owner: -; Tablespace: 
+-- Name: recordsets_uuid_key; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY recordsets
+ALTER TABLE IF EXISTS ONLY recordsets
     ADD CONSTRAINT recordsets_uuid_key UNIQUE (uuid);
 
 
 --
--- TOC entry 2065 (class 2606 OID 2436981)
--- Name: uuids_data_pkey; Type: CONSTRAINT; Schema: public; Owner: -; Tablespace: 
+-- Name: uuids_data_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY uuids_data
+ALTER TABLE IF EXISTS ONLY uuids_data
     ADD CONSTRAINT uuids_data_pkey PRIMARY KEY (id);
 
 
 --
--- TOC entry 2069 (class 2606 OID 2436983)
--- Name: uuids_identifier_identifier_key; Type: CONSTRAINT; Schema: public; Owner: -; Tablespace: 
+-- Name: uuids_identifier_identifier_key; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY uuids_identifier
+ALTER TABLE IF EXISTS ONLY uuids_identifier
     ADD CONSTRAINT uuids_identifier_identifier_key UNIQUE (identifier);
 
 
 --
--- TOC entry 2071 (class 2606 OID 2436985)
--- Name: uuids_identifier_pkey; Type: CONSTRAINT; Schema: public; Owner: -; Tablespace: 
+-- Name: uuids_identifier_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY uuids_identifier
+ALTER TABLE IF EXISTS ONLY uuids_identifier
     ADD CONSTRAINT uuids_identifier_pkey PRIMARY KEY (id);
 
 
 --
--- TOC entry 2057 (class 2606 OID 2436987)
--- Name: uuids_pkey; Type: CONSTRAINT; Schema: public; Owner: -; Tablespace: 
+-- Name: uuids_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY uuids
+ALTER TABLE IF EXISTS ONLY uuids
     ADD CONSTRAINT uuids_pkey PRIMARY KEY (id);
 
 
 --
--- TOC entry 2060 (class 2606 OID 2436989)
--- Name: uuids_siblings_pkey; Type: CONSTRAINT; Schema: public; Owner: -; Tablespace: 
+-- Name: uuids_siblings_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY uuids_siblings
+ALTER TABLE IF EXISTS ONLY uuids_siblings
     ADD CONSTRAINT uuids_siblings_pkey PRIMARY KEY (id);
 
 
 --
--- TOC entry 2046 (class 1259 OID 2436990)
--- Name: corrections_source; Type: INDEX; Schema: public; Owner: -; Tablespace: 
+-- Name: corrections_source; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX corrections_source ON corrections USING btree (source);
 
 
 --
--- TOC entry 2047 (class 1259 OID 2436991)
--- Name: data_accessuris; Type: INDEX; Schema: public; Owner: -; Tablespace: 
+-- Name: data_accessuris; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX data_accessuris ON data USING btree ((COALESCE((data ->> 'ac:accessURI'::text), (data ->> 'ac:bestQualityAccessURI'::text), (data ->> 'dcterms:identifier'::text))));
 
 
 --
--- TOC entry 2050 (class 1259 OID 2436992)
--- Name: data_riak_etag; Type: INDEX; Schema: public; Owner: -; Tablespace: 
+-- Name: data_riak_etag; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX data_riak_etag ON data USING btree (riak_etag);
 
 
 --
--- TOC entry 2051 (class 1259 OID 2436993)
--- Name: idb_object_keys_etag; Type: INDEX; Schema: public; Owner: -; Tablespace: 
+-- Name: idb_object_keys_etag; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX idb_object_keys_etag ON idb_object_keys USING btree (etag);
 
 
 --
--- TOC entry 2078 (class 1259 OID 2436994)
--- Name: media_objects_etags; Type: INDEX; Schema: public; Owner: -; Tablespace: 
+-- Name: media_objects_etags; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX media_objects_etags ON media_objects USING btree (etag);
 
 
 --
--- TOC entry 2081 (class 1259 OID 2436995)
--- Name: media_objects_urls; Type: INDEX; Schema: public; Owner: -; Tablespace: 
+-- Name: media_objects_urls; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX media_objects_urls ON media_objects USING btree (url);
+CREATE INDEX media_objects_urls ON media_objects USING btree (url, modified DESC);
 
 
 --
--- TOC entry 2063 (class 1259 OID 2436996)
--- Name: uuids_data_modified; Type: INDEX; Schema: public; Owner: -; Tablespace: 
+-- Name: uuids_data_modified; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX uuids_data_modified ON uuids_data USING btree (modified);
 
 
 --
--- TOC entry 2066 (class 1259 OID 2436997)
--- Name: uuids_data_uuids_id; Type: INDEX; Schema: public; Owner: -; Tablespace: 
+-- Name: uuids_data_uuids_id; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX uuids_data_uuids_id ON uuids_data USING btree (uuids_id);
 
 
 --
--- TOC entry 2067 (class 1259 OID 2436998)
--- Name: uuids_data_version; Type: INDEX; Schema: public; Owner: -; Tablespace: 
+-- Name: uuids_data_version; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX uuids_data_version ON uuids_data USING btree (version);
 
 
 --
--- TOC entry 2054 (class 1259 OID 2436999)
--- Name: uuids_deleted; Type: INDEX; Schema: public; Owner: -; Tablespace: 
---
-
-CREATE INDEX uuids_deleted ON uuids USING btree (deleted);
-
-
---
--- TOC entry 2072 (class 1259 OID 2437000)
--- Name: uuids_identifier_reverse_idx; Type: INDEX; Schema: public; Owner: -; Tablespace: 
+-- Name: uuids_identifier_reverse_idx; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX uuids_identifier_reverse_idx ON uuids_identifier USING btree (reverse(identifier) text_pattern_ops);
 
 
 --
--- TOC entry 2073 (class 1259 OID 2437001)
--- Name: uuids_identifier_uuids_id; Type: INDEX; Schema: public; Owner: -; Tablespace: 
+-- Name: uuids_identifier_uuids_id; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX uuids_identifier_uuids_id ON uuids_identifier USING btree (uuids_id);
 
 
 --
--- TOC entry 2055 (class 1259 OID 2437002)
--- Name: uuids_parent; Type: INDEX; Schema: public; Owner: -; Tablespace: 
+-- Name: uuids_parent; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX uuids_parent ON uuids USING btree (parent);
 
 
 --
--- TOC entry 2061 (class 1259 OID 2437003)
--- Name: uuids_siblings_r1; Type: INDEX; Schema: public; Owner: -; Tablespace: 
+-- Name: uuids_siblings_r1; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX uuids_siblings_r1 ON uuids_siblings USING btree (r1);
 
 
 --
--- TOC entry 2062 (class 1259 OID 2437004)
--- Name: uuids_siblings_r2; Type: INDEX; Schema: public; Owner: -; Tablespace: 
+-- Name: uuids_siblings_r2; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX uuids_siblings_r2 ON uuids_siblings USING btree (r2);
 
 
 --
--- TOC entry 2058 (class 1259 OID 2437005)
--- Name: uuids_type; Type: INDEX; Schema: public; Owner: -; Tablespace: 
+-- Name: uuids_type_parent; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX uuids_type ON uuids USING btree (type);
+CREATE INDEX uuids_type_parent ON uuids USING btree (type, parent) WHERE (deleted = false);
 
 
 --
--- TOC entry 2094 (class 2606 OID 2437006)
 -- Name: annotations_uuids_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY annotations
+ALTER TABLE IF EXISTS ONLY annotations
     ADD CONSTRAINT annotations_uuids_id_fkey FOREIGN KEY (uuids_id) REFERENCES uuids(id);
 
 
 --
--- TOC entry 2100 (class 2606 OID 2437011)
 -- Name: media_objects_etag_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY media_objects
+ALTER TABLE IF EXISTS ONLY media_objects
     ADD CONSTRAINT media_objects_etag_fkey FOREIGN KEY (etag) REFERENCES objects(etag);
 
 
 --
--- TOC entry 2101 (class 2606 OID 2437016)
 -- Name: media_objects_url_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY media_objects
+ALTER TABLE IF EXISTS ONLY media_objects
     ADD CONSTRAINT media_objects_url_fkey FOREIGN KEY (url) REFERENCES media(url);
 
 
 --
--- TOC entry 2102 (class 2606 OID 2437021)
 -- Name: recordsets_publisher_uuid_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY recordsets
+ALTER TABLE IF EXISTS ONLY recordsets
     ADD CONSTRAINT recordsets_publisher_uuid_fkey FOREIGN KEY (publisher_uuid) REFERENCES publishers(uuid);
 
 
 --
--- TOC entry 2097 (class 2606 OID 2437026)
 -- Name: uuids_data_data_etag_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY uuids_data
+ALTER TABLE IF EXISTS ONLY uuids_data
     ADD CONSTRAINT uuids_data_data_etag_fkey FOREIGN KEY (data_etag) REFERENCES data(etag);
 
 
 --
--- TOC entry 2098 (class 2606 OID 2437031)
 -- Name: uuids_data_uuids_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY uuids_data
+ALTER TABLE IF EXISTS ONLY uuids_data
     ADD CONSTRAINT uuids_data_uuids_id_fkey FOREIGN KEY (uuids_id) REFERENCES uuids(id);
 
 
 --
--- TOC entry 2099 (class 2606 OID 2437036)
 -- Name: uuids_identifier_uuids_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY uuids_identifier
+ALTER TABLE IF EXISTS ONLY uuids_identifier
     ADD CONSTRAINT uuids_identifier_uuids_id_fkey FOREIGN KEY (uuids_id) REFERENCES uuids(id);
 
 
 --
--- TOC entry 2095 (class 2606 OID 2437041)
 -- Name: uuids_siblings_r1_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY uuids_siblings
+ALTER TABLE IF EXISTS ONLY uuids_siblings
     ADD CONSTRAINT uuids_siblings_r1_fkey FOREIGN KEY (r1) REFERENCES uuids(id);
 
 
 --
--- TOC entry 2096 (class 2606 OID 2437046)
 -- Name: uuids_siblings_r2_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY uuids_siblings
+ALTER TABLE IF EXISTS ONLY uuids_siblings
     ADD CONSTRAINT uuids_siblings_r2_fkey FOREIGN KEY (r2) REFERENCES uuids(id);
 
-
---
--- TOC entry 2221 (class 0 OID 0)
--- Dependencies: 7
--- Name: public; Type: ACL; Schema: -; Owner: -
---
-
-REVOKE ALL ON SCHEMA public FROM PUBLIC;
-REVOKE ALL ON SCHEMA public FROM postgres;
-GRANT ALL ON SCHEMA public TO postgres;
-GRANT ALL ON SCHEMA public TO PUBLIC;
-
-
--- Completed on 2016-03-29 13:22:39 EDT
 
 --
 -- PostgreSQL database dump complete

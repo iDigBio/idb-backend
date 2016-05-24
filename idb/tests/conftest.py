@@ -22,12 +22,6 @@ def logger():
     return idblogger.getChild('tests')
 
 
-@pytest.fixture
-def app():
-    from idb.data_api.api import app
-    return app
-
-
 @pytest.fixture()
 def pngpath():
     p = local(__file__).dirpath('data/idigbio_logo.png')
@@ -68,55 +62,58 @@ def schemapath():
     assert p.exists()
     return p
 
-
 @pytest.fixture()
-def testdb(request, schemapath, logger):
-    dbname = 'test_idigbio'
-    template1 = {
-        "host": "localhost",
-        "user": "test",
-        "password": "test",
-        "dbname": "template1"
-    }
-    testdbspec = template1.copy()
-    testdbspec['dbname'] = dbname
+def testdatapath():
+    p = local(__file__).dirpath('data/testdata.sql')
+    assert p.exists()
+    return p
 
-    with psycopg2.connect(**template1) as conn:
-        conn.autocommit = True
+
+@pytest.fixture(scope="session")
+def testdb(logger):
+    "Provide the connection spec for a local test db; ensure it works"
+    from idb.postgres_backend import pg_conf
+    spec = pg_conf.copy()
+    spec['database'] = spec['dbname'] = 'test_idigbio'
+    spec['host'] = 'localhost'
+    spec['user'] = 'test'
+    spec['password'] = 'test'
+    logger.info("Verifying testdb %r", spec)
+    with psycopg2.connect(**spec) as conn:
         with conn.cursor() as cur:
-            cur.execute('DROP DATABASE IF EXISTS "{0}"'.format(dbname))
-            cur.execute('CREATE DATABASE "{0}"'.format(dbname))
-    with psycopg2.connect(**testdbspec) as conn:
-        conn.autocommit = True
-        with conn.cursor() as cur:
-            cur.execute(schemapath.open('r', encoding='utf-8').read())
-
-    def cleanup():
-        logger.info("Cleanup testdb")
-        gevent.wait()
-        with psycopg2.connect(**template1) as conn:
-            conn.autocommit = True
-            with conn.cursor() as cur:
-                cur.execute('DROP DATABASE "{0}"'.format(dbname))
-    request.addfinalizer(cleanup)
-    return testdbspec
+            cur.execute("SELECT 1")
+    return spec
 
 
-@pytest.fixture()
+@pytest.fixture(scope="session")
 def testdbpool(request, testdb, logger):
+    "a DB pool to the test database"
     from idb.postgres_backend.gevent_helpers import GeventedConnPool
     dbpool = GeventedConnPool(**testdb)
 
     def cleanup():
         logger.info("Cleanup testdbpool")
         dbpool.closeall()
-        gevent.wait()
     request.addfinalizer(cleanup)
     return dbpool
 
 
 @pytest.fixture()
-def testidbmodel(request, testdbpool, logger):
+def testschema(schemapath, testdbpool, logger):
+    "Ensure a fresh version of the idb schema, with no data loaded"
+    logger.info("Loading schema into testdb")
+    testdbpool.execute(schemapath.open('r', encoding='utf-8').read())
+
+
+@pytest.fixture()
+def testdata(testschema, testdbpool, testdatapath, logger):
+    "Ensure the standard set of testdata is loaded, nothing more"
+    logger.info("Loading data into testdb")
+    testdbpool.execute(testdatapath.open('r', encoding='utf-8').read())
+
+
+@pytest.fixture()
+def testidbmodel(request, testdbpool, testschema, logger):
     from idb.postgres_backend.db import PostgresDB
     i = PostgresDB(pool=testdbpool)
 
@@ -127,3 +124,21 @@ def testidbmodel(request, testdbpool, logger):
         gevent.wait()
     request.addfinalizer(cleanup)
     return i
+
+
+@pytest.fixture
+def app(testdbpool, testdata, logger):
+    from idb.data_api import api
+    reload(api)
+    app = api.app
+    app.config['DB'] = testdbpool
+
+    def cleanup(exception):
+        logger.info("Cleanup app idbmodel")
+        from idb.data_api.common import idbmodel
+        idbmodel.rollback()
+        idbmodel.close()
+        gevent.wait()
+    app.teardown_appcontext(cleanup)
+
+    return app

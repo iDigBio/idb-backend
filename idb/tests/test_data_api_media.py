@@ -254,3 +254,16 @@ def test_mime_validation3(client, basic_auth_header, jpgpath):
                     headers=[basic_auth_header])
     assert r.status_code == 200
     assert r.json['mime'] == 'image/jpeg', "Should be the detected_mime"
+
+def test_mime_validation4(client, basic_auth_header, zippath):
+    "A debug accepts zip files"
+    filereference = "http://test.idigbio.org/dataset.zip"
+    url = url_for('idb.data_api.v2_media.upload', filereference=filereference)
+    r = client.post(url,
+                    data={
+                        'file': (zippath.open('rb'), 'file'),
+                        'mime': 'application/zip',
+                        'media_type': 'debugfile'
+                    },
+                    headers=[basic_auth_header])
+    assert r.status_code == 200

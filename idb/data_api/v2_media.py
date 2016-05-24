@@ -9,7 +9,7 @@ from idb.helpers.idb_flask_authn import requires_auth
 from idb.helpers.cors import crossdomain
 from idb.helpers.storage import IDigBioStorage
 from idb.postgres_backend.db import MediaObject
-from idb.helpers.conversions import valid_buckets, mime_mapping
+from idb.helpers.conversions import valid_buckets, unmapped_buckets, mime_mapping
 from idb.helpers.media_validation import UnknownMediaTypeError
 
 from .common import json_error, idbmodel
@@ -197,7 +197,7 @@ def upload():
     if media_type and media_type not in valid_buckets:
         return json_error(400, "Invalid media_type")
 
-    if media_type != 'datasets' and mime:
+    if media_type not in unmapped_buckets and mime:
         # we want to validate mime type, but only if not a datasets
         mapped = mime_mapping.get(mime)
         if mapped is None or (media_type and mapped != media_type):

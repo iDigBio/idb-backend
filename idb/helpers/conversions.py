@@ -45,8 +45,10 @@ mime_mapping = {
     None: None
 }
 
+unmapped_buckets = { 'datasets', 'debugfile' }
+
 valid_buckets = set([v for v in mime_mapping.values() if v is not None]) | \
-                set(['datasets'])
+                unmapped_buckets
 
 locale.setlocale(locale.LC_ALL, '')
 

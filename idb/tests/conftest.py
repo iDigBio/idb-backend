@@ -37,6 +37,13 @@ def jpgpath():
 
 
 @pytest.fixture()
+def zippath():
+    p = local(__file__).dirpath('data/test.zip')
+    assert p.exists()
+    return p
+
+
+@pytest.fixture()
 def mp3path():
     p = local(__file__).dirpath('data/whip-poor-will.mp3')
     assert p.exists()

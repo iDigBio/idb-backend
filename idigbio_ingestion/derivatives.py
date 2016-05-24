@@ -71,7 +71,7 @@ def main(buckets):
 
 
 def get_objects(buckets):
-    assert isinstance(buckets, tuple)
+    assert isinstance(buckets, (tuple, list))
     sql = """SELECT etag, bucket
              FROM objects
              WHERE derivatives=false AND bucket IN %s

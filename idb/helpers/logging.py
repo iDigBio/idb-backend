@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 import logging
+import logging.handlers
 import os
 import os.path
 import sys
@@ -89,7 +90,7 @@ def add_file_handler(logger=logging.root, level=None,
     if filename is None:
         filename = os.path.split(sys.argv[0])[1] + '.log'
     path = filename if os.path.sep in filename else os.path.join(logdir, filename)
-    fh = logging.FileHandler(path, encoding='utf-8')
+    fh = logging.handlers.WatchedFileHandler(path, encoding='utf-8')
     fh.setLevel(level)
     fh.setFormatter(logging.Formatter(PRECISE_FORMAT, datefmt=DATETIME_FORMAT))
     logger.addHandler(fh)

@@ -199,7 +199,7 @@ def test_datasets_mime_type_passthrough(client, basic_auth_header, jpgpath, mock
     r = client.post(url,
                     data={
                         'file': (jpgpath.open('rb'), 'file'),
-                        'mime': 'application/foobar',
+                        'mime': 'image/jpeg',
                         'media_type': 'datasets',
                     },
                     headers=[basic_auth_header])
@@ -252,8 +252,9 @@ def test_mime_validation3(client, basic_auth_header, jpgpath):
                         'mime': 'image/jp2',
                     },
                     headers=[basic_auth_header])
-    assert r.status_code == 200
+    assert r.status_code == 400
     assert r.json['mime'] == 'image/jpeg', "Should be the detected_mime"
+
 
 def test_mime_validation4(client, basic_auth_header, zippath):
     "A debug accepts zip files"

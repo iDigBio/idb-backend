@@ -212,7 +212,7 @@ def upload():
         # present they change the behavior of fromobj
         try:
             mo = MediaObject.fromobj(obj, type=media_type, mime=mime, url=filereference)
-        except UnknownMediaTypeError:
+        except (UnknownMediaTypeError, ValueError):
             return json_error(400, "Invalid mime")
         mo.upload(IDigBioStorage(), obj)
         mo.insert_object(idbmodel)

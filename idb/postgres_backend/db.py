@@ -672,6 +672,9 @@ class MediaObject(object):
         elif mo.detected_mime is None:
             mo.detected_mime, _ = sniff_validation(obj.read(1024), raises=False)
 
+        if mo.mime and mo.detected_mime != mo.mime:
+            raise ValueError("detected_mime doesn't match given mime type", mo.detected_mime, mo.mime)
+
         if mo.type and not mo.bucket:
             mo.bucket = mo.type
         if mo.bucket and not mo.type:

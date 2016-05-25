@@ -16,6 +16,7 @@ from boto.exception import S3ResponseError, S3DataError
 
 
 from idb.helpers.memoize import memoized
+from idb import __version__
 from idb import config
 from idb.helpers.storage import IDigBioStorage
 from idb.postgres_backend import apidbpool, NamedTupleCursor
@@ -50,6 +51,7 @@ class BadImageError(Exception):
 
 def continuous(buckets):
     "Continuously run the main loop, checking for derivatives"
+    log.info("Starting up continuous operation, version: %s", __version__)
     minlooptime = 600  # 10minutes
 
     while True:

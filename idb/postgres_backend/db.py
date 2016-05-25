@@ -209,6 +209,11 @@ class PostgresDB(object):
         kwargs.setdefault('cursor_factory', DictCursor)
         return self.conn.cursor(**kwargs)
 
+    def mogrify(self, *args, **kwargs):
+        with self.cursor(**kwargs) as cur:
+            return cur.mogrify(*args)
+
+
     def drop_schema(self):
         raise Exception("I can't let you do that, dave.")
         #     self.execute("DROP VIEW IF EXISTS idigbio_uuids_new")

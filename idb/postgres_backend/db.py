@@ -367,7 +367,7 @@ class PostgresDB(object):
                   WHERE deleted=false and type=%s""", (t,))
         return self._pool.fetchone(*sql)[0]
 
-    def get_children_list(self, u, t, limit=100, offset=0, data=False):
+    def get_children_list(self, u, t, limit=100, offset=0, data=False, cursor_factory=DictCursor):
         sql = None
         if data:
             if limit is not None:
@@ -389,7 +389,7 @@ class PostgresDB(object):
                 sql = ("SELECT * FROM (" + self.__item_master_query + """
                     WHERE deleted=false and type=%s and parent=%s
                 """ + ") AS a ORDER BY uuid", (t, u))
-        return self._pool.fetchiter(*sql, named=True)
+        return self._pool.fetchiter(*sql, named=True, cursor_factory=cursor_factory)
 
     def get_children_count(self, u, t):
         sql = (""" SELECT

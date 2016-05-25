@@ -15,7 +15,7 @@ from boto.exception import S3ResponseError, S3DataError
 
 
 from idb import stats
-from idb.postgres_backend import apidbpool
+from idb.postgres_backend import apidbpool, NamedTupleCursor
 from idb.postgres_backend.db import PostgresDB, RecordSet
 from idb.helpers.etags import calcEtag, calcFileHash
 from idb.helpers.logging import idblogger, LoggingContext
@@ -107,11 +107,11 @@ def get_db_dicts(rsid):
     for t in ["record", "mediarecord"]:
         id_uuid[t + "s"] = {}
         uuid_etag[t + "s"] = {}
-        for c in PostgresDB().get_children_list(rsid, t, limit=None):
-            u = c["uuid"]
-            e = c["etag"]
+        for c in PostgresDB().get_children_list(rsid, t, limit=None, cursor_factory=NamedTupleCursor):
+            u = c.uuid
+            e = c.etag
             uuid_etag[t + "s"][u] = e
-            for i in c["recordids"]:
+            for i in c.recordids:
                 id_uuid[t + "s"][i] = u
     return (uuid_etag, id_uuid)
 

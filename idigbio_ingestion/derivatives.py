@@ -2,9 +2,7 @@ from __future__ import division, absolute_import
 from __future__ import print_function
 from future_builtins import map, filter
 
-import os
 import cStringIO
-import sys
 
 from datetime import datetime
 from collections import Counter, namedtuple
@@ -15,6 +13,7 @@ from PIL import Image
 from boto.exception import S3ResponseError, S3DataError
 
 
+from idb.helpers import first
 from idb.helpers.memoize import memoized
 from idb import __version__
 from idb import config
@@ -29,11 +28,12 @@ WIDTHS = {
 }
 
 POOLSIZE = 50
+DTYPES = ('thumbnail', 'fullsize', 'webview')
 
 log = idblogger.getChild('deriv')
 
 CheckItem = namedtuple(
-    'CheckItem', ['etag', 'bucket', 'media', 'thumbnail', 'fullsize', 'webview'])
+    'CheckItem', ['etag', 'bucket', 'media', 'keys'])
 
 GenerateResult = namedtuple('GenerateResult', ['etag', 'items'])
 GenerateItem = namedtuple('GenerateItem', ['key', 'data'])
@@ -70,9 +70,9 @@ def main(buckets):
     log.info("Checking derivatives for %d objects", len(objects))
 
     pool = Pool(POOLSIZE)
-    check_items = pool.imap_unordered(get_keys, objects, maxsize=400)
-    # this step produces the resized images: lots of mem, keep a choke on it.
-    results = pool.imap_unordered(check_and_generate, check_items, maxsize=100)
+    check_items = pool.imap_unordered(get_keys, objects)
+    check_items = pool.imap_unordered(check_all, check_items)
+    results = pool.imap_unordered(generate_all, check_items)
     results = pool.imap_unordered(upload_all, results, maxsize=100)
     results = count_results(results, update_freq=100)
     etags = ((gr.etag,) for gr in results if gr)
@@ -91,6 +91,7 @@ def get_objects(buckets):
     sql = """SELECT etag, bucket
              FROM objects
              WHERE derivatives=false AND bucket IN %s
+             ORDER BY random()
     """
     return apidbpool.fetchall(sql, (buckets,), cursor_factory=NamedTupleCursor)
 
@@ -127,24 +128,34 @@ get_store = memoized()(lambda: IDigBioStorage())
 
 def get_keys(obj):
     etag, bucket = obj.etag, obj.bucket
+    etag = unicode(etag)
     s = get_store()
     bucketbase = u"idigbio-{0}-{1}".format(bucket, config.ENV)
-    return CheckItem(unicode(etag), bucket,
-                     s.get_key(etag, bucketbase),
-                     s.get_key(etag + ".jpg", bucketbase + "-thumbnail"),
-                     s.get_key(etag + ".jpg", bucketbase + "-fullsize"),
-                     s.get_key(etag + ".jpg", bucketbase + "-webview"))
+    mediakey = s.get_key(etag, bucketbase)
+    keys = [s.get_key(etag + ".jpg", bucketbase + '-' + dtype) for dtype in DTYPES]
+    return CheckItem(etag, bucket, mediakey, keys)
 
 
-def check_and_generate(item):
-    # check if thumbnail exists as proxy for everything existing
-    if False and item.thumbnail.exists():
-        log.debug("%s Thumbnail shortcut", item.etag)
+def check_key(k):
+    if k.exists():
+        log.debug("%s: derivative exists", k)
+        return False
+    return True
+
+
+def check_all(item):
+    keys = filter(check_key, item.keys)
+    return CheckItem(item.etag, item.bucket, item.media, list(keys))
+
+
+def generate_all(item):
+    if len(item.keys) == 0:
         return GenerateResult(item.etag, [])
 
     img = None
     try:
-        img = get_media_img(item.media)
+        buff = fetch_media(item.media)
+        img = convert_media(item, buff)
     except (S3ResponseError, S3DataError):
         return None
     except BadImageError as bie:
@@ -152,8 +163,8 @@ def check_and_generate(item):
         return None
 
     try:
-        items = generate_all(item, img)
-        return GenerateResult(item.etag, items)
+        items = map(lambda k: build_deriv(item, img, k), item.keys)
+        return GenerateResult(item.etag, list(items))
     except BadImageError as bie:
         log.error("%s: %s", item.etag, bie.message)
         return None
@@ -164,21 +175,11 @@ def check_and_generate(item):
         return None
 
 
-def generate_all(item, img):
-    dtypes = ('fullsize', 'thumbnail', 'webview')
-    derivs = [build_deriv(item, img, dtype) for dtype in dtypes]
-    return list(filter(None, derivs))
-
-
-def build_deriv(item, img, deriv):
-    key = getattr(item, deriv)
-    if key.exists():
-        log.debug("%s: derivative exists", key)
-        return
-
+def build_deriv(item, img, key):
+    deriv = first(DTYPES, key.bucket.name.endswith)
+    assert deriv
     if deriv == 'fullsize' and item.bucket == 'images' and img.format == 'JPEG':
-        return CopyItem(item.fullsize, item.media)
-
+        return CopyItem(key, item.media)
     if deriv != 'fullsize':
         img = resize_image(img, deriv)
     buff = img_to_buffer(img)
@@ -239,9 +240,9 @@ def resize_image(img, deriv):
         return img
 
 
-def get_media_img(key):
+def fetch_media(key):
     try:
-        buff = IDigBioStorage.get_contents_to_mem(key, md5=key.name)
+        return IDigBioStorage.get_contents_to_mem(key, md5=key.name)
     except S3ResponseError as e:
         log.error("%r failed downloading with %r %s %s", key, e.status, e.reason, key.name)
         raise
@@ -249,20 +250,17 @@ def get_media_img(key):
         log.error("%r failed downloading on md5 mismatch", key)
         raise
 
+def convert_media(item, buff):
     try:
-        if 'sounds' in key.bucket.name:
-            log.debug("%s converting wave to img", key.name)
+        if 'sounds' == item.bucket:
+            log.debug("%s converting wave to img", item.etag)
             return wave_to_img(buff)
 
-        if 'images' in key.bucket.name:
-            img = Image.open(buff)
-            img.load()  # Make sure Pillow actually processes it
-            if img.mode != 'RGB':
-                img = img.convert('RGB')
-            return img
+        if 'images' in item.bucket:
+            return load_img(buff)
         raise BadImageError(
             "Unknown mediatype in bucket {0!r}, expected images or sounds".format(
-                key.bucket.name))
+                item.bucket))
 
     except IOError as ioe:
         raise BadImageError("Error loading image {0!r}".format(ioe), inner=ioe)
@@ -270,7 +268,15 @@ def get_media_img(key):
 
 def wave_to_img(buff):
     from idigbio_ingestion.lib.waveform import Waveform
-    return Waveform(buff).generate_waveform_image()
+    img = Waveform(buff).generate_waveform_image()
+    return img
+
+def load_img(buff):
+    img = Image.open(buff)
+    img.load()  # Make sure Pillow actually processes it
+    if img.mode != 'RGB':
+        img = img.convert('RGB')
+    return img
 
 def migrate():
     sql = """INSERT INTO objects (bucket, etag)

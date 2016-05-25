@@ -559,7 +559,7 @@ def allrsids(since=None, ingest=False):
     # Need to ensure all the connections are closed before multiprocessing forks
     apidbpool.closeall()
 
-    pool = multiprocessing.Pool()
+    pool = multiprocessing.Pool(maxtasksperchild=1)
     try:
         results = list(
             pool.imap_unordered(

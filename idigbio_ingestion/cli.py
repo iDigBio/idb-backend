@@ -86,8 +86,8 @@ def db_check(rsid):
 @cli.command(name="db-check-all", help="Run db-check against all datasets")
 @click.option("--since", help="Only check sets harvested since the given date")
 def db_check_all(since):
-    from idigbio_ingestion.db_check import all
-    all(since)
+    from idigbio_ingestion.db_check import allrsids
+    allrsids(since)
 
 
 @cli.command(name="ingest", help="Ingest a dataset, by rsid")

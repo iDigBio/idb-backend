@@ -9,6 +9,7 @@ import os
 import sys
 
 import click
+import idb
 
 from idb.helpers.logging import configure_app_log, idblogger
 
@@ -72,6 +73,7 @@ def handle_std_options(verbose=None, env=None, config=None, logfile=None, **kwar
 
 
 @click.group()
+@click.version_option(version=idb.__version__)
 def cli(**kwargs):
     handle_std_options(**kwargs)
 add_std_options(cli)

@@ -63,9 +63,11 @@ def continuous(buckets):
             gevent.sleep(max([sleeptime, 1]))
 
 
-def main(buckets):
+def main(buckets, run_migrate=True):
     if not buckets:
         buckets = ('images', 'sounds')
+    if run_migrate:
+        migrate()
     objects = get_objects(buckets)
     log.info("Checking derivatives for %d objects", len(objects))
 
@@ -279,6 +281,7 @@ def load_img(buff):
     return img
 
 def migrate():
+    log.info("Checking for objects in the old media api")
     sql = """INSERT INTO objects (bucket, etag)
           (SELECT DISTINCT
             type,

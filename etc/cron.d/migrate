@@ -1,7 +1,0 @@
-MAILTO="acis-root@acis.ufl.edu"
-LANG="en_US.UTF-8"
-SHELL=/bin/bash
-PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
-
-# m  h    dom mon dow user  command
-13   *    *   *   *   root  idigbio-ingestion --logfile="migrate-objects.log" migrate-media-objects

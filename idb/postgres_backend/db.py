@@ -35,52 +35,36 @@ class PostgresDB(object):
             WHERE uuids_id=uuids.id
             ORDER BY modified DESC
             LIMIT 1
-        ) AS latest
-        ON latest.uuids_id=uuids.id
+        ) AS latest ON true
     """
 
     __join_uuids_etags_all_versions = """
-            LEFT JOIN uuids_data as latest
-            ON latest.uuids_id=uuids.id
+            LEFT JOIN uuids_data as latest ON latest.uuids_id=uuids.id
     """
 
     __join_uuids_identifiers = """
         LEFT JOIN LATERAL (
-            SELECT uuids_id, array_agg(identifier) as recordids
+            SELECT array_agg(identifier) as recordids
             FROM uuids_identifier
             WHERE uuids_id=uuids.id
-            GROUP BY uuids_id
-        ) as ids
-        ON ids.uuids_id=uuids.id
+        ) as ids ON true
     """
 
     __join_uuids_siblings = """
-            LEFT JOIN LATERAL (
-            SELECT subject, json_object_agg(rel,array_agg) as siblings
-            FROM (
-                SELECT subject, rel, array_agg(object)
+        LEFT JOIN LATERAL (
+             SELECT json_object_agg(rel,array_agg) as siblings
+             FROM (
+                SELECT type as rel, array_agg(r2)
                 FROM (
-                    SELECT
-                        r1 as subject,
-                        type as rel,
-                        r2 as object
-                    FROM (
-                        SELECT r1,r2
-                        FROM uuids_siblings
-                        UNION
-                        SELECT r2,r1
-                        FROM uuids_siblings
-                    ) as rel_union
-                    JOIN uuids
-                    ON r2=id
-                    WHERE uuids.deleted = false
-                ) as rel_table
-                WHERE subject=uuids.id
-                GROUP BY subject, rel
+                    SELECT r1,r2 FROM uuids_siblings
+                    UNION
+                    SELECT r2,r1 FROM uuids_siblings
+                ) as rel_union
+                JOIN uuids as sibs ON r2=id
+                WHERE sibs.deleted = false and r1 = uuids.id
+                GROUP BY type
             ) as rels
-            GROUP BY subject
-        ) as sibs
-        ON sibs.subject=uuids.id
+        ) as sibs ON true
     """
 
     __join_uuids_data = """
@@ -341,24 +325,25 @@ class PostgresDB(object):
     def get_type_list(self, t, limit=100, offset=0, data=False):
         if data:
             if limit is not None:
-                sql = ("SELECT * FROM (" + self.__item_master_query_data + """
+                sql = (self.__item_master_query_data + """
                     WHERE deleted=false and type=%s
-                    LIMIT %s OFFSET %s
-                """ + ") AS a ORDER BY uuid", (t, limit, offset))
+                    ORDER BY uuid
+                    LIMIT %s OFFSET %s""", (t, limit, offset))
             else:
-                sql = ("SELECT * FROM (" + self.__item_master_query_data + """
+                sql = (self.__item_master_query_data + """
                     WHERE deleted=false and type=%s
-                """ + ") AS a ORDER BY uuid", (t,))
+                    ORDER BY uuid""", (t,))
         else:
             if limit is not None:
-                sql = ("SELECT * FROM (" + self.__item_master_query + """
+                sql = (self.__item_master_query + """
                     WHERE deleted=false and type=%s
-                    LIMIT %s OFFSET %s
-                """ + ") AS a ORDER BY uuid", (t, limit, offset))
+                    ORDER BY uuid
+                    LIMIT %s OFFSET %s""", (t, limit, offset))
             else:
-                sql = ("SELECT * FROM (" + self.__item_master_query + """
+                sql = (self.__item_master_query + """
                     WHERE deleted=false and type=%s
-                """ + ") AS a ORDER BY uuid", (t,))
+                    ORDER BY uuid""", (t,))
+        logger.info(self.mogrify(*sql))
         return self._pool.fetchiter(*sql)
 
     def get_type_count(self, t):
@@ -371,30 +356,34 @@ class PostgresDB(object):
         sql = None
         if data:
             if limit is not None:
-                sql = ("SELECT * FROM (" + self.__item_master_query_data + """
+                sql = (self.__item_master_query_data + """
                     WHERE deleted=false and type=%s and parent=%s
+                    ORDER BY UUID
                     LIMIT %s OFFSET %s
-                """ + ") AS a ORDER BY uuid", (t, u, limit, offset))
+                """, (t, u, limit, offset))
             else:
-                sql = ("SELECT * FROM (" + self.__item_master_query_data + """
+                sql = (self.__item_master_query_data + """
                     WHERE deleted=false and type=%s and parent=%s
-                """ + ") AS a ORDER BY uuid", (t, u))
+                    ORDER BY uuid
+                """, (t, u))
         else:
             if limit is not None:
-                sql = ("SELECT * FROM (" + self.__item_master_query + """
+                sql = (self.__item_master_query + """
                     WHERE deleted=false and type=%s and parent=%s
+                    ORDER BY uuid
                     LIMIT %s OFFSET %s
-                """ + ") AS a ORDER BY uuid", (t, u, limit, offset))
+                """, (t, u, limit, offset))
             else:
-                sql = ("SELECT * FROM (" + self.__item_master_query + """
+                sql = (self.__item_master_query + """
                     WHERE deleted=false and type=%s and parent=%s
-                """ + ") AS a ORDER BY uuid", (t, u))
+                    ORDER BY uuid
+                """, (t, u))
         return self._pool.fetchiter(*sql, named=True, cursor_factory=cursor_factory)
 
     def get_children_count(self, u, t):
-        sql = (""" SELECT
-            count(*) as count FROM uuids
-            WHERE deleted=false and type=%s and parent=%s
+        sql = ("""SELECT count(*) as count
+                  FROM uuids
+                  WHERE deleted=false and type=%s and parent=%s
         """, (t, u))
         return self._pool.fetchone(*sql)[0]
 

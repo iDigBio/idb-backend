@@ -695,37 +695,24 @@ def getLicense(t, d):
 
 
 def get_accessuri(t, d):
-    url = None
-    if filled("ac:accessURI", d):
-        url = d["ac:accessURI"]
-    elif filled("ac:bestQualityAccessURI", d):
-        url = d["ac:bestQualityAccessURI"]
-    else:
+    #return k in d and d[k] is not None
+    url = d.get("ac:accessURI") or d.get("ac:bestQualityAccessURI")
+    if url is None:
         # Don't use identifier as a url for things that supply audubon core properties
         for k in d.keys():
             if k.startswith("ac:"):
                 break
         else:
-            if filled("dcterms:identifier", d):
-                url = d["dcterms:identifier"]
-            elif filled("dc:identifier", d):
-                url = d["dc:identifier"]
+            url = d.get("dcterms:identifier") or d.get("dc:identifier")
 
     return {"accessuri": url}
 
 
 def get_media_type(t, d):
-    form = None
-    if filled("dcterms:format", d):
-        form = d["dcterms:format"].strip()
-    elif filled("dc:format", d):
-        form = d["dc:format"].strip()
-    elif filled("ac:bestQualityFormat", d):
-        form = d["ac:bestQualityFormat"].strip()
-
-    t = None
-    if form in mime_mapping:
-        t = mime_mapping[form]
+    form = d.get("dcterms:format") or d.get("dc:format") or d.get("ac:bestQualityFormat")
+    if form:
+        form = form.strip()
+        t = mime_mapping.get(form)
 
     return {
         "format": form,

@@ -10,7 +10,7 @@ from idb.helpers.cors import crossdomain
 from idb.helpers.storage import IDigBioStorage
 from idb.postgres_backend.db import MediaObject
 from idb.helpers.conversions import valid_buckets, unmapped_buckets, mime_mapping
-from idb.helpers.media_validation import UnknownMediaTypeError
+from idb.helpers.media_validation import UnknownMediaTypeError, MimeMismatchError
 
 from .common import json_error, idbmodel
 
@@ -212,7 +212,8 @@ def upload():
         # present they change the behavior of fromobj
         try:
             mo = MediaObject.fromobj(obj, type=media_type, mime=mime, url=filereference)
-        except (UnknownMediaTypeError, ValueError):
+        except (UnknownMediaTypeError, MimeMismatchError) as e:
+            logger.warn("mime failure, %r", e)
             return json_error(400, "Invalid mime")
         mo.upload(IDigBioStorage(), obj)
         mo.insert_object(idbmodel)

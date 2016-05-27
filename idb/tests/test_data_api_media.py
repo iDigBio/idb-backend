@@ -163,9 +163,8 @@ def test_upload_etag(client, testmedia_result, basic_auth_header, mock):
     for k in ('etag', 'mime', 'user', 'url', 'last_status', 'type'):
         assert r.json[k] == tmr[k]
 
-def test_upload_missing_etag_in_db(client, testmedia_result, basic_auth_header, mock):
+def test_upload_missing_etag_in_db(client, basic_auth_header, mock):
     mock.patch.object(boto.s3.key.Key, 'exists', return_value=True)
-    tmr = testmedia_result
     filereference = "http://test.idigbio.org/idigbio_logo.jpg"
     url = url_for('idb.data_api.v2_media.upload',
                   filereference=filereference, etag="foobar")
@@ -208,42 +207,8 @@ def test_datasets_mime_type_passthrough(client, basic_auth_header, jpgpath, mock
     assert r.json['type'] == 'datasets'
 
 
-def test_mime_validation1(client, basic_auth_header, pngpath):
-    filereference = "http://test.idigbio.org/dataset.zip"
-    url = url_for('idb.data_api.v2_media.upload', filereference=filereference)
-    r = client.post(url,
-                    data={
-                        'file': (pngpath.open('rb'), 'file'),
-                        'mime': 'image/jpeg',
-                    },
-                    headers=[basic_auth_header])
-    assert r.status_code == 400
-
-def test_mime_validation2(client, basic_auth_header, pngpath):
-    filereference = "http://test.idigbio.org/dataset.zip"
-    url = url_for('idb.data_api.v2_media.upload', filereference=filereference)
-    r = client.post(url,
-                    data={
-                        'file': (pngpath.open('rb'), 'file'),
-                    },
-                    headers=[basic_auth_header])
-    assert r.status_code == 400
-
-
-def test_mime_validation3(client, basic_auth_header, jpgpath):
-    filereference = "http://test.idigbio.org/dataset.zip"
-    url = url_for('idb.data_api.v2_media.upload', filereference=filereference)
-    r = client.post(url,
-                    data={
-                        'file': (jpgpath.open('rb'), 'file'),
-                        'mime': 'image/jp3',
-                    },
-                    headers=[basic_auth_header])
-    assert r.status_code == 400
-
-
-def test_mime_validation3(client, basic_auth_header, jpgpath):
-    "A valid mime, but not correct for this image"
+def test_mime_validation1(client, basic_auth_header, jpgpath):
+    "Verify that the posted mime matches the object's mime"
     filereference = "http://test.idigbio.org/dataset.zip"
     url = url_for('idb.data_api.v2_media.upload', filereference=filereference)
     r = client.post(url,
@@ -253,10 +218,32 @@ def test_mime_validation3(client, basic_auth_header, jpgpath):
                     },
                     headers=[basic_auth_header])
     assert r.status_code == 400
-    assert r.json['mime'] == 'image/jpeg', "Should be the detected_mime"
+
+    # Does it still verify even if we post to a bucket that isn't
+    # normally being checked?
+    r = client.post(url,
+                    data={
+                        'file': (jpgpath.open('rb'), 'file'),
+                        'mime': 'image/jp2',
+                        'media_type': 'datasets'
+                    },
+                    headers=[basic_auth_header])
+    assert r.status_code == 400
 
 
-def test_mime_validation4(client, basic_auth_header, zippath):
+def test_mime_validation2(client, basic_auth_header, pngpath):
+    "Verify that image/png gets rejected"
+    filereference = "http://test.idigbio.org/dataset.zip"
+    url = url_for('idb.data_api.v2_media.upload', filereference=filereference)
+    r = client.post(url,
+                    data={
+                        'file': (pngpath.open('rb'), 'file'),
+                    },
+                    headers=[basic_auth_header])
+    assert r.status_code == 400
+
+
+def test_mime_validation3(client, basic_auth_header, zippath):
     "A debug accepts zip files"
     filereference = "http://test.idigbio.org/dataset.zip"
     url = url_for('idb.data_api.v2_media.upload', filereference=filereference)
@@ -268,3 +255,16 @@ def test_mime_validation4(client, basic_auth_header, zippath):
                     },
                     headers=[basic_auth_header])
     assert r.status_code == 200
+
+def test_mime_validation4(client, basic_auth_header, zippath):
+    "A debug accepts zip files"
+    filereference = "http://test.idigbio.org/dataset.zip"
+    url = url_for('idb.data_api.v2_media.upload', filereference=filereference)
+    r = client.post(url,
+                    data={
+                        'file': (zippath.open('rb'), 'file'),
+                        'mime': 'application/zip',
+                        'media_type': 'images'
+                    },
+                    headers=[basic_auth_header])
+    assert r.status_code == 400, r.json

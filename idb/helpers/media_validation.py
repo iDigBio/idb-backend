@@ -23,6 +23,12 @@ format_validators = {
 def get_validator(m):
     return format_validators.get(m, default_format_validator)
 
+class MimeMismatchError(Exception):
+    def __init__(self, expected_mime, detected_mime):
+        self.args = (expected_mime, detected_mime)
+        self.message = "Detected mime {0} doesn't match expected {1}".format(
+            detected_mime, expected_mime)
+
 
 class UnknownMediaTypeError(Exception):
     "Exception for unknown/undeterminable media, call with mime as the only arg"
@@ -41,3 +47,16 @@ def sniff_validation(content, raises=True):
     if not mt and raises:
         raise UnknownMediaTypeError(mime)
     return mime, mt
+
+
+## SKETCH: I think this might make for a better *validation* pattern,
+## haven't really gone through it all yet though.
+# bucket_mimes = {
+#     'images': {'image/jpeg', 'image/jp2'},
+#     'sounds': {'audio/mpeg3', 'audio/mpeg'},
+#     'models': {'model/mesh', 'text/plain'},
+#     'video': {'video/mpeg', 'video/mp4'},
+#     'datasets': {'text/csv', 'text/plain', 'application/zip'},
+#     'debugfile': {'text/plain', 'application/zip'}
+# }
+# valid_buckets = set(bucket_mimes.keys())

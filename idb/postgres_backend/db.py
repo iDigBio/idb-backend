@@ -15,7 +15,7 @@ from idb import config
 from idb.helpers.logging import idblogger as logger
 from idb.postgres_backend import apidbpool
 from idb.helpers.etags import calcEtag, calcFileHash
-from idb.helpers.media_validation import sniff_validation
+from idb.helpers.media_validation import sniff_validation, MimeMismatchError
 from idb.helpers.conversions import valid_buckets, get_accessuri
 
 
@@ -673,7 +673,7 @@ class MediaObject(object):
             mo.detected_mime, _ = sniff_validation(obj.read(1024), raises=False)
 
         if mo.mime and mo.detected_mime != mo.mime:
-            raise ValueError("detected_mime doesn't match given mime type", mo.detected_mime, mo.mime)
+            raise MimeMismatchError(mo.mime, mo.detected_mime)
 
         if mo.type and not mo.bucket:
             mo.bucket = mo.type

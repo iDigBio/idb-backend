@@ -187,42 +187,45 @@ def get_media(url, t, fmt):
 
 def write_urls_to_db(media_urls, prefix=None):
     logger.info("Searching for new URLs")
-    inserted_urls = set()
 
     scanned = 0
-    to_insert, to_update = [], []
+    to_insert = {}   # prevent duplication
+    to_update = []   # just accumulate
     itersql = """SELECT type,data
                  FROM idigbio_uuids_data
                  WHERE type='mediarecord' and deleted=false"""
 
-    for r in apidbpool.fetchiter(itersql, named=True):
+    for type, data in apidbpool.fetchiter(itersql, named=True, cursor_factory=cursor):
         if scanned % 100000 == 0:
             logger.info("Inserting: %8d, Updating: %8d, Scanned: %8d",
                         len(to_insert), len(to_update), scanned)
 
         scanned += 1
-        url = get_accessuri(r["type"], r["data"])["accessuri"]
-        o = get_media_type(r["type"], r["data"])
-        form = o["format"]
-        t = o["mediatype"]
-
+        url = get_accessuri(type, data)["accessuri"]
         if url is None:
             continue
-
         url = url.replace("&amp;", "&").strip()
         if check_ignore_media(url) or (prefix and not url.startswith(prefix)):
             continue
+
+        o = get_media_type(type, data)
+        form = o["format"]
+        t = o["mediatype"]
+
         if url in media_urls:
             # We're going to change something, but only if we're
             # adding/replacing things, not nulling existing values.
             if not (t, form) == media_urls[url] and form is not None and (t is not None or media_urls[url][0] is None):
                 to_update.append((t, form, url))
-        elif url not in inserted_urls:
-            to_insert.append((url, t, form))
-            inserted_urls.add(url)
+        elif url not in to_insert:
+            to_insert[url] = (t, form)
+
+    logger.info("Inserting: %8d, Updating: %8d, Scanned: %8d; Finished loop, processing DB",
+                len(to_insert), len(to_update), scanned)
 
     with apidbpool.cursor() as cur:
-        cur.executemany("INSERT INTO media (url,type,mime) VALUES (%s,%s,%s)", to_insert)
+        cur.executemany("INSERT INTO media (url,type,mime) VALUES (%s,%s,%s)",
+                        ((k, v[0], v[1]) for k,v in to_insert.items()))
         cur.executemany("UPDATE media SET type=%s, mime=%s, last_status=NULL, last_check=NULL WHERE url=%s",
                         to_update)
 

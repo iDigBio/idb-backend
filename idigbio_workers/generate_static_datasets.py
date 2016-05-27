@@ -29,7 +29,7 @@ def upload_download_file_to_ceph(s, dsname):
 
     if makelink:
         fkey.copy("idigbio-static-downloads",dsname, preserve_acl=True)
-        
+
     return "http://s.idigbio.org/idigbio-static-downloads/" + keyname
 
 def upload_eml_file_to_ceph(s, tid, eml):
@@ -63,7 +63,7 @@ def main():
     # ro = runQuery(rsquery)
     # if ro is not None:
     #     for b in ro["aggregations"]["recordset_counts"]["buckets"]:
-    #         #print b["key"], b["doc_count"], b["doc_count"] * 7 / 10000            
+    #         #print b["key"], b["doc_count"], b["doc_count"] * 7 / 10000
     #         static_queries.append(({
     #             "recordset": b["key"]
     #         },b["key"]))
@@ -79,7 +79,7 @@ def main():
     #     print q[1], u
     #     count += 1
     file_name, _, _ = generate_files(record_query=queryFromShim({})["query"],form="dwca-csv",filename="idigbio")
-    u = upload_download_file_to_ceph(s,file_name)
-    
+    u = upload_download_file_to_ceph(s, file_name)
+
 if __name__ == '__main__':
     main()

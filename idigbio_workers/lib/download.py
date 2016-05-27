@@ -63,7 +63,6 @@ def write_citation_file(dl_id,t,query, recordsets):
             rs_string += "http://www.idigbio.org/portal/recordsets/{0} ({1} records)\n".format(rs,rsc)
             total_recs += rsc
 
-
         query_string = json.dumps(query)
 
         now = datetime.datetime.now()
@@ -90,7 +89,7 @@ def get_recordsets(params,generate=True):
 
     if generate:
         record_query = None
-        mediarecord_query = None        
+        mediarecord_query = None
         if params["rq"] is not None:
             record_query = queryFromShim(params["rq"])["query"]
 
@@ -101,7 +100,6 @@ def get_recordsets(params,generate=True):
         rq = params["rq"]
         mq = params["mq"]
 
-    
 
     q = None
     t = None
@@ -215,7 +213,7 @@ def query_to_csv(outf, t, body, header_fields, fields, id_field, raw, tabs, id_f
     for r in elasticsearch.helpers.scan(es, index=indexName, query=body, size=1000, doc_type=t):
         try:
             r_fields = [id_func(r)]
-            for k in fields:                
+            for k in fields:
                 v = get_source_value(r["_source"],k)
                 if v is not None:
                     if isinstance(v, str) or isinstance(v, unicode):
@@ -236,11 +234,11 @@ type_core_type_ids = {
     ("records", "records", "indexterms"): (lambda r: r["_id"], None),
     ("records", "mediarecords", "indexterms"): (lambda r: r["_source"]["records"][0] if "records" in r["_source"] else "", "records"),
     ("records", "records", "raw"): (lambda r: r["_id"], None),
-    ("records", "mediarecords", "raw"): (lambda r: r["_source"]["records"][0], "records"),    
-    ("mediarecords", "mediarecords", "indexterms"): (lambda r: r["_id"], None),    
+    ("records", "mediarecords", "raw"): (lambda r: r["_source"]["records"][0], "records"),
+    ("mediarecords", "mediarecords", "indexterms"): (lambda r: r["_id"], None),
     ("mediarecords", "records", "indexterms"): (lambda r: r["_source"]["mediarecords"][0], "mediarecords"),
-    ("mediarecords", "mediarecords", "raw"): (lambda r: r["_id"], None),    
-    ("mediarecords", "records", "raw"): (lambda r: r["_source"]["mediarecords"][0], "mediarecords"),    
+    ("mediarecords", "mediarecords", "raw"): (lambda r: r["_id"], None),
+    ("mediarecords", "records", "raw"): (lambda r: r["_source"]["mediarecords"][0], "mediarecords"),
     ("uniquelocality", "uniquelocality", "indexterms"): (identifiy_locality, "locality"),
     ("uniquelocality", "records", "indexterms"): (lambda r: identifiy_locality(get_source_value(r["_source"],"locality")),"locality"),
     ("uniquelocality", "mediarecords", "indexterms"): (lambda r: identifiy_locality(get_source_value(r["inner_hits"]["records"]["hits"]["hits"][0]["_source"],"locality")),"locality"),
@@ -348,7 +346,6 @@ def make_file(t, query, raw=False, tabs=False, fields=None, core_type="records",
             converted_fields = [unique_field[5:],"idigbio:itemCount"]
         else:
             converted_fields = [index_field_to_longname["records"][unique_field],"idigbio:itemCount"]
-
 
         meta_block = make_file_block(
             filename=final_filename + file_extension, core=core, tabs=tabs, fields=converted_fields, t=t)
@@ -483,7 +480,7 @@ def generate_files(core_type="records", core_source="indexterms", record_query=N
                     "final_filename": "occurrence"
                 }
             ),
-            ("records", "raw"):  (
+            ("records", "raw"): (
                 [
                     "records",
                     rq
@@ -498,7 +495,7 @@ def generate_files(core_type="records", core_source="indexterms", record_query=N
                     "final_filename": "occurrence_raw"
                 }
             ),
-            ("mediarecords", "indexterms"):  (
+            ("mediarecords", "indexterms"): (
                 [
                     "mediarecords",
                     mq
@@ -513,7 +510,7 @@ def generate_files(core_type="records", core_source="indexterms", record_query=N
                     "final_filename": "multimedia"
                 }
             ),
-            ("mediarecords", "raw"):  (
+            ("mediarecords", "raw"): (
                 [
                     "mediarecords",
                     mq
@@ -528,7 +525,7 @@ def generate_files(core_type="records", core_source="indexterms", record_query=N
                     "final_filename": "multimedia_raw"
                 }
             ),
-        }      
+        }
 
         if record_fields is not None:
             type_source_options[("records","raw")][1]["fields"] = []
@@ -551,8 +548,6 @@ def generate_files(core_type="records", core_source="indexterms", record_query=N
                     type_source_options[("mediarecords","raw")][1]["fields"].append(f)
                 else:
                     type_source_options[("mediarecords","indexterms")][1]["fields"].append(f)
-
-
 
         # Order is important here, core must be first for correct meta.xml generation
         files = []
@@ -619,7 +614,7 @@ def main():
 
     print generate_files(core_type="records", core_source="indexterms", form="dwca-csv", record_query=record_query, mediarecord_query=mediarecord_query, filename=str(uuid.uuid4()))[0]
 
-    # core_types = ["records", "mediarecords", "uniquelocality", "uniquenames"]    
+    # core_types = ["records", "mediarecords", "uniquelocality", "uniquenames"]
     # core_sources = ["indexterms", "raw"]
     # forms = ["csv", "tsv", "dwca-csv", "dwca-tsv"]
 

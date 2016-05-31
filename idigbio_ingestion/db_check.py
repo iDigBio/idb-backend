@@ -536,7 +536,7 @@ def launch_child(rsid, ingest):
         # close any logging filehandlers on root, leave alone any
         # other stream handlers (e.g. stderr) this way main can set up
         # its own filehandler to `$RSID.db_check.log`
-        for fh in list(filter(lambda h: isinstance(h, logging.FileHandler), logging.root.handlers)):
+        for fh in filter(lambda h: isinstance(h, logging.FileHandler), logging.root.handlers):
             logging.root.removeHandler(fh)
             fh.close()
 

@@ -229,7 +229,6 @@ def process_subfile(rf, rsid, rs_uuid_etag, rs_id_uuid, ingest=False, db=None):
             deleted = False
             if u is None:
                 u, parent, deleted = db.get_uuid([i for _,_,i in idents])
-                assert u is not None
                 if parent is not None:
                     # assert parent == rsid
                     if parent != rsid:
@@ -311,8 +310,7 @@ def process_subfile(rf, rsid, rs_uuid_etag, rs_id_uuid, ingest=False, db=None):
         except Exception as e:
             ids_to_add = {}
             uuids_to_add = {}
-            rlogger.warn(e)
-            rlogger.error(traceback.format_exc())
+            rlogger.exception("Uncaught exception handling %r", r)
             exceptions += 1
 
         seen_ids.update(ids_to_add)

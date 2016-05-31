@@ -6,7 +6,7 @@ import itertools
 
 from datetime import datetime
 
-from psycopg2.extras import DictCursor
+from psycopg2.extras import DictCursor, NamedTupleCursor
 from psycopg2.extensions import cursor
 from psycopg2.extensions import (ISOLATION_LEVEL_READ_COMMITTED,
                                  ISOLATION_LEVEL_AUTOCOMMIT,
@@ -388,47 +388,26 @@ class PostgresDB(object):
         return self._pool.fetchone(*sql)[0]
 
     def _id_precheck(self, u, ids):
-        rows = self.fetchall("""SELECT
-            identifier,
-            uuids_id
+        rows = self.fetchall("""SELECT DISTINCT uuids_id
             FROM uuids_identifier
             WHERE uuids_id=%s OR identifier = ANY(%s)
         """, (u, ids))
-        for row in rows:
-            if row["uuids_id"] != u:
-                return False
-        else:
-            return True
+        return len(rows) <= 1
 
     def get_uuid(self, ids):
-        sql = ("""SELECT
-            identifier,
-            uuids_id,
-            parent,
-            deleted
+        sql = """SELECT DISTINCT uuids_id, parent, deleted
             FROM uuids_identifier
-            JOIN uuids
-            ON uuids.id = uuids_identifier.uuids_id
+            JOIN uuids ON uuids.id = uuids_identifier.uuids_id
             WHERE identifier = ANY(%s)
-        """, (ids,))
-        rid = None
-        parent = None
-        deleted = False
-        for row in self.fetchall(*sql):
-            if rid is None:
-                rid = row["uuids_id"]
-                parent = row["parent"]
-                deleted = row["deleted"]
-            elif rid == row["uuids_id"]:
-                pass
-            else:
-                return (None, parent, deleted)
-        if rid is None:
-            rv = (str(uuid.uuid4()), parent, deleted)
-            #print "Create UUID", ids, rv
-            return rv
+        """
+
+        results = self.fetchall(sql, (ids,), cursor_factory=cursor)
+        if len(results) == 0:
+            return (str(uuid.uuid4()), None, False)
+        elif len(results) == 1:
+            return results[0]
         else:
-            return (rid, parent, deleted)
+            raise ValueError("Identifiers have multiple uuids:", ids)
 
     def set_record(self, u, t, p, d, ids, siblings):
         try:

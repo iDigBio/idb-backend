@@ -271,7 +271,7 @@ def process_subfile(rf, rsid, rs_uuid_etag, rs_id_uuid, ingest=False, db=None):
 
                     unconsumed_extensions[r["coreid"]][rf.rowtype].append(r)
 
-            if "ac:associatedSpecimenReference" in r and r["ac:associatedSpecimenReference"] is not None:
+            if r.get("ac:associatedSpecimenReference"):
                 ref_uuids_list = uuid_re.findall(r["ac:associatedSpecimenReference"])
                 for ref_uuid in ref_uuids_list:
                     # Check for internal idigbio_uuid reference

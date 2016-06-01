@@ -45,7 +45,7 @@ mime_mapping = {
     None: None
 }
 
-unmapped_buckets = { 'datasets', 'debugfile' }
+unmapped_buckets = { 'datasets', 'debugfile', 'guoda' }
 
 valid_buckets = set([v for v in mime_mapping.values() if v is not None]) | \
                 unmapped_buckets

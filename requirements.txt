@@ -13,6 +13,7 @@ coverage
 numpy
 scipy
 gevent>=1.1.0, <1.2.0
+gipc>=0.6.0, <0.7.0
 unicodecsv>=0.14.1, < 0.15.0
 shapely
 celery
@@ -23,3 +24,4 @@ feedparser>=5.2.0
 click>=6.3, <7.0
 Flask-CLI>=0.2.1, <0.3.0
 atomicfile==1.0
+enum34>=1.1.6, <1.2.0

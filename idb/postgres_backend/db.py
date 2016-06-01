@@ -5,6 +5,7 @@ import sys
 import itertools
 
 from datetime import datetime
+from cStringIO import StringIO
 
 from psycopg2.extras import DictCursor, NamedTupleCursor
 from psycopg2.extensions import cursor
@@ -635,6 +636,10 @@ class MediaObject(object):
             return cls.fromurl(ref, idbmodel=idbmodel)
 
     @classmethod
+    def frombuff(cls, buff, **attrs):
+        return cls.fromobj(StringIO(buff), **attrs)
+
+    @classmethod
     def fromobj(cls, obj, **attrs):
         obj.seek(0)
         attrs.setdefault('last_status', 200)
@@ -683,8 +688,11 @@ class MediaObject(object):
     def upload(self, media_store, fobj, force=False):
         k = self.get_key(media_store)
         if force or not k.exists():
-            fobj.seek(0)
-            k.set_contents_from_file(fobj, md5=k.get_md5_from_hexdigest(self.etag))
+            try:
+                fobj.seek(0)
+                k.set_contents_from_file(fobj, md5=k.get_md5_from_hexdigest(self.etag))
+            except AttributeError:
+                k.set_contents_from_string(fobj, md5=k.get_md5_from_hexdigest(self.etag))
             if self.bucket not in private_buckets:
                 k.make_public()
         return k

@@ -29,6 +29,9 @@ class MimeMismatchError(Exception):
         self.message = "Detected mime {0} doesn't match expected {1}".format(
             detected_mime, expected_mime)
 
+    def __str__(self):
+        return self.message
+
 
 class UnknownMediaTypeError(Exception):
     "Exception for unknown/undeterminable media, call with mime as the only arg"

@@ -1,7 +1,8 @@
 from __future__ import division, absolute_import
 from __future__ import print_function
 
-from .clibase import cli, clilog  # noqa
+from .clibase import cli
+from idb.helpers.logging import fnlogged
 
 # the following imports register subcommands.
 #
@@ -19,17 +20,20 @@ def datatables():
     pass
 
 @datatables.command(name='rights-strings')
+@fnlogged
 def rights_strings():
     from idb.data_tables.rights_strings import main
     main()
 
 
 @datatables.command(name='locality-data')
+@fnlogged
 def locality_data():
     from idb.data_tables.locality_data import main
     main()
 
 @datatables.command(name="taxon")
+@fnlogged
 def taxon():
     from idb.data_tables.taxon import main
     main()

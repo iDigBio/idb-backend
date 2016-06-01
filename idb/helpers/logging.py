@@ -1,11 +1,17 @@
-from __future__ import absolute_import
+from __future__ import division, absolute_import, print_function
 
+# NB: Avoid importing from other idb modules in here, we need this to
+# be loadable up front without bringing in anything that brings in
+# idb.config
+
+import functools
 import logging
 import logging.handlers
 import os
 import os.path
 import sys
-
+from datetime import datetime
+from click import ClickException
 
 idblogger = logging.getLogger('idb')
 
@@ -127,3 +133,44 @@ class LoggingContext(object):
 
         for h in self.handlers:
             h.close()
+
+
+def fntimed(fn=None, log=idblogger.debug):
+    def _fntimed(*args, **kwargs):
+        t1 = datetime.now()
+        result = fn(*args, **kwargs)
+        log("%s(...) took %.1fs",
+            fn.__name__, (datetime.now() - t1).total_seconds())
+        return result
+    if fn:
+        if not log:
+            # no logging fn to work with, just return original fn
+            return fn
+        else:
+            return functools.wraps(fn)(_fntimed)
+    else:
+        return functools.partial(fntimed, log=log)
+
+
+def fnlogged(fn=None, time_level=logging.DEBUG, reraise=True, logger=idblogger):
+    def _fnlogged(*args, **kwargs):
+        try:
+            return fn(*args, **kwargs)
+        except (ClickException, KeyboardInterrupt):
+            raise
+        except Exception:
+            if logger:
+                logger.exception("Error in %s", fn.__name__)
+            if reraise:
+                raise
+
+    if fn:
+        if not logger:
+            # nothing to do here
+            return fn
+        if time_level:
+            fn = fntimed(fn, log=functools.partial(logger.log, time_level))
+        return functools.wraps(fn)(_fnlogged)
+    else:
+        return functools.partial(
+            fnlogged, time_level=time_level, reraise=reraise, logger=logger)

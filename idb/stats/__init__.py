@@ -4,7 +4,7 @@ from datetime import datetime
 import click
 
 from idb.clibase import cli
-
+from idb.helpers.logging import fnlogged
 
 indexName = "stats-2.5.0"
 typeName = "search"
@@ -29,6 +29,7 @@ def search(index=indexName, body=None, doc_type=typeName, es=None):
 @click.option('--date', '-d', default=datetime.now().isoformat(),
               help="date to collect for, '*' for all dates")
 @click.option('--mapping/--no-mapping', default=False, help="write mapping")
+@fnlogged
 def collect_stats(date, mapping):
     import dateutil.parser
     from . import collect
@@ -46,6 +47,7 @@ def collect_stats(date, mapping):
 
 @cli.command(name="api-stats", help="write out the api stats")
 @click.option('--mapping/--no-mapping', default=False, help="write mapping")
+@fnlogged
 def api_stats(mapping):
     from . import collect
     if mapping:

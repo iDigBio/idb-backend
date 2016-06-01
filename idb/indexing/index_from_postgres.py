@@ -214,7 +214,7 @@ def type_yield_resume(ei, rc, typ, also_delete=False, yield_record=False):
             yield index_record(ei, rc, typ, r, do_index=False)
 
     if also_delete and len(es_ids) > 0:
-        log.info("%s: Deleting %s extra", len(es_ids))
+        log.info("%s: Deleting %s extra", typ, len(es_ids))
         for r in rate_logger(typ + " delete", es_ids):
             ei.es.delete(**{
                 "index": ei.indexName,

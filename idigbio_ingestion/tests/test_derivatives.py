@@ -6,7 +6,7 @@ import uuid
 from collections import namedtuple
 from cStringIO import StringIO
 
-from idigbio_ingestion import derivatives
+from idigbio_ingestion.mediaing import derivatives
 
 
 def pytest_generate_tests(metafunc):

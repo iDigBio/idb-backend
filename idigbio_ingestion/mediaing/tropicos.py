@@ -1,4 +1,4 @@
-from __future__ import absolute_import
+from __future__ import division, absolute_import, print_function
 
 from gevent import monkey
 monkey.patch_all()
@@ -6,13 +6,15 @@ monkey.patch_all()
 import time
 import requests.exceptions
 from idb.postgres_backend import apidbpool
+from . import fetcher
 from idigbio_ingestion import mediaing
 
 logger = mediaing.logger
 
-mediaing.POOL_SIZE = 1
-mediaing.REQ_CONNECT_TIMEOUT = 5 * 60
-mediaing.LAST_CHECK_INTERVAL = '10 days'
+fetcher.POOL_SIZE = 1
+fetcher.REQ_CONNECT_TIMEOUT = 5 * 60
+fetcher.LAST_CHECK_INTERVAL = '10 days'
+
 mediaing.IGNORE_PREFIXES = [
     "http://media.idigbio.org/",
 ]
@@ -45,12 +47,12 @@ def get_media_wrapper(tup, cache_bad=False):
     while True:
         attempt += 1
         try:
-            mediaing.get_media(url, t, fmt)
+            fetcher.get_media(url, t, fmt)
             logger.info("Success! %s %s", url, 200)
             return 200
         except KeyboardInterrupt:
             raise
-        except mediaing.ReqFailure as rf:
+        except fetcher.ReqFailure as rf:
             media_status = rf.status
             reason = rf.response.reason if rf.response is not None else None
             if media_status in (403, 404, 1403):
@@ -72,16 +74,16 @@ def get_media_wrapper(tup, cache_bad=False):
                 update_status(media_status)
                 return media_status
 
-        except mediaing.ValidationFailure as vf:
+        except fetcher.ValidationFailure as vf:
             update_status(vf.status)
             if cache_bad:
-                mediaing.write_bad(url, vf.content)
+                fetcher.write_bad(url, vf.content)
             if "IP Address Blocked" in vf.content:
                 wait_for_new_external_ip(attempt)
                 continue
             logger.error(str(vf))
             return vf.status
-        except mediaing.GetMediaError as gme:
+        except fetcher.GetMediaError as gme:
             update_status(gme.status)
             logger.error(str(gme))
             return gme.status
@@ -96,4 +98,4 @@ def get_media_wrapper(tup, cache_bad=False):
             logger.exception("*Unhandled error processing* %s", url)
             return 1000
 
-mediaing.get_media_wrapper = get_media_wrapper
+fetcher.get_media_wrapper = get_media_wrapper

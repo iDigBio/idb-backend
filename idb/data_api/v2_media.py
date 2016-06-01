@@ -187,7 +187,9 @@ def lookup_ref(format):
 @requires_auth
 def upload():
     vals = {}
-    vals.update(request.get_json())
+    j = request.get_json()
+    if j is not None:
+        vals.update(j)
     vals.update(request.values)
 
     filereference = vals.get("filereference")

@@ -186,14 +186,18 @@ def lookup_ref(format):
 @crossdomain(origin="*")
 @requires_auth
 def upload():
-    filereference = request.values.get("filereference")
+    vals = {}
+    vals.update(request.get_json())
+    vals.update(request.values)
+
+    filereference = vals.get("filereference")
     if not filereference:
         return json_error(400, "Missing filereference")
 
-    etag = request.values.get('etag')
+    etag = vals.get('etag')
     obj = request.files.get('file')
-    media_type = request.values.get("media_type")
-    mime = request.values.get("mime")
+    media_type = vals.get("media_type")
+    mime = vals.get("mime")
     if media_type and media_type not in valid_buckets:
         return json_error(400, "Invalid media_type")
 

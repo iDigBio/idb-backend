@@ -15,7 +15,6 @@ mediaing.REQ_CONNECT_TIMEOUT = 5 * 60
 mediaing.LAST_CHECK_INTERVAL = '10 days'
 mediaing.IGNORE_PREFIXES = [
     "http://media.idigbio.org/",
-    "http://firuta.huh.harvard.edu/"
 ]
 
 TROPICOS_PREFIX = 'http://www.tropicos.org/'

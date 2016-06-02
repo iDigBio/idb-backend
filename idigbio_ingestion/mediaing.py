@@ -28,7 +28,6 @@ USER_AGENT = 'iDigBio Media Ingestor (idigbio@acis.ufl.edu https://www.idigbio.o
 
 IGNORE_PREFIXES = [
     "http://media.idigbio.org/",
-    "http://firuta.huh.harvard.edu/",
     "http://www.tropicos.org/"
 ]
 

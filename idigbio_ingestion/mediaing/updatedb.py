@@ -64,6 +64,7 @@ def write_urls_to_db(media_urls, prefix=None):
         if url is None:
             continue
         url = url.replace("&amp;", "&").strip()
+        # TODO: This should probably not use `check_ignore_media`; we do want new tropicos urls
         if check_ignore_media(url) or (prefix and not url.startswith(prefix)):
             continue
 

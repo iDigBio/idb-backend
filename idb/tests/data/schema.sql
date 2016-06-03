@@ -3,7 +3,7 @@
 --
 
 -- Dumped from database version 9.4.4
--- Dumped by pg_dump version 9.5.3
+-- Dumped by pg_dump version 9.5.2
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
@@ -15,15 +15,15 @@ SET row_security = off;
 
 SET search_path = public, pg_catalog;
 
-ALTER TABLE IF EXISTS ONLY public.uuids_siblings DROP CONSTRAINT uuids_siblings_r2_fkey;
-ALTER TABLE IF EXISTS ONLY public.uuids_siblings DROP CONSTRAINT uuids_siblings_r1_fkey;
-ALTER TABLE IF EXISTS ONLY public.uuids_identifier DROP CONSTRAINT uuids_identifier_uuids_id_fkey;
-ALTER TABLE IF EXISTS ONLY public.uuids_data DROP CONSTRAINT uuids_data_uuids_id_fkey;
-ALTER TABLE IF EXISTS ONLY public.uuids_data DROP CONSTRAINT uuids_data_data_etag_fkey;
-ALTER TABLE IF EXISTS ONLY public.recordsets DROP CONSTRAINT recordsets_publisher_uuid_fkey;
-ALTER TABLE IF EXISTS ONLY public.media_objects DROP CONSTRAINT media_objects_url_fkey;
-ALTER TABLE IF EXISTS ONLY public.media_objects DROP CONSTRAINT media_objects_etag_fkey;
-ALTER TABLE IF EXISTS ONLY public.annotations DROP CONSTRAINT annotations_uuids_id_fkey;
+ALTER TABLE IF EXISTS ONLY public.uuids_siblings DROP CONSTRAINT IF EXISTS uuids_siblings_r2_fkey;
+ALTER TABLE IF EXISTS ONLY public.uuids_siblings DROP CONSTRAINT IF EXISTS uuids_siblings_r1_fkey;
+ALTER TABLE IF EXISTS ONLY public.uuids_identifier DROP CONSTRAINT IF EXISTS uuids_identifier_uuids_id_fkey;
+ALTER TABLE IF EXISTS ONLY public.uuids_data DROP CONSTRAINT IF EXISTS uuids_data_uuids_id_fkey;
+ALTER TABLE IF EXISTS ONLY public.uuids_data DROP CONSTRAINT IF EXISTS uuids_data_data_etag_fkey;
+ALTER TABLE IF EXISTS ONLY public.recordsets DROP CONSTRAINT IF EXISTS recordsets_publisher_uuid_fkey;
+ALTER TABLE IF EXISTS ONLY public.media_objects DROP CONSTRAINT IF EXISTS media_objects_url_fkey;
+ALTER TABLE IF EXISTS ONLY public.media_objects DROP CONSTRAINT IF EXISTS media_objects_etag_fkey;
+ALTER TABLE IF EXISTS ONLY public.annotations DROP CONSTRAINT IF EXISTS annotations_uuids_id_fkey;
 DROP INDEX IF EXISTS public.uuids_type_parent;
 DROP INDEX IF EXISTS public.uuids_siblings_r2;
 DROP INDEX IF EXISTS public.uuids_siblings_r1;
@@ -31,7 +31,7 @@ DROP INDEX IF EXISTS public.uuids_parent;
 DROP INDEX IF EXISTS public.uuids_identifier_uuids_id;
 DROP INDEX IF EXISTS public.uuids_identifier_reverse_idx;
 DROP INDEX IF EXISTS public.uuids_data_version;
-DROP INDEX IF EXISTS public.uuids_data_uuids_id;
+DROP INDEX IF EXISTS public.uuids_data_uuids_id_modified;
 DROP INDEX IF EXISTS public.uuids_data_modified;
 DROP INDEX IF EXISTS public.media_objects_urls;
 DROP INDEX IF EXISTS public.media_objects_etags;
@@ -39,25 +39,25 @@ DROP INDEX IF EXISTS public.idb_object_keys_etag;
 DROP INDEX IF EXISTS public.data_riak_etag;
 DROP INDEX IF EXISTS public.data_accessuris;
 DROP INDEX IF EXISTS public.corrections_source;
-ALTER TABLE IF EXISTS ONLY public.uuids_siblings DROP CONSTRAINT uuids_siblings_pkey;
-ALTER TABLE IF EXISTS ONLY public.uuids DROP CONSTRAINT uuids_pkey;
-ALTER TABLE IF EXISTS ONLY public.uuids_identifier DROP CONSTRAINT uuids_identifier_pkey;
-ALTER TABLE IF EXISTS ONLY public.uuids_identifier DROP CONSTRAINT uuids_identifier_identifier_key;
-ALTER TABLE IF EXISTS ONLY public.uuids_data DROP CONSTRAINT uuids_data_pkey;
-ALTER TABLE IF EXISTS ONLY public.recordsets DROP CONSTRAINT recordsets_uuid_key;
-ALTER TABLE IF EXISTS ONLY public.recordsets DROP CONSTRAINT recordsets_pkey;
-ALTER TABLE IF EXISTS ONLY public.publishers DROP CONSTRAINT publishers_uuid_key;
-ALTER TABLE IF EXISTS ONLY public.publishers DROP CONSTRAINT publishers_pkey;
-ALTER TABLE IF EXISTS ONLY public.objects DROP CONSTRAINT objects_pkey;
-ALTER TABLE IF EXISTS ONLY public.objects DROP CONSTRAINT objects_etag_key;
-ALTER TABLE IF EXISTS ONLY public.media DROP CONSTRAINT media_url_key;
-ALTER TABLE IF EXISTS ONLY public.media DROP CONSTRAINT media_pkey;
-ALTER TABLE IF EXISTS ONLY public.media_objects DROP CONSTRAINT media_objects_pkey;
-ALTER TABLE IF EXISTS ONLY public.recordsets DROP CONSTRAINT idx_file_link_unique;
-ALTER TABLE IF EXISTS ONLY public.idb_object_keys DROP CONSTRAINT idb_object_keys_pkey;
-ALTER TABLE IF EXISTS ONLY public.data DROP CONSTRAINT data_pkey;
-ALTER TABLE IF EXISTS ONLY public.corrections DROP CONSTRAINT corrections_pkey;
-ALTER TABLE IF EXISTS ONLY public.annotations DROP CONSTRAINT annotations_pkey;
+ALTER TABLE IF EXISTS ONLY public.uuids_siblings DROP CONSTRAINT IF EXISTS uuids_siblings_pkey;
+ALTER TABLE IF EXISTS ONLY public.uuids DROP CONSTRAINT IF EXISTS uuids_pkey;
+ALTER TABLE IF EXISTS ONLY public.uuids_identifier DROP CONSTRAINT IF EXISTS uuids_identifier_pkey;
+ALTER TABLE IF EXISTS ONLY public.uuids_identifier DROP CONSTRAINT IF EXISTS uuids_identifier_identifier_key;
+ALTER TABLE IF EXISTS ONLY public.uuids_data DROP CONSTRAINT IF EXISTS uuids_data_pkey;
+ALTER TABLE IF EXISTS ONLY public.recordsets DROP CONSTRAINT IF EXISTS recordsets_uuid_key;
+ALTER TABLE IF EXISTS ONLY public.recordsets DROP CONSTRAINT IF EXISTS recordsets_pkey;
+ALTER TABLE IF EXISTS ONLY public.publishers DROP CONSTRAINT IF EXISTS publishers_uuid_key;
+ALTER TABLE IF EXISTS ONLY public.publishers DROP CONSTRAINT IF EXISTS publishers_pkey;
+ALTER TABLE IF EXISTS ONLY public.objects DROP CONSTRAINT IF EXISTS objects_pkey;
+ALTER TABLE IF EXISTS ONLY public.objects DROP CONSTRAINT IF EXISTS objects_etag_key;
+ALTER TABLE IF EXISTS ONLY public.media DROP CONSTRAINT IF EXISTS media_url_key;
+ALTER TABLE IF EXISTS ONLY public.media DROP CONSTRAINT IF EXISTS media_pkey;
+ALTER TABLE IF EXISTS ONLY public.media_objects DROP CONSTRAINT IF EXISTS media_objects_pkey;
+ALTER TABLE IF EXISTS ONLY public.recordsets DROP CONSTRAINT IF EXISTS idx_file_link_unique;
+ALTER TABLE IF EXISTS ONLY public.idb_object_keys DROP CONSTRAINT IF EXISTS idb_object_keys_pkey;
+ALTER TABLE IF EXISTS ONLY public.data DROP CONSTRAINT IF EXISTS data_pkey;
+ALTER TABLE IF EXISTS ONLY public.corrections DROP CONSTRAINT IF EXISTS corrections_pkey;
+ALTER TABLE IF EXISTS ONLY public.annotations DROP CONSTRAINT IF EXISTS annotations_pkey;
 ALTER TABLE IF EXISTS public.uuids_siblings ALTER COLUMN id DROP DEFAULT;
 ALTER TABLE IF EXISTS public.uuids_identifier ALTER COLUMN id DROP DEFAULT;
 ALTER TABLE IF EXISTS public.uuids_data ALTER COLUMN id DROP DEFAULT;
@@ -95,6 +95,7 @@ DROP SEQUENCE IF EXISTS public.corrections_id_seq;
 DROP TABLE IF EXISTS public.corrections;
 DROP SEQUENCE IF EXISTS public.annotations_id_seq;
 DROP TABLE IF EXISTS public.annotations;
+
 
 SET search_path = public, pg_catalog;
 
@@ -614,77 +615,77 @@ ALTER SEQUENCE uuids_siblings_id_seq OWNED BY uuids_siblings.id;
 -- Name: id; Type: DEFAULT; Schema: public; Owner: -
 --
 
-ALTER TABLE IF EXISTS ONLY annotations ALTER COLUMN id SET DEFAULT nextval('annotations_id_seq'::regclass);
+ALTER TABLE ONLY annotations ALTER COLUMN id SET DEFAULT nextval('annotations_id_seq'::regclass);
 
 
 --
 -- Name: id; Type: DEFAULT; Schema: public; Owner: -
 --
 
-ALTER TABLE IF EXISTS ONLY corrections ALTER COLUMN id SET DEFAULT nextval('corrections_id_seq'::regclass);
+ALTER TABLE ONLY corrections ALTER COLUMN id SET DEFAULT nextval('corrections_id_seq'::regclass);
 
 
 --
 -- Name: id; Type: DEFAULT; Schema: public; Owner: -
 --
 
-ALTER TABLE IF EXISTS ONLY media ALTER COLUMN id SET DEFAULT nextval('media_id_seq'::regclass);
+ALTER TABLE ONLY media ALTER COLUMN id SET DEFAULT nextval('media_id_seq'::regclass);
 
 
 --
 -- Name: id; Type: DEFAULT; Schema: public; Owner: -
 --
 
-ALTER TABLE IF EXISTS ONLY media_objects ALTER COLUMN id SET DEFAULT nextval('media_objects_id_seq'::regclass);
+ALTER TABLE ONLY media_objects ALTER COLUMN id SET DEFAULT nextval('media_objects_id_seq'::regclass);
 
 
 --
 -- Name: id; Type: DEFAULT; Schema: public; Owner: -
 --
 
-ALTER TABLE IF EXISTS ONLY objects ALTER COLUMN id SET DEFAULT nextval('objects_id_seq'::regclass);
+ALTER TABLE ONLY objects ALTER COLUMN id SET DEFAULT nextval('objects_id_seq'::regclass);
 
 
 --
 -- Name: id; Type: DEFAULT; Schema: public; Owner: -
 --
 
-ALTER TABLE IF EXISTS ONLY publishers ALTER COLUMN id SET DEFAULT nextval('publishers_id_seq'::regclass);
+ALTER TABLE ONLY publishers ALTER COLUMN id SET DEFAULT nextval('publishers_id_seq'::regclass);
 
 
 --
 -- Name: id; Type: DEFAULT; Schema: public; Owner: -
 --
 
-ALTER TABLE IF EXISTS ONLY recordsets ALTER COLUMN id SET DEFAULT nextval('recordsets_id_seq'::regclass);
+ALTER TABLE ONLY recordsets ALTER COLUMN id SET DEFAULT nextval('recordsets_id_seq'::regclass);
 
 
 --
 -- Name: id; Type: DEFAULT; Schema: public; Owner: -
 --
 
-ALTER TABLE IF EXISTS ONLY uuids_data ALTER COLUMN id SET DEFAULT nextval('uuids_data_id_seq'::regclass);
+ALTER TABLE ONLY uuids_data ALTER COLUMN id SET DEFAULT nextval('uuids_data_id_seq'::regclass);
 
 
 --
 -- Name: id; Type: DEFAULT; Schema: public; Owner: -
 --
 
-ALTER TABLE IF EXISTS ONLY uuids_identifier ALTER COLUMN id SET DEFAULT nextval('uuids_identifier_id_seq'::regclass);
+ALTER TABLE ONLY uuids_identifier ALTER COLUMN id SET DEFAULT nextval('uuids_identifier_id_seq'::regclass);
 
 
 --
 -- Name: id; Type: DEFAULT; Schema: public; Owner: -
 --
 
-ALTER TABLE IF EXISTS ONLY uuids_siblings ALTER COLUMN id SET DEFAULT nextval('uuids_siblings_id_seq'::regclass);
+ALTER TABLE ONLY uuids_siblings ALTER COLUMN id SET DEFAULT nextval('uuids_siblings_id_seq'::regclass);
 
 
 --
 -- Name: annotations_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE IF EXISTS ONLY annotations
+ALTER TABLE ONLY annotations
     ADD CONSTRAINT annotations_pkey PRIMARY KEY (id);
 
 
@@ -692,7 +693,7 @@ ALTER TABLE IF EXISTS ONLY annotations
 -- Name: corrections_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE IF EXISTS ONLY corrections
+ALTER TABLE ONLY corrections
     ADD CONSTRAINT corrections_pkey PRIMARY KEY (id);
 
 
@@ -700,7 +701,7 @@ ALTER TABLE IF EXISTS ONLY corrections
 -- Name: data_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE IF EXISTS ONLY data
+ALTER TABLE ONLY data
     ADD CONSTRAINT data_pkey PRIMARY KEY (etag);
 
 
@@ -708,7 +709,7 @@ ALTER TABLE IF EXISTS ONLY data
 -- Name: idb_object_keys_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE IF EXISTS ONLY idb_object_keys
+ALTER TABLE ONLY idb_object_keys
     ADD CONSTRAINT idb_object_keys_pkey PRIMARY KEY (lookup_key);
 
 
@@ -716,7 +717,7 @@ ALTER TABLE IF EXISTS ONLY idb_object_keys
 -- Name: idx_file_link_unique; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE IF EXISTS ONLY recordsets
+ALTER TABLE ONLY recordsets
     ADD CONSTRAINT idx_file_link_unique UNIQUE (file_link);
 
 
@@ -724,7 +725,7 @@ ALTER TABLE IF EXISTS ONLY recordsets
 -- Name: media_objects_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE IF EXISTS ONLY media_objects
+ALTER TABLE ONLY media_objects
     ADD CONSTRAINT media_objects_pkey PRIMARY KEY (id);
 
 
@@ -732,7 +733,7 @@ ALTER TABLE IF EXISTS ONLY media_objects
 -- Name: media_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE IF EXISTS ONLY media
+ALTER TABLE ONLY media
     ADD CONSTRAINT media_pkey PRIMARY KEY (id);
 
 
@@ -740,7 +741,7 @@ ALTER TABLE IF EXISTS ONLY media
 -- Name: media_url_key; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE IF EXISTS ONLY media
+ALTER TABLE ONLY media
     ADD CONSTRAINT media_url_key UNIQUE (url);
 
 
@@ -748,7 +749,7 @@ ALTER TABLE IF EXISTS ONLY media
 -- Name: objects_etag_key; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE IF EXISTS ONLY objects
+ALTER TABLE ONLY objects
     ADD CONSTRAINT objects_etag_key UNIQUE (etag);
 
 
@@ -756,7 +757,7 @@ ALTER TABLE IF EXISTS ONLY objects
 -- Name: objects_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE IF EXISTS ONLY objects
+ALTER TABLE ONLY objects
     ADD CONSTRAINT objects_pkey PRIMARY KEY (id);
 
 
@@ -764,7 +765,7 @@ ALTER TABLE IF EXISTS ONLY objects
 -- Name: publishers_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE IF EXISTS ONLY publishers
+ALTER TABLE ONLY publishers
     ADD CONSTRAINT publishers_pkey PRIMARY KEY (id);
 
 
@@ -772,7 +773,7 @@ ALTER TABLE IF EXISTS ONLY publishers
 -- Name: publishers_uuid_key; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE IF EXISTS ONLY publishers
+ALTER TABLE ONLY publishers
     ADD CONSTRAINT publishers_uuid_key UNIQUE (uuid);
 
 
@@ -780,7 +781,7 @@ ALTER TABLE IF EXISTS ONLY publishers
 -- Name: recordsets_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE IF EXISTS ONLY recordsets
+ALTER TABLE ONLY recordsets
     ADD CONSTRAINT recordsets_pkey PRIMARY KEY (id);
 
 
@@ -788,7 +789,7 @@ ALTER TABLE IF EXISTS ONLY recordsets
 -- Name: recordsets_uuid_key; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE IF EXISTS ONLY recordsets
+ALTER TABLE ONLY recordsets
     ADD CONSTRAINT recordsets_uuid_key UNIQUE (uuid);
 
 
@@ -796,7 +797,7 @@ ALTER TABLE IF EXISTS ONLY recordsets
 -- Name: uuids_data_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE IF EXISTS ONLY uuids_data
+ALTER TABLE ONLY uuids_data
     ADD CONSTRAINT uuids_data_pkey PRIMARY KEY (id);
 
 
@@ -804,7 +805,7 @@ ALTER TABLE IF EXISTS ONLY uuids_data
 -- Name: uuids_identifier_identifier_key; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE IF EXISTS ONLY uuids_identifier
+ALTER TABLE ONLY uuids_identifier
     ADD CONSTRAINT uuids_identifier_identifier_key UNIQUE (identifier);
 
 
@@ -812,7 +813,7 @@ ALTER TABLE IF EXISTS ONLY uuids_identifier
 -- Name: uuids_identifier_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE IF EXISTS ONLY uuids_identifier
+ALTER TABLE ONLY uuids_identifier
     ADD CONSTRAINT uuids_identifier_pkey PRIMARY KEY (id);
 
 
@@ -820,7 +821,7 @@ ALTER TABLE IF EXISTS ONLY uuids_identifier
 -- Name: uuids_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE IF EXISTS ONLY uuids
+ALTER TABLE ONLY uuids
     ADD CONSTRAINT uuids_pkey PRIMARY KEY (id);
 
 
@@ -828,7 +829,7 @@ ALTER TABLE IF EXISTS ONLY uuids
 -- Name: uuids_siblings_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE IF EXISTS ONLY uuids_siblings
+ALTER TABLE ONLY uuids_siblings
     ADD CONSTRAINT uuids_siblings_pkey PRIMARY KEY (id);
 
 
@@ -882,10 +883,10 @@ CREATE INDEX uuids_data_modified ON uuids_data USING btree (modified);
 
 
 --
--- Name: uuids_data_uuids_id; Type: INDEX; Schema: public; Owner: -
+-- Name: uuids_data_uuids_id_modified; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX uuids_data_uuids_id ON uuids_data USING btree (uuids_id);
+CREATE INDEX uuids_data_uuids_id_modified ON uuids_data USING btree (uuids_id, modified DESC);
 
 
 --
@@ -941,7 +942,7 @@ CREATE INDEX uuids_type_parent ON uuids USING btree (type, parent) WHERE (delete
 -- Name: annotations_uuids_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE IF EXISTS ONLY annotations
+ALTER TABLE ONLY annotations
     ADD CONSTRAINT annotations_uuids_id_fkey FOREIGN KEY (uuids_id) REFERENCES uuids(id);
 
 
@@ -949,23 +950,23 @@ ALTER TABLE IF EXISTS ONLY annotations
 -- Name: media_objects_etag_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE IF EXISTS ONLY media_objects
-    ADD CONSTRAINT media_objects_etag_fkey FOREIGN KEY (etag) REFERENCES objects(etag);
+ALTER TABLE ONLY media_objects
+    ADD CONSTRAINT media_objects_etag_fkey FOREIGN KEY (etag) REFERENCES objects(etag) ON DELETE CASCADE;
 
 
 --
 -- Name: media_objects_url_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE IF EXISTS ONLY media_objects
-    ADD CONSTRAINT media_objects_url_fkey FOREIGN KEY (url) REFERENCES media(url);
+ALTER TABLE ONLY media_objects
+    ADD CONSTRAINT media_objects_url_fkey FOREIGN KEY (url) REFERENCES media(url) ON DELETE CASCADE;
 
 
 --
 -- Name: recordsets_publisher_uuid_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE IF EXISTS ONLY recordsets
+ALTER TABLE ONLY recordsets
     ADD CONSTRAINT recordsets_publisher_uuid_fkey FOREIGN KEY (publisher_uuid) REFERENCES publishers(uuid);
 
 
@@ -973,7 +974,7 @@ ALTER TABLE IF EXISTS ONLY recordsets
 -- Name: uuids_data_data_etag_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE IF EXISTS ONLY uuids_data
+ALTER TABLE ONLY uuids_data
     ADD CONSTRAINT uuids_data_data_etag_fkey FOREIGN KEY (data_etag) REFERENCES data(etag);
 
 
@@ -981,7 +982,7 @@ ALTER TABLE IF EXISTS ONLY uuids_data
 -- Name: uuids_data_uuids_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE IF EXISTS ONLY uuids_data
+ALTER TABLE ONLY uuids_data
     ADD CONSTRAINT uuids_data_uuids_id_fkey FOREIGN KEY (uuids_id) REFERENCES uuids(id);
 
 
@@ -989,7 +990,7 @@ ALTER TABLE IF EXISTS ONLY uuids_data
 -- Name: uuids_identifier_uuids_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE IF EXISTS ONLY uuids_identifier
+ALTER TABLE ONLY uuids_identifier
     ADD CONSTRAINT uuids_identifier_uuids_id_fkey FOREIGN KEY (uuids_id) REFERENCES uuids(id);
 
 
@@ -997,7 +998,7 @@ ALTER TABLE IF EXISTS ONLY uuids_identifier
 -- Name: uuids_siblings_r1_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE IF EXISTS ONLY uuids_siblings
+ALTER TABLE ONLY uuids_siblings
     ADD CONSTRAINT uuids_siblings_r1_fkey FOREIGN KEY (r1) REFERENCES uuids(id);
 
 
@@ -1005,7 +1006,7 @@ ALTER TABLE IF EXISTS ONLY uuids_siblings
 -- Name: uuids_siblings_r2_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE IF EXISTS ONLY uuids_siblings
+ALTER TABLE ONLY uuids_siblings
     ADD CONSTRAINT uuids_siblings_r2_fkey FOREIGN KEY (r2) REFERENCES uuids(id);
 
 

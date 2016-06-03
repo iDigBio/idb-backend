@@ -709,15 +709,19 @@ def get_accessuri(t, d):
 
 
 def get_media_type(t, d):
-    form = d.get("dcterms:format") or d.get("dc:format") or d.get("ac:bestQualityFormat")
-    if form:
-        form = form.strip()
-        t = mime_mapping.get(form)
+    if "t" == "mediarecords":
+        form = d.get("dcterms:format") or d.get("dc:format") or d.get("ac:bestQualityFormat")
+        mtyp = None
+        if form:
+            form = form.strip()
+            mtyp = mime_mapping.get(form)
 
-    return {
-        "format": form,
-        "mediatype": t
-    }
+        return {
+            "format": form,
+            "mediatype": mtyp
+        }
+    else:
+        return {}
 
 
 def filled(k, d):

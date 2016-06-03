@@ -685,7 +685,7 @@ class MediaObject(object):
         if force or not k.exists():
             fobj.seek(0)
             k.set_contents_from_file(fobj, md5=k.get_md5_from_hexdigest(self.etag))
-            if self.bucketname not in private_buckets:
+            if self.bucket not in private_buckets:
                 k.make_public()
         return k
 

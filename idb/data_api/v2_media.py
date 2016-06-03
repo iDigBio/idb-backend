@@ -190,7 +190,8 @@ def upload():
     j = request.get_json()
     if j is not None:
         vals.update(j)
-    vals.update(request.values)
+    for k, v in request.values.iteritems():
+        vals[k] = v
 
     filereference = vals.get("filereference")
     if not filereference:

@@ -149,6 +149,9 @@ class GeventedConnPool(object):
         with self.connection(**connargs) as conn:
             yield conn.cursor(*args, **kwargs)
 
+    def mogrify(self, *args, **kwargs):
+        with self.cursor(**kwargs) as cur:
+            return cur.mogrify(*args)
 
     # Some shortcut functions
     def execute(self, *args, **kwargs):

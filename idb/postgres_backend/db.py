@@ -1,17 +1,23 @@
-import contextlib
 import uuid
-import datetime
-import random
 import json
-import hashlib
+import os
 import sys
+import itertools
 
-from psycopg2.extras import DictCursor
+from datetime import datetime
+
+from psycopg2.extras import DictCursor, NamedTupleCursor
+from psycopg2.extensions import cursor
 from psycopg2.extensions import (ISOLATION_LEVEL_READ_COMMITTED,
                                  ISOLATION_LEVEL_AUTOCOMMIT,
                                  TRANSACTION_STATUS_IDLE)
-from idb.helpers.etags import calcEtag
+from idb import config
+from idb.helpers.logging import idblogger as logger
 from idb.postgres_backend import apidbpool
+from idb.helpers.etags import calcEtag, calcFileHash
+from idb.helpers.media_validation import sniff_validation, MimeMismatchError
+from idb.helpers.conversions import valid_buckets, get_accessuri
+
 
 TEST_SIZE = 10000
 TEST_COUNT = 10
@@ -21,58 +27,44 @@ tombstone_etag = "9a4e35834eb80d9af64bcd07ed996b9ec0e60d92"
 
 
 class PostgresDB(object):
+    _pool = apidbpool
+
     __join_uuids_etags_latest_version = """
         LEFT JOIN LATERAL (
             SELECT * FROM uuids_data
             WHERE uuids_id=uuids.id
             ORDER BY modified DESC
             LIMIT 1
-        ) AS latest
-        ON latest.uuids_id=uuids.id
+        ) AS latest ON true
     """
 
     __join_uuids_etags_all_versions = """
-            LEFT JOIN uuids_data as latest
-            ON latest.uuids_id=uuids.id
+            LEFT JOIN uuids_data as latest ON latest.uuids_id=uuids.id
     """
 
     __join_uuids_identifiers = """
         LEFT JOIN LATERAL (
-            SELECT uuids_id, array_agg(identifier) as recordids
+            SELECT array_agg(identifier) as recordids
             FROM uuids_identifier
             WHERE uuids_id=uuids.id
-            GROUP BY uuids_id
-        ) as ids
-        ON ids.uuids_id=uuids.id
+        ) as ids ON true
     """
 
     __join_uuids_siblings = """
-            LEFT JOIN LATERAL (
-            SELECT subject, json_object_agg(rel,array_agg) as siblings
-            FROM (
-                SELECT subject, rel, array_agg(object)
+        LEFT JOIN LATERAL (
+             SELECT json_object_agg(rel,array_agg) as siblings
+             FROM (
+                SELECT type as rel, array_agg(r2)
                 FROM (
-                    SELECT
-                        r1 as subject,
-                        type as rel,
-                        r2 as object
-                    FROM (
-                        SELECT r1,r2
-                        FROM uuids_siblings
-                        UNION
-                        SELECT r2,r1
-                        FROM uuids_siblings
-                    ) as rel_union
-                    JOIN uuids
-                    ON r2=id
-                    WHERE uuids.deleted = false
-                ) as rel_table
-                WHERE subject=uuids.id
-                GROUP BY subject, rel
+                    SELECT r1,r2 FROM uuids_siblings
+                    UNION
+                    SELECT r2,r1 FROM uuids_siblings
+                ) as rel_union
+                JOIN uuids as sibs ON r2=id
+                WHERE sibs.deleted = false and r1 = uuids.id
+                GROUP BY type
             ) as rels
-            GROUP BY subject
-        ) as sibs
-        ON sibs.subject=uuids.id
+        ) as sibs ON true
     """
 
     __join_uuids_data = """
@@ -149,17 +141,16 @@ class PostgresDB(object):
     """
 
     def __init__(self, pool=None):
-
-        self._pool = (pool or apidbpool)
+        if pool:
+            self._pool = pool
         # Generic reusable cursor for normal ops
         self.conn = self._pool.get()
 
     def __del__(self):
-        if self.conn:
-            self._pool.put(self.conn)
+        self.close()
 
     def __enter__(self):
-        pass
+        return self
 
     def __exit__(self, type, value, traceback):
         self.close()
@@ -181,11 +172,13 @@ class PostgresDB(object):
 
     def execute(self, *args, **kwargs):
         with self.cursor(**kwargs) as cur:
-            return cur.execute(*args)
+            cur.execute(*args)
+            return cur.rowcount
 
     def executemany(self, *args, **kwargs):
         with self.cursor(**kwargs) as cur:
-            return cur.executemany(*args)
+            cur.executemany(*args)
+            return cur.rowcount
 
     def commit(self):
         self.conn.commit()
@@ -199,6 +192,11 @@ class PostgresDB(object):
 
         kwargs.setdefault('cursor_factory', DictCursor)
         return self.conn.cursor(**kwargs)
+
+    def mogrify(self, *args, **kwargs):
+        with self.cursor(**kwargs) as cur:
+            return cur.mogrify(*args)
+
 
     def drop_schema(self):
         raise Exception("I can't let you do that, dave.")
@@ -291,12 +289,12 @@ class PostgresDB(object):
             # Fetch by version ignores the deleted flag
             if version == "all":
                 sql = (self.__columns_master_query_data +
-                                  """ FROM uuids """ +
-                                  self.__join_uuids_etags_all_versions +
-                                  self.__join_uuids_identifiers +
-                                  self.__join_uuids_siblings +
-                                  self.__join_uuids_data +
-                                  """
+                       """ FROM uuids """ +
+                       self.__join_uuids_etags_all_versions +
+                       self.__join_uuids_identifiers +
+                       self.__join_uuids_siblings +
+                       self.__join_uuids_data +
+                       """
                     WHERE uuids.id=%s
                     ORDER BY version ASC
                 """, (u,))
@@ -324,112 +322,92 @@ class PostgresDB(object):
         # Needs to be accompanied by a corresponding version insertion to obsolete the tombstone
         self.execute("UPDATE uuids SET deleted=false WHERE id=%s", (u,))
 
-    @classmethod
     def get_type_list(self, t, limit=100, offset=0, data=False):
         if data:
             if limit is not None:
-                sql = ("SELECT * FROM (" + self.__item_master_query_data + """
+                sql = (self.__item_master_query_data + """
                     WHERE deleted=false and type=%s
-                    LIMIT %s OFFSET %s
-                """ + ") AS a ORDER BY uuid", (t, limit, offset))
+                    ORDER BY uuid
+                    LIMIT %s OFFSET %s""", (t, limit, offset))
             else:
-                sql = ("SELECT * FROM (" + self.__item_master_query_data + """
+                sql = (self.__item_master_query_data + """
                     WHERE deleted=false and type=%s
-                """ + ") AS a ORDER BY uuid", (t,))
+                    ORDER BY uuid""", (t,))
         else:
             if limit is not None:
-                sql = ("SELECT * FROM (" + self.__item_master_query + """
+                sql = (self.__item_master_query + """
                     WHERE deleted=false and type=%s
-                    LIMIT %s OFFSET %s
-                """ + ") AS a ORDER BY uuid", (t, limit, offset))
+                    ORDER BY uuid
+                    LIMIT %s OFFSET %s""", (t, limit, offset))
             else:
-                sql = ("SELECT * FROM (" + self.__item_master_query + """
+                sql = (self.__item_master_query + """
                     WHERE deleted=false and type=%s
-                """ + ") AS a ORDER BY uuid", (t,))
-        return apidbpool.fetchiter(*sql)
+                    ORDER BY uuid""", (t,))
+        logger.info(self.mogrify(*sql))
+        return self._pool.fetchiter(*sql)
 
-    @staticmethod
-    def get_type_count(t):
+    def get_type_count(self, t):
         sql = ("""SELECT count(*) as count
                   FROM uuids
                   WHERE deleted=false and type=%s""", (t,))
-        return apidbpool.fetchone(*sql)[0]
+        return self._pool.fetchone(*sql)[0]
 
-    @classmethod
-    def get_children_list(self, u, t, limit=100, offset=0, data=False):
+    def get_children_list(self, u, t, limit=100, offset=0, data=False, cursor_factory=DictCursor):
         sql = None
         if data:
             if limit is not None:
-                sql = ("SELECT * FROM (" + self.__item_master_query_data + """
+                sql = (self.__item_master_query_data + """
                     WHERE deleted=false and type=%s and parent=%s
+                    ORDER BY UUID
                     LIMIT %s OFFSET %s
-                """ + ") AS a ORDER BY uuid", (t, u, limit, offset))
+                """, (t, u, limit, offset))
             else:
-                sql = ("SELECT * FROM (" + self.__item_master_query_data + """
+                sql = (self.__item_master_query_data + """
                     WHERE deleted=false and type=%s and parent=%s
-                """ + ") AS a ORDER BY uuid", (t, u))
+                    ORDER BY uuid
+                """, (t, u))
         else:
             if limit is not None:
-                sql = ("SELECT * FROM (" + self.__item_master_query + """
+                sql = (self.__item_master_query + """
                     WHERE deleted=false and type=%s and parent=%s
+                    ORDER BY uuid
                     LIMIT %s OFFSET %s
-                """ + ") AS a ORDER BY uuid", (t, u, limit, offset))
+                """, (t, u, limit, offset))
             else:
-                sql = ("SELECT * FROM (" + self.__item_master_query + """
+                sql = (self.__item_master_query + """
                     WHERE deleted=false and type=%s and parent=%s
-                """ + ") AS a ORDER BY uuid", (t, u))
-        return apidbpool.fetchiter(*sql, named=True)
+                    ORDER BY uuid
+                """, (t, u))
+        return self._pool.fetchiter(*sql, named=True, cursor_factory=cursor_factory)
 
-    @classmethod
     def get_children_count(self, u, t):
-        sql = (""" SELECT
-            count(*) as count FROM uuids
-            WHERE deleted=false and type=%s and parent=%s
+        sql = ("""SELECT count(*) as count
+                  FROM uuids
+                  WHERE deleted=false and type=%s and parent=%s
         """, (t, u))
-        return apidbpool.fetchone(*sql)[0]
+        return self._pool.fetchone(*sql)[0]
 
     def _id_precheck(self, u, ids):
-        rows = self.fetchall("""SELECT
-            identifier,
-            uuids_id
+        rows = self.fetchall("""SELECT DISTINCT uuids_id
             FROM uuids_identifier
             WHERE uuids_id=%s OR identifier = ANY(%s)
         """, (u, ids))
-        for row in rows:
-            if row["uuids_id"] != u:
-                return False
-        else:
-            return True
+        return len(rows) <= 1
 
     def get_uuid(self, ids):
-        sql = ("""SELECT
-            identifier,
-            uuids_id,
-            parent,
-            deleted
+        sql = """SELECT DISTINCT uuids_id, parent, deleted
             FROM uuids_identifier
-            JOIN uuids
-            ON uuids.id = uuids_identifier.uuids_id
+            JOIN uuids ON uuids.id = uuids_identifier.uuids_id
             WHERE identifier = ANY(%s)
-        """, (ids,))
-        rid = None
-        parent = None
-        deleted = False
-        for row in self.fetchall(*sql):
-            if rid is None:
-                rid = row["uuids_id"]
-                parent = row["parent"]
-                deleted = row["deleted"]
-            elif rid == row["uuids_id"]:
-                pass
-            else:
-                return (None, parent, deleted)
-        if rid is None:
-            rv = (str(uuid.uuid4()), parent, deleted)
-            #print "Create UUID", ids, rv
-            return rv
+        """
+
+        results = self.fetchall(sql, (ids,), cursor_factory=cursor)
+        if len(results) == 0:
+            return (str(uuid.uuid4()), None, False)
+        elif len(results) == 1:
+            return results[0]
         else:
-            return (rid, parent, deleted)
+            raise ValueError("Identifiers have multiple uuids:", ids)
 
     def set_record(self, u, t, p, d, ids, siblings):
         try:
@@ -551,6 +529,283 @@ class PostgresDB(object):
             } for x in usl
         ])
 
+private_buckets = {
+    "debugfile"
+}
+
+class MediaObject(object):
+    """Helper that represents media objects from the db.
+
+    This object represents the join between the media, media_objects,
+    and objects tables in the DB though not every instance of it will
+    have all that data.
+
+    the association of media to objects is many to many, when fetching
+    with this object by url or etag it will attempt to find the most
+    recently associated record on the other side of the join.
+
+    """
+
+    __slots__ = (
+        'url', 'type', 'owner', 'mime', 'last_check', 'last_status',
+        'modified', 'etag', 'detected_mime', 'derivatives', 'bucket'
+    )
+
+    def __init__(self, *args, **kwargs):
+        for s, a in itertools.izip_longest(self.__slots__, args):
+            setattr(self, s, a)
+        for kw in kwargs.items():
+            setattr(self, *kw)
+
+    def __repr__(self):
+        values = {k: getattr(self, k) for k in self.__slots__}
+        s = ", ".join("{0}={1!r}".format(k, v)
+                      for k, v in values.items() if v is not None)
+        return "{0}({1})".format(self.__class__.__name__, s)
+
+    @classmethod
+    def fromurl(cls, url, idbmodel=apidbpool):
+        # Patch special case from old media url.
+        if (url.startswith("http://media.idigbio.org/lookup/images/") or
+            url.startswith("https://media.idigbio.org/lookup/images/")):
+            return cls.frometag(url.split("/")[-1], idbmodel=idbmodel)
+
+        sql = """
+            SELECT DISTINCT ON(media.url)
+                   media.url, media.type, media.owner, media.mime,
+                   media.last_check, media.last_status, media_objects.modified,
+                   objects.etag, objects.detected_mime, objects.derivatives,
+                   objects.bucket
+                 FROM media
+                 LEFT JOIN media_objects ON media.url = media_objects.url
+                 LEFT JOIN objects ON media_objects.etag = objects.etag
+                 WHERE media.url = %s
+                 ORDER BY media.url, media_objects.modified DESC
+        """
+        r = idbmodel.fetchone(sql, (url,), cursor_factory=cursor)
+        if r:
+            return cls(*r)
+
+    @classmethod
+    def frometag(cls, etag, idbmodel=apidbpool):
+        sql = """
+            SELECT DISTINCT ON(objects.etag)
+                   media.url, media.type, media.owner, media.mime,
+                   media.last_check, media.last_status, media_objects.modified,
+                   objects.etag, objects.detected_mime, objects.derivatives,
+                   objects.bucket
+                 FROM objects
+                 LEFT JOIN media_objects ON media_objects.etag = objects.etag
+                 LEFT JOIN media ON media.url = media_objects.url
+                 WHERE objects.etag = %s
+                 ORDER BY objects.etag, media_objects.modified DESC
+        """
+        r = idbmodel.fetchone(sql, (etag,), cursor_factory=cursor)
+        if r:
+            return cls(*r)
+
+    @classmethod
+    def query(cls, conditions=None, params=tuple([]), limit=100, idbmodel=apidbpool):
+        "A more general query, the conditions need to be only against media table."
+        if conditions:
+            where = "WHERE " + " AND ".join(conditions)
+        else:
+            where = ""
+
+        sql = """
+            SELECT DISTINCT ON(media.url)
+                   media.url, media.type, media.owner, media.mime,
+                   media.last_check, media.last_status, media_objects.modified,
+                   objects.etag, objects.detected_mime, objects.derivatives,
+                   objects.bucket
+                 FROM (SELECT * FROM media {0} LIMIT {1}) AS media
+                 JOIN media_objects ON media.url = media_objects.url
+                 JOIN objects ON media_objects.etag = objects.etag
+                 ORDER BY media.url, media_objects.modified DESC
+        """.format(where, limit)
+        results = idbmodel.fetchall(sql, params, cursor_factory=cursor)
+        return [cls(*r) for r in results]
+
+    @classmethod
+    def fromuuid(cls, uuid, idbmodel=None):
+        uuid = str(uuid)
+        rec = idbmodel.get_item(uuid)
+        if rec is not None:
+            ref = get_accessuri(rec["type"], rec["data"])["accessuri"]
+            return cls.fromurl(ref, idbmodel=idbmodel)
+
+    @classmethod
+    def fromobj(cls, obj, **attrs):
+        obj.seek(0)
+        attrs.setdefault('last_status', 200)
+        attrs.setdefault('last_check', datetime.now())
+        attrs.setdefault('derivatives', False)
+
+        mo = cls(**attrs)
+
+        if mo.bucket not in valid_buckets:
+            mo.bucket = None
+        if mo.type not in valid_buckets:
+            mo.type = None
+
+        hastype = mo.type or mo.bucket
+        if not hastype:
+            mo.detected_mime, mo.bucket = sniff_validation(obj.read(1024))
+        elif mo.detected_mime is None:
+            mo.detected_mime, _ = sniff_validation(obj.read(1024), raises=False)
+
+        if mo.mime and mo.detected_mime != mo.mime:
+            raise MimeMismatchError(mo.mime, mo.detected_mime)
+
+        if mo.type and not mo.bucket:
+            mo.bucket = mo.type
+        if mo.bucket and not mo.type:
+            mo.type = mo.bucket
+        if not mo.mime:
+            mo.mime = mo.detected_mime
+
+        obj.seek(0)
+        mo.etag = calcFileHash(obj, op=False, return_size=False)
+        obj.seek(0)
+        return mo
+
+    @property
+    def keyname(self):
+        return self.etag
+
+    @property
+    def bucketname(self):
+        return "idigbio-{0}-{1}".format(self.bucket, config.ENV)
+
+    def get_key(self, media_store):
+        return media_store.get_key(self.keyname, self.bucketname)
+
+    def upload(self, media_store, fobj, force=False):
+        k = self.get_key(media_store)
+        if force or not k.exists():
+            fobj.seek(0)
+            k.set_contents_from_file(fobj, md5=k.get_md5_from_hexdigest(self.etag))
+            if self.bucket not in private_buckets:
+                k.make_public()
+        return k
+
+    def ensure_object(self, idbmodel):
+        return idbmodel.execute(
+            """INSERT INTO objects (bucket, etag, detected_mime, derivatives)
+               SELECT %s, %s, %s, false WHERE NOT EXISTS (SELECT 1 FROM objects WHERE etag=%s)""",
+            (self.bucket, self.etag, self.detected_mime, self.etag))
+
+    def insert_object(self, idbmodel):
+        return self.ensure_object(idbmodel)
+
+    def update_media(self, idbmodel):
+        return idbmodel.execute(
+            """UPDATE media
+               SET last_check=now(), last_status=%s, type=%s, mime=%s
+               WHERE url=%s""",
+            (self.last_status, self.type, self.mime, self.url))
+
+    def insert_media(self, idbmodel):
+        return idbmodel.execute(
+            """INSERT INTO media (url, type, mime, last_status, last_check, owner)
+               VALUES (%s, %s, %s, %s, %s, %s)""",
+            (self.url, self.type, self.mime, self.last_status, self.last_check,
+             self.owner))
+
+    def ensure_media(self, idbmodel):
+        rc = self.update_media(idbmodel)
+        if rc == 0:
+            return self.insert_media(idbmodel)
+        else:
+            return rc
+
+    def ensure_media_object(self, idbmodel):
+        return idbmodel.execute(
+            """INSERT INTO media_objects (url, etag)
+               SELECT %(url)s, %(etag)s WHERE NOT EXISTS (
+                 SELECT 1 FROM media_objects WHERE url=%(url)s AND etag=%(etag)s
+               )""",
+            {"url": self.url, "etag": self.etag})
+
+    @staticmethod
+    def create_schema(idbmodel=None):
+        "Create the schema for media and objects"
+        if idbmodel is None:
+            idbmodel = PostgresDB()
+        with idbmodel:
+            idbmodel.execute("BEGIN")
+            idbmodel.execute("""CREATE TABLE IF NOT EXISTS media (
+                id BIGSERIAL PRIMARY KEY,
+                url text UNIQUE,
+                type varchar(20),
+                mime varchar(255),
+                last_status integer,
+                last_check timestamp
+            )
+            """)
+            idbmodel.execute("""CREATE TABLE IF NOT EXISTS objects (
+                id BIGSERIAL PRIMARY KEY,
+                bucket varchar(255) NOT NULL,
+                etag varchar(41) NOT NULL UNIQUE,
+                detected_mime varchar(255),
+                derivatives boolean DEFAULT false
+            )
+            """)
+            idbmodel.execute("""CREATE TABLE IF NOT EXISTS media_objects (
+                id BIGSERIAL PRIMARY KEY,
+                url text NOT NULL REFERENCES media(url),
+                etag varchar(41) NOT NULL REFERENCES objects(etag),
+                modified timestamp NOT NULL DEFAULT now()
+            )
+            """)
+            idbmodel.commit()
+
+
+class RecordSet(object):
+    __slots__ = [
+        "id", "uuid", "publisher_uuid", "name", "recordids",
+        "eml_link", "file_link", "ingest", "first_seen",
+        "last_seen", "pub_date", "file_harvest_date",
+        "file_harvest_etag","eml_harvest_date", "eml_harvest_etag"
+    ]
+
+    def __init__(self, **attrs):
+        for i in self.__slots__:
+            setattr(self, i, None)
+        for i in attrs.items():
+            setattr(self, *i)
+
+    @classmethod
+    def fromuuid(cls, uuid, idbmodel=apidbpool):
+        sql = """
+        SELECT id, uuid, publisher_uuid, name, recordids, eml_link, file_link,
+            ingest, first_seen, last_seen, pub_date, file_harvest_date, file_harvest_etag,
+            eml_harvest_date, eml_harvest_etag
+        FROM recordsets
+        WHERE uuid = %s"""
+        r = idbmodel.fetchone(sql, (uuid, ), cursor_factory=DictCursor)
+        if r:
+            return RecordSet(**r)
+
+    @staticmethod
+    def fetch_file(uuid, filename, idbmodel=apidbpool, media_store=None, logger=logger):
+        sql = """
+            SELECT uuid, etag, objects.bucket
+            FROM recordsets
+            LEFT JOIN objects on recordsets.file_harvest_etag = objects.etag
+            WHERE recordsets.uuid = %s
+        """
+        r = idbmodel.fetchone(sql, (uuid,))
+        if not r:
+            raise ValueError("No recordset with uuid {0!r}".format(uuid))
+        uuid, etag, bucket = r
+        if not etag:
+            raise ValueError("Recordset {0!r} doesn't have a stored object".format(uuid))
+        logger.info("Fetching etag %s to %r", etag, filename)
+        bucketname = "idigbio-{0}-{1}".format(bucket, os.environ["ENV"])
+        k = media_store.get_key(etag, bucketname)
+        media_store.get_contents_to_filename(k, filename, md5=etag)
+
 
 def main():
     db = PostgresDB()
@@ -612,6 +867,3 @@ def main():
     #     print "Imported ", reccount, "records and ", len(mediarecords), "mediarecords."
     # else:
     #     print "ENV not test, refusing to run"
-
-if __name__ == '__main__':
-    main()

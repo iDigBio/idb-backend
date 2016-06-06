@@ -12,23 +12,16 @@ import string
 from shapely import wkt
 from shapely.geometry import Polygon, mapping
 
-import logging
-
-# Mute Shapely logging
-l = logging.getLogger("shapely")
-l.setLevel(logging.CRITICAL)
-
 
 from idb.data_tables.rights_strings import acceptable_licenses_trans, licenses
 from idb.data_tables.locality_data import iso_two_to_three
 
 from .biodiversity_socket_connector import Biodiversity
-from idb.helpers.rg import ReverseGeocoder
+from idb.helpers.rg import get_country
 
-rg = ReverseGeocoder()
-rg_eez = ReverseGeocoder(shapefile="data/EEZ_land_v2_201410.shp", cc_key="ISO_3digit")
 
 b = Biodiversity()
+
 
 PARENT_MAP = {
     "records": "recordsets",
@@ -52,6 +45,11 @@ mime_mapping = {
     "model/mesh": "models",
     None: None
 }
+
+unmapped_buckets = { 'datasets', 'debugfile', 'guoda' }
+
+valid_buckets = set([v for v in mime_mapping.values() if v is not None]) | \
+                unmapped_buckets
 
 locale.setlocale(locale.LC_ALL, '')
 
@@ -407,8 +405,8 @@ def floatGrabber(t, d):
     r = {}
     ef = {
         "records": [
-            ["individualcount", "dwc:individualCount"],
-            ["coordinateuncertainty", "dwc:coordinateUncertaintyInMeters"],
+            ("individualcount", "dwc:individualCount"),
+            ("coordinateuncertainty", "dwc:coordinateUncertaintyInMeters"),
         ],
         "mediarecords": [
         ],
@@ -417,17 +415,17 @@ def floatGrabber(t, d):
         "recordsets": [
         ]
     }
-    for f in ef[t]:
-        fv = getfield(f[1], d)
+    for resultkey, fieldkey in ef[t]:
+        fv = getfield(fieldkey, d)
         if fv is not None:
             try:
                 n = grabFirstNumber(fv)
                 if n is not None:
-                    r[f[0]] = locale.atof(n)
+                    r[resultkey] = locale.atof(n)
             except:
                 pass
-        if f[0] not in r:
-            r[f[0]] = None
+        if resultkey not in r:
+            r[resultkey] = None
     return r
 
 
@@ -500,9 +498,9 @@ def geoGrabber(t, d):
                 r["flag_geopoint_datum_missing"] = True
 
             # get_country takes lon, lat
-            result = rg.get_country(r["geopoint"][0], r["geopoint"][1])
+            result = get_country(r["geopoint"][0], r["geopoint"][1], eez=False)
             if result is None:
-                result_eez = rg_eez.get_country(r["geopoint"][0], r["geopoint"][1])
+                result_eez = get_country(r["geopoint"][0], r["geopoint"][1], eez=True)
                 if result_eez is not None:
                     result = result_eez
                     r["flag_rev_geocode_eez"] = True
@@ -536,7 +534,9 @@ def geoGrabber(t, d):
                         [(-r["geopoint"][1], -r["geopoint"][0]),
                          4, "rev_geocode_flip_both_sign"]
                     ])
-                for i, f in enumerate([rg.get_country(*f[0]) for f in flip_queries] + [rg_eez.get_country(*f[0]) for f in flip_queries]):
+                results = [get_country(*f[0], eez=False) for f in flip_queries] + \
+                          [get_country(*f[0], eez=True) for f in flip_queries]
+                for i, f in enumerate(results):
                     if f is not None and f.lower() == d["idigbio:isocountrycode"]:
                         # Flip back to lon, lat
                         real_i = i % len(flip_queries)
@@ -696,42 +696,33 @@ def getLicense(t, d):
 
 
 def get_accessuri(t, d):
-    url = None
-    if filled("ac:accessURI", d):
-        url = d["ac:accessURI"]
-    elif filled("ac:bestQualityAccessURI", d):
-        url = d["ac:bestQualityAccessURI"]
-    else:
+    #return k in d and d[k] is not None
+    url = d.get("ac:accessURI") or d.get("ac:bestQualityAccessURI")
+    if url is None:
         # Don't use identifier as a url for things that supply audubon core properties
         for k in d.keys():
             if k.startswith("ac:"):
                 break
         else:
-            if filled("dcterms:identifier", d):
-                url = d["dcterms:identifier"]
-            elif filled("dc:identifier", d):
-                url = d["dc:identifier"]
+            url = d.get("dcterms:identifier") or d.get("dc:identifier")
 
     return {"accessuri": url}
 
 
 def get_media_type(t, d):
-    form = None
-    if filled("dcterms:format", d):
-        form = d["dcterms:format"].strip()
-    elif filled("dc:format", d):
-        form = d["dc:format"].strip()
-    elif filled("ac:bestQualityFormat", d):
-        form = d["ac:bestQualityFormat"].strip()
+    if "t" == "mediarecords":
+        form = d.get("dcterms:format") or d.get("dc:format") or d.get("ac:bestQualityFormat")
+        mtyp = None
+        if form:
+            form = form.strip()
+            mtyp = mime_mapping.get(form)
 
-    t = None
-    if form in mime_mapping:
-        t = mime_mapping[form]
-
-    return {
-        "format": form,
-        "mediatype": t
-    }
+        return {
+            "format": form,
+            "mediatype": mtyp
+        }
+    else:
+        return {}
 
 
 def filled(k, d):

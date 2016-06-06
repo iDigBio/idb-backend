@@ -16,7 +16,7 @@ whitelist = [
 
 
 def get_data(path_to_checklist):
-    d = Dwca(path_to_checklist, logname="idigbio")
+    d = Dwca(path_to_checklist)
 
     sp_count = 0
     sp_non_count = 0
@@ -125,6 +125,3 @@ def main():
         count += 1
         # print dr
     print count
-
-if __name__ == '__main__':
-    main()

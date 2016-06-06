@@ -1,37 +1,37 @@
-from __future__ import absolute_import
-from __future__ import print_function
-import os
-import sys
-import re
+from __future__ import absolute_import, print_function
 import datetime
+import functools
+import json
+import logging
+import multiprocessing
+import os
+import re
 import traceback
 
 import magic
-import json
-import logging
+from atomicfile import AtomicFile
 from psycopg2 import DatabaseError
+from boto.exception import S3ResponseError, S3DataError
 
-from idb.postgres_backend.db import PostgresDB
+
+from idb import stats
+from idb.postgres_backend import apidbpool, NamedTupleCursor
+from idb.postgres_backend.db import PostgresDB, RecordSet
 from idb.helpers.etags import calcEtag, calcFileHash
-
-from .lib.log import getIDigBioLogger, formatter
-from .lib.dwca import Dwca
-from .lib.delimited import DelimitedFile
-from .lib.util import download_file
+from idb.helpers.logging import idblogger, LoggingContext
 from idb.helpers.storage import IDigBioStorage
 
-from idb.stats_collector import es, indexName
+from idigbio_ingestion.lib.dwca import Dwca
+from idigbio_ingestion.lib.delimited import DelimitedFile
+
+
 
 magic = magic.Magic(mime=True)
 
 bad_chars = u"\ufeff"
 bad_char_re = re.compile("[%s]" % re.escape(bad_chars))
 
-logger = getIDigBioLogger("idigbio")
-for h in logger.handlers:
-    h.setFormatter(formatter)
-logger.setLevel(logging.INFO)
-
+logger = idblogger.getChild("db-check")
 
 uuid_re = re.compile(
     "([a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12})")
@@ -60,12 +60,20 @@ identifier_fields = {
         ("ac:providerManagedID", lambda r, rs: mungeid(r)),
         ("dcterms:identifier", lambda r, rs: rs + "\\media\\" + mungeid(r)),
         # ("coreid", lambda r,rs: rs + "\\" + r)
+    ],
+    "dcterms": [
+        ("idigbio:recordId", lambda r, rs: mungeid(r)),
+        ("idigbio:recordID", lambda r, rs: mungeid(r)),
+        ("ac:providerManagedID", lambda r, rs: mungeid(r)),
+        ("dcterms:identifier", lambda r, rs: rs + "\\media\\" + mungeid(r)),
+        # ("coreid", lambda r,rs: rs + "\\" + r)
     ]
 }
 
 ingestion_types = {
     "dwc:Occurrence": "records",
     "dwc:Multimedia": "mediarecords",
+    "dcterms": "mediarecords",
     "records": "records",
     "mediarecords": "mediarecords",
 }
@@ -87,16 +95,10 @@ def idFromRR(r, rs=None):
 def get_file(rsid):
     fname = rsid
     if not os.path.exists(fname):
-        rsurl = "http://api.idigbio.org/v1/recordsets/" + rsid
-        try:
-            s.get_file_by_url(rsurl, file_name=fname)
-            # download_file("https://beta-media.idigbio.org/v2/media/datasets", fname, params={
-            #                  "filereference": "http://api.idigbio.org/v1/recordsets/" + rsid})
-        except:
-            logger.error("Failed get_file_by_url on: {0}".format(rsurl))
-            logger.error(traceback.format_exc())
-    m = magic.from_file(fname)
-    return (fname, m)
+        RecordSet.fetch_file(rsid, fname, media_store=IDigBioStorage(), logger=logger.getChild(rsid))
+
+    mime = magic.from_file(fname)
+    return (fname, mime)
 
 
 def get_db_dicts(rsid):
@@ -105,11 +107,11 @@ def get_db_dicts(rsid):
     for t in ["record", "mediarecord"]:
         id_uuid[t + "s"] = {}
         uuid_etag[t + "s"] = {}
-        for c in PostgresDB.get_children_list(rsid, t, limit=None):
-            u = c["uuid"]
-            e = c["etag"]
+        for c in PostgresDB().get_children_list(rsid, t, limit=None, cursor_factory=NamedTupleCursor):
+            u = c.uuid
+            e = c.etag
             uuid_etag[t + "s"][u] = e
-            for i in c["recordids"]:
+            for i in c.recordids:
                 id_uuid[t + "s"][i] = u
     return (uuid_etag, id_uuid)
 
@@ -134,6 +136,8 @@ core_siblings = {}
 
 
 def process_subfile(rf, rsid, rs_uuid_etag, rs_id_uuid, ingest=False, db=None):
+    rlogger = logger.getChild(rsid)
+
     count = 0
     no_recordid_count = 0
     duplicate_record_count = 0
@@ -225,7 +229,6 @@ def process_subfile(rf, rsid, rs_uuid_etag, rs_id_uuid, ingest=False, db=None):
             deleted = False
             if u is None:
                 u, parent, deleted = db.get_uuid([i for _,_,i in idents])
-                assert u is not None
                 if parent is not None:
                     # assert parent == rsid
                     if parent != rsid:
@@ -268,7 +271,7 @@ def process_subfile(rf, rsid, rs_uuid_etag, rs_id_uuid, ingest=False, db=None):
 
                     unconsumed_extensions[r["coreid"]][rf.rowtype].append(r)
 
-            if "ac:associatedSpecimenReference" in r and r["ac:associatedSpecimenReference"] is not None:
+            if r.get("ac:associatedSpecimenReference"):
                 ref_uuids_list = uuid_re.findall(r["ac:associatedSpecimenReference"])
                 for ref_uuid in ref_uuids_list:
                     # Check for internal idigbio_uuid reference
@@ -290,25 +293,24 @@ def process_subfile(rf, rsid, rs_uuid_etag, rs_id_uuid, ingest=False, db=None):
         except RecordException as e:
             ids_to_add = {}
             uuids_to_add = {}
-            logger.warn(e)
-            logger.info(traceback.format_exc())
+            rlogger.warn(e)
+            rlogger.info(traceback.format_exc())
             record_exceptions += 1
         except AssertionError as e:
             ids_to_add = {}
             uuids_to_add = {}
-            logger.warn(e)
-            logger.info(traceback.format_exc())
+            rlogger.warn(e)
+            rlogger.info(traceback.format_exc())
             assertions += 1
         except DatabaseError as e:
             ids_to_add = {}
             uuids_to_add = {}
-            logger.exception(e)
+            rlogger.exception(e)
             dberrors += 1
         except Exception as e:
             ids_to_add = {}
             uuids_to_add = {}
-            logger.warn(e)
-            logger.error(traceback.format_exc())
+            rlogger.exception("Uncaught exception handling %r", r)
             exceptions += 1
 
         seen_ids.update(ids_to_add)
@@ -330,7 +332,7 @@ def process_subfile(rf, rsid, rs_uuid_etag, rs_id_uuid, ingest=False, db=None):
                 db.delete_item(u)
                 deleted += 1
             except:
-                logger.info(traceback.format_exc())
+                rlogger.info("Failed deleting %r", u, exc_info=True)
 
     return {
         "create": count - found,
@@ -355,17 +357,21 @@ def process_subfile(rf, rsid, rs_uuid_etag, rs_id_uuid, ingest=False, db=None):
 
 
 def process_file(fname, mime, rsid, existing_etags, existing_ids, ingest=False, commit_force=False):
+    rlogger = logger.getChild(rsid)
+    rlogger.info("Processing %s, type: %s", fname, mime)
     counts = {}
     t = datetime.datetime.now()
     filehash = calcFileHash(fname)
     db = PostgresDB()
 
     if mime == "application/zip":
-        dwcaobj = Dwca(fname, skipeml=True, logname="idigbio")
+        dwcaobj = Dwca(fname, skipeml=True, logname="idb")
         for dwcrf in dwcaobj.extensions:
+            rlogger.debug("Processing %r", dwcrf.name)
             counts[dwcrf.name] = process_subfile(
                 dwcrf, rsid, existing_etags, existing_ids, ingest=ingest, db=db)
             dwcrf.close()
+        rlogger.debug("processing core %r", dwcaobj.core.name)
         counts[dwcaobj.core.name] = process_subfile(
             dwcaobj.core, rsid, existing_etags, existing_ids, ingest=ingest, db=db)
         dwcaobj.core.close()
@@ -404,11 +410,11 @@ def process_file(fname, mime, rsid, existing_etags, existing_ids, ingest=False, 
         commit_ok = all(type_commits)
 
         if commit_ok:
-            logger.info("Ready to Commit")
+            rlogger.info("Ready to Commit")
             db.commit()
             commited = True
         else:
-            logger.error("Rollback")
+            rlogger.error("Rollback")
             db.rollback()
     else:
         db.rollback()
@@ -430,11 +436,12 @@ def process_file(fname, mime, rsid, existing_etags, existing_ids, ingest=False, 
 
 
 def save_summary_json(rsid, counts):
-    with open(rsid + ".summary.json", "wb") as sumf:
+    with AtomicFile(rsid + ".summary.json", "wb") as sumf:
         json.dump(counts, sumf, indent=2)
 
 
 def metadataToSummaryJSON(rsid, metadata, writeFile=True, doStats=True):
+    logger.info("%s writing summary json", rsid)
     summary = {
         "recordset_id": rsid,
         "filename": metadata["name"],
@@ -475,48 +482,89 @@ def metadataToSummaryJSON(rsid, metadata, writeFile=True, doStats=True):
     summary["dublicate_occurence_ids"] = duplicate_id_count
 
     if doStats:
-        es.index(index=indexName,doc_type="digest",body=summary)
+        stats.index(doc_type='digest', body=summary)
 
     if writeFile:
-        with open(rsid + ".summary.json", "wb") as jf:
+        with AtomicFile(rsid + ".summary.json", "wb") as jf:
             json.dump(summary, jf, indent=2)
-        with open(rsid + ".metadata.json", "wb") as jf:
+        with AtomicFile(rsid + ".metadata.json", "wb") as jf:
             json.dump(metadata, jf, indent=2)
     else:
         return summary
 
 
-def main():
-    if len(sys.argv) == 1:
-        print("Usage: db_check.py [ingest] <RSID>", file=sys.stderr)
-        sys.exit(1)
-    ingest = sys.argv[1] == "ingest"
-    rsid = sys.argv[-1]
+def main(rsid, ingest=False):
+    with LoggingContext(
+            filename='./{0}.db_check.log'.format(rsid),
+            file_level=logging.DEBUG,
+            clear_existing_handlers=False):
+        rlogger = logger.getChild(rsid)
+        rlogger.info("Starting db_check ingest: %r", ingest)
+        t = datetime.datetime.now()
+        try:
+            name, mime = get_file(rsid)
+        except (S3ResponseError, S3DataError):
+            rlogger.exception("failed fetching archive")
+            raise
 
-    fh = logging.FileHandler(rsid + ".db_check.log")
-    fh.setLevel(logging.INFO)
-    fh.setFormatter(formatter)
-    logger.addHandler(fh)
+        if os.path.exists(rsid + "_uuids.json") and os.path.exists(rsid + "_ids.json"):
+            with open(rsid + "_uuids.json", "rb") as uuidf:
+                db_u_d = json.load(uuidf)
+            with open(rsid + "_ids.json", "rb") as idf:
+                db_i_d = json.load(idf)
+        else:
+            rlogger.info("Building ids/uuids json")
+            db_u_d, db_i_d = get_db_dicts(rsid)
+            with AtomicFile(rsid + "_uuids.json", "wb") as uuidf:
+                json.dump(db_u_d, uuidf)
+            with AtomicFile(rsid + "_ids.json", "wb") as idf:
+                json.dump(db_i_d, idf)
 
-    name, mime = get_file(rsid)
-    if os.path.exists(rsid + "_uuids.json") and os.path.exists(rsid + "_ids.json"):
-        with open(rsid + "_uuids.json", "rb") as uuidf:
-            db_u_d = json.load(uuidf)
-        with open(rsid + "_ids.json", "rb") as idf:
-            db_i_d = json.load(idf)
-    else:
-        db_u_d, db_i_d = get_db_dicts(rsid)
-        with open(rsid + "_uuids.json", "wb") as uuidf:
-            json.dump(db_u_d, uuidf)
-        with open(rsid + "_ids.json", "wb") as idf:
-            json.dump(db_i_d, idf)
+        commit_force = False
+        if len(db_i_d) == 0 and len(db_u_d) == 0:
+            commit_force = True
 
-    commit_force = False
-    if len(db_i_d) == 0 and len(db_u_d) == 0:
-        commit_force = True
+        metadata = process_file(name, mime, rsid, db_u_d, db_i_d, ingest=ingest, commit_force=commit_force)
+        metadataToSummaryJSON(rsid, metadata)
+        rlogger.info("Finished db_check in %0.3fs", (datetime.datetime.now() - t).total_seconds())
+        return rsid
 
-    metadata = process_file(name, mime, rsid, db_u_d, db_i_d, ingest=ingest, commit_force=commit_force)
-    metadataToSummaryJSON(rsid, metadata)
 
-if __name__ == '__main__':
-    main()
+def launch_child(rsid, ingest):
+    try:
+        import logging
+        # close any logging filehandlers on root, leave alone any
+        # other stream handlers (e.g. stderr) this way main can set up
+        # its own filehandler to `$RSID.db_check.log`
+        for fh in filter(lambda h: isinstance(h, logging.FileHandler), logging.root.handlers):
+            logging.root.removeHandler(fh)
+            fh.close()
+
+        return main(rsid, ingest=ingest)
+    except KeyboardInterrupt:
+        logger.debug("Child KeyboardInterrupt")
+        pass
+    except:
+        logger.getChild(rsid).critical("Child failed", exc_info=True)
+
+
+def allrsids(since=None, ingest=False):
+    from .db_rsids import get_active_rsids
+
+    rsids = get_active_rsids(since=since)
+    logger.info("Checking %s recordsets", len(rsids))
+
+    # Need to ensure all the connections are closed before multiprocessing forks
+    apidbpool.closeall()
+
+    pool = multiprocessing.Pool(maxtasksperchild=1)
+    try:
+        results = list(
+            pool.imap_unordered(
+                functools.partial(launch_child, ingest=ingest),
+                rsids))
+    except KeyboardInterrupt:
+        logger.debug("Got KeyboardInterrupt")
+        raise
+    from .ds_sum_counts import main as ds_sum_counts
+    ds_sum_counts('./', sum_filename='summary.csv', susp_filename="suspects.csv")

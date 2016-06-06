@@ -3,18 +3,15 @@
 """
 from __future__ import absolute_import
 import os
-import sys
 import glob
 import subprocess
+import cStringIO
 
 import boto
 import boto.s3.connection
-from boto.s3.key import Key
 
-from idb.helpers.media_validation import get_validator
-from idb.postgres_backend import apidbpool, NamedTupleCursor
-from idb.helpers.etags import calcFileHash
-from idb.config import config
+from idb.postgres_backend.db import MediaObject
+
 
 class IDigBioStorage(object):
     """
@@ -24,7 +21,7 @@ class IDigBioStorage(object):
             You must either set access_key and secret_key when
             initializing the object, or (prefered) set the
             IDB_STORAGE_ACCESS_KEY and IDB_STORAGE_SECRET_KEY
-            environemtn variables.
+            environment variables.
     """
 
     def __init__(self,host="s.idigbio.org",access_key=None,secret_key=None):
@@ -99,26 +96,60 @@ class IDigBioStorage(object):
         k.make_public()
         return k
 
-    def get_key_by_url(self, url):
-        sql = ("""SELECT objects.bucket, objects.etag
-            FROM media
-            LEFT JOIN media_objects ON media.url = media_objects.url
-            LEFT JOIN objects on media_objects.etag = objects.etag
-            WHERE media.url=%(url)s
-        """, {"url": url})
-
-        r = apidbpool.fetchone(*sql, cursor_factory=NamedTupleCursor)
-        if r is None:
+    def get_key_by_url(self, url, idbmodel=None):
+        mo = MediaObject.fromurl(url, idbmodel)
+        if mo is None:
             raise Exception("No media with url {0!r}".format(url))
-        return self.get_key(r.etag, "idigbio-{}-prod".format(r.bucket))
+        return self.get_key(mo.keyname, mo.bucketname)
 
     def get_file_by_url(self, url, file_name=None):
         k = self.get_key_by_url(url)
         if file_name is None:
             file_name = k.name
-
-        k.get_contents_to_filename(file_name)
+        IDigBioStorage.get_contents_to_filename(k, file_name)
         return file_name
+
+    def get_key_by_etag(self, etag, idbmodel=None):
+        mo = MediaObject.frometag(etag, idbmodel=idbmodel)
+        return self.get_key(mo.keyname, mo.bucketname)
+
+    def fetch(self, key_name, bucket_name, filename, md5=None):
+        k = self.get_key(key_name, bucket_name)
+        return self.get_contents_to_filename(k, filename, md5=md5)
+
+    @staticmethod
+    def get_contents_to_filename(key, filename, md5=None):
+        """Wraps ``key.get_contents_to_filename`` ensuring an atomic fetch
+
+        The default version on a key will leave partial results if the
+
+        :param boto.s3.key.Key key: The key to fetch
+        :param str filename: The filename to fetch into
+        :param str md5: If given compare the downloaded md5 to the given digest hash
+
+        """
+        from atomicfile import AtomicFile
+        with AtomicFile(filename, mode='wb') as af:
+            IDigBioStorage.get_contents_to_file(key, af, md5=md5)
+        return filename
+
+    @staticmethod
+    def get_contents_to_mem(key, md5=None):
+        "Wraps ``key.get_contents_to_file fetching into a StringIO buffer``"
+        buff = cStringIO.StringIO()
+        IDigBioStorage.get_contents_to_file(key, buff, md5=md5)
+        buff.seek(0)
+        return buff
+
+    @staticmethod
+    def get_contents_to_file(key, fp, md5=None):
+        key.get_contents_to_file(fp)
+        if md5 and key.md5 != md5:
+            raise boto.exception.S3DataError(
+                'MD5 of downloaded did not match given MD5'
+                '%s vs. %s' % (key.md5, md5))
+        return key
+
 
     # def set_file_by_url(self, url, fil, typ, mime=None):
     #     fname = fil.filename

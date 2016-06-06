@@ -1,21 +1,23 @@
 # must set PYTHONPATH environment variable to the top level prior to running this script
-import feedparser
-assert feedparser.__version__ >= "5.2.0"
+import logging
 import re
 import datetime
 import dateutil.parser
 import time
-import requests
 import os
 
-from requests.auth import HTTPBasicAuth
+import requests
+import feedparser
+assert feedparser.__version__ >= "5.2.0"
 
-from idb.postgres_backend.db import PostgresDB
+from idb import config
+from idb.postgres_backend.db import PostgresDB, MediaObject, DictCursor
 from idb.helpers.etags import calcFileHash
+from idb.helpers.storage import IDigBioStorage
+from idb.helpers.logging import idblogger
 
 from idigbio_ingestion.lib.util import download_file
 from idigbio_ingestion.lib.eml import parseEml
-from idigbio_ingestion.lib.log import logger
 
 #### disabling warnings per https://urllib3.readthedocs.org/en/latest/security.html#disabling-warnings
 ## Would rather have warnings go to log but could not get logging.captureWarnings(True) to work.
@@ -27,10 +29,13 @@ from idigbio_ingestion.lib.log import logger
 ####
 
 
+logger = idblogger.getChild('upr')
+
 def struct_to_datetime(s):
     return datetime.datetime.fromtimestamp(time.mktime(s))
 
-def create_tables(db):
+def create_tables():
+    db = PostgresDB()
     db.execute("""CREATE TABLE IF NOT EXISTS publishers (
         id BIGSERIAL NOT NULL PRIMARY KEY,
         uuid uuid UNIQUE,
@@ -62,6 +67,7 @@ def create_tables(db):
         harvest_etag varchar(41)
     )""")
     db.commit()
+    db.close()
 
 def id_func(portal_url, e):
     id = None
@@ -95,45 +101,53 @@ def check_feed(rss_url):
         return False
 
 
-def update_db_from_rss(db):
+def update_db_from_rss():
     existing_recordsets = {}
     recordsets = {}
-    for r in db.fetchall("SELECT * FROM recordsets"):
-        for recordid in r["recordids"]:
-            existing_recordsets[recordid] = r["id"]
-        recordsets[r["id"]] = r
+    with PostgresDB() as db:
+        for r in db.fetchall("SELECT * FROM recordsets"):
+            for recordid in r["recordids"]:
+                existing_recordsets[recordid] = r["id"]
+            recordsets[r["id"]] = r
 
-    pub_recs = db.fetchall("SELECT * FROM publishers")
-    for r in pub_recs:
-        if check_feed(r['rss_url']):
-            logger.info("Publisher Feed: %s %s", r['uuid'], r['rss_url'])
-            try:
-                _do_rss(r, db, recordsets, existing_recordsets)
-                db.commit()
-            except:
-                logger.exception("Error with %s", r)
-                db.rollback()
+        pub_recs = db.fetchall("SELECT * FROM publishers")
+        logger.debug("Checking %d publishers", len(pub_recs))
+        for r in pub_recs:
+            if check_feed(r['rss_url']):
+                try:
+                    _do_rss(r, db, recordsets, existing_recordsets)
+                    db.commit()
+                except KeyboardInterrupt:
+                    db.rollback()
+                    raise
+                except:
+                    logger.exception("Error with %s", r)
+                    db.rollback()
+    logger.info("Finished processing RSS")
 
 
 def _do_rss(r, db, recordsets, existing_recordsets):
+    logger.info("Starting Publisher Feed: %s %s", r['uuid'], r['rss_url'])
     feed = feedparser.parse(r["rss_url"])
     pub_uuid = r["uuid"]
     if pub_uuid is None:
         pub_uuid, _, _ = db.get_uuid(r["recordids"])
 
     name = r["name"]
-    if name is None:
+    if name is None or name == "":
         if "title" in feed["feed"]:
             name = feed["feed"]["title"]
+            if name == "":
+                name = r["rss_url"]
         else:
             name = r["rss_url"]
 
     if "\\x" in name:
         name = name.decode("utf8")
 
-    auto_publish = r["auto_publish"]
+    logger.info("Update Publisher id:%s %s '%s'", r["id"], pub_uuid, name)
 
-    logger.info("Update Publisher id:%s %s %s", r["id"], pub_uuid, name)
+    auto_publish = r["auto_publish"]
 
     pub_date = None
     if "published_parsed" in feed["feed"]:
@@ -215,7 +229,7 @@ def _do_rss(r, db, recordsets, existing_recordsets):
                 """,
                 (rsid, pub_uuid, rs_name, recordids, eml_link, file_link, ingest, date))
             db.execute(*sql)
-            logger.info("Create Recordset %s %s", recordid, name)
+            logger.info("Create Recordset for recordid:%s '%s'", recordid, name)
         else:
             sql = ("""UPDATE recordsets
                       SET publisher_uuid=%(publisher_uuid)s,
@@ -235,8 +249,8 @@ def _do_rss(r, db, recordsets, existing_recordsets):
                        "id": recordset["id"]
                    })
             db.execute(*sql)
-            logger.info("Update Recordset id:%s %s %s",
-                        recordset["id"], recordid, name)
+            logger.info("Update Recordset id:%s %s %s '%s'",
+                        recordset["id"], recordset["uuid"], file_link, rs_name)
 
     db.set_record(pub_uuid, "publisher", "872733a2-67a3-4c54-aa76-862735a5f334",
                   {
@@ -250,63 +264,58 @@ def _do_rss(r, db, recordsets, existing_recordsets):
                   r["recordids"], [])
 
 
-def harvest_eml(db):
+def harvest_all_eml():
     sql = """SELECT *
              FROM recordsets
              WHERE eml_link IS NOT NULL
                AND ingest=true
                AND pub_date < now()
                AND (eml_harvest_date IS NULL OR eml_harvest_date < pub_date)"""
-    recs = db.fetchall(sql)
-    for r in recs:
-        logger.info("Harvest EML %s %s", r["id"], r["name"])
-        fname = "{0}.eml".format(r["id"])
-        if not download_file(r["eml_link"], fname):
-            logger.error("failed Harvest EML %s %s", r["id"], r["name"])
-        else:
+    with PostgresDB() as db:
+        recs = db.fetchall(sql, cursor_factory=DictCursor)
+        logger.info("Harvesting %d EML files", len(recs))
+        for r in recs:
             try:
-                etag = calcFileHash(fname)
-                u = r["uuid"]
-                if u is None:
-                    u, _, _ = db.get_uuid(r["recordids"])
-                desc = {}
-                with open(fname,"rb") as inf:
-                    desc = parseEml(r["recordids"][0], inf.read())
-                desc["ingest"] = r["ingest"]
-                desc["link"] = r["file_link"]
-                desc["eml_link"] = r["eml_link"]
-                desc["update"] = r["pub_date"].isoformat()
-                parent = r["publisher_uuid"]
-                db.set_record(u, "recordset", parent, desc, r["recordids"], [])
-                sql = ("""UPDATE recordsets
-                          SET eml_harvest_etag=%s, eml_harvest_date=%s, uuid=%s
-                          WHERE id=%s""",
-                       (etag, datetime.datetime.now(), u, r["id"]))
-                db.execute(*sql)
+                harvest_eml(r, db)
                 db.commit()
+            except KeyboardInterrupt:
+                db.rollback()
+                raise
             except:
+                db.rollback()
                 logger.exception("failed Harvest EML %s %s", r["id"], r["name"])
+
+def harvest_eml(r, db):
+    logger.info("Harvest EML %s '%s'", r["id"], r["name"])
+    fname = "{0}.eml".format(r["id"])
+    if not download_file(r["eml_link"], fname):
+        logger.error("failed Harvest EML %s '%s'", r["id"], r["name"])
+        return
+    try:
+        etag = calcFileHash(fname)
+        u = r["uuid"]
+        if u is None:
+            u, _, _ = db.get_uuid(r["recordids"])
+        desc = {}
+        with open(fname,"rb") as inf:
+            desc = parseEml(r["recordids"][0], inf.read())
+        desc["ingest"] = r["ingest"]
+        desc["link"] = r["file_link"]
+        desc["eml_link"] = r["eml_link"]
+        desc["update"] = r["pub_date"].isoformat()
+        parent = r["publisher_uuid"]
+        db.set_record(u, "recordset", parent, desc, r["recordids"], [])
+        sql = ("""UPDATE recordsets
+                  SET eml_harvest_etag=%s, eml_harvest_date=%s, uuid=%s
+                  WHERE id=%s""",
+               (etag, datetime.datetime.now(), u, r["id"]))
+        db.execute(*sql)
+    finally:
         if os.path.exists(fname):
             os.unlink(fname)
 
-def upload_recordset_to_mediaapi(rsid, fname):
-    try:
-        with open(fname,'rb') as inf:
-            files = {'file': inf}
-            r = requests.post("http://media.idigbio.org/upload/datasets",
-                              files=files,
-                              data={"filereference": "http://api.idigbio.org/v1/recordsets/" + rsid},
-                              auth=auth)
-            r.raise_for_status()
-        return True
-    except KeyboardInterrupt:
-        raise
-    except Exception:
-        logger.exception("failed to post recordset %s", rsid)
-        return False
 
-auth = HTTPBasicAuth(os.environ["IDB_UUID"], os.environ["IDB_APIKEY"])
-def harvest_file(db):
+def harvest_all_file():
     sql = """SELECT *
              FROM recordsets
              WHERE file_link IS NOT NULL
@@ -314,33 +323,66 @@ def harvest_file(db):
                AND ingest=true
                AND pub_date < now()
                AND (file_harvest_date IS NULL OR file_harvest_date < pub_date)"""
-    for r in db.fetchall(sql):
-        logger.info("Harvest File %s %s", r["id"], r["name"])
-        fname = "{0}.file".format(r["id"])
-        try:
-            download_file(r["file_link"],fname)
-            etag = calcFileHash(fname)
-            if etag != r["file_harvest_etag"]:
-                upload_recordset_to_mediaapi(r["uuid"], fname)
-            sql = ("""UPDATE recordsets
-                      SET file_harvest_etag=%s, file_harvest_date=%s
-                      WHERE id=%s""",
-                   (etag, datetime.datetime.now(), r["id"]))
-            db.execute(*sql)
-            db.commit()
-        except:
-            logger.exception("Error processing id:%s url:%s", r['id'], r['file_link'])
+
+    with PostgresDB() as db:
+        recs = db.fetchall(sql)
+        logger.info("Harvesting %d files", len(recs))
+        for r in recs:
+            try:
+                harvest_file(r, db)
+                db.commit()
+            except KeyboardInterrupt:
+                db.rollback()
+                raise
+            except:
+                logger.exception("Error processing id:%s url:%s", r['id'], r['file_link'])
+                db.rollback()
+
+def harvest_file(r, db):
+    logger.info("Harvest File %s '%s'", r["id"], r["name"])
+    fname = "{0}.file".format(r["id"])
+    try:
+        download_file(r["file_link"], fname)
+        etag = upload_recordset(r["uuid"], fname, db)
+        assert etag
+        sql = ("""UPDATE recordsets
+                  SET file_harvest_etag=%s, file_harvest_date=%s
+                  WHERE id=%s""",
+               (etag, datetime.datetime.now(), r["id"]))
+        db.execute(*sql)
+    finally:
         if os.path.exists(fname):
             os.unlink(fname)
 
 
-def main():
-    with PostgresDB() as db:
-        # create_tables(db)
-        # Re-work from canonical db
-        update_db_from_rss(db)
-        harvest_eml(db)
-        harvest_file(db)
+def upload_recordset(rsid, fname, idbmodel):
+    filereference = "http://api.idigbio.org/v1/recordsets/" + rsid
+    logger.debug("Starting Upload of %r", rsid)
+    stor = IDigBioStorage()
+    with open(fname, 'rb') as fobj:
+        mo = MediaObject.fromobj(
+            fobj, url=filereference, type='datasets', owner=config.IDB_UUID)
+        k = mo.get_key(stor)
+        if k.exists():
+            logger.debug("ETAG %s already present in Storage.", mo.etag)
+        else:
+            mo.upload(stor, fobj)
+            logger.debug("ETAG %s uploading from %r", mo.etag, fname)
 
-if __name__ == '__main__':
-    main()
+        mo.ensure_media(idbmodel)
+        mo.ensure_object(idbmodel)
+        mo.ensure_media_object(idbmodel)
+        return mo.etag
+    logger.debug("Finished Upload of %r", rsid)
+
+
+def main():
+    # create_tables()
+    # Re-work from canonical db
+    logger.info("Begin update_publisher_recordset()")
+    update_db_from_rss()
+    logger.info("*** Begin harvest of eml files...")
+    harvest_all_eml()
+    logger.info("*** Begin harvest of dataset files...")
+    harvest_all_file()
+    logger.info("Finished all updates")

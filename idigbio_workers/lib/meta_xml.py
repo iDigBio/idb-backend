@@ -57,7 +57,6 @@ def make_file_block(filename="occurence.csv",fields=[],core=True,tabs=False,t="r
     elif t == "uniquenames":
         f_opts["row_type"] = "http://rs.tdwg.org/dwc/terms/Taxon"
 
-
     f_string = ""
     if fields is not None:
         for i,f in enumerate(fields):
@@ -70,5 +69,5 @@ def make_file_block(filename="occurence.csv",fields=[],core=True,tabs=False,t="r
 
     if tabs:
         f_opts["field_terminator"] = "\\t"
-    
+
     return file_xml.format(**f_opts)

@@ -13,6 +13,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath
 
 from idb.lib.storage import IDigBioStorage
 
+
 def is_uuid(s):
     try:
         uuid.UUID(s)
@@ -23,14 +24,16 @@ def is_uuid(s):
 ic_replacement_table = {}
 ic_extract = re.compile("^.*\(([a-zA-Z]+)\)$")
 
-def get_true_ic(v):    
+
+def get_true_ic(v):
     m = ic_extract.match(v)
     if m is not None:
-      v = m.groups()[0]
+        v = m.groups()[0]
     v = v.lower().strip()
     if v in ic_replacement_table:
-      v = ic_replacement_table[v]
+        v = ic_replacement_table[v]
     return v
+
 
 def main():
     index_file_name = "index.txt"
@@ -58,8 +61,8 @@ def main():
                             }
                         }
                     }
-                }                
-            }            
+                }
+            }
         }
     }
     r = requests.post("http://search.idigbio.org/idigbio/records/_search",data=json.dumps(query),headers={"Content-Type":"application/json"})
@@ -106,7 +109,7 @@ def main():
             continue
 
         # Skip files older than 8 days
-        lm_d = dateutil.parser.parse(k.last_modified).date()        
+        lm_d = dateutil.parser.parse(k.last_modified).date()
         if lm_d < (datetime.datetime.now() - datetime.timedelta(7)).date():
             continue
 
@@ -128,9 +131,9 @@ def main():
                 else:
                     files[fkey]["institutioncode"] = ""
                     files[fkey]["collectioncode"] = ""
-    
+
     fil = StringIO()
-    
+
     cw = csv.writer(fil,delimiter="\t")
 
     cw.writerow(headers)

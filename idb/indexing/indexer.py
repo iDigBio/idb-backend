@@ -1,17 +1,32 @@
+from __future__ import division, absolute_import, print_function
+
 from pytz import timezone
 
+import elasticsearch
 import elasticsearch.helpers
-from elasticsearch import Elasticsearch
 
+from idb import config
+from idb.helpers.logging import idblogger
 from idb.helpers.conversions import fields, custom_mappings
 
 local_tz = timezone('US/Eastern')
+log = idblogger.getChild('indexing')
+
+
+def get_connection(**kwargs):
+    kwargs.setdefault('hosts', config.config["elasticsearch"]["servers"])
+    kwargs.setdefault('retry_on_timeout', True)  # this isn't valid until >=1.3
+    kwargs.setdefault('sniff_on_start', False)
+    kwargs.setdefault('sniff_on_connection_fail', False)
+    kwargs.setdefault('max_retries', 10)
+    kwargs.setdefault('timeout', 30)
+    return elasticsearch.Elasticsearch(**kwargs)
 
 
 def prepForEs(t, i):
     value = {}
     for f in fields[t]:
-        if f[0] not in i or i[f[0]] == None:
+        if f[0] not in i or i[f[0]] is None:
             continue
 
         if f[2] == "point":
@@ -33,12 +48,17 @@ def prepForEs(t, i):
 
 class ElasticSearchIndexer(object):
 
-    def __init__(self, indexName, types, commitCount=100000, disableRefresh=True, serverlist=["localhost"], timeout=30):
-        self.es = elasticsearch.Elasticsearch(
-            serverlist, sniff_on_start=False, sniff_on_connection_fail=False, retry_on_timeout=True, max_retries=10, timeout=timeout)
-        self.types = types
-        self.indexName = "idigbio-" + indexName
+    def __init__(self, indexName, types,
+                 commitCount=100000, disableRefresh=True,
+                 serverlist=["localhost"]):
+        log.info("Initializing ElasticSearchIndexer(%r, %r)", indexName, types)
+        self.es = get_connection(hosts=serverlist)
 
+        if not indexName.startswith('idigbio-'):
+            indexName = "idigbio-" + indexName
+        self.indexName = indexName
+
+        self.types = types
         for t in self.types:
             self.esMapping(t)
 
@@ -77,7 +97,11 @@ class ElasticSearchIndexer(object):
                 m["properties"][f[0]] = {"type": "date"}
             elif f[2] == "point":
                 m["properties"][f[0]] = {
-                    "type": "geo_point", "geohash": True, "geohash_prefix": True, "lat_lon": True}
+                    "type": "geo_point",
+                    "geohash": True,
+                    "geohash_prefix": True,
+                    "lat_lon": True
+                }
             elif f[2] == "shape":
                 m["properties"][f[0]] = {"type": "geo_shape"}
             elif f[2] == "custom":
@@ -86,7 +110,8 @@ class ElasticSearchIndexer(object):
             m["_parent"] = {
                 "type": "records"
             }
-        print self.es.indices.put_mapping(index=self.indexName, doc_type=t, body={t: m})
+        res = self.es.indices.put_mapping(index=self.indexName, doc_type=t, body={t: m})
+        log.debug("Built mapping for %s: %s", t, res)
 
     def index(self, t, i):
         if t == "mediarecords" and "records" in i and len(i["records"]) > 0:
@@ -100,6 +125,7 @@ class ElasticSearchIndexer(object):
                 index=self.indexName, doc_type=t, id=i["uuid"], body=i)
 
     def optimize(self):
+        log.info("Running index optimization on %r", self.indexName)
         self.es.indices.optimize(index=self.indexName, max_num_segments=5)
 
     def bulk_formater(self, tups):
@@ -122,7 +148,8 @@ class ElasticSearchIndexer(object):
             yield meta
 
     def bulk_index(self, tups):
-        return elasticsearch.helpers.streaming_bulk(self.es, self.bulk_formater(tups), chunk_size=10000)
+        return elasticsearch.helpers.streaming_bulk(
+            self.es, self.bulk_formater(tups), chunk_size=10000)
 
     def close(self):
         if self.disableRefresh:

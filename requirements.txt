@@ -1,23 +1,25 @@
 psycopg2>=2.6
-redis>=2.9.1
-python-dateutil>=2.2
-elasticsearch>=1.2.0
+redis>=2.9.1, <3.0.0
+python-dateutil>=2.2, <3.0
+elasticsearch>=1.2.0, <1.3.0
 pyproj>=1.9.3
-pytz>=2014.4
-requests>=2.3.0
+pytz>=2016.4
+requests>=2.4.0
 pycrypto
-flask
+flask>=0.10.0, <1.0.0
 Flask-UUID
 Flask-CORS
-riak
 coverage
 numpy
 scipy
-gevent
-unicodecsv
+gevent>=1.1.0, <1.2.0
+unicodecsv>=0.14.1, < 0.15.0
 shapely
 celery
-boto
+boto>=2.39.0, <3.0.0
 fiona
-python-magic
+python-magic>=0.4.11, <=0.5.0
 feedparser>=5.2.0
+click>=6.3, <7.0
+Flask-CLI>=0.2.1, <0.3.0
+atomicfile==1.0

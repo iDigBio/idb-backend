@@ -5,9 +5,7 @@ import io
 
 from collections import defaultdict
 
-import logging
-from .log import getIDigBioLogger
-from .fileproxy import FileProxy
+from idb.helpers.logging import idblogger, getLogger
 from idb.helpers.fieldnames import get_canonical_name, types
 
 
@@ -30,6 +28,7 @@ class LineLengthException(Exception):
     Expected Line Length: {2}, Actual Line Length: {4}
     Line Array: {3}
 """.format(name, lineNumber, lineLength, repr(lineArr), len(lineArr))
+        super(LineLengthException, self).__init__(message)
 
 
 def flag_unicode_error(e):
@@ -62,9 +61,9 @@ class DelimitedFile(object):
             fh, "r", encoding=encoding, errors="flag_error")
 
         if logname is None:
-            self.logger = getIDigBioLogger(self.name)
+            self.logger = idblogger.getChild('df')
         else:
-            self.logger = getIDigBioLogger(logname + "." + self.name)
+            self.logger = getLogger(logname)
 
         encoded_lines = (l.encode("utf-8") for l in self.filehandle)
         if self.fieldenc is None or self.fieldenc == "":
@@ -94,6 +93,7 @@ class DelimitedFile(object):
             items = t.items()
             items.sort(key=lambda item: (item[1], item[0]), reverse=True)
             self.rowtype = items[0][0]
+            self.logger.info("Setting row type to %s", self.rowtype)
         elif self.rowtype in types:
             self.rowtype = types[self.rowtype]["shortname"]
 
@@ -108,7 +108,6 @@ class DelimitedFile(object):
             Closes the internally maintained filehandle
         """
         self.filehandle.close()
-        closed = self.filehandle.closed
 
     def next(self):
         """
@@ -163,22 +162,11 @@ class DelimitedFile(object):
                     self.name, self.lineCount))
                 self.logger.debug(lineArr)
                 self.logger.info(traceback.format_exc())
-                # try:
-                #     self.logger.info(self.truncdump(self.filehandle.dump()))
-                # except:
-                #     self.logger.warn("Unable to print debug dump.")
             except LineLengthException:
                 self.logger.warn("LineLengthException: {0} Line {1} ({2},{3})".format(
                     self.name, self.lineCount, self.lineLength, len(lineArr)))
                 self.logger.debug(lineArr)
                 self.logger.info(traceback.format_exc())
-                # Here we need to add some kind of trim to reduce the amount of output going to screen
-                # The FileProxy.dump function potentially returns too much if
-                # it gets confused about "what is a line"
-                # try:
-                #     self.logger.info(self.truncdump(self.filehandle.dump()))
-                # except:
-                #     self.logger.warn("Unable to print debug dump.")
         return lineDict
 
     def readlines(self, sizehint=None):
@@ -189,12 +177,3 @@ class DelimitedFile(object):
         for line in self:
             lines.append(self.readline())
         return lines
-
-    # def truncdump(self, dumpedtext):
-    #     max_dump_length = 5000
-    #     string_for_append = '...<truncated for size>'
-
-    #     if len(dumpedtext) < max_dump_length:
-    #         return dumpedtext
-    #     else:
-    #         return dumpedtext[:max_dump_length - len(string_for_append)] + string_for_append

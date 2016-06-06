@@ -1,5 +1,3 @@
-import logging
-
 import gevent
 import psycopg2
 import psycopg2.extensions
@@ -7,9 +5,6 @@ import pytest
 from psycopg2.extras import RealDictCursor, DictCursor
 
 from idb.postgres_backend.gevent_helpers import GeventedConnPool
-
-
-log = logging.getLogger("testpgpool")
 
 
 def pytest_generate_tests(metafunc):
@@ -22,23 +17,13 @@ class PassException(Exception):
 
 
 @pytest.fixture()
-def testdb(scope="module"):
-    dbparams = {"host": "localhost", "dbname": "test",
-                "user": "test", "password": "test"}
-    with psycopg2.connect(**dbparams) as conn:
-        with conn.cursor() as cur:
-            cur.execute("SELECT 1")
-    return dbparams
-
-
-@pytest.fixture()
 def pool1(testdb):
     return GeventedConnPool(maxsize=1, **testdb)
 
 
 @pytest.fixture()
-def pool(testdb, request):
-    log.debug("Making pool of size %d", request.param)
+def pool(testdb, request, logger):
+    logger.debug("Making pool of size %d", request.param)
     p = GeventedConnPool(maxsize=request.param, **testdb)
     request.addfinalizer(gevent.wait)
     return p
@@ -59,7 +44,7 @@ def test_exception_rollback(pool1):
     except PassException:
         pass
     gevent.wait()
-    assert _conn.get_transaction_status() ==  psycopg2.extensions.TRANSACTION_STATUS_IDLE
+    assert _conn.get_transaction_status() == psycopg2.extensions.TRANSACTION_STATUS_IDLE
     assert pool1.pool.qsize() <= pool1.maxsize
 
 
@@ -73,14 +58,14 @@ def test_repeated_conn(pool):
     assert pool.pool.qsize() <= pool.maxsize
 
 
-def test_closing_outside_of_block(pool):
+def test_closing_outside_of_block(pool, logger):
     for i in range(0, 10):
         try:
             conn = pool.get()
             conn.close()
             pool.put(conn)
         except:
-            log.exception("Error")
+            logger.exception("Error")
     gevent.wait(timeout=5)
     assert pool.pool.qsize() <= pool.maxsize
 
@@ -152,10 +137,10 @@ def test_closeall(pool):
     spawns = [gevent.spawn(pool.execute, 'select 1;')
               for _ in range(0, count)]
     pool.closeall()
-
-    with pytest.raises(psycopg2.pool.PoolError):
-        pool.get()
     gevent.wait()
+    assert pool.pool.qsize() == 0
+    assert pool.closed is False
+
 
 
 def test_fetchone(pool1):

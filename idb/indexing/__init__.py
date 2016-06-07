@@ -61,11 +61,6 @@ def cli(ctx, index, types, indexname):
         'no_index': not index
     }
 
-    # indexing monitors for SIGUSR1 output for logging but the default
-    # python handler causes exit on SIGUSR1
-    from signal import signal, SIGUSR1, SIG_IGN
-    signal(SIGUSR1, SIG_IGN)
-
 
 @cli.command(help="run incremental continously")
 @click.pass_obj

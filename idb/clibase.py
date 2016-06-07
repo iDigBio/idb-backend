@@ -71,6 +71,13 @@ def handle_std_options(verbose=None, env=None, config=None, logfile=None, **kwar
             setattr(_config, k.upper(), v)
             os.environ[k.upper()] = v
 
+    # idb uses SIGUSR1 to output extra logging/current status
+    # information. This will be configured in certain contexts but the
+    # idb process default should be ignore instead of the python
+    # default of exit.
+    from signal import signal, SIGUSR1, SIG_IGN
+    signal(SIGUSR1, SIG_IGN)
+
 
 @click.group()
 @click.version_option(version=idb.__version__)

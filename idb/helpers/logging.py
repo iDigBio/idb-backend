@@ -47,6 +47,9 @@ def configure_app_log(verbose, logfile=None):
         2: logging.DEBUG,
         3: 0
     }
+    if verbose is None:
+        verbose = 0
+
     idblogger.setLevel(0)  # doing filtering in handlers
 
     for l in LIBRARY_LOGGERS:

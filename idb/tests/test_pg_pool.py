@@ -133,14 +133,15 @@ def test_cursor_type(pool1):
 
 
 def test_closeall(pool):
-    count = 20
-    spawns = [gevent.spawn(pool.execute, 'select 1;')
+    count = 30
+    spawns = [gevent.spawn(pool.fetchone, 'select 1;')
               for _ in range(0, count)]
+    gevent.wait(spawns, count=1)  # make sure the spawns get a chance to start
     pool.closeall()
-    gevent.wait()
     assert pool.pool.qsize() == 0
     assert pool.closed is False
-
+    gevent.wait()
+    assert pool.pool.qsize() == 0
 
 
 def test_fetchone(pool1):

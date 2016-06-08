@@ -179,12 +179,13 @@ def _do_rss(r, db, recordsets, existing_recordsets):
         recordids = [recordid]
         recordset = None
         if recordid in existing_recordsets:
+            logger.debug("Found recordid '{0}' in existing recordsets.".format(recordid))
             recordset = recordsets[existing_recordsets[recordid]]
             rsid = recordset["uuid"]
             ingest = recordset["ingest"]
             recordids = list(set(recordids + recordset["recordids"]))
         else:
-            logger.debug("recordid '{0}' not found in existing recordsets.".format(recordid))
+            logger.debug("recordid '{0}' NOT found in existing recordsets.".format(recordid))
 
         eml_link = None
         file_link = None

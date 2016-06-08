@@ -27,7 +27,7 @@ LOGBOOK_FORMAT_STRING = u'{record.time:%Y-%m-%d %H:%M:%S.%f} {record.level_name:
                         u'{record.channel}\u10fb {record.message}'
 
 #: Libaries used whos logs should be at a higher level.
-LIBRARY_LOGGERS = ('boto', 'requests', 'urllib3', 'elasticsearch', 'shapely')
+LIBRARY_LOGGERS = ('boto', 'requests', 'urllib3', 'elasticsearch', 'shapely', 'gipc')
 
 
 def getLogger(l):

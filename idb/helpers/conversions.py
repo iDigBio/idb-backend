@@ -1,20 +1,17 @@
 from __future__ import absolute_import
 import dateutil.parser
 import re
-import pprint
 import traceback
 import locale
 import decimal
 import datetime
 import pytz
 import pyproj
-import string
 from shapely import wkt
 from shapely.geometry import Polygon, mapping
 
 
 from idb.data_tables.rights_strings import acceptable_licenses_trans, licenses
-from idb.data_tables.locality_data import iso_two_to_three
 
 from .biodiversity_socket_connector import Biodiversity
 from idb.helpers.rg import get_country

@@ -14,8 +14,8 @@ from shapely.geometry import Polygon, mapping
 from idb.data_tables.rights_strings import acceptable_licenses_trans, licenses
 
 from .biodiversity_socket_connector import Biodiversity
-from idb.helpers.rg import get_country
-
+from .rg import get_country
+from .media_validation import get_default_bucket
 
 b = Biodiversity()
 
@@ -25,27 +25,6 @@ PARENT_MAP = {
     "mediarecords": "recordsets",
     "recordsets": "publishers",
 }
-
-mime_mapping = {
-    "image/jpeg": "images",
-    "image/jp2": "images",
-    "text/html": None,
-    "image/dng": None,
-    "application/xml": None,
-    "image/x-adobe-dng": None,
-    "audio/mpeg3": "sounds",
-    "audio/mpeg": "sounds",
-    "video/mpeg": "video",
-    "video/mp4": "video",
-    "text/html": None,
-    "model/mesh": "models",
-    None: None
-}
-
-unmapped_buckets = { 'datasets', 'debugfile', 'guoda' }
-
-valid_buckets = set([v for v in mime_mapping.values() if v is not None]) | \
-                unmapped_buckets
 
 locale.setlocale(locale.LC_ALL, '')
 
@@ -706,12 +685,12 @@ def get_accessuri(t, d):
 
 
 def get_media_type(t, d):
-    if "t" == "mediarecords":
+    if t == "mediarecords":
         form = d.get("dcterms:format") or d.get("dc:format") or d.get("ac:bestQualityFormat")
         mtyp = None
         if form:
             form = form.strip()
-            mtyp = mime_mapping.get(form)
+            mtyp = get_default_bucket(form)
 
         return {
             "format": form,

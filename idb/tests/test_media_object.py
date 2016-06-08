@@ -5,7 +5,7 @@ import os
 import pytest
 from datetime import datetime
 
-from idb.helpers.media_validation import UnknownMediaTypeError
+from idb.helpers.media_validation import MediaValidationError
 from idb.postgres_backend.db import MediaObject
 
 
@@ -13,38 +13,39 @@ prodonly = pytest.mark.skipif(os.environ['ENV'] != 'prod', reason='Requires prod
 
 
 def test_mobj_fromobj_jpg(jpgpath):
-    mobj = MediaObject.fromobj(jpgpath.open('rb'))
+    mobj = MediaObject.fromobj(jpgpath.open('rb'), url='foo.jpg')
     assert mobj.detected_mime == mobj.mime == 'image/jpeg'
     assert mobj.bucket == mobj.type == 'images'
     assert mobj.etag == jpgpath.computehash()
 
 
 def test_mobj_fromobj_mp3(mp3path):
-    mobj = MediaObject.fromobj(mp3path.open('rb'))
+    mobj = MediaObject.fromobj(mp3path.open('rb'), url='foo.mp3')
     assert mobj.detected_mime == mobj.mime == 'audio/mpeg'
     assert mobj.etag == mp3path.computehash()
 
 
 def test_given_type_validation(jpgpath):
-    mobj = MediaObject.fromobj(jpgpath.open('rb'), type='images')
+    mobj = MediaObject.fromobj(jpgpath.open('rb'), url='foo.png', type='images')
     assert mobj
     assert mobj.type == mobj.bucket == 'images'
 
-    mobj = MediaObject.fromobj(jpgpath.open('rb'), type='datasets')
-    assert mobj
-    assert mobj.type == mobj.bucket == 'datasets'
+    with pytest.raises(MediaValidationError):
+        mobj = MediaObject.fromobj(jpgpath.open('rb'), url='foo.png', type='datasets')
 
-    mobj = MediaObject.fromobj(jpgpath.open('rb'), type='foobar')
-    assert mobj
-    assert mobj.type == mobj.bucket == 'images'
+    with pytest.raises(MediaValidationError):
+        mobj = MediaObject.fromobj(jpgpath.open('rb'), url='foo.png', type='foobar')
 
 
 def test_mobj_bad_validation(pngpath):
-    with pytest.raises(UnknownMediaTypeError):
-        MediaObject.fromobj(pngpath.open('rb'))
+    with pytest.raises(MediaValidationError):
+        MediaObject.fromobj(pngpath.open('rb'), url='foo.png')
 
-    with pytest.raises(UnknownMediaTypeError):
-        MediaObject.fromobj(pngpath.open('rb'), type="adsf")
+    with pytest.raises(MediaValidationError):
+        MediaObject.fromobj(pngpath.open('rb'), url='foo.png', type="adsf")
+
+    with pytest.raises(MediaValidationError):
+        MediaObject.fromobj(pngpath.open('rb'), url='foo.png', type="images")
 
 
 def test_mobj_from_url_None(testidbmodel):

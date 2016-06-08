@@ -113,14 +113,17 @@ def test_upload_no_body_existing_url(client, testmedia_result, basic_auth_header
     tmr = testmedia_result
     url = url_for('idb.data_api.v2_media.upload', filereference=tmr['filereference'])
     r = client.post(url, headers=[basic_auth_header])
-    assert r.status_code == 400, r.json
+    assert r.status_code == 200, "Existing url, should clear last_status and proceed"
+    assert r.json.get('last_status') is None
 
     r = client.post(url, data={'mime': 'image/jpeg'}, headers=[basic_auth_header])
-    assert r.status_code == 400, r.json
+    assert r.status_code == 200, r.json
+    assert r.json.get('last_status') is None
 
     r = client.post(url, data={'media_type': 'images'},
                     headers=[basic_auth_header])
-    assert r.status_code == 400, r.json
+    assert r.status_code == 200, r.json
+    assert r.json.get('last_status') is None
 
     r = client.post(url, data={'media_type': 'images', 'mime': 'image/jpeg'},
                     headers=[basic_auth_header])
@@ -128,12 +131,28 @@ def test_upload_no_body_existing_url(client, testmedia_result, basic_auth_header
     assert r.json.get('last_status') is None
 
 
-def test_upload_no_body_new_url(client, basic_auth_header):
-    filereference = "http://test.idigbio.org/idigbio_logo.jpg"
+def test_upload_no_body_new_url_1(client, basic_auth_header):
+    filereference = "http://test.idigbio.org/asdfadsfadsfa.jpg"
+    url = url_for('idb.data_api.v2_media.upload', filereference=filereference)
+
+    r = client.post(url, data={'media_type': 'images'}, headers=[basic_auth_header])
+    assert r.status_code == 400, "No mime, should be incomplete request {0!r}".format(r.json)
+
+
+def test_upload_no_body_new_url_2(client, basic_auth_header):
+    filereference = "http://test.idigbio.org/asdfadsfadsfa.jpg"
     url = url_for('idb.data_api.v2_media.upload', filereference=filereference)
     r = client.post(url, data={'media_type': 'images', 'mime': 'image/jpeg'},
                     headers=[basic_auth_header])
     assert r.status_code == 200, r.json
+    assert r.json.get('last_status') is None
+
+
+def test_upload_no_body_new_url_3(client, basic_auth_header):
+    filereference = "http://test.idigbio.org/asdfadsfadsfa.jpg"
+    url = url_for('idb.data_api.v2_media.upload', filereference=filereference)
+    r = client.post(url, data={'mime': 'image/jpeg'}, headers=[basic_auth_header])
+    assert r.status_code == 200, "New url with a non-ambiguous mime should work"
 
 
 def test_upload_jpeg(client, testmedia_result, basic_auth_header, jpgpath):
@@ -189,21 +208,21 @@ def test_bad_media_type(client, basic_auth_header):
     assert r.status_code == 400, r.json
 
 
-def test_datasets_mime_type_passthrough(client, basic_auth_header, jpgpath, mock):
+def test_datasets_mime_type(client, basic_auth_header, zippath, mock):
     """We currently allow uploading anything to the datasets bucket
     because there isn't really reliable validation we can do
     """
+    mock.patch.object(boto.s3.key.Key, 'exists', return_value=True)
     filereference = "http://test.idigbio.org/dataset.zip"
     url = url_for('idb.data_api.v2_media.upload', filereference=filereference)
     r = client.post(url,
                     data={
-                        'file': (jpgpath.open('rb'), 'file'),
-                        'mime': 'image/jpeg',
+                        'file': (zippath.open('rb'), 'file'),
                         'media_type': 'datasets',
                     },
                     headers=[basic_auth_header])
     assert r.status_code == 200, r.json
-    assert r.json['mime'] == 'image/jpeg', "Expected the detected_mime in answer"
+    assert r.json['mime'] == 'application/zip', "Expected the detected_mime in answer"
     assert r.json['type'] == 'datasets'
 
 

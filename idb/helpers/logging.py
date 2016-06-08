@@ -89,7 +89,7 @@ def configure(logger=idblogger,
 
 def add_file_handler(logger=logging.root, level=None,
                      filename=None, logdir=None):
-    level = level or logging.INFO
+    level = logging.INFO if level is None else level
     logdir = logdir or DEFAULT_LOGDIR
     if logger.getEffectiveLevel() > level:
         logger.setLevel(level)

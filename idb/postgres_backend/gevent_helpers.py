@@ -41,11 +41,11 @@ psycopg2.extensions.set_wait_callback(gevent_wait_callback)
 
 class GeventedConnPool(object):
     closed = False
-    maxsize = 0
+    maxsize = None
     pool = None
     _connectargs = None
 
-    def __init__(self, maxsize=10, **connectargs):
+    def __init__(self, maxsize=8, **connectargs):
         self.maxsize = maxsize
         self.pool = Queue()
         self.lock = gevent.lock.BoundedSemaphore(maxsize)

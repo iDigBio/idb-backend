@@ -64,6 +64,9 @@ def configure_app_log(verbose, logfile=None):
 
     logging_level = lvls.get(verbose, logging.DEBUG)
     add_stderr_handler(level=logging_level)
+    logging.captureWarnings(verbose >= 2)
+
+
 
 
 def configure(logger=idblogger,

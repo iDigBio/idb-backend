@@ -17,7 +17,7 @@ def mediaing(ctx, prefix):
         click.echo("Don't use wildcards in prefix", err=True)
         click.abort()
 
-    ctx.obj = params = {'prefix': prefix}
+    ctx.obj = {'prefix': prefix}
     monkey.patch_all()
     from idigbio_ingestion import mediaing  # noqa
 
@@ -40,11 +40,16 @@ def mediaing_get_media(mediaing_params, last_check_interval=None, continuous=Fal
 
 
 @mediaing.command(name="updatedb", help="Update the DB with new URLs")
+@click.option("--daily/--no-daily", default=False,
+              help="Run in daily mode: only search for mediarecords in the last day.")
 @click.pass_obj
 @fnlogged
-def mediaing_updatedb(mediaing_params):
+def mediaing_updatedb(mediaing_params, daily):
     from idigbio_ingestion.mediaing import updatedb
-    updatedb.updatedb(prefix=mediaing_params['prefix'])
+    if daily:
+        updatedb.daily(prefix=mediaing_params['prefix'])
+    else:
+        updatedb.updatedb(prefix=mediaing_params['prefix'])
 
 
 @cli.command(help="Generate derivatives in the specified buckets."

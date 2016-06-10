@@ -3,12 +3,12 @@ import datetime
 import functools
 import json
 import logging
-import multiprocessing
 import os
 import re
 import traceback
 
 import magic
+
 from atomicfile import AtomicFile
 from psycopg2 import DatabaseError
 from boto.exception import S3ResponseError, S3DataError
@@ -17,9 +17,11 @@ from boto.exception import S3ResponseError, S3DataError
 from idb import stats
 from idb.postgres_backend import apidbpool, NamedTupleCursor
 from idb.postgres_backend.db import PostgresDB, RecordSet
+from idb.helpers import ilen
 from idb.helpers.etags import calcEtag, calcFileHash
 from idb.helpers.logging import idblogger, LoggingContext
 from idb.helpers.storage import IDigBioStorage
+from idb.helpers import gipcpool
 
 from idigbio_ingestion.lib.dwca import Dwca
 from idigbio_ingestion.lib.delimited import DelimitedFile
@@ -294,7 +296,6 @@ def process_subfile(rf, rsid, rs_uuid_etag, rs_id_uuid, ingest=False, db=None):
             ids_to_add = {}
             uuids_to_add = {}
             rlogger.warn(e)
-            rlogger.info(traceback.format_exc())
             record_exceptions += 1
         except AssertionError as e:
             ids_to_add = {}
@@ -331,7 +332,7 @@ def process_subfile(rf, rsid, rs_uuid_etag, rs_id_uuid, ingest=False, db=None):
             try:
                 db.delete_item(u)
                 deleted += 1
-            except:
+            except Exception:
                 rlogger.info("Failed deleting %r", u, exc_info=True)
 
     return {
@@ -542,9 +543,9 @@ def launch_child(rsid, ingest):
 
         return main(rsid, ingest=ingest)
     except KeyboardInterrupt:
-        logger.debug("Child KeyboardInterrupt")
-        pass
-    except:
+        logger.getChild(rsid).debug("KeyboardInterrupt in child")
+        raise
+    except Exception:
         logger.getChild(rsid).critical("Child failed", exc_info=True)
 
 
@@ -557,14 +558,10 @@ def allrsids(since=None, ingest=False):
     # Need to ensure all the connections are closed before multiprocessing forks
     apidbpool.closeall()
 
-    pool = multiprocessing.Pool(maxtasksperchild=1)
-    try:
-        results = list(
-            pool.imap_unordered(
-                functools.partial(launch_child, ingest=ingest),
-                rsids))
-    except KeyboardInterrupt:
-        logger.debug("Got KeyboardInterrupt")
-        raise
+    pool = gipcpool.Pool()
+    exitcodes = pool.imap_unordered(functools.partial(launch_child, ingest=ingest), rsids)
+    badcount = ilen(e for e in exitcodes if e != 0)
+    if badcount:
+        logger.critical("%d children failed", badcount)
     from .ds_sum_counts import main as ds_sum_counts
     ds_sum_counts('./', sum_filename='summary.csv', susp_filename="suspects.csv")

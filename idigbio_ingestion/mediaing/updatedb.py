@@ -28,7 +28,7 @@ def updatedb(prefix=None, since=None):
 def daily(prefix=None):
     "Run the daily update; i.e. look for mediarecords with a modified in the last day"
     from datetime import datetime, timedelta
-    since = datetime.now() - timedelta(hours=-25)
+    since = datetime.now() - timedelta(hours=25)
     updatedb(prefix=prefix, since=since)
 
 

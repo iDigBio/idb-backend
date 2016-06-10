@@ -99,12 +99,14 @@ def find_new_urls(media_urls, prefix=None, since=None):
 
 def write_urls_to_db(to_insert, to_update):
     with apidbpool.cursor(autocommit=True) as cur:
-        inserted = cur.executemany(
+        cur.executemany(
             "INSERT INTO media (url,type,mime) VALUES (%s,%s,%s)",
             ((k, v[0], v[1]) for k,v in to_insert.items()))
-        updated = cur.executemany(
+        inserted = cur.rowcount
+        cur.executemany(
             "UPDATE media SET type=%s, mime=%s, last_status=NULL, last_check=NULL WHERE url=%s",
             to_update)
+        updated = cur.rowcount
     logger.info("Inserted : %8d, Updated : %8d", inserted, updated)
 
 

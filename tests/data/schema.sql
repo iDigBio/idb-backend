@@ -3,7 +3,7 @@
 --
 
 -- Dumped from database version 9.4.4
--- Dumped by pg_dump version 9.5.2
+-- Dumped by pg_dump version 9.5.3
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
@@ -95,6 +95,19 @@ DROP SEQUENCE IF EXISTS public.corrections_id_seq;
 DROP TABLE IF EXISTS public.corrections;
 DROP SEQUENCE IF EXISTS public.annotations_id_seq;
 DROP TABLE IF EXISTS public.annotations;
+DROP SCHEMA IF EXISTS public;
+--
+-- Name: public; Type: SCHEMA; Schema: -; Owner: -
+--
+
+CREATE SCHEMA public;
+
+
+--
+-- Name: SCHEMA public; Type: COMMENT; Schema: -; Owner: -
+--
+
+COMMENT ON SCHEMA public IS 'standard public schema';
 
 
 SET search_path = public, pg_catalog;

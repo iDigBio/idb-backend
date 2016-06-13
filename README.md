@@ -72,21 +72,25 @@ Relies on having a local postgresql with user/pass `test` / `test`
 that can connect to DB `test_idigbio`. The data in the DB will be
 destroyed during the testing.
 
+### Create the local DB
+
+
+    createuser -l -e test -P
+    createdb -l 'en_US.UTF-8' -E UTF8 -O test -e test_idigbio;
+    psql -c "ALTER SCHEMA public OWNER TO test" test_idigbio
+
+
 ### Schema and data
 
 Testing the DB uses the schema copied from the live DB with:
 
-    pg_dump --host c18node8.acis.ufl.edu --port 5432 --username "idigbio" \
-        --format plain --schema-only --no-owner --clean \
-        --no-privileges --no-tablespaces --no-unlogged-table-data
-        --file "~/projects/idigbio/idb-backend/idb/tests/data/schema.sql" \
-        "idb_api_prod"
+    pg_dump --host c18node8.acis.ufl.edu --username idigbio \
+        --format plain --schema-only --schema=public \
+        --clean --if-exists \
+        --no-owner --no-privileges --no-tablespaces --no-unlogged-table-data \
+        --file tests/data/schema.sql \
+        idb_api_prod
 
-The data in the DB was built up, copying from the live DB and then
-snapshotted with:
 
-    pg_dump --port 5432 --format plain --data-only --encoding UTF8 \
-      --inserts --column-inserts --no-privileges --no-tablespaces \
-      --verbose --no-unlogged-table-data  \
-      --file ~/projects/idigbio/idb-backend/idb/tests/data/testdata.sql \
-      test_idigbio
+The data has been built up to support the test suite; it is provided
+in `tests/data/testdata.sql`

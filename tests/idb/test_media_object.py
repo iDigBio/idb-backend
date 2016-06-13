@@ -9,8 +9,6 @@ from idb.helpers.media_validation import MediaValidationError
 from idb.postgres_backend.db import MediaObject
 
 
-prodonly = pytest.mark.skipif(os.environ['ENV'] != 'prod', reason='Requires production DB')
-
 
 def test_mobj_fromobj_jpg(jpgpath):
     mobj = MediaObject.fromobj(jpgpath.open('rb'), url='foo.jpg')
@@ -60,6 +58,29 @@ def test_mobj_from_etag_None(testidbmodel):
     assert mobj is None
 
 
+def test_mobj_fromurl(testidbmodel, testdata):
+    url = 'http://hasbrouck.asu.edu/imglib/pollen/Seeds/Cornus-stolonifera-272.jpg'
+    mobj = MediaObject.fromurl(url, idbmodel=testidbmodel)
+    assert mobj
+    assert mobj.url == url
+    assert mobj.type == 'images' == mobj.bucket
+    assert mobj.mime == 'image/jpeg' == mobj.detected_mime
+    assert mobj.owner
+    assert mobj.etag == "3e17584bc43cf36617b6793515089656"
+
+
+def test_mobj_frometag(testidbmodel, testdata):
+    mobj = MediaObject.frometag("3e17584bc43cf36617b6793515089656", idbmodel=testidbmodel)
+    assert mobj
+    assert mobj.type == 'images'
+    assert mobj.mime == 'image/jpeg' == mobj.detected_mime
+    assert mobj.etag == "3e17584bc43cf36617b6793515089656"
+    assert mobj.url == 'http://hasbrouck.asu.edu/imglib/pollen/Seeds/Cornus-stolonifera-272.jpg'
+    assert mobj.type == 'images' == mobj.bucket
+    assert mobj.mime == 'image/jpeg' == mobj.detected_mime
+    assert mobj.owner
+
+
 def test_mobj_full_run(testidbmodel, jpgpath):
     url = "http://test.idigbio.org/idigbio_logo.jpg"
     mobj = MediaObject.fromobj(jpgpath.open('rb'), url=url)
@@ -89,6 +110,7 @@ def test_mobj_full_run(testidbmodel, jpgpath):
 
 
 def test_mobj_media_idigibio_patch(testidbmodel):
+    "URLs that are media.idigbio.org contain etags and there is special handling for them"
     etag = "924709c6ebbd34030468185a323a437"
     url = "http://media.idigbio.org/lookup/images/" + etag
     mo = MediaObject(etag=etag, bucket="images", detected_mime='image/jpeg')
@@ -98,27 +120,3 @@ def test_mobj_media_idigibio_patch(testidbmodel):
     assert mfu.etag == etag
     assert mfu.detected_mime == 'image/jpeg'
     assert mfu.url is None
-
-
-@prodonly
-def test_mobj_from_url_live(idbmodel):
-    url = 'http://hasbrouck.asu.edu/imglib/seinet/DES/DES00043/DES00043839_lg.jpg'
-    mobj = MediaObject.fromurl(url, idbmodel=idbmodel)
-    assert mobj
-    assert mobj.type == 'images' == mobj.bucket
-    assert mobj.mime == 'image/jpeg' == mobj.detected_mime
-    assert mobj.owner
-    assert mobj.etag == "341997942e8e8bc02c76917c660e674f"
-    from idb.helpers.storage import IDigBioStorage
-    k = mobj.get_key(IDigBioStorage())
-    assert k
-    assert k.exists()
-
-
-@prodonly
-def test_mobj_from_etag_live(idbmodel):
-    mobj = MediaObject.frometag('341997942e8e8bc02c76917c660e674f', idbmodel)
-    assert mobj
-    assert mobj.type == 'images'
-    assert mobj.mime == 'image/jpeg' == mobj.detected_mime
-    assert mobj.etag == "341997942e8e8bc02c76917c660e674f"

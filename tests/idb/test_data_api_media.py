@@ -17,7 +17,8 @@ def basic_auth_header(testdata):
 
 
 @pytest.fixture()
-def testmedia_result():
+def testmedia_result(testdata):
+    ""
     return {
         'uuid': "00dd0642-e3e3-4f50-b258-9f3f000e3e6a",
         'etag': "3e17584bc43cf36617b6793515089656",
@@ -30,6 +31,15 @@ def testmedia_result():
         'type': 'images'
     }
 
+def check_response_props(tmr, r, status=200,
+                         keys=('etag', 'mime', 'user', 'filereference', 'url', 'last_status', 'type')):
+    __tracebackhide__ = True
+    assert r.status_code == 200
+    assert r.json
+    for k in keys:
+        assert r.json[k] == tmr[k], "Mismatch on {0!r}".format(k)
+
+
 @pytest.fixture(autouse=True)
 def block_upload_to_ceph(mock):
     "During the course of these tests we don't actually want to post to Ceph"
@@ -40,10 +50,7 @@ def test_lookup_uuid(client, testmedia_result):
     tmr = testmedia_result
     url = url_for('idb.data_api.v2_media.lookup_uuid', u=tmr['uuid'], format="json")
     r = client.get(url)
-    assert r.status_code == 200
-    assert r.json
-    for k in ('etag', 'mime', 'user', 'filereference', 'url', 'last_status', 'type'):
-        assert r.json[k] == tmr[k]
+    check_response_props(tmr, r)
 
 
 def test_lookup_uuid_missing(client):
@@ -56,20 +63,14 @@ def test_lookup_fileref(client, testmedia_result):
     tmr = testmedia_result
     url = url_for('idb.data_api.v2_media.lookup_ref', filereference=tmr['filereference'], format="json")
     r = client.get(url)
-    assert r.status_code == 200
-    assert r.json
-    for k in ('etag', 'mime', 'user', 'filereference', 'url', 'last_status', 'type'):
-        assert r.json[k] == tmr[k]
+    check_response_props(tmr, r)
 
 
 def test_lookup_etag(client, testmedia_result):
     tmr = testmedia_result
     url = url_for('idb.data_api.v2_media.lookup_etag', etag=tmr['etag'], format="json")
     r = client.get(url)
-    assert r.status_code == 200
-    assert r.json
-    for k in ('etag', 'mime', 'user', 'filereference', 'url', 'last_status', 'type'):
-        assert r.json[k] == tmr[k]
+    check_response_props(tmr, r)
 
 
 def test_redirect(client, testmedia_result):
@@ -78,6 +79,7 @@ def test_redirect(client, testmedia_result):
     r = client.get(url)
     assert r.status_code == 302
     assert r.location == tmr['url']
+
 
 def test_derivation(client, testmedia_result):
     tmr = testmedia_result
@@ -155,7 +157,7 @@ def test_upload_no_body_new_url_3(client, basic_auth_header):
     assert r.status_code == 200, "New url with a non-ambiguous mime should work"
 
 
-def test_upload_jpeg(client, testmedia_result, basic_auth_header, jpgpath):
+def test_upload_jpeg(client, basic_auth_header, jpgpath):
     filereference = "http://test.idigbio.org/idigbio_logo.jpg"
     url = url_for('idb.data_api.v2_media.upload', filereference=filereference)
     r = client.post(url,
@@ -179,8 +181,8 @@ def test_upload_etag(client, testmedia_result, basic_auth_header, mock):
     assert r.status_code == 200
     assert r.json['filereference'] == filereference
     assert r.json['last_status'] == 200
-    for k in ('etag', 'mime', 'user', 'url', 'last_status', 'type'):
-        assert r.json[k] == tmr[k]
+    check_response_props(tmr, r, keys=('etag', 'mime', 'user', 'url', 'last_status', 'type'))
+
 
 def test_upload_missing_etag_in_db(client, basic_auth_header, mock):
     mock.patch.object(boto.s3.key.Key, 'exists', return_value=True)
@@ -190,7 +192,7 @@ def test_upload_missing_etag_in_db(client, basic_auth_header, mock):
     r = client.post(url, headers=[basic_auth_header])
     assert r.status_code == 404
 
-def test_upload_missing_etag_in_ceph(client, testmedia_result, basic_auth_header, mock):
+def test_upload_missing_etag_in_ceph(client, basic_auth_header, mock):
     mock.patch.object(boto.s3.key.Key, 'exists', return_value=False)
     filereference = "http://test.idigbio.org/idigbio_logo.jpg"
     url = url_for('idb.data_api.v2_media.upload',

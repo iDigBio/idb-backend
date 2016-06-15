@@ -64,7 +64,6 @@ def respond_to_record(r, deriv=None, format=None):
         return json_error(404)
     media_url = get_media_url(r, deriv=deriv)
     mime = r.mime or r.detected_mime
-    status = 200
 
     if media_url:
         text = None
@@ -76,13 +75,10 @@ def respond_to_record(r, deriv=None, format=None):
         text = "Media Download Pending"
     else:
         text = "Media Error"
-        status = 400
 
     if format == "json":
         d = get_json_for_record(r, deriv, text=text)
         response = jsonify(d)
-        #TODO: Shouldn't this status be set?
-        #response.status_code = status
         response.cache_control.public = True
         response.cache_control.max_age = 24 * 60 * 60  # 1d
         return response

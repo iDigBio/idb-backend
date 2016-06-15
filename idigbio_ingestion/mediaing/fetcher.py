@@ -163,7 +163,6 @@ def count_result_types(results, interval=1000, forprefix=''):
     logger.info("%s Count: %8d; codecounts: %r FINISHED!", forprefix, count, counts.most_common())
 
 
-
 def update_db_status(items):
     rc = 0
     with apidbpool.cursor(autocommit=True) as cur:

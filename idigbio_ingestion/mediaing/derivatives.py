@@ -283,47 +283,43 @@ def load_img(buff):
 def migrate():
     log.info("Checking for objects in the old media api")
     try:
-        with apidbpool.cursor() as cur:
-            sql = """INSERT INTO objects (bucket, etag)
-                  (SELECT DISTINCT
-                    type,
-                    a.etag
-                  FROM idb_object_keys AS a
-                  LEFT JOIN objects AS b ON a.etag = b.etag
-                  WHERE b.etag IS NULL);
-            """
-            cur.execute(sql)
-            rc = cur.rowcount
-            log.info("Objects Migrated: %s", rc)
-            sql = """INSERT INTO media (url, type, owner, last_status, last_check)
-                  (SELECT
-                    idb_object_keys.lookup_key,
-                    idb_object_keys.type,
-                    idb_object_keys.user_uuid::uuid,
-                    200,
-                    now()
-                  FROM idb_object_keys
-                  LEFT JOIN media ON lookup_key = url
-                  WHERE media.url IS NULL);
-            """
-            cur.execute(sql)
-            rc = cur.rowcount
-            log.info("Media Migrated: %s", rc)
-            sql = """
-                INSERT INTO media_objects (url, etag, modified)
-                  (SELECT
-                    idb_object_keys.lookup_key,
-                    idb_object_keys.etag,
-                    idb_object_keys.date_modified
-                  FROM idb_object_keys
-                  JOIN media ON idb_object_keys.lookup_key = media.url
-                  JOIN objects ON idb_object_keys.etag = objects.etag
-                  LEFT JOIN media_objects ON lookup_key = url
-                        AND media_objects.etag = idb_object_keys.etag
-                  WHERE media_objects.url IS NULL)
-            """
-            cur.execute(sql)
-            rc = cur.rowcount
-            log.info("Media Objects Migrated: %s", rc)
+        sql = """INSERT INTO objects (bucket, etag)
+              (SELECT DISTINCT
+                type,
+                a.etag
+              FROM idb_object_keys AS a
+              LEFT JOIN objects AS b ON a.etag = b.etag
+              WHERE b.etag IS NULL);
+        """
+        rc = apidbpool.execute(sql)
+        log.info("Objects Migrated: %s", rc)
+        sql = """INSERT INTO media (url, type, owner, last_status, last_check)
+              (SELECT
+                idb_object_keys.lookup_key,
+                idb_object_keys.type,
+                idb_object_keys.user_uuid::uuid,
+                200,
+                now()
+              FROM idb_object_keys
+              LEFT JOIN media ON lookup_key = url
+              WHERE media.url IS NULL);
+        """
+        rc = apidbpool.execute(sql)
+        log.info("Media Migrated: %s", rc)
+        sql = """
+            INSERT INTO media_objects (url, etag, modified)
+              (SELECT
+                idb_object_keys.lookup_key,
+                idb_object_keys.etag,
+                idb_object_keys.date_modified
+              FROM idb_object_keys
+              JOIN media ON idb_object_keys.lookup_key = media.url
+              JOIN objects ON idb_object_keys.etag = objects.etag
+              LEFT JOIN media_objects ON lookup_key = url
+                    AND media_objects.etag = idb_object_keys.etag
+              WHERE media_objects.url IS NULL)
+        """
+        rc = apidbpool.execute(sql)
+        log.info("Media Objects Migrated: %s", rc)
     except Exception:
         log.error("Failed migrating from old media api")

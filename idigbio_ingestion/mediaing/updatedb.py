@@ -70,14 +70,14 @@ def find_new_urls(media_urls, prefix=None, since=None):
                         len(to_insert), len(to_update), scanned)
 
         scanned += 1
-        url = get_accessuri('mediarecord', data)["accessuri"]
+        url = get_accessuri('mediarecords', data)["accessuri"]
         if url is None:
             continue
         url = url.replace("&amp;", "&").strip()
         if prefix and not url.startswith(prefix):
             continue
 
-        o = get_media_type('mediarecord', data)
+        o = get_media_type('mediarecords', data)
         t, mime = o["mediatype"], o["format"]
 
         entry = media_urls.get(url)

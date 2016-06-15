@@ -63,18 +63,18 @@ def respond_to_record(r, deriv=None, format=None):
     if r is None:
         return json_error(404)
     media_url = get_media_url(r, deriv=deriv)
-    mime = r.mime or r.detected_mime
+    mime = r.detected_mime or r.mime
 
     if media_url:
         text = None
     elif mime is None:
-        text = "Unknown Format"
+        text = "No Preview"
     elif (r.type or r.bucket) is None:
-        text = "Unsupported Format"
+        text = "No Preview"
     elif r.last_status is None:  # haven't downloaded yet
-        text = "Media Download Pending"
+        text = "Preview Pending"
     else:
-        text = "Media Error"
+        text = "No Preview"
 
     if format == "json":
         d = get_json_for_record(r, deriv, text=text)

@@ -100,7 +100,7 @@ def test_bad_derivation(client, testmedia_result):
                   etag=tmr['etag'], deriv='foobar', format="json")
     r = client.get(url)
     assert r.status_code == 200  # TODO: 400?
-    assert r.json['text'] == 'Media Error'
+    assert r.json['text'] == "No Preview"
 
 
 def test_upload_auth(client, basic_auth_header):

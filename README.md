@@ -18,7 +18,7 @@ In Ubuntu 14.04:
 In Ubuntu 16.04:
 
     apt-get install python2.7-dev libblas-dev liblapack-dev \
-      libatlas-base-dev gfortran libgdal-dev
+      libatlas-base-dev gfortran libgdal-dev libpq-dev
     #TODO figure out replacement for libgeos-c1
 
 

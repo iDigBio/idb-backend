@@ -46,7 +46,8 @@ def once(prefix=None, ignores=IGNORE_PREFIXES):
     groups = group_by_prefix(fetchitems)
     procs = start_all_procs(groups).values()
     logger.debug("%d procs started, waiting...", len(procs))
-    gevent.wait(procs)
+    for p in procs:
+        p.join()
 
 
 def start_all_procs(groups, running=None):

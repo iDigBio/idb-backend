@@ -241,16 +241,23 @@ def queryIter(query, ei, rc, typ, yield_record=False):
             else:
                 yield index_record(ei, rc, typ, rec, do_index=False)
 
-def uuidsIter(uuid_l, ei, rc, typ, yield_record=False):
+
+
+def uuidsIter(uuid_l, ei, rc, typ, yield_record=False, children=False):
     for rid in uuid_l:
-        sql = "SELECT * FROM idigbio_uuids_data WHERE uuid=%s and type=%s"
+        if children:
+            log.debug("Selecting children of %s.", rid)
+            sql = "SELECT * FROM idigbio_uuids_data WHERE parent=%s and type=%s"
+        else:
+            sql = "SELECT * FROM idigbio_uuids_data WHERE uuid=%s and type=%s"
         params = (rid.strip(), typ[:-1])
-        rec = apidbpool.fetchone(sql, params, cursor_factory=DictCursor)
-        if rec is not None:
+        results = apidbpool.fetchall(sql, params, cursor_factory=DictCursor)
+        for rec in results:
             if yield_record:
                 yield rec
             else:
                 yield index_record(ei, rc, typ, rec, do_index=False)
+
 
 def delete(ei, rc, no_index=False):
     log.info("Running deletes")
@@ -302,8 +309,8 @@ def query(ei, rc, query, no_index=False):
     except:
         pass
 
-def uuids(ei, rc, uuid_l, no_index=False):
-    f = functools.partial(uuidsIter, uuid_l)
+def uuids(ei, rc, uuid_l, no_index=False, children=False):
+    f = functools.partial(uuidsIter, uuid_l, children=children)
     consume(ei, rc, f, no_index=no_index)
     try:
         ei.optimize()

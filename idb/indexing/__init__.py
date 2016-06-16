@@ -102,12 +102,13 @@ def uuid_file(params, uuid_file):
 
 
 @cli.command(help="Index the specified uuids")
+@click.option('--children', is_flag=True, default=False, help="Index the children of specified uuids")
 @click.argument('uuid', nargs=-1)
 @click.pass_obj
 @fnlogged
-def uuids(params, uuid):
+def uuids(params, children, uuid):
     from .index_from_postgres import uuids
-    uuids(uuid_l=uuid, **params)
+    uuids(children=children, uuid_l=uuid, **params)
 
 
 @cli.command(help="resume a full sync (full + etag compare)")

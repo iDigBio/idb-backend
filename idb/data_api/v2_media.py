@@ -67,35 +67,40 @@ def respond_to_record(r, deriv=None, format=None):
 
     if media_url:
         text = None
-    elif mime is None:
+        cache = 4 * 24 * 60 * 60
+    elif mime is None or (r.type or r.bucket) is None:
         text = "No Preview"
-    elif (r.type or r.bucket) is None:
-        text = "No Preview"
+        cache = 24 * 60 * 60
     elif r.last_status is None:  # haven't downloaded yet
         text = "Preview Pending"
+        cache = 600
     else:
         text = "No Preview"
+        cache = 24 * 60 * 60
 
     if format == "json":
         d = get_json_for_record(r, deriv, text=text)
         response = jsonify(d)
         response.cache_control.public = True
-        response.cache_control.max_age = 24 * 60 * 60  # 1d
+        response.cache_control.max_age = cache
         return response
     elif format is not None:
-        return json_error(400, "Unknown format '{0}'".format(format))
+        response = json_error(400, "Unknown format '{0}'".format(format))
+        response.cache_control.public = True
+        response.cache_control.max_age = 24 * 60 * 60
+        return response
 
     if media_url is not None:
         response = redirect(media_url)
         response.cache_control.public = True
-        response.cache_control.max_age = 4 * 24 * 60 * 60  # 4d
+        response.cache_control.max_age = cache
         return response
 
     response = Response(
         render_template("_default.svg", text=text, mime=r.mime),
         mimetype="image/svg+xml")
     response.cache_control.public = True
-    response.cache_control.max_age = 24 * 60 * 60  # 1d
+    response.cache_control.max_age = cache
     return response
 
 

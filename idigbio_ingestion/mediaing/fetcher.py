@@ -275,7 +275,7 @@ class FetchItem(object):
             self.reason = str(mii)
             self.status_code = Status.UNREQUESTABLE
         except ConnectionError as connectione:
-            self.reason = connectione.errno + " " + connectione.message,
+            self.reason = "{0} {1}".format(connectione.errno, connectione.message)
             self.status_code = Status.CONNECTION_ERROR
         else:
             try:

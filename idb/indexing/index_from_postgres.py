@@ -116,8 +116,7 @@ def type_yield_modified(ei, rc, typ, yield_record=False):
             recordids,
             siblings,
             uuids_data.id as vid,
-            data,
-            riak_etag
+            data
         FROM uuids_data
         LEFT JOIN uuids
         ON uuids.id = uuids_data.uuids_id

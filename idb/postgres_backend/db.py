@@ -94,8 +94,7 @@ class PostgresDB(object):
 
     __columns_master_query_data = __columns_master_query + \
         """,
-            data,
-            riak_etag
+            data
     """
 
     __item_master_query = __columns_master_query + __item_master_query_from
@@ -243,7 +242,6 @@ class PostgresDB(object):
 
         self.execute("""CREATE TABLE IF NOT EXISTS data (
             etag varchar(41) NOT NULL PRIMARY KEY,
-            riak_etag varchar(41),
             data jsonb
         )""")
 

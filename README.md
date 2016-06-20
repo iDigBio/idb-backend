@@ -74,10 +74,13 @@ destroyed during the testing.
 
 ### Create the local DB
 
-
     createuser -l -e test -P
     createdb -l 'en_US.UTF-8' -E UTF8 -O test -e test_idigbio;
-    psql -c "ALTER SCHEMA public OWNER TO test" test_idigbio
+
+    # The schema obj is still owned by the user of the above
+    # statement, not the owner 'test'. Drop it so it will be recreated
+    # by the script appropriately
+    psql -c "DROP SCHEMA public CASCADE;" test_idigbio
 
 
 ### Schema and data
@@ -94,3 +97,8 @@ Testing the DB uses the schema copied from the live DB with:
 
 The data has been built up to support the test suite; it is provided
 in `tests/data/testdata.sql`
+
+    pg_dump --port 5432 --format plain --data-only --encoding UTF8 \
+      --inserts --column-inserts --no-privileges --no-tablespaces \
+      --verbose --no-unlogged-table-data  \
+      --file tests/data/testdata.sql $DBNAME

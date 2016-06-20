@@ -32,12 +32,9 @@ DROP INDEX IF EXISTS public.uuids_identifier_uuids_id;
 DROP INDEX IF EXISTS public.uuids_identifier_reverse_idx;
 DROP INDEX IF EXISTS public.uuids_data_version;
 DROP INDEX IF EXISTS public.uuids_data_uuids_id_modified;
-DROP INDEX IF EXISTS public.uuids_data_modified;
 DROP INDEX IF EXISTS public.media_objects_urls;
 DROP INDEX IF EXISTS public.media_objects_etags;
 DROP INDEX IF EXISTS public.idb_object_keys_etag;
-DROP INDEX IF EXISTS public.data_riak_etag;
-DROP INDEX IF EXISTS public.data_accessuris;
 DROP INDEX IF EXISTS public.corrections_source;
 ALTER TABLE IF EXISTS ONLY public.uuids_siblings DROP CONSTRAINT IF EXISTS uuids_siblings_pkey;
 ALTER TABLE IF EXISTS ONLY public.uuids DROP CONSTRAINT IF EXISTS uuids_pkey;
@@ -186,8 +183,7 @@ ALTER SEQUENCE corrections_id_seq OWNED BY corrections.id;
 
 CREATE TABLE data (
     etag character varying(41) NOT NULL,
-    data jsonb,
-    riak_etag character varying(41)
+    data jsonb
 );
 
 
@@ -298,8 +294,7 @@ CREATE VIEW idigbio_uuids_data AS
     ids.recordids,
     sibs.siblings,
     latest.id AS vid,
-    data.data,
-    data.riak_etag
+    data.data
    FROM ((((uuids
      LEFT JOIN LATERAL ( SELECT uuids_data.id,
             uuids_data.uuids_id,
@@ -309,32 +304,23 @@ CREATE VIEW idigbio_uuids_data AS
            FROM uuids_data
           WHERE (uuids_data.uuids_id = uuids.id)
           ORDER BY uuids_data.modified DESC
-         LIMIT 1) latest ON ((latest.uuids_id = uuids.id)))
-     LEFT JOIN LATERAL ( SELECT uuids_identifier.uuids_id,
-            array_agg(uuids_identifier.identifier) AS recordids
+         LIMIT 1) latest ON (true))
+     LEFT JOIN LATERAL ( SELECT array_agg(uuids_identifier.identifier) AS recordids
            FROM uuids_identifier
-          WHERE (uuids_identifier.uuids_id = uuids.id)
-          GROUP BY uuids_identifier.uuids_id) ids ON ((ids.uuids_id = uuids.id)))
-     LEFT JOIN LATERAL ( SELECT rels.subject,
-            json_object_agg(rels.rel, rels.array_agg) AS siblings
-           FROM ( SELECT rel_table.subject,
-                    rel_table.rel,
-                    array_agg(rel_table.object) AS array_agg
-                   FROM ( SELECT rel_union.r1 AS subject,
-                            uuids_1.type AS rel,
-                            rel_union.r2 AS object
-                           FROM (( SELECT uuids_siblings.r1,
-                                    uuids_siblings.r2
-                                   FROM uuids_siblings
-                                UNION
-                                 SELECT uuids_siblings.r2,
-                                    uuids_siblings.r1
-                                   FROM uuids_siblings) rel_union
-                             JOIN uuids uuids_1 ON ((rel_union.r2 = uuids_1.id)))
-                          WHERE (uuids_1.deleted = false)) rel_table
-                  WHERE (rel_table.subject = uuids.id)
-                  GROUP BY rel_table.subject, rel_table.rel) rels
-          GROUP BY rels.subject) sibs ON ((sibs.subject = uuids.id)))
+          WHERE (uuids_identifier.uuids_id = uuids.id)) ids ON (true))
+     LEFT JOIN LATERAL ( SELECT json_object_agg(rels.rel, rels.array_agg) AS siblings
+           FROM ( SELECT sibs_1.type AS rel,
+                    array_agg(rel_union.r2) AS array_agg
+                   FROM (( SELECT uuids_siblings.r1,
+                            uuids_siblings.r2
+                           FROM uuids_siblings
+                        UNION
+                         SELECT uuids_siblings.r2,
+                            uuids_siblings.r1
+                           FROM uuids_siblings) rel_union
+                     JOIN uuids sibs_1 ON ((rel_union.r2 = sibs_1.id)))
+                  WHERE ((sibs_1.deleted = false) AND (rel_union.r1 = uuids.id))
+                  GROUP BY sibs_1.type) rels) sibs ON (true))
      LEFT JOIN data ON (((latest.data_etag)::text = (data.etag)::text)));
 
 
@@ -362,32 +348,23 @@ CREATE VIEW idigbio_uuids_new AS
            FROM uuids_data
           WHERE (uuids_data.uuids_id = uuids.id)
           ORDER BY uuids_data.modified DESC
-         LIMIT 1) latest ON ((latest.uuids_id = uuids.id)))
-     LEFT JOIN LATERAL ( SELECT uuids_identifier.uuids_id,
-            array_agg(uuids_identifier.identifier) AS recordids
+         LIMIT 1) latest ON (true))
+     LEFT JOIN LATERAL ( SELECT array_agg(uuids_identifier.identifier) AS recordids
            FROM uuids_identifier
-          WHERE (uuids_identifier.uuids_id = uuids.id)
-          GROUP BY uuids_identifier.uuids_id) ids ON ((ids.uuids_id = uuids.id)))
-     LEFT JOIN LATERAL ( SELECT rels.subject,
-            json_object_agg(rels.rel, rels.array_agg) AS siblings
-           FROM ( SELECT rel_table.subject,
-                    rel_table.rel,
-                    array_agg(rel_table.object) AS array_agg
-                   FROM ( SELECT rel_union.r1 AS subject,
-                            uuids_1.type AS rel,
-                            rel_union.r2 AS object
-                           FROM (( SELECT uuids_siblings.r1,
-                                    uuids_siblings.r2
-                                   FROM uuids_siblings
-                                UNION
-                                 SELECT uuids_siblings.r2,
-                                    uuids_siblings.r1
-                                   FROM uuids_siblings) rel_union
-                             JOIN uuids uuids_1 ON ((rel_union.r2 = uuids_1.id)))
-                          WHERE (uuids_1.deleted = false)) rel_table
-                  WHERE (rel_table.subject = uuids.id)
-                  GROUP BY rel_table.subject, rel_table.rel) rels
-          GROUP BY rels.subject) sibs ON ((sibs.subject = uuids.id)));
+          WHERE (uuids_identifier.uuids_id = uuids.id)) ids ON (true))
+     LEFT JOIN LATERAL ( SELECT json_object_agg(rels.rel, rels.array_agg) AS siblings
+           FROM ( SELECT sibs_1.type AS rel,
+                    array_agg(rel_union.r2) AS array_agg
+                   FROM (( SELECT uuids_siblings.r1,
+                            uuids_siblings.r2
+                           FROM uuids_siblings
+                        UNION
+                         SELECT uuids_siblings.r2,
+                            uuids_siblings.r1
+                           FROM uuids_siblings) rel_union
+                     JOIN uuids sibs_1 ON ((rel_union.r2 = sibs_1.id)))
+                  WHERE ((sibs_1.deleted = false) AND (rel_union.r1 = uuids.id))
+                  GROUP BY sibs_1.type) rels) sibs ON (true));
 
 
 --
@@ -854,20 +831,6 @@ CREATE INDEX corrections_source ON corrections USING btree (source);
 
 
 --
--- Name: data_accessuris; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX data_accessuris ON data USING btree ((COALESCE((data ->> 'ac:accessURI'::text), (data ->> 'ac:bestQualityAccessURI'::text), (data ->> 'dcterms:identifier'::text))));
-
-
---
--- Name: data_riak_etag; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX data_riak_etag ON data USING btree (riak_etag);
-
-
---
 -- Name: idb_object_keys_etag; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -886,13 +849,6 @@ CREATE INDEX media_objects_etags ON media_objects USING btree (etag);
 --
 
 CREATE INDEX media_objects_urls ON media_objects USING btree (url, modified DESC);
-
-
---
--- Name: uuids_data_modified; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX uuids_data_modified ON uuids_data USING btree (modified);
 
 
 --

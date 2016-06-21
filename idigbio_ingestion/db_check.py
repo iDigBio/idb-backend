@@ -27,9 +27,6 @@ from idigbio_ingestion.lib.dwca import Dwca
 from idigbio_ingestion.lib.delimited import DelimitedFile
 
 
-
-magic = magic.Magic(mime=True)
-
 bad_chars = u"\ufeff"
 bad_char_re = re.compile("[%s]" % re.escape(bad_chars))
 
@@ -43,6 +40,8 @@ s = IDigBioStorage()
 class RecordException(Exception):
     pass
 
+def getrslogger(rsid):
+    return logger.getChild(rsid)
 
 def mungeid(s):
     return bad_char_re.sub('', s).strip()
@@ -97,9 +96,12 @@ def idFromRR(r, rs=None):
 def get_file(rsid):
     fname = rsid
     if not os.path.exists(fname):
-        RecordSet.fetch_file(rsid, fname, media_store=IDigBioStorage(), logger=logger.getChild(rsid))
-
-    mime = magic.from_file(fname)
+        try:
+            RecordSet.fetch_file(rsid, fname, media_store=IDigBioStorage(), logger=logger.getChild(rsid))
+        except (S3ResponseError, S3DataError):
+            getrslogger(rsid).exception("failed fetching archive")
+            raise
+    mime = magic.from_file(fname, mime=True)
     return (fname, mime)
 
 
@@ -138,7 +140,7 @@ core_siblings = {}
 
 
 def process_subfile(rf, rsid, rs_uuid_etag, rs_id_uuid, ingest=False, db=None):
-    rlogger = logger.getChild(rsid)
+    rlogger = getrslogger(rsid)
 
     count = 0
     no_recordid_count = 0
@@ -358,7 +360,7 @@ def process_subfile(rf, rsid, rs_uuid_etag, rs_id_uuid, ingest=False, db=None):
 
 
 def process_file(fname, mime, rsid, existing_etags, existing_ids, ingest=False, commit_force=False):
-    rlogger = logger.getChild(rsid)
+    rlogger = getrslogger(rsid)
     rlogger.info("Processing %s, type: %s", fname, mime)
     counts = {}
     t = datetime.datetime.now()
@@ -499,14 +501,10 @@ def main(rsid, ingest=False):
             filename='./{0}.db_check.log'.format(rsid),
             file_level=logging.DEBUG,
             clear_existing_handlers=False):
-        rlogger = logger.getChild(rsid)
+        rlogger = getrslogger(rsid)
         rlogger.info("Starting db_check ingest: %r", ingest)
         t = datetime.datetime.now()
-        try:
-            name, mime = get_file(rsid)
-        except (S3ResponseError, S3DataError):
-            rlogger.exception("failed fetching archive")
-            raise
+        name, mime = get_file(rsid)
 
         if os.path.exists(rsid + "_uuids.json") and os.path.exists(rsid + "_ids.json"):
             with open(rsid + "_uuids.json", "rb") as uuidf:

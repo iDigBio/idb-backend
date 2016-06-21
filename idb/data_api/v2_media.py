@@ -4,7 +4,6 @@ from datetime import datetime
 from flask import (Blueprint, jsonify, request, redirect,
                    Response, render_template)
 
-from idb.helpers.logging import idblogger
 from idb.helpers.idb_flask_authn import requires_auth
 from idb.helpers.cors import crossdomain
 from idb.helpers.storage import IDigBioStorage
@@ -15,11 +14,9 @@ from idb.helpers.media_validation import (
     #MimeNotAllowedError, MimeMismatchError,
 )
 
-from .common import json_error, idbmodel
+from .common import json_error, idbmodel, logger
 
 this_version = Blueprint(__name__, __name__)
-
-logger = idblogger.getChild('mediapi')
 
 # TODO:
 # List endpoints?

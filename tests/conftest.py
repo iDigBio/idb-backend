@@ -146,21 +146,3 @@ def testidbmodel(request, testdbpool, testschema, logger):
         gevent.wait()
     request.addfinalizer(cleanup)
     return i
-
-
-@pytest.fixture
-def app(testdbpool, testdata, logger):
-    from idb.data_api import api
-    reload(api)
-    app = api.app
-    app.config['DB'] = testdbpool
-
-    def cleanup(exception):
-        logger.info("Cleanup app idbmodel")
-        from idb.data_api.common import idbmodel
-        idbmodel.rollback()
-        idbmodel.close()
-        gevent.wait()
-    app.teardown_appcontext(cleanup)
-
-    return app

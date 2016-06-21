@@ -78,7 +78,7 @@ query = {
     "size": 0
 }
 
-r = s.post(pattern.format(search_server,index,"records"),data=json.dumps(query))
+r = s.post(pattern.format(search_server,index,"records"), data=json.dumps(query))
 r.raise_for_status()
 o = r.json()
 

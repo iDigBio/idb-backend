@@ -1,38 +1,37 @@
-from __future__ import absolute_import
-from flask import current_app, Blueprint, jsonify, url_for, request
+from __future__ import division, absolute_import, print_function
 
-this_version = Blueprint(__name__,__name__)
-
-import uuid
-import redis
 import json
 import datetime
-import traceback
+
+import redis
+from flask import Blueprint, jsonify, url_for, request
 
 from idigbio_workers import downloader, send_download_email
 
+from idb.helpers.cors import crossdomain
 from idb.helpers.etags import objectHasher
 
-from idb.helpers.cors import crossdomain
+from .common import json_error, logger
 
-from .common import json_error
+this_version = Blueprint(__name__,__name__)
 
 expire_time_in_seconds = 23 * 60 * 60
 
 redist = redis.StrictRedis(host='idb-redis-celery.acis.ufl.edu', port=6379, db=0)
+
 
 @this_version.route('/download', methods=['GET','POST','OPTIONS'])
 @crossdomain(origin="*")
 def download():
 
     params = {
-        "core_type": "records", 
+        "core_type": "records",
         "core_source": "indexterms",
         "rq": None,
         "mq": None,
         "form": "dwca-csv",
         "record_fields": None,
-        "mediarecord_fields": None        
+        "mediarecord_fields": None
     }
 
     if request.method == "GET":
@@ -48,7 +47,6 @@ def download():
 
     if "query" in o and "rq" not in o:
         o["rq"] = o["query"]
-
 
     for k in params.keys():
         if k in o:
@@ -155,8 +153,8 @@ def status(u):
             return jsonify(params)
         else:
             return json_error(404)
-    except Exception as e:
-        traceback.print_exc()
+    except Exception:
+        logger.exception("Failed getting status of download %s", u)
         params.update({
             "complete": False,
             "task_status": r.state,

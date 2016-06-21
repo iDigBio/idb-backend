@@ -1,3 +1,4 @@
+from __future__ import division, absolute_import, print_function
 import uuid
 import json
 import os
@@ -419,10 +420,10 @@ class PostgresDB(object):
             self._upsert_uuid_sibling_l(
                 [(u, s) for s in siblings])
         except AssertionError:
-            print u, t, ids
+            print(u, t, ids)
             raise
         except:
-            print u, t, ids
+            print(u, t, ids)
             self.rollback()
             raise
 
@@ -440,7 +441,7 @@ class PostgresDB(object):
         except:
             e = sys.exc_info()
             self.rollback()
-            raise e[1], None, e[2]
+            raise
 
     # UUID
 

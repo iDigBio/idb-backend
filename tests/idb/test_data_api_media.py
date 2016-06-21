@@ -1,3 +1,5 @@
+from __future__ import division, absolute_import, print_function
+
 import base64
 import pytest
 from flask import url_for

@@ -793,7 +793,7 @@ class RecordSet(object):
             LEFT JOIN objects on recordsets.file_harvest_etag = objects.etag
             WHERE recordsets.uuid = %s
         """
-        r = idbmodel.fetchone(sql, (uuid,))
+        r = idbmodel.fetchone(sql, (uuid,), cursor_factory=cursor)
         if not r:
             raise ValueError("No recordset with uuid {0!r}".format(uuid))
         uuid, etag, bucket = r

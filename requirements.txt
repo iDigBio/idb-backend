@@ -6,7 +6,7 @@ pyproj>=1.9.3
 pytz>=2016.4
 requests>=2.4.0
 pycrypto
-flask>=0.10.0, <1.0.0
+flask>=0.11.0, <1.0.0
 Flask-UUID
 Flask-CORS
 coverage
@@ -22,6 +22,5 @@ fiona
 python-magic>=0.4.11, <=0.5.0
 feedparser>=5.2.0
 click>=6.3, <7.0
-Flask-CLI>=0.2.1, <0.3.0
 atomicfile==1.0
 enum34>=1.1.6, <1.2.0

@@ -2,7 +2,6 @@ from __future__ import division, absolute_import, print_function
 
 from flask import Flask, jsonify, request, abort, url_for
 from flask_uuid import FlaskUUID
-from flask_cli import FlaskCLI
 
 from idb.helpers.cors import crossdomain
 from idb.postgres_backend import apidbpool
@@ -10,7 +9,6 @@ from idb.data_api.common import idbmodel
 
 app = Flask(__name__)
 FlaskUUID(app)
-FlaskCLI(app)
 
 app.config.from_object('idb.data_api.config')
 

@@ -56,6 +56,7 @@ def test_tropicos(mocker):
     TropItem = fetcher.TropicosItem
     mocker.patch.object(TropItem, '_get',
                         side_effect=requests.exceptions.ConnectionError('FauxServerError', '1'))
+    mocker.patch.object(fetcher, 'update_db_status', side_effect=lambda x: x)
     items = [
         TropItem('foo', 'images', 'image/jpeg'),
         TropItem('bar', 'images', 'image/jpeg'),

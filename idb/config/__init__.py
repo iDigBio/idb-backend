@@ -23,7 +23,7 @@ def load_config_file(p):
         update_environment(json_config.get('env'))
 
 for p in conf_paths:
-    fp = os.path.join(os.path.abspath(os.path.expanduser(p)), "idigbio.json")
+    fp = os.path.realpath(os.path.join(os.path.expanduser(p), "idigbio.json"))
     try:
         load_config_file(fp)
     except IOError:

@@ -70,13 +70,13 @@ def continuous(prefix=None, looptime=3600):
         logger.debug("Loop top")
         t1 = datetime.now()
         ignores = set(IGNORE_PREFIXES)
-        for prefix, proc in running.items():
+        for pf, proc in running.items():
             if proc.exitcode is not None:
-                del running[prefix]
+                del running[pf]
                 if proc.exitcode != 0:
-                    logger.critical("Process for %s failed with %s", prefix, proc.exitcode)
+                    logger.critical("Process for %s failed with %s", pf, proc.exitcode)
                 else:
-                    logger.debug("Process for %s finished with %r", prefix, proc.exitcode)
+                    logger.debug("Process for %s finished with %r", pf, proc.exitcode)
 
         ignores = set(IGNORE_PREFIXES) | set(running.keys())
         ignores.discard(None)

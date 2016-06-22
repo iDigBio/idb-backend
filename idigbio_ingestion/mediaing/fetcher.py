@@ -338,14 +338,14 @@ class FetchItem(object):
 
     def _upload_loop(self, mo, store, key):
         if key.exists():
-            logger.debug("Skipped  etag %s, already present", mo.etag)
+            logger.debug("NoUpload  %s etag %s, already present", self.url, mo.etag)
             return True
 
         attempt = 1
         while True:
             try:
                 mo.upload(store, self.content)
-                logger.debug("Uploaded etag %s", mo.etag)
+                logger.debug("Uploaded  %s etag %s", self.url, mo.etag)
                 return True
             except (BotoServerError, BotoClientError) as e:
                 logger.exception("Failed uploading to storage: %s", self.url)
@@ -393,7 +393,7 @@ def inspect_html_response(content):
 class TropicosItem(FetchItem):
     #All sleep counts are in seconds
     sleep_blacklist = 49 * 60
-    sleep_retry = 16
+    sleep_retry = 24
     sleep_unavailable = 360
     sleep_notfound = 0.25
     retries = 4

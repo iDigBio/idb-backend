@@ -27,6 +27,7 @@ def spawn(target, *args, **kwargs):
     except (KeyboardInterrupt, greenlet.GreenletExit) as e:
         logger.debug("Killing child proc %s on %r", p, e)
         p.terminate()
+        p.join()
         raise
     except:
         logger.exception("Failed on child %s", p)

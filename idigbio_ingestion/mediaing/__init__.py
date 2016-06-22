@@ -4,8 +4,7 @@ from enum import Enum
 
 IGNORE_PREFIXES = [
     "http://media.idigbio.org/",
-    "http://api.idigbio.org/v1/recordsets/",
-    "http://www.tropicos.org/"
+    "http://api.idigbio.org/v1/recordsets/"
 ]
 
 def check_ignore_media(url):

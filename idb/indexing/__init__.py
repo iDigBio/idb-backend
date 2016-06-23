@@ -28,7 +28,7 @@ from idb.helpers.logging import fnlogged
 @fnlogged
 def cli(ctx, index, types, indexname):
     from idb.helpers.logging import idblogger
-    log = idblogger.getChild('indexing')
+    logger = idblogger.getChild('indexing')
     from idb import config
     from .indexer import ElasticSearchIndexer
     from idb.corrections.record_corrector import RecordCorrector
@@ -40,7 +40,7 @@ def cli(ctx, index, types, indexname):
     serverlist = config.config["elasticsearch"]["servers"]
 
     if config.ENV == 'beta':
-        log.info("Enabling beta configuration")
+        logger.info("Enabling beta configuration")
         indexname = "2.5.0"
         serverlist = [
             "c17node52.acis.ufl.edu",
@@ -51,7 +51,7 @@ def cli(ctx, index, types, indexname):
         ]
 
     if not index:
-        log.info("Enabling no-index dry run mode")
+        logger.info("Enabling no-index dry run mode")
 
     # These are the parameters that are common to every indexing
     # function

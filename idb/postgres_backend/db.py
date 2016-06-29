@@ -315,8 +315,9 @@ class PostgresDB(object):
             return self.fetchone(*sql)
 
     def delete_item(self, u):
-        self._upsert_uuid_data(u, tombstone_etag)
-        self.execute("UPDATE uuids SET deleted=true WHERE id=%s", (u,))
+        rc1 = self._upsert_uuid_data(u, tombstone_etag)
+        rc2 = self.execute("UPDATE uuids SET deleted=true WHERE id=%s", (u,))
+        return rc2
 
     def undelete_item(self, u):
         # Needs to be accompanied by a corresponding version insertion to obsolete the tombstone
@@ -486,7 +487,7 @@ class PostgresDB(object):
 
     # UUID DATA
     def _upsert_uuid_data(self, u, e):
-        self.execute(self._upsert_uuid_data_query, {
+        return self.execute(self._upsert_uuid_data_query, {
             "uuid": u,
             "etag": e
         })

@@ -241,7 +241,6 @@ def queryIter(query, ei, rc, typ, yield_record=False):
                 yield index_record(ei, rc, typ, rec, do_index=False)
 
 
-
 def uuidsIter(uuid_l, ei, rc, typ, yield_record=False, children=False):
     for rid in uuid_l:
         if children:

@@ -136,7 +136,7 @@ class ElasticSearchIndexer(object):
                 "_id": i["uuid"],
                 "_source": i,
             }
-            if "delete" in i and i["delete"]:
+            if i.get("delete", False):
                 meta["_op_type"] = "delete"
                 del meta["_source"]
 

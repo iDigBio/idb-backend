@@ -269,7 +269,7 @@ def delete(ei, rc, no_index=False):
         if not no_index:
             ei.es.delete(**{
                 "index": ei.indexName,
-                "doc_type": r["type"],
+                "doc_type": r["type"] + 's',
                 "id": r["id"]
             })
 

@@ -30,7 +30,7 @@ WIDTHS = {
 POOLSIZE = 50
 DTYPES = ('thumbnail', 'fullsize', 'webview')
 
-log = idblogger.getChild('deriv')
+logger = idblogger.getChild('deriv')
 
 CheckItem = namedtuple(
     'CheckItem', ['etag', 'bucket', 'media', 'keys'])
@@ -51,13 +51,13 @@ class BadImageError(Exception):
 
 def continuous(buckets):
     "Continuously run the main loop, checking for derivatives"
-    log.info("Starting up continuous operation, version: %s", __version__)
+    logger.info("Starting up continuous operation, version: %s", __version__)
     minlooptime = 600  # 10minutes
 
     while True:
         t1 = datetime.now()
         main(buckets)
-        log.info("Completed complete derivatives run in %s", (datetime.now() - t1))
+        logger.info("Completed complete derivatives run in %s", (datetime.now() - t1))
         sleeptime = minlooptime - (datetime.now() - t1).total_seconds()
         if sleeptime:
             gevent.sleep(max([sleeptime, 1]))
@@ -69,7 +69,7 @@ def main(buckets, run_migrate=True):
     if run_migrate:
         migrate()
     objects = get_objects(buckets)
-    log.info("Checking derivatives for %d objects", len(objects))
+    logger.info("Checking derivatives for %d objects", len(objects))
 
     pool = Pool(POOLSIZE)
     check_items = pool.imap_unordered(get_keys, objects)
@@ -84,7 +84,7 @@ def main(buckets, run_migrate=True):
         etags,
         autocommit=True
     )
-    log.info("Updated %s records", count)
+    logger.info("Updated %s records", count)
     pool.join(raise_error=True)
 
 
@@ -105,8 +105,8 @@ def count_results(results, update_freq=100):
 
     def output():
         rate = count / max([(datetime.now() - start).total_seconds(), 1])
-        log.info("Checked:%6d  Generated:%6d  Existed:%6d  Erred:%6d Rate:%6.1f/s",
-                 count, c['generated'], c['existed'], c['erred'], rate)
+        logger.info("Checked:%6d  Generated:%6d  Existed:%6d  Erred:%6d Rate:%6.1f/s",
+                    count, c['generated'], c['existed'], c['erred'], rate)
 
     try:
         for count, result in enumerate(results, 1):
@@ -140,7 +140,7 @@ def get_keys(obj):
 
 def check_key(k):
     if k.exists():
-        log.debug("%s: derivative exists", k)
+        logger.debug("%s: derivative exists", k)
         return False
     return True
 
@@ -161,19 +161,19 @@ def generate_all(item):
     except (S3ResponseError, S3DataError):
         return None
     except BadImageError as bie:
-        log.error("%s: %s", item.etag, bie.message)
+        logger.error("%s: %s", item.etag, bie.message)
         return None
 
     try:
         items = map(lambda k: build_deriv(item, img, k), item.keys)
         return GenerateResult(item.etag, list(items))
     except BadImageError as bie:
-        log.error("%s: %s", item.etag, bie.message)
+        logger.error("%s: %s", item.etag, bie.message)
         return None
     except KeyboardInterrupt:
         raise
     except Exception:
-        log.exception("%s: Failed generating", item.etag)
+        logger.exception("%s: Failed generating", item.etag)
         return None
 
 
@@ -196,23 +196,23 @@ def upload_all(gr):
             upload_item(item)
         return gr
     except S3ResponseError:
-        log.exception("%s failed uploading derivatives", gr.etag)
+        logger.exception("%s failed uploading derivatives", gr.etag)
     except KeyboardInterrupt:
         raise
     except:
-        log.exception("Unexpected error")
+        logger.exception("Unexpected error")
 
 def upload_item(item):
     key = item.key
     data = item.data
     if isinstance(item, CopyItem):
-        log.debug("%s copying from bucket %s", key, data.bucket.name)
+        logger.debug("%s copying from bucket %s", key, data.bucket.name)
         data.copy(dst_bucket=key.bucket,
                   dst_key=key.name,
                   metadata={'Content-Type': 'image/jpeg'})
     else:
         # no key exists check here, that was done in build_deriv
-        log.debug("%s uploading", key)
+        logger.debug("%s uploading", key)
         key.set_metadata('Content-Type', 'image/jpeg')
         key.set_contents_from_file(data)
     key.make_public()
@@ -246,16 +246,16 @@ def fetch_media(key):
     try:
         return IDigBioStorage.get_contents_to_mem(key, md5=key.name)
     except S3ResponseError as e:
-        log.error("%r failed downloading with %r %s %s", key, e.status, e.reason, key.name)
+        logger.error("%r failed downloading with %r %s %s", key, e.status, e.reason, key.name)
         raise
     except S3DataError as e:
-        log.error("%r failed downloading on md5 mismatch", key)
+        logger.error("%r failed downloading on md5 mismatch", key)
         raise
 
 def convert_media(item, buff):
     try:
         if 'sounds' == item.bucket:
-            log.debug("%s converting wave to img", item.etag)
+            logger.debug("%s converting wave to img", item.etag)
             return wave_to_img(buff)
 
         if 'images' in item.bucket:
@@ -281,7 +281,7 @@ def load_img(buff):
     return img
 
 def migrate():
-    log.info("Checking for objects in the old media api")
+    logger.info("Checking for objects in the old media api")
     try:
         sql = """INSERT INTO objects (bucket, etag)
               (SELECT DISTINCT
@@ -292,7 +292,7 @@ def migrate():
               WHERE b.etag IS NULL);
         """
         rc = apidbpool.execute(sql)
-        log.info("Objects Migrated: %s", rc)
+        logger.info("Objects Migrated: %s", rc)
         sql = """INSERT INTO media (url, type, owner, last_status, last_check)
               (SELECT
                 idb_object_keys.lookup_key,
@@ -305,7 +305,7 @@ def migrate():
               WHERE media.url IS NULL);
         """
         rc = apidbpool.execute(sql)
-        log.info("Media Migrated: %s", rc)
+        logger.info("Media Migrated: %s", rc)
         sql = """
             INSERT INTO media_objects (url, etag, modified)
               (SELECT
@@ -320,6 +320,6 @@ def migrate():
               WHERE media_objects.url IS NULL)
         """
         rc = apidbpool.execute(sql)
-        log.info("Media Objects Migrated: %s", rc)
+        logger.info("Media Objects Migrated: %s", rc)
     except Exception:
-        log.error("Failed migrating from old media api")
+        logger.error("Failed migrating from old media api")

@@ -14,7 +14,7 @@ from signal import signal as _signal
 
 from idb.helpers.logging import idblogger
 
-log = idblogger.getChild('sig')
+logger = idblogger.getChild('sig')
 
 
 @contextmanager
@@ -77,7 +77,7 @@ def doubleinterrupt(callback=None, timeout=10):
             else:
                 raise KeyboardInterrupt()
         else:
-            log.warning(
+            logger.warning(
                 "SIGINT swallowed, interrupt again within %ss to confirm",
                 timeout)
 

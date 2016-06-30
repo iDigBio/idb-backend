@@ -7,9 +7,16 @@ from idb.postgres_backend import apidbpool
 from idb.helpers.storage import IDigBioStorage
 from idb.helpers.conversions import get_accessuri, get_media_type
 from idb.helpers.logging import idblogger
+from . import IGNORE_PREFIXES
 
 
 logger = idblogger.getChild('mediaing')
+
+def check_ignore_media(url):
+    for p in IGNORE_PREFIXES:
+        if url.startswith(p):
+            return True
+    return False
 
 
 def updatedb(prefix=None, since=None):
@@ -74,8 +81,8 @@ def find_new_urls(media_urls, prefix=None, since=None):
         if url is None:
             continue
         url = url.replace("&amp;", "&").strip()
-        if prefix and not url.startswith(prefix):
-            continue
+        if prefix and not url.startswith(prefix): continue
+        if check_ignore_media(url): continue
 
         o = get_media_type('mediarecords', data)
         t, mime = o["mediatype"], o["format"]

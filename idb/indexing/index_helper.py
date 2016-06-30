@@ -10,7 +10,7 @@ def index_record(ei, rc, typ, r, do_index=True):
             i = {
                 "uuid": r["uuid"],
                 "delete": True,
-                "parent": r["parent"]
+                "records": r["siblings"].get('record', [])
             }
             return (typ, i)
         else:

@@ -13,7 +13,7 @@ def read(*paths):
 readme = read('README.md')
 
 version = re.search(r'^__version__\s*=\s*[\'"]([^\'"]*)[\'"]',
-                    read('idb/__init__.py'), re.MULTILINE).group(1)
+                    read(os.path.join(os.path.dirname(__file__), 'idb/__init__.py')), re.MULTILINE).group(1)
 
 setup(
     name='idb-backend',

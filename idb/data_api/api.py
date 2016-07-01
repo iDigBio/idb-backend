@@ -53,3 +53,14 @@ def index():
             r[sa[0]] = url_for(rule.endpoint, _external=True)
 
     return jsonify(r)
+
+
+@app.route('/version', methods=['GET'])
+def version():
+    from idb import __version__
+    return __version__
+
+
+@app.route('/healthz', methods=['GET'])
+def healthz():
+    return idbmodel.fetchone("SELECT 'ok'")[0]

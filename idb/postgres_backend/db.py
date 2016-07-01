@@ -29,8 +29,6 @@ tombstone_etag = "9a4e35834eb80d9af64bcd07ed996b9ec0e60d92"
 
 
 class PostgresDB(object):
-    _pool = apidbpool
-
     __join_uuids_etags_latest_version = """
         LEFT JOIN LATERAL (
             SELECT * FROM uuids_data
@@ -140,6 +138,9 @@ class PostgresDB(object):
             SELECT 1 FROM uuids_siblings WHERE (r1=%(uuid)s and r2=%(sibling)s) or (r2=%(uuid)s and r1=%(sibling)s)
         )
     """
+
+    _pool = None
+    conn = None
 
     def __init__(self, pool=None):
         if pool:

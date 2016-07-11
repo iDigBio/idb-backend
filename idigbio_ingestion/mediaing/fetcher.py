@@ -411,12 +411,12 @@ class TropicosItem(FetchItem):
                 self.retries -= 1
                 if self.ok:
                     return self
-                if self.status_code in (403, 404, Status.FAUX_DENIED):
+                if self.status_code in (Status.FORBIDDEN, Status.NOT_FOUND, Status.FAUX_DENIED):
                     logger.debug("Sleeping  %s for %ss, retries:%s",
                                  self.url, self.sleep_notfound, self.retries)
                     sleep(self.sleep_notfound)
                     return self
-                if self.status_code in (503,):
+                if self.status_code in (Status.SERVICE_UNAVAILABLE, ):
                     logger.debug("Sleeping  %s for %ss, retries:%s",
                                  self.url, self.sleep_unavailable, self.retries)
                     sleep(self.sleep_unavailable)

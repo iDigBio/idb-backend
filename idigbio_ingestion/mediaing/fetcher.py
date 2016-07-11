@@ -56,7 +56,14 @@ def start_all_procs(groups, running=None):
 
     apidbpool.closeall()  # clean before proc fork
     for prefix, items in groups:
-        assert prefix not in running, "Process for prefix {0!r} already running".format(prefix)
+        if prefix in running:
+            if prefix is None:
+                # We can't disambiguate if we don't have a prefix; just
+                # skip it until running[None] is empty again
+                pass
+            else:
+                logger.critical("Trying to start second process for prefix %r", prefix)
+                continue
         logger.debug("Starting subprocess for %s", prefix)
         running[prefix] = gipc.start_process(
             process_list, (items,), {'forprefix': prefix}, name="mediaing-{0}".format(prefix), daemon=False)

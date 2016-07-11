@@ -13,13 +13,14 @@ def test_app_db(client):
     r = idbmodel.fetchone("SELECT 1")
     assert r[0] == 1
 
-
+@pytest.mark.readonly
 def test_version(client):
     r = client.get(url_for('version'))
     assert r.status_code == 200
     assert r.data == idb.__version__
 
 
+@pytest.mark.readonly
 def test_healthz(client, testdbpool):
     r = client.get(url_for('healthz'))
     assert r.status_code == 200

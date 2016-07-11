@@ -130,13 +130,15 @@ class GeventedConnPool(object):
         self.closed = False
 
     @contextlib.contextmanager
-    def connection(self, isolation_level=None, autocommit=None):
+    def connection(self, isolation_level=None, autocommit=None, readonly=False):
         conn = self.get()
         try:
             if isolation_level is not None and isolation_level != conn.isolation_level:
                 conn.set_isolation_level(isolation_level)
             if autocommit is not None:
                 conn.autocommit = autocommit
+            if readonly is not None:
+                conn.set_session(readonly=readonly)
             yield conn
             conn.commit()
         finally:
@@ -148,7 +150,8 @@ class GeventedConnPool(object):
     def cursor(self, *args, **kwargs):
         connargs = {
             'isolation_level': kwargs.pop('isolation_level', None),
-            'autocommit':kwargs.pop('autocommit', None)
+            'autocommit': kwargs.pop('autocommit', None),
+            'readonly': kwargs.pop('readonly', None)
         }
 
         if kwargs.pop('named', False) is True:

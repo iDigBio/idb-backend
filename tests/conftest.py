@@ -12,22 +12,24 @@ import gevent
 import gevent.monkey
 import pytest
 import psycopg2
+from functools import partial
 from py.path import local
 
 
 def pytest_addoption(parser):
-    parser.addoption("--gmp", action="store_true", default=False,
+    parser.addoption("--gmp", action="store_true", default=True,
                      help="Run gevent.monkey.patch_all()")
 
 
 @pytest.fixture(scope="session", autouse=True)
 def logger():
     "Setup test logging, provide a logger to use in tests"
-    from idb.helpers.logging import idblogger
+    from idb.helpers.logging import idblogger, configure_app_log
+    configure_app_log(2)
     return idblogger.getChild('tests')
 
 
-@pytest.fixture(scope="session", autouse=True)
+@pytest.fixture(scope="session", autouse=False)
 def gmp(request, logger):
     if request.config.getoption("--gmp"):
         logger.info("Monkeypatching")
@@ -106,15 +108,27 @@ def testdb(logger):
     return spec
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture()
 def testdbpool(request, testdb, logger):
-    "a DB pool to the test database"
+    "A DB pool to the test database"
     from idb.postgres_backend.gevent_helpers import GeventedConnPool
-    logger.debug("Creating ")
+    logger.debug("Creating ConnPool: %r")
     dbpool = GeventedConnPool(**testdb)
 
+    def ro_setter(val):
+        logger.debug("Setting DB to READ ONLY=%s", val)
+        dbpool.execute(
+            "ALTER DATABASE {0} SET default_transaction_read_only = {1};".format(testdb['dbname'], val),
+            readonly=False)
+        dbpool.closeall()
+    if 'readonly' in request.keywords:
+        ro_setter("true")
+    else:
+        ro_setter("false")
+
     def cleanup():
-        logger.info("Cleanup testdbpool")
+        ro_setter("false")
+        logger.info("Cleanup dbpool")
         dbpool.closeall()
     request.addfinalizer(cleanup)
     return dbpool
@@ -124,14 +138,14 @@ def testdbpool(request, testdb, logger):
 def testschema(schemapath, testdbpool, logger):
     "Ensure a fresh version of the idb schema, with no data loaded"
     logger.info("Loading schema into testdb")
-    testdbpool.execute(schemapath.open('r', encoding='utf-8').read())
+    testdbpool.execute(schemapath.open('r', encoding='utf-8').read(), readonly=False)
 
 
 @pytest.fixture()
 def testdata(testenv, testschema, testdbpool, testdatapath, logger):
     "Ensure the standard set of testdata is loaded, nothing more"
     logger.info("Loading data into testdb")
-    testdbpool.execute(testdatapath.open('r', encoding='utf-8').read())
+    testdbpool.execute(testdatapath.open('r', encoding='utf-8').read(), readonly=False)
 
 
 @pytest.fixture()

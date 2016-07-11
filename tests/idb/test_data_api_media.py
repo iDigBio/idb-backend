@@ -48,6 +48,7 @@ def block_upload_to_ceph(mock):
     mock.patch.object(MediaObject, 'upload', autospec=True)
 
 
+@pytest.mark.readonly
 def test_lookup_uuid(client, testmedia_result):
     tmr = testmedia_result
     url = url_for('idb.data_api.v2_media.lookup_uuid', u=tmr['uuid'], format="json")
@@ -55,12 +56,14 @@ def test_lookup_uuid(client, testmedia_result):
     check_response_props(tmr, r)
 
 
+@pytest.mark.readonly
 def test_lookup_uuid_missing(client):
     url = url_for('idb.data_api.v2_media.lookup_uuid', u="asdfasdfasdfasdfasf", format="json")
     r = client.get(url)
     assert r.status_code == 404
 
 
+@pytest.mark.readonly
 def test_lookup_fileref(client, testmedia_result):
     tmr = testmedia_result
     url = url_for('idb.data_api.v2_media.lookup_ref', filereference=tmr['filereference'], format="json")
@@ -68,6 +71,7 @@ def test_lookup_fileref(client, testmedia_result):
     check_response_props(tmr, r)
 
 
+@pytest.mark.readonly
 def test_lookup_etag(client, testmedia_result):
     tmr = testmedia_result
     url = url_for('idb.data_api.v2_media.lookup_etag', etag=tmr['etag'], format="json")
@@ -75,6 +79,7 @@ def test_lookup_etag(client, testmedia_result):
     check_response_props(tmr, r)
 
 
+@pytest.mark.readonly
 def test_redirect(client, testmedia_result):
     tmr = testmedia_result
     url = url_for('idb.data_api.v2_media.lookup_etag', etag=tmr['etag'])
@@ -83,6 +88,7 @@ def test_redirect(client, testmedia_result):
     assert r.location == tmr['url']
 
 
+@pytest.mark.readonly
 def test_derivation(client, testmedia_result):
     tmr = testmedia_result
     url = url_for('idb.data_api.v2_media.lookup_etag', etag=tmr['etag'], deriv='webview')
@@ -91,6 +97,7 @@ def test_derivation(client, testmedia_result):
     assert 'webview' in r.location
 
 
+@pytest.mark.readonly
 def test_bad_derivation(client, testmedia_result):
     """We kinda think this should return a 400; but every other error we
     still think should be 200 (because we're not sure how the client
@@ -105,6 +112,7 @@ def test_bad_derivation(client, testmedia_result):
     assert r.json['text'] == "No Preview"
 
 
+@pytest.mark.readonly
 def test_upload_auth(client, basic_auth_header):
     url = url_for('idb.data_api.v2_media.upload')
     r = client.post(url)

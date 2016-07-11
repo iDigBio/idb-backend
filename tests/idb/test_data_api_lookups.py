@@ -1,4 +1,3 @@
-import base64
 import pytest
 from flask import url_for
 
@@ -8,7 +7,7 @@ def testrsuuid():
     "This is the uuid of a small recordset that is part of our test schema"
     return "433d3c37-8dde-42e4-a344-2cb6605c5da2"
 
-
+@pytest.mark.readonly
 def test_v2_item(client, testrsuuid):
     r = client.get(url_for('idb.data_api.v2.item', t='recordsets', u=testrsuuid))
     assert r.status_code == 200
@@ -16,6 +15,7 @@ def test_v2_item(client, testrsuuid):
     assert r.json['uuid'] == testrsuuid
 
 
+@pytest.mark.readonly
 def test_v2_subitem(client, testrsuuid):
     url = url_for('idb.data_api.v2.subitem', t='recordsets', u=testrsuuid, st='records')
     r = client.get(url)
@@ -24,6 +24,7 @@ def test_v2_subitem(client, testrsuuid):
     assert r.json['itemCount'] == 214
 
 
+@pytest.mark.readonly
 def test_v2_item_no_type(client, testrsuuid):
     url = url_for('idb.data_api.v2.item_no_type', u=testrsuuid)
     r = client.get(url)
@@ -32,6 +33,7 @@ def test_v2_item_no_type(client, testrsuuid):
     assert r.json['uuid'] == testrsuuid
 
 
+@pytest.mark.readonly
 def test_list(client, testrsuuid):
     url = url_for('idb.data_api.v2.list', t='recordsets')
     r = client.get(url)
@@ -40,6 +42,7 @@ def test_list(client, testrsuuid):
     assert r.json['itemCount'] == 2
 
 
+@pytest.mark.readonly
 def test_list_error(client):
     url = url_for('idb.data_api.v2.list', t='foobar')
     r = client.get(url)

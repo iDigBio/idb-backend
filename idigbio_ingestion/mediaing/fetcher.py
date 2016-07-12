@@ -413,41 +413,37 @@ class TropicosItem(FetchItem):
 
     def get_media(self):
         try:
-            while self.retries > 0:
+            while True:
                 super(TropicosItem, self).get_media()
                 self.retries -= 1
                 if self.ok:
+                    return self
+                if self.retries <= 0:
+                    logger.error("NoRetries %s", self.url)
                     return self
                 if self.status_code in (Status.FORBIDDEN, Status.NOT_FOUND, Status.FAUX_DENIED):
                     logger.debug("Sleeping  %s for %ss, retries:%s",
                                  self.url, self.sleep_notfound, self.retries)
                     sleep(self.sleep_notfound)
                     return self
+
                 if self.status_code in (Status.SERVICE_UNAVAILABLE, ):
-                    logger.debug("Sleeping  %s for %ss, retries:%s",
+                    logger.debug("Sleeping  %s for %ss, retries:%s (unavailable)",
                                  self.url, self.sleep_unavailable, self.retries)
                     sleep(self.sleep_unavailable)
-                    continue
-                if self.status_code == Status.BLOCKED:
-                    logger.debug("Sleeping  %s for %ss, retries:%s",
+                elif self.status_code == Status.BLOCKED:
+                    logger.debug("Sleeping  %s for %ss, retries:%s (blocked)",
                                  self.url, self.sleep_blacklist, self.retries)
                     sleep(self.sleep_blacklist)
-                    continue
-
-                if self.retries > 0:
+                else:
                     logger.debug("Sleeping  %s for %ss, retries:%s",
                                  self.url, self.sleep_retry, self.retries)
                     sleep(self.sleep_retry)
                     self.sleep_retry *= 1.5
-                    continue
-
-                logger.error("NoRetries %s", self.url)
-                return self
-
         except StandardError:
             self.status_code = Status.UNHANDLED_FAILURE
             logger.exception("Unhandled %s", self.url)
-            return self
+        return self
 
 
 @prefix("http://arctos.database.museum/")

@@ -315,7 +315,7 @@ def migrate():
               FROM idb_object_keys
               JOIN media ON idb_object_keys.lookup_key = media.url
               JOIN objects ON idb_object_keys.etag = objects.etag
-              LEFT JOIN media_objects ON lookup_key = url
+              LEFT JOIN media_objects ON lookup_key = media.url
                     AND media_objects.etag = idb_object_keys.etag
               WHERE media_objects.url IS NULL)
         """

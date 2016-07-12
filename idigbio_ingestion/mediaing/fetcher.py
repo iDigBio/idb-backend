@@ -1,6 +1,6 @@
 from __future__ import division, absolute_import, print_function
 
-
+import logging
 import itertools
 import re
 import signal
@@ -80,10 +80,8 @@ def continuous(prefix=None, looptime=3600):
         for pf, proc in running.items():
             if proc.exitcode is not None:
                 del running[pf]
-                if proc.exitcode != 0:
-                    logger.critical("Process for %s failed with %s", pf, proc.exitcode)
-                else:
-                    logger.debug("Process for %s finished with %r", pf, proc.exitcode)
+                lvl = logging.CRITICAL if proc.exitcode != 0 else logging.DEBUG
+                logger.log(lvl, "Process for %s failed with %s", pf, proc.exitcode)
 
         ignores = set(IGNORE_PREFIXES) | set(running.keys())
         ignores.discard(None)

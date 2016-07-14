@@ -145,6 +145,8 @@ class PostgresDB(object):
     def __init__(self, pool=None):
         if pool:
             self._pool = pool
+        else:
+            self._pool = apidbpool
         # Generic reusable cursor for normal ops
         self.conn = self._pool.get()
 

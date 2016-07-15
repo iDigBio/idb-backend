@@ -400,7 +400,7 @@ class TropicosItem(FetchItem):
     sleep_blacklist = 49 * 60
     sleep_retry = 24
     sleep_unavailable = 360
-    sleep_notfound = 0.25
+    sleep_notfound = 2
     retries = 4
 
     #: in sec, both connect and read timeout

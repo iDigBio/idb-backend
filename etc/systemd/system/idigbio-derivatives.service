@@ -4,9 +4,11 @@ Description=iDigBio mediaing derivatives generation
 
 [Service]
 Type=simple
-ExecStart=/opt/idb-backend/.env/bin/idigbio-ingestion --logfile=derivatives.log -v derivatives --continuous
-RestartSec=5min
+ExecStart=/opt/idb-backend/.env/bin/idigbio-ingestion \
+          --logfile=derivatives.log -v --journal \
+          derivatives --continuous
 
+RestartSec=5min
 
 [Install]
 WantedBy=multi-user.target

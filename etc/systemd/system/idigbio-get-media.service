@@ -3,7 +3,10 @@ Description=iDigBio mediaing fetcher
 
 [Service]
 Type=simple
-ExecStart=/opt/idb-backend/.env/bin/idigbio-ingestion -v --logfile=mediaing-get-media.log mediaing get-media --continuous
+ExecStart=/opt/idb-backend/.env/bin/idigbio-ingestion \
+    -vv --logfile=mediaing-get-media.log --journal \
+    mediaing get-media --continuous
+
 RestartSec=5min
 KillMode=control-group
 

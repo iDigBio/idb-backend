@@ -1,6 +1,0 @@
-pydub==0.16.4
-pillow==3.2.0
-Python-fontconfig
-lxml
-chardet
-pyquery>=1.2

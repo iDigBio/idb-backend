@@ -18,7 +18,8 @@ In Ubuntu 14.04:
 In Ubuntu 16.04:
 
     apt-get install python2.7-dev libblas-dev liblapack-dev \
-      libatlas-base-dev gfortran libgdal-dev libpq-dev libgeos-c1v5
+      libatlas-base-dev gfortran libgdal-dev libpq-dev libgeos-c1v5 \
+      libsystemd-dev
 
 
 For ingestion the following are also needed:
@@ -32,32 +33,19 @@ In Ubuntu 16.04:
     apt-get install libfontconfig1-dev libxml2 libxslt1-dev ffmpeg
 
 
-
-### Python Dependencies
-
-Install all of the python dependencies, this will be very slow the
-first time, after that pip caches help.
-
-    pip install -r requirements.txt
-
-For ingestion you will also need to run
-
-    pip install -r idigbio_ingestion/requirements.txt
-
-For testing you will also need to run
-
-    pip install -r test-requirements.txt
-
-
 ### Package installation
 
 This package itself needs to be installed to generate the CLI
 scripts. To install it editably (so that `git pull` continues to
-updates everything):
+updates everything) and include all dependencies:
 
-    pip install -e .
+    pip install -r requirements.txt
 
-To setup cron jobs symlink from etc/cron.d/* to /etc/cron.d/*
+To setup persistent tasks and cron tasks
+
+    systemctl link $PWD/etc/systemd/system/*
+    systemctl enable $SERVICES
+
 
 ## Running
 

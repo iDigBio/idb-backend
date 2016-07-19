@@ -22,6 +22,7 @@ DATETIME_FORMAT = "%Y-%m-%d %H:%M:%S"
 TIME_FORMAT = "%H:%M:%S"
 
 PRECISE_FORMAT = u"%(asctime)s.%(msecs)03d %(levelname)-5.5s %(name)s\u10fb %(message)s"
+TIMELESS_FORMAT = u"%(levelname)-5.5s %(name)s\u10fb %(message)s"
 
 LOGBOOK_FORMAT_STRING = u'{record.time:%Y-%m-%d %H:%M:%S.%f} {record.level_name:<5.5} ' \
                         u'{record.channel}\u10fb {record.message}'
@@ -38,7 +39,7 @@ def getLogger(l):
         return logging.getLogger(l)
 
 
-def configure_app_log(verbose, logfile=None):
+def configure_app_log(verbose, logfile=None, journal=False):
     "Tries to do the right thing for configuring logging for command line applications"
     lvls = {
         -1: logging.ERROR,
@@ -63,10 +64,12 @@ def configure_app_log(verbose, logfile=None):
         add_file_handler(filename=logfile, level=lvls.get(verbose + 1, logging.INFO))
 
     logging_level = lvls.get(verbose, logging.DEBUG)
-    add_stderr_handler(level=logging_level)
+    if journal:
+        add_stderr_journal_handler(level=logging_level)
+    else:
+        add_stderr_handler(level=logging_level)
+
     logging.captureWarnings(verbose >= 2)
-
-
 
 
 def configure(logger=idblogger,
@@ -107,6 +110,22 @@ def add_file_handler(logger=logging.root, level=None,
     fh.setFormatter(logging.Formatter(PRECISE_FORMAT, datefmt=DATETIME_FORMAT))
     logger.addHandler(fh)
     return fh
+
+
+def add_stderr_journal_handler(logger=logging.root, level=logging.INFO):
+    if logger.getEffectiveLevel() > level:
+        logger.setLevel(level)
+    try:
+        from systemd.journal import JournalHandler
+        from idb import __version__
+        h = JournalHandler(
+            SYSLOG_IDENTIFIER=os.path.basename(sys.argv[0]), VERSION=__version__)
+    except:
+        h = logging.StreamHandler()
+        h.setFormatter(logging.Formatter(TIMELESS_FORMAT))
+    h.setLevel(level)
+    logger.addHandler(h)
+    return h
 
 
 def add_stderr_handler(logger=logging.root, level=logging.INFO):

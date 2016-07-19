@@ -57,7 +57,8 @@ The following subcommands are related to recordset ingestion
 
 ### Media Ingestion ###
 
-All of these commands are run automatically/continuously on c18node4.
+All of these commands are run automatically/continuously on c18node4
+managed by systemd.
 
 * `mediaing`:
   * Common options:
@@ -70,3 +71,6 @@ All of these commands are run automatically/continuously on c18node4.
 * `derivatives [{images, sounds}*]`: takes arguments
   of which buckets to run from, if none specified then all known
   buckets will be used
+
+To see latest status/log messages use `systemctl status
+idigbio-ingestion-$CMD.service`. Tab-completion should be active.

@@ -1,7 +1,0 @@
-MAILTO="acis-root@acis.ufl.edu"
-LANG="en_US.UTF-8"
-SHELL=/bin/bash
-PATH=/opt/idb-backend/.env/bin:/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
-
-# m  h dom mon dow user  command
-20   * *   *   *   root  idigbio-ingestion --logfile 'update-publisher-recordset.log' update-publisher-recordset &> /dev/null

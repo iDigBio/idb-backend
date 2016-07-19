@@ -44,7 +44,7 @@ updates everything) and include all dependencies:
 To setup persistent tasks and cron tasks
 
     systemctl link $PWD/etc/systemd/system/*
-    systemctl enable $SERVICES
+    systemctl enable --now $(grep -l Install $PWD/etc/systemd/system/*)
 
 
 ## Running

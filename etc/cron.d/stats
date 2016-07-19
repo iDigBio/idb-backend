@@ -1,8 +1,0 @@
-MAILTO="acis-root@acis.ufl.edu"
-LANG="en_US.UTF-8"
-SHELL=/bin/sh
-PATH=/opt/idb-backend/.env/bin:/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
-
-# m  h dom mon dow user  command
-*/15 * *   *   *   root  idb --logfile=api-stats.log api-stats
-0    1 *   *   *   root  idb --logfile=collect-stats.log collect-stats

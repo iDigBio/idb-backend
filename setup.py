@@ -55,7 +55,7 @@ setup(
         'pytest-runner',
     ],
     extras_require={
-        'journal': ['systemd'],
+        'journal': ['python-systemd>=230'],
         'ingestion': [
             'pydub==0.16.4',
             'pillow>=3.2.0',

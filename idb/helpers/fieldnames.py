@@ -48,6 +48,7 @@ types = {
     "http://purl.org/NET/aec/associatedTaxa": {"shortname": "aec:associatedTaxa"},
     "http://rs.tdwg.org/dwc/terms/MeasurementOrFact": {"shortname": "dwc:MeasurementOrFact"},
     "http://rs.gbif.org/terms/1.0/Reference": {"shortname": "gbif:Reference"},
+    "http://rs.gbif.org/terms/1.0/Identifier": {"shortname": "gbif:Identifier"}
 }
 
 translate_dict = {

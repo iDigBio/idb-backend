@@ -8,7 +8,6 @@ from collections import defaultdict
 from idb.helpers.logging import idblogger, getLogger
 from idb.helpers.fieldnames import get_canonical_name, types
 
-
 class MissingFieldsException(Exception):
 
     def __init__(self, name, lineNumber, fieldnum, fieldname, lineArr):
@@ -96,6 +95,9 @@ class DelimitedFile(object):
             self.logger.info("Setting row type to %s", self.rowtype)
         elif self.rowtype in types:
             self.rowtype = types[self.rowtype]["shortname"]
+        else:
+            raise TypeError("{} not mapped to short name".format(self.rowtype))
+
 
     def __iter__(self):
         """

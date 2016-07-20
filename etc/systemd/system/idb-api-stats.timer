@@ -2,7 +2,9 @@
 Description="idb api-stats 15minute repeat"
 
 [Timer]
-OnUnitActiveSec=15min
+OnBootSec=5min
+OnUnitInactiveSec=15min
+RandomizedDelaySec=1m
 
 [Install]
 WantedBy=timers.target

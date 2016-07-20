@@ -2,7 +2,10 @@
 Description="idigbio-ingestion update-publisher-recordset hourly repeat"
 
 [Timer]
-OnUnitActiveSec=1h
+OnBootSec=6min
+OnUnitInactiveSec=1h
+RandomizedDelaySec=2m
+
 
 [Install]
 WantedBy=timers.target

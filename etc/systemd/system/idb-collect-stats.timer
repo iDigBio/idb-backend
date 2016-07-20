@@ -2,7 +2,9 @@
 Description="idb collect-stats hourly repeat"
 
 [Timer]
-OnUnitActiveSec=1h
+OnBootSec=5min
+OnUnitInactiveSec=1h
+RandomizedDelaySec=1m
 
 [Install]
 WantedBy=timers.target

@@ -290,10 +290,10 @@ def harvest_all_eml():
                 logger.exception("failed Harvest EML %s %s", r["id"], r["name"])
 
 def harvest_eml(r, db):
-    logger.info("Harvest EML %s '%s'", r["id"], r["name"])
+    logger.info("Harvest EML %s '%s' @ '%s'", r["id"], r["name"], r["eml_link"])
     fname = "{0}.eml".format(r["id"])
     if not download_file(r["eml_link"], fname):
-        logger.error("failed Harvest EML %s '%s'", r["id"], r["name"])
+        logger.error("failed Harvest EML %s '%s' @ '%s'", r["id"], r["name"], r["eml_link"])
         return
     try:
         etag = calcFileHash(fname)
@@ -343,7 +343,7 @@ def harvest_all_file():
                 db.rollback()
 
 def harvest_file(r, db):
-    logger.info("Harvest File %s '%s'", r["id"], r["name"])
+    logger.info("Harvest File %s '%s' @ '%s'", r["id"], r["name"], r["file_link"])
     fname = "{0}.file".format(r["id"])
     try:
         download_file(r["file_link"], fname)

@@ -1,5 +1,5 @@
 [Unit]
-Description="idb collect-stats hourly repeat"
+Description="hourly timer for idb collect-stats"
 
 [Timer]
 OnBootSec=5min

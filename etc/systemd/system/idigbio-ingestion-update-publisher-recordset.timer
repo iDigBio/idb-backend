@@ -1,5 +1,5 @@
 [Unit]
-Description="idigbio-ingestion update-publisher-recordset hourly repeat"
+Description="hourly timer for idigbio-ingestion update-publisher-recordset"
 
 [Timer]
 OnBootSec=6min

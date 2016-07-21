@@ -4,4 +4,4 @@ Description="Runs `idb collect-stats`"
 [Service]
 Type=oneshot
 Environment=LANG=en_US.UTF-8
-ExecStart=/opt/idb-backend/.env/bin/idb --journal -vv api-stats
+ExecStart=/usr/local/bin/idb --journal -vv api-stats

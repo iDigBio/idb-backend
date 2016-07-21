@@ -4,6 +4,6 @@ Description="Runs the `idigbio-ingestion mediaing updatedb` daily task"
 [Service]
 Type=oneshot
 Environment=LANG=en_US.UTF-8
-ExecStart=/opt/idb-backend/.env/bin/idigbio-ingestion \
+ExecStart=/usr/local/bin/idigbio-ingestion \
     --journal -vv \
     mediaing updatedb --daily

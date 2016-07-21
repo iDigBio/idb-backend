@@ -29,7 +29,7 @@ setup(
         'psycopg2>=2.6',
         'redis>=2.9.1, <3.0.0',
         'python-dateutil>=2.2, <3.0',
-        'elasticsearch>=2.3',
+        'elasticsearch>=2.3, <3',
         'pyproj>=1.9.3',
         'pytz>=2016.4',
         'requests>=2.4.0',

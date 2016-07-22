@@ -1,5 +1,5 @@
 [Unit]
-Description="Runs `idb collect-stats`"
+Description="Runs `idb api-stats`"
 
 [Service]
 Type=oneshot

@@ -66,7 +66,6 @@ def type_yield(ei, rc, typ, yield_record=False):
 
 def type_yield_modified(ei, rc, typ, yield_record=False):
     pg_typ = "".join(typ[:-1])
-    es_ids = {}
 
     q = {
         "index": ei.indexName,

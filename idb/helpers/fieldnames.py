@@ -34,21 +34,23 @@ namespaces_rev["aec"] = "http://purl.org/NET/aec/"
 namespaces_rev["Iptc4xmpExt"] = "http://iptc.org/std/Iptc4xmpExt/2008-02-29/"
 
 types = {
-    "http://rs.tdwg.org/dwc/terms/occurrence": { "shortname": "dwc:Occurrence" },
-    "http://rs.tdwg.org/dwc/terms/Occurrence": { "shortname": "dwc:Occurrence" },
-    "http://rs.tdwg.org/ac/terms/multimedia": { "shortname": "dwc:Multimedia"},
-    "http://rs.tdwg.org/ac/terms/Multimedia": { "shortname": "dwc:Multimedia"},
-    "http://rs.tdwg.org/ac/terms/Audubon_Core": { "shortname": "dwc:Multimedia"},
+    "http://purl.org/NET/aec/associatedTaxa": {"shortname": "aec:associatedTaxa"},
+    "http://rs.gbif.org/terms/1.0/Identifier": {"shortname": "gbif:Identifier"},
     "http://rs.gbif.org/terms/1.0/Image":  { "shortname": "dwc:Multimedia"},
     "http://rs.gbif.org/terms/1.0/Multimedia": { "shortname": "dwc:Multimedia"},
-    "http://rs.tdwg.org/dwc/terms/Identification": { "shortname": "dwc:Identification" },
-    "http://rs.tdwg.org/dwc/terms/ResourceRelationship": { "shortname": "dwc:ResourceRelationship" },
-    "http://rs.gbif.org/terms/1.0/VernacularName": { "shortname": "gbif:VernacularName" },
-    "http://rs.gbif.org/terms/1.0/SpeciesProfile": { "shortname": "gbif:SpeciesProfile" },
-    "http://purl.org/NET/aec/associatedTaxa": {"shortname": "aec:associatedTaxa"},
-    "http://rs.tdwg.org/dwc/terms/MeasurementOrFact": {"shortname": "dwc:MeasurementOrFact"},
     "http://rs.gbif.org/terms/1.0/Reference": {"shortname": "gbif:Reference"},
-    "http://rs.gbif.org/terms/1.0/Identifier": {"shortname": "gbif:Identifier"}
+    "http://rs.gbif.org/terms/1.0/SpeciesProfile": { "shortname": "gbif:SpeciesProfile" },
+    "http://rs.gbif.org/terms/1.0/VernacularName": { "shortname": "gbif:VernacularName" },
+    "http://rs.tdwg.org/ac/terms/Audubon_Core": { "shortname": "dwc:Multimedia"},
+    "http://rs.tdwg.org/ac/terms/multimedia": { "shortname": "dwc:Multimedia"},
+    "http://rs.tdwg.org/ac/terms/Multimedia": { "shortname": "dwc:Multimedia"},
+    "http://rs.tdwg.org/dwc/terms/Identification": { "shortname": "dwc:Identification" },
+    "http://rs.tdwg.org/dwc/terms/MeasurementOrFact": {"shortname": "dwc:MeasurementOrFact"},
+    "http://rs.tdwg.org/dwc/terms/occurrence": { "shortname": "dwc:Occurrence" },
+    "http://rs.tdwg.org/dwc/terms/Occurrence": { "shortname": "dwc:Occurrence" },
+    "http://rs.tdwg.org/dwc/terms/ResourceRelationship": { "shortname": "dwc:ResourceRelationship" },
+    "http://rs.tdwg.org/dwc/terms/Taxon": {"shortname": "dwc:Taxon"},
+    
 }
 
 translate_dict = {

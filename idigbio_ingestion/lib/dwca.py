@@ -39,7 +39,7 @@ class Dwca(object):
             logbase = getLogger(logname)
         else:
             logbase = idblogger.getChild('dwca')
-        self.logger = logbase.getChild(name.split(".")[0])
+        self.logger = logbase.getChild(name.split("/")[-1].split(".")[0])
 
         try:
             self.archive = zipfile.ZipFile(name, 'r')

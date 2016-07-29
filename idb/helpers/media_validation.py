@@ -1,62 +1,102 @@
-from __future__ import absolute_import
-import magic
-from . import conversions
+from __future__ import division, absolute_import, print_function
 
 
-def default_format_validator(url, t, fmt, content):
-    mime = magic.from_buffer(content, mime=True)
-    return (fmt == mime, mime)
+bucket_mimes = {
+    'images': {'image/jpeg', 'image/jp2'},
+    'sounds': {'audio/mpeg3', 'audio/mpeg'},
+    'models': {'model/mesh', 'text/plain'},
+    'video': {'video/mpeg', 'video/mp4'},
+    'datasets': {'text/csv', 'text/plain', 'application/zip'},
+    'debugfile': {'text/plain', 'application/zip'},
+    'guoda': {'text/csv', 'text/plain', 'application/zip'},
+}
+valid_buckets = set(bucket_mimes.keys())
 
+default_buckets = {
+    "image/jpeg": "images",
+    "image/jp2": "images",
+    "audio/mpeg": "sounds",
+    "video/mpeg": "video",
+    "video/mp4": "video",
+    "model/mesh": "models",
+}
 
-def audio_mpeg3_validator(url, t, fmt, content):
-    _, mime = default_format_validator(url, t, fmt, content)
-    return (mime in ["audo/mpeg3", "audio/mpeg"], mime)
-
-
-format_validators = {
-    "model/mesh": lambda url, t, fmt, content: (
-        url.endswith(".stl"), "model/mesh"),
-    "audio/mpeg3": audio_mpeg3_validator
+mime_aliases = {
+    "audio/mpeg3": "audio/mpeg",
 }
 
 
-def get_validator(m):
-    return format_validators.get(m, default_format_validator)
-
-class MimeMismatchError(Exception):
-    def __init__(self, expected_mime, detected_mime):
-        self.args = (expected_mime, detected_mime)
-        self.message = "Detected mime {0} doesn't match expected {1}".format(
-            detected_mime, expected_mime)
+def get_default_bucket(mime):
+    "Find the defualt bucket for given mime, None if indeterminate"
+    return default_buckets.get(mime_aliases.get(mime, mime))
 
 
-class UnknownMediaTypeError(Exception):
-    "Exception for unknown/undeterminable media, call with mime as the only arg"
-    def __init__(self, mime):
-        self.mime = mime
-        self.args = (mime,)
-        self.message = "Could not determine media type for mime: {0!r}".format(mime)
-
+class MediaValidationError(Exception):
     def __str__(self):
         return self.message
 
+class InvalidBucketError(MediaValidationError):
+    def __init__(self, bucket):
+        self.args = (bucket,)
+        self.message = "Invalid media type {0!r}".format(bucket)
 
-def sniff_validation(content, raises=True):
-    mime = magic.from_buffer(content, mime=True)
-    mt = conversions.mime_mapping.get(mime)
-    if not mt and raises:
-        raise UnknownMediaTypeError(mime)
-    return mime, mt
+class UnknownBucketError(MediaValidationError):
+    def __init__(self, mime):
+        self.args = (mime,)
+        self.message = "Unknown media type for mime {0!r}".format(mime)
+
+class MimeNotAllowedError(MediaValidationError):
+    def __init__(self, mime, bucket):
+        self.args = (mime, bucket)
+        self.message = "Mime {0!r} not allowed in bucket {1!r}".format(
+            mime, bucket)
+
+class MimeMismatchError(MediaValidationError):
+    def __init__(self, expected, detected):
+        self.args = (expected, detected)
+        self.message = "Detected mime {0} doesn't match expected {1}".format(
+            detected, expected)
 
 
-## SKETCH: I think this might make for a better *validation* pattern,
-## haven't really gone through it all yet though.
-# bucket_mimes = {
-#     'images': {'image/jpeg', 'image/jp2'},
-#     'sounds': {'audio/mpeg3', 'audio/mpeg'},
-#     'models': {'model/mesh', 'text/plain'},
-#     'video': {'video/mpeg', 'video/mp4'},
-#     'datasets': {'text/csv', 'text/plain', 'application/zip'},
-#     'debugfile': {'text/plain', 'application/zip'}
-# }
-# valid_buckets = set(bucket_mimes.keys())
+def sniff_mime(content):
+    import magic
+    return magic.from_buffer(content, mime=True)
+
+
+def validate_mime_for_type(mime, t):
+    """Check that the mime, and type are valid independently and together.
+
+    Both arguments are nullable.
+    """
+    amime = mime_aliases.get(mime, mime)
+    if t:
+        if t not in valid_buckets:
+            raise InvalidBucketError(t)
+        if amime and amime not in bucket_mimes[t]:
+            raise MimeNotAllowedError(mime, t)
+    elif amime:
+        t = get_default_bucket(amime)
+        if not t:
+            raise UnknownBucketError(mime)
+
+    return amime, t
+
+
+def validate(content, type=None, mime=None, url=None):
+    """Validate the content with the given prior constraints
+
+    If no constraints (type and mime) are given then just validate
+    that the content is an accepted type with a default destination.
+    """
+    mime, type = validate_mime_for_type(mime, type)
+
+    if url and url.endswith(".stl"):
+        detected = "model/mesh"
+    else:
+        detected = sniff_mime(content)
+    if not detected:
+        raise MediaValidationError("Couldn't detect mime type")
+    if mime and detected != mime_aliases.get(mime, mime):
+        raise MimeMismatchError(mime, detected)
+
+    return validate_mime_for_type(detected, type)

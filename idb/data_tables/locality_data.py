@@ -1301,6 +1301,7 @@ kl = {
         u"viet nam": "vietnam",
         u"vatican city": "holy see (vatican city state)",
         u"england": "united kingdom",
+        u"laos": "lao people's democratic republic"
     },
 
     "stateprovince": {

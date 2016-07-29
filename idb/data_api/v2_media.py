@@ -4,19 +4,19 @@ from datetime import datetime
 from flask import (Blueprint, jsonify, request, redirect,
                    Response, render_template)
 
-from idb.helpers.logging import idblogger
 from idb.helpers.idb_flask_authn import requires_auth
 from idb.helpers.cors import crossdomain
 from idb.helpers.storage import IDigBioStorage
 from idb.postgres_backend.db import MediaObject
-from idb.helpers.conversions import valid_buckets, unmapped_buckets, mime_mapping
-from idb.helpers.media_validation import UnknownMediaTypeError, MimeMismatchError
+from idb.helpers.media_validation import (
+    validate_mime_for_type, MediaValidationError,
+    #InvalidBucketError, UnknownBucketError,
+    #MimeNotAllowedError, MimeMismatchError,
+)
 
-from .common import json_error, idbmodel
+from .common import json_error, idbmodel, logger
 
 this_version = Blueprint(__name__, __name__)
-
-logger = idblogger.getChild('mediapi')
 
 # TODO:
 # List endpoints?
@@ -60,41 +60,44 @@ def respond_to_record(r, deriv=None, format=None):
     if r is None:
         return json_error(404)
     media_url = get_media_url(r, deriv=deriv)
-    mime = r.mime or r.detected_mime
-    status = 200
+    mime = r.detected_mime or r.mime
 
     if media_url:
         text = None
-    elif mime is None:
-        text = "Unknown Format"
-    elif (r.type or r.bucket) is None:
-        text = "Unsupported Format"
+        cache = 4 * 24 * 60 * 60
+    elif mime is None or (r.type or r.bucket) is None:
+        text = "No Preview"
+        cache = 24 * 60 * 60
     elif r.last_status is None:  # haven't downloaded yet
-        text = "Media Download Pending"
+        text = "Preview Pending"
+        cache = 600
     else:
-        text = "Media Error"
-        status = 400
+        text = "No Preview"
+        cache = 24 * 60 * 60
 
     if format == "json":
         d = get_json_for_record(r, deriv, text=text)
         response = jsonify(d)
         response.cache_control.public = True
-        response.cache_control.max_age = 24 * 60 * 60  # 1d
+        response.cache_control.max_age = cache
         return response
     elif format is not None:
-        return json_error(400, "Unknown format '{0}'".format(format))
+        response = json_error(400, "Unknown format '{0}'".format(format))
+        response.cache_control.public = True
+        response.cache_control.max_age = 24 * 60 * 60
+        return response
 
     if media_url is not None:
         response = redirect(media_url)
         response.cache_control.public = True
-        response.cache_control.max_age = 4 * 24 * 60 * 60  # 4d
+        response.cache_control.max_age = cache
         return response
 
     response = Response(
         render_template("_default.svg", text=text, mime=r.mime),
         mimetype="image/svg+xml")
     response.cache_control.public = True
-    response.cache_control.max_age = 24 * 60 * 60  # 1d
+    response.cache_control.max_age = cache
     return response
 
 
@@ -197,31 +200,30 @@ def upload():
     if not filereference:
         return json_error(400, "Missing filereference")
 
-    etag = vals.get('etag')
     obj = request.files.get('file')
+    etag = vals.get('etag')
     media_type = vals.get("media_type")
     mime = vals.get("mime")
-    if media_type and media_type not in valid_buckets:
-        return json_error(400, "Invalid media_type")
 
-    if media_type not in unmapped_buckets and mime:
-        # we want to validate mime type, but only if not a datasets
-        mapped = mime_mapping.get(mime)
-        if mapped is None or (media_type and mapped != media_type):
-            return json_error(400, "Invalid mime")
+    try:
+        mime, media_type = validate_mime_for_type(mime, media_type)
+    except MediaValidationError as mve:
+        return json_error(400, str(mve))
 
     r = MediaObject.fromurl(filereference, idbmodel=idbmodel)
-    if r and r.owner != request.authorization.username:
-        return json_error(403)
+    if r:
+        logger.debug("Found existing object for %r", r.url)
+        if r.owner != request.authorization.username:
+            return json_error(403)
 
     if obj:
         # if either type or mime are null it will be ignored, if
         # present they change the behavior of fromobj
         try:
             mo = MediaObject.fromobj(obj, type=media_type, mime=mime, url=filereference)
-        except (UnknownMediaTypeError, MimeMismatchError) as e:
-            logger.warn("mime failure, %r", e)
-            return json_error(400, "Invalid mime")
+        except MediaValidationError as mve:
+            logger.warn("Validation failure, %r", mve)
+            return json_error(400, str(mve))
         mo.upload(IDigBioStorage(), obj)
         mo.insert_object(idbmodel)
     elif etag:
@@ -234,14 +236,16 @@ def upload():
         mo.mime = mime or mo.detected_mime
         mo.type = media_type or mo.bucket
 
-    elif (media_type and mime):
-        mo = r or MediaObject()
-        mo.type = media_type
-        mo.mime = mime
-        mo.last_check = None
-        mo.last_status = None
     else:
-        return json_error(400, "Incomplete request")
+        mo = r or MediaObject()
+        mo.last_status = None
+        mo.last_check = None
+        try:
+            mo.mime, mo.type = validate_mime_for_type(mo.mime or mime, mo.type or media_type)
+            if not (mo.mime and mo.type):
+                return json_error(400, "Incomplete request")
+        except MediaValidationError as mve:
+            return json_error(400, str(mve))
 
     mo.url = filereference
     mo.owner = request.authorization.username

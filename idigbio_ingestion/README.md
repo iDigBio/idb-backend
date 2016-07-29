@@ -14,7 +14,9 @@ iDigBio.
 0. If everything looks good, run the `ingest-all` subcommand to perform actual ingestion of records into the database
 0. Start indexing of new records via `index_from_postgres.py` with the `-k` full check option.
 0. While indexing is running it is safe to run the `mediaing` commands. First to insert new urls into the database, then to download new media
+   * There are services on c18node4 that run these continuously
 0. Run the `derivatives` command to generate thumbnails
+   * There is a service on c18node4 that runs this continuously
 0. Validate that recordset, records, and media appear in the portal
 0. Update redmine tickets
 0. Update Data Ingestion Report on the iDigBio wiki
@@ -55,9 +57,11 @@ The following subcommands are related to recordset ingestion
 
 ### Media Ingestion ###
 
+All of these commands are run automatically/continuously on c18node4
+managed by systemd.
+
 * `mediaing`:
   * Common options:
-    * `--tropicos`: enable custom tropicos logic
     * `--prefix`: limit to urls w/ this prefix
   * commands:
     * `updatedb`: Update the DB with new URLs
@@ -67,3 +71,6 @@ The following subcommands are related to recordset ingestion
 * `derivatives [{images, sounds}*]`: takes arguments
   of which buckets to run from, if none specified then all known
   buckets will be used
+
+To see latest status/log messages use `systemctl status
+idigbio-ingestion-$CMD.service`. Tab-completion should be active.

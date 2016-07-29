@@ -5,7 +5,7 @@ import sys
 
 import click
 
-from flask_cli import pass_script_info
+from flask.cli import pass_script_info
 
 from idb.clibase import cli
 
@@ -38,12 +38,14 @@ def run_server(info, host, port, reload, debugger, eager_loading, debug, wsgi):
 
     The reloader and debugger are by default enabled if the debug flag of
     Flask is enabled and disabled otherwise.
+
+    This is very similar to flask.cli.run_command; with the main
+    addition of the --wsgi flag
+
     """
     info.app_import_path = 'idb.data_api.api:app'
     info.debug = debug
     from idb import config
-    print("Server Start http://{0}:{1}/ ENV={2}".format(host, port, config.ENV),
-          file=sys.stderr)
 
     if reload is None:
         reload = info.debug
@@ -60,7 +62,7 @@ def run_server(info, host, port, reload, debugger, eager_loading, debug, wsgi):
 
     if wsgi == 'werkzeug':
         from werkzeug.serving import run_simple
-        from flask_cli import DispatchingApp
+        from flask.cli import DispatchingApp
 
         app = DispatchingApp(info.load_app, use_eager_loading=eager_loading)
 
@@ -72,7 +74,8 @@ def run_server(info, host, port, reload, debugger, eager_loading, debug, wsgi):
             # import path because the app was loaded through a callback then
             # we won't print anything.
             if info.app_import_path is not None:
-                print(' * Serving Flask app "%s"' % info.app_import_path)
+                print("Werkzeug server @ http://{0}:{1}/ ENV={2}".format(host, port, config.ENV),
+                      file=sys.stderr)
             if info.debug is not None:
                 print(' * Forcing debug %s' % (info.debug and 'on' or 'off'))
 
@@ -83,6 +86,8 @@ def run_server(info, host, port, reload, debugger, eager_loading, debug, wsgi):
     elif wsgi == 'gevent':
         from gevent.pool import Pool
         from gevent.wsgi import WSGIServer
+        print("gevent server @ http://{0}:{1}/ ENV={2}".format(host, port, config.ENV),
+              file=sys.stderr)
 
         http_server = WSGIServer(('', 19197), info.load_app(), spawn=Pool(1000))
         http_server.serve_forever()

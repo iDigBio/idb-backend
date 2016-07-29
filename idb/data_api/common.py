@@ -1,6 +1,5 @@
-from __future__ import absolute_import
+from __future__ import division, absolute_import, print_function
 import requests
-import traceback
 
 from flask import jsonify, current_app
 from werkzeug.exceptions import default_exceptions
@@ -13,10 +12,11 @@ try:
 except ImportError:
     from flask import _request_ctx_stack as stack
 
-
 from idb.postgres_backend.db import PostgresDB
+from idb.helpers.logging import idblogger
 
 
+logger = idblogger.getChild('api')
 s = requests.Session()
 
 
@@ -41,6 +41,7 @@ class IDBModelSession(object):
             self.init_app(app)
 
     def init_app(self, app):
+        logger.debug("Initializing idbmodel connection with %r", app)
         # Use the newstyle teardown_appcontext if it's available,
         # otherwise fall back to the request context
         if hasattr(app, 'teardown_appcontext'):

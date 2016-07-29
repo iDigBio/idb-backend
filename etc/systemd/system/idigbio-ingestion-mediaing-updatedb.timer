@@ -1,0 +1,9 @@
+[Unit]
+Description="Runs the `idigbio-ingestion mediaing updatedb` daily task"
+
+[Timer]
+# daily at 3 am
+OnCalendar=*-*-* 03:00:00
+
+[Install]
+WantedBy=timers.target

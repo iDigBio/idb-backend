@@ -1,12 +1,12 @@
-from __future__ import absolute_import
+from __future__ import division, absolute_import, print_function
+
 from flask import current_app, Blueprint, jsonify, url_for, request
 
-from .common import json_error, idbmodel
-from idb.helpers.idb_flask_authn import requires_auth
-
 from idb.helpers.cors import crossdomain
+from .common import json_error, idbmodel, logger
 
 this_version = Blueprint(__name__,__name__)
+
 
 def format_list_item(t,uuid,etag,modified,version,parent):
     links = {}
@@ -21,6 +21,7 @@ def format_list_item(t,uuid,etag,modified,version,parent):
         "idigbio:version": version,
         "idigbio:links": links,
     }
+
 
 def format_item(t,uuid,etag,modified,version,parent,data,siblings,ids):
     r = format_list_item(t,uuid,etag,modified,version,parent)
@@ -38,6 +39,7 @@ def format_item(t,uuid,etag,modified,version,parent,data,siblings,ids):
     r["idigbio:links"].update(l)
     r["idigbio:recordIds"] = ids
     return r
+
 
 @this_version.route('/<string:t>/<uuid:u>/<string:st>', methods=['GET','OPTIONS'])
 @crossdomain(origin="*")
@@ -86,7 +88,7 @@ def item(t,u):
         if v["data"] is None:
             return json_error(500)
 
-        if v["type"] +"s" == t:
+        if v["type"] + "s" == t:
             r = format_item(
                 t,
                 v["uuid"],
@@ -137,6 +139,7 @@ def list(t):
     r["idigbio:items"] = l
     r["idigbio:itemCount"] = idbmodel.get_type_count("".join(t[:-1]))
     return jsonify(r)
+
 
 @this_version.route('/', methods=['GET','OPTIONS'])
 @crossdomain(origin="*")

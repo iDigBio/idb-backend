@@ -109,7 +109,8 @@ def update_db_from_rss():
             for recordid in r["recordids"]:
                 existing_recordsets[recordid] = r["id"]
             recordsets[r["id"]] = r
-
+        #logger.debug("***existing_recordsets DUMP ***\n")
+        #logger.debug("{0}".format(existing_recordsets))
         pub_recs = db.fetchall("SELECT * FROM publishers")
         logger.debug("Checking %d publishers", len(pub_recs))
         for r in pub_recs:
@@ -178,10 +179,13 @@ def _do_rss(r, db, recordsets, existing_recordsets):
         recordids = [recordid]
         recordset = None
         if recordid in existing_recordsets:
+            logger.debug("Found recordid '{0}' in existing recordsets.".format(recordid))
             recordset = recordsets[existing_recordsets[recordid]]
             rsid = recordset["uuid"]
             ingest = recordset["ingest"]
             recordids = list(set(recordids + recordset["recordids"]))
+        else:
+            logger.debug("recordid '{0}' NOT found in existing recordsets.".format(recordid))
 
         eml_link = None
         file_link = None

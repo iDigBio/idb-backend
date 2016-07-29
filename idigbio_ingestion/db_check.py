@@ -3,12 +3,12 @@ import datetime
 import functools
 import json
 import logging
-import multiprocessing
 import os
 import re
 import traceback
 
 import magic
+
 from atomicfile import AtomicFile
 from psycopg2 import DatabaseError
 from boto.exception import S3ResponseError, S3DataError
@@ -17,16 +17,15 @@ from boto.exception import S3ResponseError, S3DataError
 from idb import stats
 from idb.postgres_backend import apidbpool, NamedTupleCursor
 from idb.postgres_backend.db import PostgresDB, RecordSet
+from idb.helpers import ilen
 from idb.helpers.etags import calcEtag, calcFileHash
 from idb.helpers.logging import idblogger, LoggingContext
 from idb.helpers.storage import IDigBioStorage
+from idb.helpers import gipcpool
 
 from idigbio_ingestion.lib.dwca import Dwca
 from idigbio_ingestion.lib.delimited import DelimitedFile
 
-
-
-magic = magic.Magic(mime=True)
 
 bad_chars = u"\ufeff"
 bad_char_re = re.compile("[%s]" % re.escape(bad_chars))
@@ -41,6 +40,8 @@ s = IDigBioStorage()
 class RecordException(Exception):
     pass
 
+def getrslogger(rsid):
+    return logger.getChild(rsid)
 
 def mungeid(s):
     return bad_char_re.sub('', s).strip()
@@ -95,9 +96,12 @@ def idFromRR(r, rs=None):
 def get_file(rsid):
     fname = rsid
     if not os.path.exists(fname):
-        RecordSet.fetch_file(rsid, fname, media_store=IDigBioStorage(), logger=logger.getChild(rsid))
-
-    mime = magic.from_file(fname)
+        try:
+            RecordSet.fetch_file(rsid, fname, media_store=IDigBioStorage(), logger=logger.getChild(rsid))
+        except (S3ResponseError, S3DataError):
+            getrslogger(rsid).exception("failed fetching archive")
+            raise
+    mime = magic.from_file(fname, mime=True)
     return (fname, mime)
 
 
@@ -136,7 +140,7 @@ core_siblings = {}
 
 
 def process_subfile(rf, rsid, rs_uuid_etag, rs_id_uuid, ingest=False, db=None):
-    rlogger = logger.getChild(rsid)
+    rlogger = getrslogger(rsid)
 
     count = 0
     no_recordid_count = 0
@@ -294,7 +298,6 @@ def process_subfile(rf, rsid, rs_uuid_etag, rs_id_uuid, ingest=False, db=None):
             ids_to_add = {}
             uuids_to_add = {}
             rlogger.warn(e)
-            rlogger.info(traceback.format_exc())
             record_exceptions += 1
         except AssertionError as e:
             ids_to_add = {}
@@ -331,7 +334,7 @@ def process_subfile(rf, rsid, rs_uuid_etag, rs_id_uuid, ingest=False, db=None):
             try:
                 db.delete_item(u)
                 deleted += 1
-            except:
+            except Exception:
                 rlogger.info("Failed deleting %r", u, exc_info=True)
 
     return {
@@ -357,7 +360,7 @@ def process_subfile(rf, rsid, rs_uuid_etag, rs_id_uuid, ingest=False, db=None):
 
 
 def process_file(fname, mime, rsid, existing_etags, existing_ids, ingest=False, commit_force=False):
-    rlogger = logger.getChild(rsid)
+    rlogger = getrslogger(rsid)
     rlogger.info("Processing %s, type: %s", fname, mime)
     counts = {}
     t = datetime.datetime.now()
@@ -498,14 +501,10 @@ def main(rsid, ingest=False):
             filename='./{0}.db_check.log'.format(rsid),
             file_level=logging.DEBUG,
             clear_existing_handlers=False):
-        rlogger = logger.getChild(rsid)
+        rlogger = getrslogger(rsid)
         rlogger.info("Starting db_check ingest: %r", ingest)
         t = datetime.datetime.now()
-        try:
-            name, mime = get_file(rsid)
-        except (S3ResponseError, S3DataError):
-            rlogger.exception("failed fetching archive")
-            raise
+        name, mime = get_file(rsid)
 
         if os.path.exists(rsid + "_uuids.json") and os.path.exists(rsid + "_ids.json"):
             with open(rsid + "_uuids.json", "rb") as uuidf:
@@ -542,9 +541,9 @@ def launch_child(rsid, ingest):
 
         return main(rsid, ingest=ingest)
     except KeyboardInterrupt:
-        logger.debug("Child KeyboardInterrupt")
-        pass
-    except:
+        logger.getChild(rsid).debug("KeyboardInterrupt in child")
+        raise
+    except Exception:
         logger.getChild(rsid).critical("Child failed", exc_info=True)
 
 
@@ -557,14 +556,10 @@ def allrsids(since=None, ingest=False):
     # Need to ensure all the connections are closed before multiprocessing forks
     apidbpool.closeall()
 
-    pool = multiprocessing.Pool(maxtasksperchild=1)
-    try:
-        results = list(
-            pool.imap_unordered(
-                functools.partial(launch_child, ingest=ingest),
-                rsids))
-    except KeyboardInterrupt:
-        logger.debug("Got KeyboardInterrupt")
-        raise
+    pool = gipcpool.Pool()
+    exitcodes = pool.imap_unordered(functools.partial(launch_child, ingest=ingest), rsids)
+    badcount = ilen(e for e in exitcodes if e != 0)
+    if badcount:
+        logger.critical("%d children failed", badcount)
     from .ds_sum_counts import main as ds_sum_counts
     ds_sum_counts('./', sum_filename='summary.csv', susp_filename="suspects.csv")

@@ -1,8 +1,7 @@
-from __future__ import absolute_import
+from __future__ import division, absolute_import, print_function
 
 from flask import Flask, jsonify, request, abort, url_for
-from flask.ext.uuid import FlaskUUID
-from flask_cli import FlaskCLI
+from flask_uuid import FlaskUUID
 
 from idb.helpers.cors import crossdomain
 from idb.postgres_backend import apidbpool
@@ -10,7 +9,6 @@ from idb.data_api.common import idbmodel
 
 app = Flask(__name__)
 FlaskUUID(app)
-FlaskCLI(app)
 
 app.config.from_object('idb.data_api.config')
 
@@ -55,3 +53,14 @@ def index():
             r[sa[0]] = url_for(rule.endpoint, _external=True)
 
     return jsonify(r)
+
+
+@app.route('/version', methods=['GET'])
+def version():
+    from idb import __version__
+    return __version__
+
+
+@app.route('/healthz', methods=['GET'])
+def healthz():
+    return idbmodel.fetchone("SELECT 'ok'")[0]

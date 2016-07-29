@@ -24,7 +24,7 @@ from idb.helpers.logging import idblogger
 
 import elasticsearch.helpers
 
-log = idblogger.getChild('indexing')
+logger = idblogger.getChild('indexing')
 
 last_afters = {}
 
@@ -37,7 +37,7 @@ def rate_logger(prefix, iterator, every=10000):
     count = 0
     start_time = datetime.datetime.now()
     rate = lambda: count / (datetime.datetime.now() - start_time).total_seconds()
-    output = lambda: log.info("%s %s %.1f/s", prefix, count, rate())
+    output = lambda: logger.info("%s %s %.1f/s", prefix, count, rate())
 
     with signalcm(signal.SIGUSR1, lambda s, f: output()):
         for e in iterator:
@@ -46,8 +46,8 @@ def rate_logger(prefix, iterator, every=10000):
             if count % every == 0:
                 output()
 
-        log.info("%s %s %.1f/s FINISHED in %s",
-                 prefix, count, rate(), datetime.datetime.now() - start_time)
+        logger.info("%s %s %.1f/s FINISHED in %s",
+                    prefix, count, rate(), datetime.datetime.now() - start_time)
 
 
 def type_yield(ei, rc, typ, yield_record=False):
@@ -92,13 +92,13 @@ def type_yield_modified(ei, rc, typ, yield_record=False):
     # I don't care whether ES has changed or not (although presumably it hasn't).
     # if typ in last_afters:
     #     if after == last_afters[typ]:
-    #         log.info("%s after value %s same as last run, skipping", typ, after)
+    #         logger.info("%s after value %s same as last run, skipping", typ, after)
     #         return
     #     else:
     #         last_afters[typ] = after
     # else:
     #     last_afters[typ] = after
-    log.info("Indexing %s after %s", typ, after.isoformat())
+    logger.info("Indexing %s after %s", typ, after.isoformat())
 
     # Note, a subtle distinction: The below query will index every
     # _version_ of every record modified since the date it is thus
@@ -116,8 +116,7 @@ def type_yield_modified(ei, rc, typ, yield_record=False):
             recordids,
             siblings,
             uuids_data.id as vid,
-            data,
-            riak_etag
+            data
         FROM uuids_data
         LEFT JOIN uuids
         ON uuids.id = uuids_data.uuids_id
@@ -173,7 +172,7 @@ def type_yield_modified(ei, rc, typ, yield_record=False):
 def type_yield_resume(ei, rc, typ, also_delete=False, yield_record=False):
     pg_typ = "".join(typ[:-1])
     es_ids = {}
-    log.info("%s Building Resume Cache", typ)
+    logger.info("%s Building Resume Cache", typ)
 
     q = {
         "index": ei.indexName,
@@ -196,7 +195,7 @@ def type_yield_resume(ei, rc, typ, also_delete=False, yield_record=False):
 
         es_ids[k] = etag
 
-    log.info("%s: Indexing", typ)
+    logger.info("%s: Indexing", typ)
 
     sql = "SELECT * FROM idigbio_uuids_data WHERE type=%s AND deleted=false"
     results = apidbpool.fetchiter(
@@ -214,7 +213,7 @@ def type_yield_resume(ei, rc, typ, also_delete=False, yield_record=False):
             yield index_record(ei, rc, typ, r, do_index=False)
 
     if also_delete and len(es_ids) > 0:
-        log.info("%s: Deleting %s extra", typ, len(es_ids))
+        logger.info("%s: Deleting %s extra", typ, len(es_ids))
         for r in rate_logger(typ + " delete", es_ids):
             ei.es.delete(**{
                 "index": ei.indexName,
@@ -241,19 +240,25 @@ def queryIter(query, ei, rc, typ, yield_record=False):
             else:
                 yield index_record(ei, rc, typ, rec, do_index=False)
 
-def uuidsIter(uuid_l, ei, rc, typ, yield_record=False):
+
+def uuidsIter(uuid_l, ei, rc, typ, yield_record=False, children=False):
     for rid in uuid_l:
-        sql = "SELECT * FROM idigbio_uuids_data WHERE uuid=%s and type=%s"
+        if children:
+            logger.debug("Selecting children of %s.", rid)
+            sql = "SELECT * FROM idigbio_uuids_data WHERE parent=%s and type=%s"
+        else:
+            sql = "SELECT * FROM idigbio_uuids_data WHERE uuid=%s and type=%s"
         params = (rid.strip(), typ[:-1])
-        rec = apidbpool.fetchone(sql, params, cursor_factory=DictCursor)
-        if rec is not None:
+        results = apidbpool.fetchall(sql, params, cursor_factory=DictCursor)
+        for rec in results:
             if yield_record:
                 yield rec
             else:
                 yield index_record(ei, rc, typ, rec, do_index=False)
 
+
 def delete(ei, rc, no_index=False):
-    log.info("Running deletes")
+    logger.info("Running deletes")
 
     count = 0
     sql = "SELECT id,type FROM uuids WHERE deleted=true"
@@ -263,14 +268,14 @@ def delete(ei, rc, no_index=False):
         if not no_index:
             ei.es.delete(**{
                 "index": ei.indexName,
-                "doc_type": r["type"],
+                "doc_type": r["type"] + 's',
                 "id": r["id"]
             })
 
         if count % 10000 == 0:
-            log.info("%s", count)
+            logger.info("%s", count)
 
-    log.info("%s", count)
+    logger.info("%s", count)
     try:
         ei.optimize()
     except:
@@ -302,8 +307,8 @@ def query(ei, rc, query, no_index=False):
     except:
         pass
 
-def uuids(ei, rc, uuid_l, no_index=False):
-    f = functools.partial(uuidsIter, uuid_l)
+def uuids(ei, rc, uuid_l, no_index=False, children=False):
+    f = functools.partial(uuidsIter, uuid_l, children=children)
     consume(ei, rc, f, no_index=no_index)
     try:
         ei.optimize()
@@ -332,14 +337,14 @@ def consume(ei, rc, iter_func, no_index=False):
 def continuous_incremental(ei, rc, no_index=False):
     while True:
         t_start = datetime.datetime.now()
-        log.info("Starting Incremental Run at %s", t_start.isoformat())
+        logger.info("Starting Incremental Run at %s", t_start.isoformat())
         incremental(ei, rc, no_index=no_index)
         t_end = datetime.datetime.now()
-        log.info("Ending Incremental Run from %s at %s",
+        logger.info("Ending Incremental Run from %s at %s",
                  t_start.isoformat(), t_end)
         sleep_duration = max(
             [MAX_SLEEP - (t_end - t_start).total_seconds(), MIN_SLEEP])
-        log.info("Sleeping for %s seconds", sleep_duration)
+        logger.info("Sleeping for %s seconds", sleep_duration)
         time.sleep(sleep_duration)
 
 

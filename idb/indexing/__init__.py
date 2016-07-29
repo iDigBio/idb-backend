@@ -28,7 +28,7 @@ from idb.helpers.logging import fnlogged
 @fnlogged
 def cli(ctx, index, types, indexname):
     from idb.helpers.logging import idblogger
-    log = idblogger.getChild('indexing')
+    logger = idblogger.getChild('indexing')
     from idb import config
     from .indexer import ElasticSearchIndexer
     from idb.corrections.record_corrector import RecordCorrector
@@ -40,7 +40,7 @@ def cli(ctx, index, types, indexname):
     serverlist = config.config["elasticsearch"]["servers"]
 
     if config.ENV == 'beta':
-        log.info("Enabling beta configuration")
+        logger.info("Enabling beta configuration")
         indexname = "2.5.0"
         serverlist = [
             "c17node52.acis.ufl.edu",
@@ -51,7 +51,7 @@ def cli(ctx, index, types, indexname):
         ]
 
     if not index:
-        log.info("Enabling no-index dry run mode")
+        logger.info("Enabling no-index dry run mode")
 
     # These are the parameters that are common to every indexing
     # function
@@ -60,11 +60,6 @@ def cli(ctx, index, types, indexname):
         'rc': RecordCorrector(),
         'no_index': not index
     }
-
-    # indexing monitors for SIGUSR1 output for logging but the default
-    # python handler causes exit on SIGUSR1
-    from signal import signal, SIGUSR1, SIG_IGN
-    signal(SIGUSR1, SIG_IGN)
 
 
 @cli.command(help="run incremental continously")
@@ -107,12 +102,13 @@ def uuid_file(params, uuid_file):
 
 
 @cli.command(help="Index the specified uuids")
+@click.option('--children', is_flag=True, default=False, help="Index the children of specified uuids")
 @click.argument('uuid', nargs=-1)
 @click.pass_obj
 @fnlogged
-def uuids(params, uuid):
+def uuids(params, children, uuid):
     from .index_from_postgres import uuids
-    uuids(uuid_l=uuid, **params)
+    uuids(children=children, uuid_l=uuid, **params)
 
 
 @cli.command(help="resume a full sync (full + etag compare)")

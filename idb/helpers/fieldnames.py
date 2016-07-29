@@ -1,5 +1,4 @@
-from __future__ import absolute_import
-import pprint
+from __future__ import division, absolute_import, print_function
 import json
 import string
 from collections import defaultdict
@@ -49,6 +48,7 @@ types = {
     "http://purl.org/NET/aec/associatedTaxa": {"shortname": "aec:associatedTaxa"},
     "http://rs.tdwg.org/dwc/terms/MeasurementOrFact": {"shortname": "dwc:MeasurementOrFact"},
     "http://rs.gbif.org/terms/1.0/Reference": {"shortname": "gbif:Reference"},
+    "http://rs.gbif.org/terms/1.0/Identifier": {"shortname": "gbif:Identifier"}
 }
 
 translate_dict = {
@@ -565,10 +565,10 @@ def get_canonical_name(f):
 def print_sorted_dict():
     ks = translate_dict.keys()
     ks = sorted(ks, key=lambda s: s.lower())
-    print "{"
+    print("{")
     for k in ks:
-        print "    \"{0}\": {1},".format(k, json.dumps(translate_dict[k]).replace("null","None"))
-    print "}"
+        print("    \"{0}\": {1},".format(k, json.dumps(translate_dict[k]).replace("null","None")))
+    print("}")
 
 def print_ns_counts():
     ks = translate_dict.keys()
@@ -579,13 +579,13 @@ def print_ns_counts():
             ns = translate_dict[k][0].split(":")[0]
             if ns in namespaces_rev:
                 nsc[namespaces_rev[ns]] += 1
-    print json.dumps(nsc,indent=2)
+    print(json.dumps(nsc,indent=2))
 
 def get_short_term(f):
     for ns in sorted(namespaces.keys(),key=lambda x: len(x), reverse=True):
         if f.startswith(ns):
             return f.replace(ns,namespaces[ns]+":")
-    print "NO NS: " + f
+    print("NO NS: " + f)
     return f
 
 def main():

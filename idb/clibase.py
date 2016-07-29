@@ -37,6 +37,10 @@ def get_std_options():
             envvar="LOGFILE",
             type=click.Path(file_okay=True, dir_okay=False, writable=True),
             help="If specified path to write logfile to"),
+        click.Option(
+            ['--journal/--no-journal'],
+            help="When set configures logging to stderr expecting to be caught by journald",
+        ),
         click.Option(['--idb-uuid'],
                      envvar="IDB_UUID",
                      type=click.UUID),
@@ -50,8 +54,8 @@ def get_std_options():
 def add_std_options(fn):
     fn.params += get_std_options()
 
-def handle_std_options(verbose=None, env=None, config=None, logfile=None, **kwargs):
-    configure_app_log(verbose=verbose, logfile=logfile)
+def handle_std_options(verbose=None, env=None, config=None, logfile=None, journal=False, **kwargs):
+    configure_app_log(verbose=verbose, logfile=logfile, journal=journal)
 
     #it's important we don't import config (which will modify the
     #environment) until after click gets a chance to inspect the
@@ -70,6 +74,13 @@ def handle_std_options(verbose=None, env=None, config=None, logfile=None, **kwar
             v = u"{0}".format(v)
             setattr(_config, k.upper(), v)
             os.environ[k.upper()] = v
+
+    # idb uses SIGUSR1 to output extra logging/current status
+    # information. This will be configured in certain contexts but the
+    # idb process default should be ignore instead of the python
+    # default of exit.
+    from signal import signal, SIGUSR1, SIG_IGN
+    signal(SIGUSR1, SIG_IGN)
 
 
 @click.group()

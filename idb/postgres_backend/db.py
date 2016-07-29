@@ -1,3 +1,4 @@
+from __future__ import division, absolute_import, print_function
 import uuid
 import json
 import os
@@ -5,6 +6,7 @@ import sys
 import itertools
 
 from datetime import datetime
+from cStringIO import StringIO
 
 from psycopg2.extras import DictCursor, NamedTupleCursor
 from psycopg2.extensions import cursor
@@ -15,8 +17,8 @@ from idb import config
 from idb.helpers.logging import idblogger as logger
 from idb.postgres_backend import apidbpool
 from idb.helpers.etags import calcEtag, calcFileHash
-from idb.helpers.media_validation import sniff_validation, MimeMismatchError
-from idb.helpers.conversions import valid_buckets, get_accessuri
+from idb.helpers.media_validation import validate
+from idb.helpers.conversions import get_accessuri
 
 
 TEST_SIZE = 10000
@@ -27,8 +29,6 @@ tombstone_etag = "9a4e35834eb80d9af64bcd07ed996b9ec0e60d92"
 
 
 class PostgresDB(object):
-    _pool = apidbpool
-
     __join_uuids_etags_latest_version = """
         LEFT JOIN LATERAL (
             SELECT * FROM uuids_data
@@ -93,8 +93,7 @@ class PostgresDB(object):
 
     __columns_master_query_data = __columns_master_query + \
         """,
-            data,
-            riak_etag
+            data
     """
 
     __item_master_query = __columns_master_query + __item_master_query_from
@@ -140,9 +139,14 @@ class PostgresDB(object):
         )
     """
 
+    _pool = None
+    conn = None
+
     def __init__(self, pool=None):
         if pool:
             self._pool = pool
+        else:
+            self._pool = apidbpool
         # Generic reusable cursor for normal ops
         self.conn = self._pool.get()
 
@@ -242,7 +246,6 @@ class PostgresDB(object):
 
         self.execute("""CREATE TABLE IF NOT EXISTS data (
             etag varchar(41) NOT NULL PRIMARY KEY,
-            riak_etag varchar(41),
             data jsonb
         )""")
 
@@ -315,8 +318,9 @@ class PostgresDB(object):
             return self.fetchone(*sql)
 
     def delete_item(self, u):
-        self._upsert_uuid_data(u, tombstone_etag)
-        self.execute("UPDATE uuids SET deleted=true WHERE id=%s", (u,))
+        rc1 = self._upsert_uuid_data(u, tombstone_etag)
+        rc2 = self.execute("UPDATE uuids SET deleted=true WHERE id=%s", (u,))
+        return rc2
 
     def undelete_item(self, u):
         # Needs to be accompanied by a corresponding version insertion to obsolete the tombstone
@@ -420,10 +424,10 @@ class PostgresDB(object):
             self._upsert_uuid_sibling_l(
                 [(u, s) for s in siblings])
         except AssertionError:
-            print u, t, ids
+            print(u, t, ids)
             raise
         except:
-            print u, t, ids
+            print(u, t, ids)
             self.rollback()
             raise
 
@@ -441,7 +445,7 @@ class PostgresDB(object):
         except:
             e = sys.exc_info()
             self.rollback()
-            raise e[1], None, e[2]
+            raise
 
     # UUID
 
@@ -486,7 +490,7 @@ class PostgresDB(object):
 
     # UUID DATA
     def _upsert_uuid_data(self, u, e):
-        self.execute(self._upsert_uuid_data_query, {
+        return self.execute(self._upsert_uuid_data_query, {
             "uuid": u,
             "etag": e
         })
@@ -635,6 +639,10 @@ class MediaObject(object):
             return cls.fromurl(ref, idbmodel=idbmodel)
 
     @classmethod
+    def frombuff(cls, buff, **attrs):
+        return cls.fromobj(StringIO(buff), **attrs)
+
+    @classmethod
     def fromobj(cls, obj, **attrs):
         obj.seek(0)
         attrs.setdefault('last_status', 200)
@@ -642,20 +650,11 @@ class MediaObject(object):
         attrs.setdefault('derivatives', False)
 
         mo = cls(**attrs)
-
-        if mo.bucket not in valid_buckets:
-            mo.bucket = None
-        if mo.type not in valid_buckets:
-            mo.type = None
-
-        hastype = mo.type or mo.bucket
-        if not hastype:
-            mo.detected_mime, mo.bucket = sniff_validation(obj.read(1024))
-        elif mo.detected_mime is None:
-            mo.detected_mime, _ = sniff_validation(obj.read(1024), raises=False)
-
-        if mo.mime and mo.detected_mime != mo.mime:
-            raise MimeMismatchError(mo.mime, mo.detected_mime)
+        if not mo.detected_mime or not mo.ubcket:
+            mo.detected_mime, mo.bucket = validate(obj.read(1024),
+                                                   url=mo.url,
+                                                   type=mo.type or mo.bucket,
+                                                   mime=mo.mime or mo.detected_mime)
 
         if mo.type and not mo.bucket:
             mo.bucket = mo.type
@@ -683,8 +682,11 @@ class MediaObject(object):
     def upload(self, media_store, fobj, force=False):
         k = self.get_key(media_store)
         if force or not k.exists():
-            fobj.seek(0)
-            k.set_contents_from_file(fobj, md5=k.get_md5_from_hexdigest(self.etag))
+            try:
+                fobj.seek(0)
+                k.set_contents_from_file(fobj, md5=k.get_md5_from_hexdigest(self.etag))
+            except AttributeError:
+                k.set_contents_from_string(fobj, md5=k.get_md5_from_hexdigest(self.etag))
             if self.bucket not in private_buckets:
                 k.make_public()
         return k
@@ -795,7 +797,7 @@ class RecordSet(object):
             LEFT JOIN objects on recordsets.file_harvest_etag = objects.etag
             WHERE recordsets.uuid = %s
         """
-        r = idbmodel.fetchone(sql, (uuid,))
+        r = idbmodel.fetchone(sql, (uuid,), cursor_factory=cursor)
         if not r:
             raise ValueError("No recordset with uuid {0!r}".format(uuid))
         uuid, etag, bucket = r
@@ -805,65 +807,3 @@ class RecordSet(object):
         bucketname = "idigbio-{0}-{1}".format(bucket, os.environ["ENV"])
         k = media_store.get_key(etag, bucketname)
         media_store.get_contents_to_filename(k, filename, md5=etag)
-
-
-def main():
-    db = PostgresDB()
-    print db.delete_item("00000000-0000-0000-0000-000000000000")
-    # if os.environ["ENV"] == "test":
-    #     import requests
-    #     ses = requests.Session()
-
-    #     print("Creating test schema")
-    #     db = PostgresDB()
-    #     db.drop_schema()
-    #     db.create_schema()
-
-    #     r = ses.get("http://api.idigbio.org/v1/records/")
-    #     r.raise_for_status()
-    #     ro = r.json()
-
-    #     reccount = 0
-    #     mediarecords = set()
-    #     for rec in ro["idigbio:items"]:
-    #         print "record", rec["idigbio:uuid"]
-    #         rr = ses.get(
-    #             "http://api.idigbio.org/v1/records/{0}".format(rec["idigbio:uuid"]))
-    #         rr.raise_for_status()
-    #         rro = rr.json()
-    #         mrs = []
-    #         if "mediarecord" in rro["idigbio:links"]:
-    #             mrs = [s.split("/")[-1]
-    #                    for s in rro["idigbio:links"]["mediarecord"]]
-    #         mediarecords.update(mrs)
-    #         db.set_record(
-    #             rro["idigbio:uuid"],
-    #             "record",
-    #             rro["idigbio:links"]["recordset"][0].split("/")[-1],
-    #             rro["idigbio:data"],
-    #             rro["idigbio:recordIds"],
-    #             []
-    #         )
-    #         reccount += 1
-
-    #     for mrid in mediarecords:
-    #         print "mediarecord", mrid
-    #         rr = ses.get(
-    #             "http://api.idigbio.org/v1/mediarecords/{0}".format(mrid))
-    #         rr.raise_for_status()
-    #         rro = rr.json()
-    #         recs = [s.split("/")[-1] for s in rro["idigbio:links"]["record"]]
-    #         mediarecords.update(mrs)
-    #         db.set_record(
-    #             rro["idigbio:uuid"],
-    #             "mediarecord",
-    #             rro["idigbio:links"]["recordset"][0].split("/")[-1],
-    #             rro["idigbio:data"],
-    #             rro["idigbio:recordIds"],
-    #             recs
-    #         )
-
-    #     db.commit()
-    #     print "Imported ", reccount, "records and ", len(mediarecords), "mediarecords."
-    # else:
-    #     print "ENV not test, refusing to run"

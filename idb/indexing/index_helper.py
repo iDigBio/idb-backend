@@ -3,14 +3,17 @@ from idb.helpers.conversions import grabAll
 from idb.postgres_backend.db import tombstone_etag
 
 from .indexer import prepForEs
+from idb.helpers.fieldnames import types
 
+# PYTHON3_WARNING
+from urlparse import urlparse
 
 def index_record(ei, rc, typ, r, do_index=True):
         if r["etag"] == tombstone_etag:
             i = {
                 "uuid": r["uuid"],
                 "delete": True,
-                "parent": r["parent"]
+                "records": r["siblings"].get('record', [])
             }
             return (typ, i)
         else:
@@ -27,6 +30,24 @@ def index_record(ei, rc, typ, r, do_index=True):
 
             g = grabAll(typ, d)
             i = prepForEs(typ, g)
+
+            # Remove fieldnames with dots in them
+            # to fix an issue converting to ES 2.3+
+            for k in r["data"]:
+                if "." in k:
+                    if k in types:
+                        r["data"][types[k]["shortname"]] = r["data"][k]
+                        del r["data"][k]
+                    else:
+                        # If it has a dot, we're assuming its URL-like
+                        urldata = urlparse(k)
+                        # Prefix = primary domain component i.e gbif of gbif.org
+                        prefix = urldata.hostname.split()[-2]
+                        # Suffix = last component of path
+                        suffix = urldata.path.split("/")[-1]
+                        r["data"][prefix + ":" + suffix] = r["data"][k]
+                        d["flag_data_" + prefix + "_" + suffix + "_munge"] = True
+
             i["data"] = r["data"]
 
             if do_index:

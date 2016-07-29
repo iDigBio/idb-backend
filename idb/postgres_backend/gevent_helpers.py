@@ -13,7 +13,7 @@ from gevent.socket import wait_read, wait_write
 
 from idb.helpers.logging import idblogger
 
-log = idblogger.getChild('gevent_helpers')
+logger = idblogger.getChild('gevent_helpers')
 
 
 def gevent_wait_callback(conn, timeout=None):
@@ -41,11 +41,11 @@ psycopg2.extensions.set_wait_callback(gevent_wait_callback)
 
 class GeventedConnPool(object):
     closed = False
-    maxsize = 0
+    maxsize = None
     pool = None
     _connectargs = None
 
-    def __init__(self, maxsize=10, **connectargs):
+    def __init__(self, maxsize=8, **connectargs):
         self.maxsize = maxsize
         self.pool = Queue()
         self.lock = gevent.lock.BoundedSemaphore(maxsize)
@@ -54,15 +54,6 @@ class GeventedConnPool(object):
     def _connect(self):
         return psycopg2.connect(**self._connectargs)
 
-    def _reset_and_return(self, conn):
-        try:
-            conn.reset()
-            self.pool.put(conn)
-        except:
-            gevent.get_hub().handle_error(conn, *sys.exc_info())
-        finally:
-            self.lock.release()
-
     def get(self):
         if self.closed:
             raise psycopg2.pool.PoolError("connection pool is closed")
@@ -70,9 +61,9 @@ class GeventedConnPool(object):
         try:
             conn = self.pool.get_nowait()
             if conn.closed or conn.status != psycopg2.extensions.STATUS_READY:
-                log.info("Conn isn't ready: %r", conn.status)
-                conn.close()
                 self.lock.release()
+                logger.info("Conn isn't ready: %r", conn.status)
+                conn.close()
                 return self.get()
             return conn
         except gevent.queue.Empty:
@@ -103,33 +94,51 @@ class GeventedConnPool(object):
             elif status != psycopg2.extensions.TRANSACTION_STATUS_IDLE:
                 # connection in error or in transaction
                 conn.rollback()
-            gevent.spawn(self._reset_and_return, conn)
-        except:
+        except StandardError:
+            logger.exception("Failed in put")
             self.lock.release()
             gevent.get_hub().handle_error(conn, *sys.exc_info())
+        else:
+            gevent.spawn(self._reset_and_return, conn)
 
-    def closeall(self):
-        log.info("Closing all connections")
+    def _reset_and_return(self, conn):
+        try:
+            if self.closed:
+                conn.close()
+            if not conn.closed:
+                conn.reset()
+                self.pool.put(conn)
+        except:
+            logger.exception("Failed in reset")
+            gevent.get_hub().handle_error(conn, *sys.exc_info())
+        finally:
+            self.lock.release()
 
+    def closeall(self, timeout=5):
+        logger.info("Closing all connections: %d", self.pool.qsize())
+        self.closed = True
         while not self.pool.empty():
             conn = self.pool.get_nowait()
             try:
                 conn.close()
-                self.lock.release()
             except Exception:
                 pass
-        self.closed = True
-        gevent.wait()
+
+        if self.lock.counter != self.maxsize:
+            gevent.wait(timeout=timeout)
+        assert self.lock.counter == self.maxsize
         self.closed = False
 
     @contextlib.contextmanager
-    def connection(self, isolation_level=None, autocommit=None):
+    def connection(self, isolation_level=None, autocommit=None, readonly=False):
         conn = self.get()
         try:
             if isolation_level is not None and isolation_level != conn.isolation_level:
                 conn.set_isolation_level(isolation_level)
             if autocommit is not None:
                 conn.autocommit = autocommit
+            if readonly is not None:
+                conn.set_session(readonly=readonly)
             yield conn
             conn.commit()
         finally:
@@ -141,7 +150,8 @@ class GeventedConnPool(object):
     def cursor(self, *args, **kwargs):
         connargs = {
             'isolation_level': kwargs.pop('isolation_level', None),
-            'autocommit':kwargs.pop('autocommit', None)
+            'autocommit': kwargs.pop('autocommit', None),
+            'readonly': kwargs.pop('readonly', None)
         }
 
         if kwargs.pop('named', False) is True:
@@ -149,6 +159,9 @@ class GeventedConnPool(object):
         with self.connection(**connargs) as conn:
             yield conn.cursor(*args, **kwargs)
 
+    def mogrify(self, *args, **kwargs):
+        with self.cursor(**kwargs) as cur:
+            return cur.mogrify(*args)
 
     # Some shortcut functions
     def execute(self, *args, **kwargs):

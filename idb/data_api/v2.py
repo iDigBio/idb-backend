@@ -1,11 +1,10 @@
-from __future__ import absolute_import
+from __future__ import division, absolute_import, print_function
 
 from flask import current_app, Blueprint, jsonify, url_for, request
 
-from .common import json_error, idbmodel
-from idb.helpers.idb_flask_authn import requires_auth
-
 from idb.helpers.cors import crossdomain
+from .common import json_error, idbmodel
+
 
 this_version = Blueprint(__name__, __name__)
 

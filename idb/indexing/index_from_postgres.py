@@ -21,6 +21,7 @@ from idb.postgres_backend import apidbpool, DictCursor
 from .index_helper import index_record
 from idb.helpers.signals import signalcm
 from idb.helpers.logging import idblogger
+from idb.postgres_backend.db import tombstone_etag
 
 import elasticsearch.helpers
 
@@ -196,29 +197,22 @@ def type_yield_resume(ei, rc, typ, also_delete=False, yield_record=False):
 
     logger.info("%s: Indexing", typ)
 
-    sql = "SELECT * FROM idigbio_uuids_data WHERE type=%s AND deleted=false"
+    sql = "SELECT * FROM idigbio_uuids_data WHERE type=%s"
+    if not also_delete:
+        sql += " AND deleted=false"
     results = apidbpool.fetchiter(
         sql, (pg_typ,), named=True, cursor_factory=DictCursor)
     for r in rate_logger(typ + " indexing", results):
-        if r["uuid"] in es_ids:
-            etag = es_ids[r["uuid"]]
-            del es_ids[r["uuid"]]
-            if etag == r["etag"]:
-                continue
+        es_etag = es_ids.get(r["uuid"])
+        pg_etag = r['etag']
+        if es_etag == pg_etag or (pg_etag == tombstone_etag and es_etag is None):
+            continue
 
         if yield_record:
             yield r
         else:
             yield index_record(ei, rc, typ, r, do_index=False)
 
-    if also_delete and len(es_ids) > 0:
-        logger.info("%s: Deleting %s extra", typ, len(es_ids))
-        for r in rate_logger(typ + " delete", es_ids):
-            ei.es.delete(**{
-                "index": ei.indexName,
-                "doc_type": typ,
-                "id": r
-            })
 
 def queryIter(query, ei, rc, typ, yield_record=False):
     q = {

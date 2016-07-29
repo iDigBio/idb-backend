@@ -169,11 +169,9 @@ def type_yield_modified(ei, rc, typ, yield_record=False):
             yield index_record(ei, rc, typ, r, do_index=False)
 
 
-def type_yield_resume(ei, rc, typ, also_delete=False, yield_record=False):
-    pg_typ = "".join(typ[:-1])
+def get_resume_cache(ei, typ):
     es_ids = {}
     logger.info("%s Building Resume Cache", typ)
-
     q = {
         "index": ei.indexName,
         "doc_type": typ,
@@ -187,16 +185,15 @@ def type_yield_resume(ei, rc, typ, also_delete=False, yield_record=False):
                          every=100000):
         cache_count += 1
         k = r["_id"]
-        etag = None
-        if "etag" in r["_source"]:
-            etag = r["_source"]["etag"]
-        else:
-            etag = ""
-
+        etag = r["_source"].get("etag", "")
         es_ids[k] = etag
+    return es_ids
 
+
+def type_yield_resume(ei, rc, typ, also_delete=False, yield_record=False):
+    es_ids = get_resume_cache(ei, typ)
     logger.info("%s: Indexing", typ)
-
+    pg_typ = "".join(typ[:-1])
     sql = "SELECT * FROM idigbio_uuids_data WHERE type=%s"
     if not also_delete:
         sql += " AND deleted=false"

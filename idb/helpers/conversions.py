@@ -780,6 +780,25 @@ def geoshape_fill(t, d, r):
 
     return resp
 
+def collect_common_names(t, d):
+    if t == "records":
+        dcn = d.get("dwc:vernacularName")
+        vns = d.get("gbif:vernacularname", [])
+
+        cns = []
+        if dcn is not None:
+            cns.append(dcn)
+
+        for vn in vns:
+            if d.get("dwc:vernacularname") is not None:
+                cns.append(d.get("dwc:vernacularname"))
+
+        return {
+            "commonnames": cns
+        }
+    else:
+        return {}
+
 
 def fixBOR(t, r):
     if filled("basisofrecord", r):
@@ -853,6 +872,7 @@ def grabAll(t, d):
     r.update(getLicense(t, d))
     r.update(get_media_type(t, d))
     r.update(get_accessuri(t, d))
+    r.update(collect_common_names(t,d))
     # Done with non-dependant fields.
 
     gs_sn_crossfill(t, r)

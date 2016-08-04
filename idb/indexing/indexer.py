@@ -149,7 +149,7 @@ class ElasticSearchIndexer(object):
 
     def bulk_index(self, tups):
         return elasticsearch.helpers.streaming_bulk(
-            self.es, self.bulk_formater(tups), chunk_size=10000)
+            self.es, self.bulk_formater(tups), chunk_size=5000)
 
     def close(self):
         if self.disableRefresh:

@@ -86,18 +86,22 @@ class RecordCorrector(object):
 
                         if k in cd_keys:
                             cdk = cd_keys[k]
-                            if corrected_dict[cdk].lower() != self.corrections[etag][k]:
-                                if self.corrections[etag][k] is None:
-                                    corrected_dict["flag_" + k.replace(":","_").lower() + "_removed"] = True
-                                else:
-                                    corrected_dict["flag_" + k.replace(":","_").lower() + "_replaced"] = True
-                                corrected_dict[cdk] = self.corrections[etag][k]
-                                corrected_keys.add(cdk)
+                            if type(corrected_dict[cdk]) == list:
+                                corrected_dict[cdk].extend(self.corrections[etag][k])
                             else:
-                                # match
-                                pass
+                                if corrected_dict[cdk].lower() != self.corrections[etag][k]:
+                                    if self.corrections[etag][k] is None:
+                                        corrected_dict["flag_" + k.replace(":","_").lower() + "_removed"] = True
+                                    else:
+                                        corrected_dict["flag_" + k.replace(":","_").lower() + "_replaced"] = True
+                                    corrected_dict[cdk] = self.corrections[etag][k]
+                                    corrected_keys.add(cdk)
+                                else:
+                                    # match
+                                    pass
                         else:
-                            corrected_dict["flag_" + k.replace(":","_").lower() + "_added"] = True
+                            if not k.startswith("flag_"):
+                                corrected_dict["flag_" + k.replace(":","_").lower() + "_added"] = True
                             corrected_dict[k] = self.corrections[etag][k]
                             corrected_keys.add(k)
 

@@ -331,7 +331,7 @@ def continuous_incremental(ei, rc, no_index=False):
         incremental(ei, rc, no_index=no_index)
         t_end = datetime.datetime.now()
         logger.info("Ending Incremental Run from %s at %s",
-                 t_start.isoformat(), t_end)
+                    t_start.isoformat(), t_end)
         sleep_duration = max(
             [MAX_SLEEP - (t_end - t_start).total_seconds(), MIN_SLEEP])
         logger.info("Sleeping for %s seconds", sleep_duration)

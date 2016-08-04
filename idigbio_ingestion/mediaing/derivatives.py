@@ -52,20 +52,20 @@ class BadImageError(Exception):
 def continuous(buckets):
     "Continuously run the main loop, checking for derivatives"
     logger.info("Starting up continuous operation, version: %s", __version__)
-    minlooptime = 600  # 10minutes
+    migrate_greenlet, main_greenlet = None, None
 
     while True:
-        t1 = datetime.now()
-        main(buckets)
-        logger.info("Completed complete derivatives run in %s", (datetime.now() - t1))
-        sleeptime = minlooptime - (datetime.now() - t1).total_seconds()
-        if sleeptime:
-            gevent.sleep(max([sleeptime, 1]))
+        if migrate_greenlet is None or migrate_greenlet.ready():
+            migrate_greenlet = gevent.spawn(migrate)
+        if main_greenlet is None or main_greenlet.ready():
+            main_greenlet = gevent.spawn(main, buckets, run_migrate=False)
+        gevent.sleep(600)  # 10 minutes
 
 
 def main(buckets, run_migrate=True):
     if not buckets:
         buckets = ('images', 'sounds')
+    t1 = datetime.now()
     if run_migrate:
         migrate()
     objects = get_objects(buckets)
@@ -86,6 +86,7 @@ def main(buckets, run_migrate=True):
     )
     logger.info("Updated %s records", count)
     pool.join(raise_error=True)
+    logger.info("Completed complete derivatives run in %s", (datetime.now() - t1))
 
 
 def get_objects(buckets):

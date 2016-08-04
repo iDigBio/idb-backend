@@ -1,5 +1,5 @@
 # This is an implicit value, here for clarity
 --index-url https://pypi.python.org/simple/
 
-https://github.com/systemd/python-systemd/archive/v231.tar.gz
+https://github.com/systemd/python-systemd/archive/v231.tar.gz#egg=python-systemd
 -e .[ingestion,test]

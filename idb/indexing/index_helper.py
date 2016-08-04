@@ -13,8 +13,11 @@ def index_record(ei, rc, typ, r, do_index=True):
             i = {
                 "uuid": r["uuid"],
                 "delete": True,
-                "records": r["siblings"].get('record', [])
             }
+            if typ == "mediarecords":
+                sibs = r.get('siblings')
+                if sibs:
+                    i["records"] = sibs.get('record', [])
             return (typ, i)
         else:
             d, ck = rc.correct_record(r["data"])

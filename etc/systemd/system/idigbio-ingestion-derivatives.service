@@ -4,7 +4,7 @@ Description=iDigBio mediaing derivatives generation
 [Service]
 Type=simple
 Environment=LANG=en_US.UTF-8
-ExecStart=/opt/idb-backend/.env/bin/idigbio-ingestion -vv --journal \
+ExecStart=/usr/local/bin/idigbio-ingestion -vv --journal \
           derivatives --continuous
 
 RestartSec=5min

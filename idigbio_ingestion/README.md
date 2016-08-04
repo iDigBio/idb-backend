@@ -58,7 +58,8 @@ The following subcommands are related to recordset ingestion
 ### Media Ingestion ###
 
 All of these commands are run automatically/continuously on c18node4
-managed by systemd.
+managed by systemd (See section below on automated tasks). They can
+however also continue to be invoked manually.
 
 * `mediaing`:
   * Common options:
@@ -74,3 +75,13 @@ managed by systemd.
 
 To see latest status/log messages use `systemctl status
 idigbio-ingestion-$CMD.service`. Tab-completion should be active.
+
+### Automated tasks ###
+
+All the automated tasks are managed by systemd, with the configuration
+stored in etc/systemd/system.
+
+To see a list of the timers, and when they will next trigger run
+`systemctl list-timers 'idb*' 'idigbio*'`. The details of an
+individual timer, or the service it triggers can be seen with
+`systemctl status $TIMER/SERVICE`.

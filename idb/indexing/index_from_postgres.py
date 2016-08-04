@@ -21,6 +21,7 @@ from idb.postgres_backend import apidbpool, DictCursor
 from .index_helper import index_record
 from idb.helpers.signals import signalcm
 from idb.helpers.logging import idblogger
+from idb.postgres_backend.db import tombstone_etag
 
 import elasticsearch.helpers
 
@@ -66,7 +67,6 @@ def type_yield(ei, rc, typ, yield_record=False):
 
 def type_yield_modified(ei, rc, typ, yield_record=False):
     pg_typ = "".join(typ[:-1])
-    es_ids = {}
 
     q = {
         "index": ei.indexName,
@@ -169,11 +169,9 @@ def type_yield_modified(ei, rc, typ, yield_record=False):
             yield index_record(ei, rc, typ, r, do_index=False)
 
 
-def type_yield_resume(ei, rc, typ, also_delete=False, yield_record=False):
-    pg_typ = "".join(typ[:-1])
+def get_resume_cache(ei, typ):
     es_ids = {}
     logger.info("%s Building Resume Cache", typ)
-
     q = {
         "index": ei.indexName,
         "doc_type": typ,
@@ -187,39 +185,31 @@ def type_yield_resume(ei, rc, typ, also_delete=False, yield_record=False):
                          every=100000):
         cache_count += 1
         k = r["_id"]
-        etag = None
-        if "etag" in r["_source"]:
-            etag = r["_source"]["etag"]
-        else:
-            etag = ""
-
+        etag = r["_source"].get("etag", "")
         es_ids[k] = etag
+    return es_ids
 
+
+def type_yield_resume(ei, rc, typ, also_delete=False, yield_record=False):
+    es_ids = get_resume_cache(ei, typ)
     logger.info("%s: Indexing", typ)
-
-    sql = "SELECT * FROM idigbio_uuids_data WHERE type=%s AND deleted=false"
+    pg_typ = "".join(typ[:-1])
+    sql = "SELECT * FROM idigbio_uuids_data WHERE type=%s"
+    if not also_delete:
+        sql += " AND deleted=false"
     results = apidbpool.fetchiter(
         sql, (pg_typ,), named=True, cursor_factory=DictCursor)
     for r in rate_logger(typ + " indexing", results):
-        if r["uuid"] in es_ids:
-            etag = es_ids[r["uuid"]]
-            del es_ids[r["uuid"]]
-            if etag == r["etag"]:
-                continue
+        es_etag = es_ids.get(r["uuid"])
+        pg_etag = r['etag']
+        if es_etag == pg_etag or (pg_etag == tombstone_etag and es_etag is None):
+            continue
 
         if yield_record:
             yield r
         else:
             yield index_record(ei, rc, typ, r, do_index=False)
 
-    if also_delete and len(es_ids) > 0:
-        logger.info("%s: Deleting %s extra", typ, len(es_ids))
-        for r in rate_logger(typ + " delete", es_ids):
-            ei.es.delete(**{
-                "index": ei.indexName,
-                "doc_type": typ,
-                "id": r
-            })
 
 def queryIter(query, ei, rc, typ, yield_record=False):
     q = {
@@ -341,7 +331,7 @@ def continuous_incremental(ei, rc, no_index=False):
         incremental(ei, rc, no_index=no_index)
         t_end = datetime.datetime.now()
         logger.info("Ending Incremental Run from %s at %s",
-                 t_start.isoformat(), t_end)
+                    t_start.isoformat(), t_end)
         sleep_duration = max(
             [MAX_SLEEP - (t_end - t_start).total_seconds(), MIN_SLEEP])
         logger.info("Sleeping for %s seconds", sleep_duration)

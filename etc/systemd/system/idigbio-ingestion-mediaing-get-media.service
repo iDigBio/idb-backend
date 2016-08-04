@@ -4,7 +4,7 @@ Description=iDigBio mediaing fetcher
 [Service]
 Type=simple
 Environment=LANG=en_US.UTF-8
-ExecStart=/opt/idb-backend/.env/bin/idigbio-ingestion \
+ExecStart=/usr/local/bin/idigbio-ingestion \
     -vv --logfile=mediaing-get-media.log --journal \
     mediaing get-media --continuous
 

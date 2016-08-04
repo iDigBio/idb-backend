@@ -1,5 +1,5 @@
 [Unit]
-Description="Runs the `idigbio-ingestion mediaing updatedb` daily task"
+Description="Daily timer for `idigbio-ingestion mediaing updatedb`"
 
 [Timer]
 # daily at 3 am

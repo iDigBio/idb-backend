@@ -29,7 +29,7 @@ setup(
         'psycopg2>=2.6',
         'redis>=2.9.1, <3.0.0',
         'python-dateutil>=2.2, <3.0',
-        'elasticsearch>=1.2.0, <1.3.0',
+        'elasticsearch>=2.3, <3',
         'pyproj>=1.9.3',
         'pytz>=2016.4',
         'requests>=2.4.0',
@@ -55,7 +55,7 @@ setup(
         'pytest-runner',
     ],
     extras_require={
-        'journal': ['systemd'],
+        'journal': ['python-systemd>=230'],
         'ingestion': [
             'pydub==0.16.4',
             'pillow>=3.2.0',

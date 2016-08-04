@@ -11,6 +11,8 @@ import magic
 
 from atomicfile import AtomicFile
 from psycopg2 import DatabaseError
+from psycopg2.extras import DictCursor
+
 from boto.exception import S3ResponseError, S3DataError
 
 
@@ -283,14 +285,22 @@ def process_subfile(rf, rsid, rs_uuid_etag, rs_id_uuid, ingest=False, db=None):
                     db_uuid = None
                     if db_r is None:
                         # Check for identifier suffix match
+                        # db_r will hold a tuple-ly thing.
                         db_r = db.fetchone(
                             "SELECT uuids_id FROM uuids_identifier WHERE reverse(identifier) LIKE reverse(%s)",
-                            ("%" + ref_uuid,))
-                        db_uuid = db_r["uuids_id"]
+                            ("%" + ref_uuid,),cursor_factory=DictCursor)
+
+                        if db_r is None:
+                            db_uuid = None
+                        else:
+                            db_uuid = db_r["uuids_id"]
+
                     else:
                         db_uuid = db_r["uuid"]
 
-                    if db_uuid is not None and ingest:
+                    if db_uuid is None:
+                        raise RecordException("Record contains ac:associatedSpecimenReference '{0}' that does not relate to an existing identifier.".format(ref_uuid))
+                    elif ingest:
                         db._upsert_uuid_sibling(u, db_uuid)
 
             count += 1

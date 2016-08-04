@@ -1,5 +1,5 @@
 [Unit]
-Description="idb api-stats 15minute repeat"
+Description="15minute timer for idb api-stats"
 
 [Timer]
 OnBootSec=5min

@@ -13,6 +13,9 @@ def get_data():
             #     "dwc:nameAccordingTo": "GBIF Backbone Taxonomy",
             #     "gbif:VernacularName": v.get("gbif:VernacularName")
             # }
+            if "dwc:scientificName" in v:
+                v["gbif:canonicalName"] = v["dwc:scientificName"]
+                del v["dwc:scientificName"]
             v["flag_gbif_taxon_corrected"] = True
             yield (k, v, 'gbif_checklist_extended', True)
 

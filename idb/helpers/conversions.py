@@ -48,6 +48,7 @@ fields = {
         ["highertaxon", "dwc:higherClassification", "longtext", 1, None],
         ["scientificname", "dwc:scientificName", "text", 1, None],
         ["commonname", "dwc:vernacularName", "text", 1, None],
+        ["commonnames", "", "list", 1, None]
         ["continent", "dwc:continent", "text", 1, None],
         ["country", "dwc:country", "text", 1, None],
         ["stateprovince", "dwc:stateProvince", "text", 1, None],

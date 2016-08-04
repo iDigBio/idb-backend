@@ -49,6 +49,7 @@ def index_record(ei, rc, typ, r, do_index=True):
                         d["flag_data_" + prefix + "_" + suffix + "_munge"] = True
 
             i["data"] = r["data"]
+            i["indexData"] = d
 
             if do_index:
                 ei.index(typ, i)

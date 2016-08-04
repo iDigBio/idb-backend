@@ -21,7 +21,8 @@ from idb.helpers.logging import fnlogged
               help="Enable/disable posting to elasticsearch, Default: enabled")
 @click.option('--types', '-t',
               # TODO: this should porbably be `idb.helpers.conversions.fields.keys()`
-              type=click.Choice(['records', 'recordsets', 'mediarecords', 'publishers']),
+              type=click.Choice([
+                  'publishers', 'recordsets', 'mediarecords', 'records']),
               multiple=True)
 @click.option('--indexname')
 @click.pass_context

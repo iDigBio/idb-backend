@@ -326,4 +326,4 @@ def migrate():
         rc = apidbpool.execute(sql, (config.IDB_UUID,))
         logger.info("Media Objects Migrated: %s", rc)
     except Exception:
-        logger.error("Failed migrating from old media api")
+        logger.exception("Failed migrating from old media api")

@@ -288,9 +288,9 @@ def migrate():
               (SELECT DISTINCT
                 type,
                 a.etag
-              FROM idb_object_keys AS a
-              LEFT JOIN objects AS b ON a.etag = b.etag
-              WHERE b.etag IS NULL
+              FROM idb_object_keys
+              LEFT JOIN objects ON idb_object_keys.etag = objects.etag
+              WHERE objects.etag IS NULL
                 AND idb_object_keys.user_uuid <> %s);
         """
         rc = apidbpool.execute(sql, (config.IDB_UUID,))

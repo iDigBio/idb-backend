@@ -287,9 +287,9 @@ def migrate():
         sql = """INSERT INTO objects (bucket, etag)
               (SELECT DISTINCT
                 type,
-                a.etag
+                etag
               FROM idb_object_keys
-              LEFT JOIN objects ON idb_object_keys.etag = objects.etag
+              LEFT JOIN objects USING (etag)
               WHERE objects.etag IS NULL
                 AND idb_object_keys.user_uuid <> %s);
         """

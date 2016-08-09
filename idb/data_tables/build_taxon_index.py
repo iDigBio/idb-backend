@@ -25,7 +25,7 @@ es = Elasticsearch([
 def bulk_formater(tups):
     for t, i in tups:
         meta = {
-            "_index": "taxonnames-20160606",
+            "_index": "taxonnames-20160808",
             "_type": t,
             "_id": "gbif_" + i["dwc:taxonID"],
             "_source": i,

@@ -287,12 +287,13 @@ def migrate():
         sql = """INSERT INTO objects (bucket, etag)
               (SELECT DISTINCT
                 type,
-                a.etag
-              FROM idb_object_keys AS a
-              LEFT JOIN objects AS b ON a.etag = b.etag
-              WHERE b.etag IS NULL);
+                etag
+              FROM idb_object_keys
+              LEFT JOIN objects USING (etag)
+              WHERE objects.etag IS NULL
+                AND idb_object_keys.user_uuid <> %s);
         """
-        rc = apidbpool.execute(sql)
+        rc = apidbpool.execute(sql, (config.IDB_UUID,))
         logger.info("Objects Migrated: %s", rc)
         sql = """INSERT INTO media (url, type, owner, last_status, last_check)
               (SELECT
@@ -303,9 +304,10 @@ def migrate():
                 now()
               FROM idb_object_keys
               LEFT JOIN media ON lookup_key = url
-              WHERE media.url IS NULL);
+              WHERE media.url IS NULL
+                AND idb_object_keys.user_uuid <> %s);
         """
-        rc = apidbpool.execute(sql)
+        rc = apidbpool.execute(sql, (config.IDB_UUID,))
         logger.info("Media Migrated: %s", rc)
         sql = """
             INSERT INTO media_objects (url, etag, modified)
@@ -318,9 +320,10 @@ def migrate():
               JOIN objects ON idb_object_keys.etag = objects.etag
               LEFT JOIN media_objects ON lookup_key = media.url
                     AND media_objects.etag = idb_object_keys.etag
-              WHERE media_objects.url IS NULL)
+              WHERE media_objects.url IS NULL
+                AND idb_object_keys.user_uuid <> %s)
         """
-        rc = apidbpool.execute(sql)
+        rc = apidbpool.execute(sql, (config.IDB_UUID,))
         logger.info("Media Objects Migrated: %s", rc)
     except Exception:
-        logger.error("Failed migrating from old media api")
+        logger.exception("Failed migrating from old media api")

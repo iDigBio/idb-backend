@@ -86,10 +86,11 @@ def run_server(info, host, port, reload, debugger, eager_loading, debug, wsgi):
     elif wsgi == 'gevent':
         from gevent.pool import Pool
         from gevent.wsgi import WSGIServer
+        from werkzeug.contrib.fixers import ProxyFix
         print("gevent server @ http://{0}:{1}/ ENV={2}".format(host, port, config.ENV),
               file=sys.stderr)
-
-        http_server = WSGIServer(('', 19197), info.load_app(), spawn=Pool(1000))
+        app = ProxyFix(info.load_app())
+        http_server = WSGIServer(('', 19197), app, spawn=Pool(1000))
         http_server.serve_forever()
     else:
         raise ValueError('Unknown wsgi backend type', wsgi)

@@ -37,7 +37,7 @@ def get_data(path_to_checklist):
                         if ht in r:
                             hta[ht] = r[ht].lower().split(" ")[0]
                     taxa_lines.append(
-                        ({"dwc:family": r["gbif:canonicalName"]}, hta, "gbif_checklist", True))
+                        ({"dwc:family": r["dwc:scientificName"]}, hta, "gbif_checklist", True))
             # if r["dwc:taxonRank"] == "species":
             #     if "dwc:genus" in r and "dwc:specificEpithet" in r and "dwc:family" in r:
             #         f = r["dwc:family"].lower().split(" ")[0]
@@ -64,6 +64,7 @@ def get_data(path_to_checklist):
             #     else:
             #         fail += 1
         except:
+            traceback.print_exc()
             print r
 
     # print len(names), len(needs_name)
@@ -121,7 +122,7 @@ def get_sources():
 
 def main():
     count = 0
-    for dr in get_data(os.path.expanduser("~/taxon/checklist1.zip")):
+    for dr in get_data(os.path.expanduser("~/Downloads/backbone-current-sorted.zip")):
         count += 1
         # print dr
     print count

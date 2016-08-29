@@ -650,7 +650,7 @@ class MediaObject(object):
         attrs.setdefault('derivatives', False)
 
         mo = cls(**attrs)
-        if not mo.detected_mime or not mo.ubcket:
+        if not mo.detected_mime or not mo.bucket:
             mo.detected_mime, mo.bucket = validate(obj.read(1024),
                                                    url=mo.url,
                                                    type=mo.type or mo.bucket,

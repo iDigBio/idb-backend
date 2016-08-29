@@ -6,6 +6,7 @@ from flask import url_for
 
 import boto.s3.key
 from idb.postgres_backend.db import MediaObject
+from idb.helpers.etags import calcEtag, calcFileHash
 
 
 #### Media stuff
@@ -193,6 +194,20 @@ def test_upload_etag(client, testmedia_result, basic_auth_header, mock):
     assert r.json['last_status'] == 200
     check_response_props(tmr, r, keys=('etag', 'mime', 'user', 'url', 'last_status', 'type'))
 
+def test_upload_etag_validate(client, testmedia_result, basic_auth_header, mock, jpgpath):
+    mock.patch.object(boto.s3.key.Key, 'exists', return_value=True)
+    filereference = "http://test.idigbio.org/test.jpg"
+    etag = calcFileHash(str(jpgpath), return_size=False)
+    url = url_for('idb.data_api.v2_media.upload',
+                  filereference=filereference)
+    r = client.post(url, headers=[basic_auth_header],
+                    data={'file': (jpgpath.open('rb'), 'file'),
+                          'etag': etag})
+    assert r.status_code == 200
+    assert r.json['last_status'] == 200
+    assert r.json['filereference'] == filereference
+    assert r.json['etag'] == etag
+
 
 def test_upload_missing_etag_in_db(client, basic_auth_header, mock):
     mock.patch.object(boto.s3.key.Key, 'exists', return_value=True)
@@ -236,6 +251,18 @@ def test_datasets_mime_type(client, basic_auth_header, zippath, mock):
     assert r.status_code == 200, r.json
     assert r.json['mime'] == 'application/zip', "Expected the detected_mime in answer"
     assert r.json['type'] == 'datasets'
+
+def test_etag_validation(client, basic_auth_header, jpgpath):
+    filereference = "http://test.idigbio.org/badetag.jpg"
+    url = url_for('idb.data_api.v2_media.upload', filereference=filereference)
+    r = client.post(url,
+                    data={
+                        'file': (jpgpath.open('rb'), 'file'),
+                        'mime': 'image/jpg',
+                        'etag': 'invalidetag'
+                    },
+                    headers=[basic_auth_header])
+    assert r.status_code == 400
 
 
 def test_mime_validation1(client, basic_auth_header, jpgpath):

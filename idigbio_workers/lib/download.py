@@ -304,7 +304,7 @@ def make_file(t, query, raw=False, tabs=False, fields=None, core_type="records",
             filtered_fields = []
             for f in fields:
                 if f in index_field_to_longname[t]:
-                    converted_fields.append(inindex_field_to_longname[t][f])
+                    converted_fields.append(index_field_to_longname[t][f])
                     filtered_fields.append(f)
             fields = filtered_fields
 

@@ -66,7 +66,7 @@ fields = {
         ["maxdepth", "", "float", 1, "dwc:maximumDepthInMeters"],
         ["coordinateuncertainty", "", "float", 1,
             "dwc:coordinateUncertaintyInMeters"],
-        ["datecollected", "", "date", 1, "dwc:eventDate"],
+        ["datecollected", "", "date", 1, "idigbio:eventDate"],
         ["startdayofyear", "", "integer", 1, "dwc:startDayOfYear"],
         ["institutionname", "idigbio:institutionName", "text", 1, None],
         ["institutioncode", "dwc:institutionCode", "text", 1, None],

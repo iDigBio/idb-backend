@@ -9,7 +9,7 @@ from idb.helpers.cors import crossdomain
 from idb.helpers.storage import IDigBioStorage
 from idb.postgres_backend.db import MediaObject
 from idb.helpers.media_validation import (
-    validate_mime_for_type, MediaValidationError,
+    validate_mime_for_type, MediaValidationError, EtagMismatchError
     #InvalidBucketError, UnknownBucketError,
     #MimeNotAllowedError, MimeMismatchError,
 )
@@ -198,6 +198,7 @@ def upload():
 
     filereference = vals.get("filereference")
     if not filereference:
+        logger.warning("No filereference specified")
         return json_error(400, "Missing filereference")
 
     obj = request.files.get('file')
@@ -208,11 +209,12 @@ def upload():
     try:
         mime, media_type = validate_mime_for_type(mime, media_type)
     except MediaValidationError as mve:
+        logger.warning("Bad mime/media_type combo: %r/%r", mime, media_type)
         return json_error(400, str(mve))
 
     r = MediaObject.fromurl(filereference, idbmodel=idbmodel)
     if r:
-        logger.debug("Found existing object for %r", r.url)
+        logger.warning("Found existing object for %r", r.url)
         if r.owner != request.authorization.username:
             return json_error(403)
 
@@ -220,9 +222,9 @@ def upload():
         # if either type or mime are null it will be ignored, if
         # present they change the behavior of fromobj
         try:
-            mo = MediaObject.fromobj(obj, type=media_type, mime=mime, url=filereference)
+            mo = MediaObject.fromobj(obj, type=media_type, mime=mime, url=filereference, etag=etag)
         except MediaValidationError as mve:
-            logger.warn("Validation failure, %r", mve)
+            logger.warning("Validation failure, %r", mve)
             return json_error(400, str(mve))
         mo.upload(IDigBioStorage(), obj)
         mo.insert_object(idbmodel)
@@ -243,8 +245,10 @@ def upload():
         try:
             mo.mime, mo.type = validate_mime_for_type(mo.mime or mime, mo.type or media_type)
             if not (mo.mime and mo.type):
+                logger.warning("Missing either mime(%r) or type(%r)", mo.mime, mo.type)
                 return json_error(400, "Incomplete request")
         except MediaValidationError as mve:
+            logger.warning("Validation Failure, %r", mve)
             return json_error(400, str(mve))
 
     mo.url = filereference

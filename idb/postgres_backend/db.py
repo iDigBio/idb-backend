@@ -17,7 +17,7 @@ from idb import config
 from idb.helpers.logging import idblogger as logger
 from idb.postgres_backend import apidbpool
 from idb.helpers.etags import calcEtag, calcFileHash
-from idb.helpers.media_validation import validate
+from idb.helpers.media_validation import validate, EtagMismatchError
 from idb.helpers.conversions import get_accessuri
 
 
@@ -650,11 +650,11 @@ class MediaObject(object):
         attrs.setdefault('derivatives', False)
 
         mo = cls(**attrs)
-        if not mo.detected_mime or not mo.ubcket:
-            mo.detected_mime, mo.bucket = validate(obj.read(1024),
-                                                   url=mo.url,
-                                                   type=mo.type or mo.bucket,
-                                                   mime=mo.mime or mo.detected_mime)
+        if not mo.detected_mime or not mo.bucket:
+            mo.detected_mime, mo.bucket = validate(
+                obj.read(1024), url=mo.url,
+                type=mo.type or mo.bucket,
+                mime=mo.mime or mo.detected_mime)
 
         if mo.type and not mo.bucket:
             mo.bucket = mo.type
@@ -665,6 +665,10 @@ class MediaObject(object):
 
         obj.seek(0)
         mo.etag = calcFileHash(obj, op=False, return_size=False)
+        if attrs.get('etag'):
+            if mo.etag != attrs.get('etag'):
+                raise EtagMismatchError(attrs.get('etag'), mo.etag)
+
         obj.seek(0)
         return mo
 

@@ -300,7 +300,14 @@ def make_file(t, query, raw=False, tabs=False, fields=None, core_type="records",
             # Remove "data."
             converted_fields = ["".join(f[5:]) for f in fields]
         else:
-            converted_fields = [index_field_to_longname[t][f] for f in fields if f in index_field_to_longname[t]]
+            converted_fields = []
+            filtered_fields = []
+            for f in fields:
+                if f in index_field_to_longname[t]:
+                    converted_fields.append(index_field_to_longname[t][f])
+                    filtered_fields.append(f)
+            fields = filtered_fields
+
 
         meta_block = make_file_block(
             filename=final_filename + file_extension, core=core, tabs=tabs, fields=converted_fields, t=t)

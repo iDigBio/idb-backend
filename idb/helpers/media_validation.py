@@ -35,6 +35,12 @@ class MediaValidationError(Exception):
     def __str__(self):
         return self.message
 
+class EtagMismatchError(MediaValidationError):
+    def __init__(self, expected, calculated):
+        self.args = (expected, calculated)
+        self.message = "Calculated etag {0!r} doesn't match expected {1!r}" \
+            .format(expected, calculated)
+
 class InvalidBucketError(MediaValidationError):
     def __init__(self, bucket):
         self.args = (bucket,)

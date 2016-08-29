@@ -11,7 +11,7 @@ from cStringIO import StringIO
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(__file__)))))
 
-from idb.lib.storage import IDigBioStorage
+from idb.helpers.storage import IDigBioStorage
 
 
 def is_uuid(s):

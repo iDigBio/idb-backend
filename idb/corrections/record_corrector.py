@@ -1,5 +1,5 @@
 from __future__ import absolute_import
-from idb.postgres_backend import apidbpool, DictCursor
+from idb.postgres_backend import apidbpool, NamedTupleCursor
 
 import uuid
 import copy
@@ -9,26 +9,25 @@ from idb.helpers.etags import objectHasher
 
 
 class RecordCorrector(object):
-    def __init__(self):
-        self.reload()
+    corrections = None
+    keytups = None
+
+    def __init__(self, reload=True):
+        if reload:
+            self.reload()
 
     def reload(self):
         sql = "select k::json,v::json from corrections"
         self.keytups = set()
 
         self.corrections = {}
-        for r in apidbpool.fetchiter(sql, name=str(uuid.uuid4()), cursor_factory=DictCursor):
-            try:
-                uk = tuple(r["k"].keys())
-                self.keytups.add(uk)
+        for r in apidbpool.fetchiter(sql, name=str(uuid.uuid4()), cursor_factory=NamedTupleCursor):
+            uk = tuple(r.k.keys())
+            self.keytups.add(uk)
 
-                etag = objectHasher("sha256", r["k"])
+            etag = objectHasher("sha256", r.k)
 
-                self.corrections[etag] = r["v"]
-            except:
-                traceback.print_exc()
-                print r, [type(f) for f in r]
-                raise Exception
+            self.corrections[etag] = r.v
 
     def create_schema(self):
         with apidbpool.connection() as conn:
@@ -59,6 +58,9 @@ class RecordCorrector(object):
                     pass
 
     def correct_record(self,d):
+        if self.corrections is None:
+            self.reload()
+
         corrected_dict = copy.deepcopy(d)
         corrected_keys = set()
 

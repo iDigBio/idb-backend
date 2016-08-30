@@ -57,9 +57,9 @@ def cli(ctx, index, types, indexname):
     # These are the parameters that are common to every indexing
     # function
     ctx.obj = {
-        'ei': ElasticSearchIndexer(indexname, types, serverlist=serverlist),
-        'rc': RecordCorrector(),
-        'no_index': not index
+        'ei': lambda: ElasticSearchIndexer(indexname, types, serverlist=serverlist),
+        'rc': lambda: RecordCorrector(),
+        'no_index': lambda: not index
     }
 
 
@@ -68,6 +68,8 @@ def cli(ctx, index, types, indexname):
 @fnlogged
 def continuous(params):
     from .index_from_postgres import continuous_incremental
+    for k in params:
+        params[k] = params[k]()
     continuous_incremental(**params)
 
 
@@ -76,6 +78,8 @@ def continuous(params):
 @fnlogged
 def incremental(params):
     from .index_from_postgres import incremental
+    for k in params:
+        params[k] = params[k]()
     incremental(**params)
 
 
@@ -86,6 +90,8 @@ def incremental(params):
 def query(params, query):
     import json
     from .index_from_postgres import _query
+    for k in params:
+        params[k] = params[k]()
     _query(query=json.loads(query), **params)
 
 
@@ -99,6 +105,8 @@ def uuid_file(params, uuid_file):
     lines = [l for l in
              (l.strip() for l in uuid_file)
              if l]
+    for k in params:
+        params[k] = params[k]()
     uuids(uuid_l=lines, **params)
 
 
@@ -109,6 +117,8 @@ def uuid_file(params, uuid_file):
 @fnlogged
 def uuids(params, children, uuid):
     from .index_from_postgres import uuids
+    for k in params:
+        params[k] = params[k]()
     uuids(children=children, uuid_l=uuid, **params)
 
 
@@ -117,6 +127,8 @@ def uuids(params, children, uuid):
 @fnlogged
 def resume(params):
     from .index_from_postgres import resume
+    for k in params:
+        params[k] = params[k]()
     resume(**params)
 
 
@@ -125,6 +137,8 @@ def resume(params):
 @fnlogged
 def full(params):
     from .index_from_postgres import full
+    for k in params:
+        params[k] = params[k]()
     full(**params)
 
 
@@ -133,6 +147,8 @@ def full(params):
 @fnlogged
 def delete(params):
     from .index_from_postgres import delete
+    for k in params:
+        params[k] = params[k]()
     delete(**params)
 
 
@@ -141,4 +157,6 @@ def delete(params):
 @fnlogged
 def check(params):
     from .index_from_postgres import resume
+    for k in params:
+        params[k] = params[k]()
     resume(also_delete=True, **params)

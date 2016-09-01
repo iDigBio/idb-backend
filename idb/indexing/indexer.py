@@ -141,13 +141,13 @@ class ElasticSearchIndexer(object):
                 del meta["_source"]
 
             if t == "mediarecords":
-                if "records" in i and len(i["records"]) > 0:
-                    meta["_parent"] = i["records"][0]
-                elif i.get('delete', False):
+                if i.get('delete', False):
                     r = self.query_for_one(i["uuid"], doc_type=t)
                     if r is None:
                         continue   # Delete one that is already not in the index
                     meta["_parent"] = r['_parent']
+                elif "records" in i and len(i["records"]) > 0:
+                    meta["_parent"] = i["records"][0]
                 else:
                     meta["_parent"] = 0
 

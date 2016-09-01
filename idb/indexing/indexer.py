@@ -143,8 +143,14 @@ class ElasticSearchIndexer(object):
             if t == "mediarecords":
                 if "records" in i and len(i["records"]) > 0:
                     meta["_parent"] = i["records"][0]
+                elif i.get('delete', False):
+                    r = self.query_for_one(i["uuid"], doc_type=t)
+                    if r is None:
+                        continue   # Delete one that is already not in the index
+                    meta["_parent"] = r['_parent']
                 else:
                     meta["_parent"] = 0
+
             yield meta
 
     def bulk_index(self, tups):
@@ -159,3 +165,33 @@ class ElasticSearchIndexer(object):
                 }
             })
         self.optimize()
+
+    def query_for_one(self, uuid, doc_type, source=False):
+        r = self.es.search(
+            index="idigbio",
+            doc_type=doc_type,
+            _source=source,
+            body={
+                "query": {
+                    "bool": {
+                        "must": [
+                            {
+                                "query_string": {
+                                    "default_field": "_id",
+                                    "query": uuid
+                                }
+                            }
+                        ],
+                        "must_not": [],
+                        "should": []
+                    }
+                },
+                "from": 0,
+                "size": 1,
+                "sort": [],
+                "aggs": {}
+            })
+        if r['hits']['total'] != 1:
+            logger.error("Didn't find expected single result for %r", uuid)
+        else:
+            return r['hits']['hits'][0]

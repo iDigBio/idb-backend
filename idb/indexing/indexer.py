@@ -17,6 +17,7 @@ INDEX_CHUNK_SIZE = 1000
 #INDEX_CHUNK_SIZE = 1000
 
 def get_connection(**kwargs):
+    "Build connection to ElasticSearch based on json config overriding with specified kwargs"
     kwargs.setdefault('hosts', config.config["elasticsearch"]["servers"])
     kwargs.setdefault('retry_on_timeout', True)  # this isn't valid until >=1.3
     kwargs.setdefault('sniff_on_start', False)
@@ -24,6 +25,14 @@ def get_connection(**kwargs):
     kwargs.setdefault('max_retries', 10)
     kwargs.setdefault('timeout', 30)
     return elasticsearch.Elasticsearch(**kwargs)
+
+
+def get_indexname(name=config.config["elasticsearch"]["indexname"]):
+    "Build idigbio indexname, checking for numeric only variant"
+    if name.startswith("idigbio"):
+        return name
+    else:
+        return "idigbio-" + name
 
 
 def prepForEs(t, i):
@@ -56,11 +65,7 @@ class ElasticSearchIndexer(object):
                  serverlist=["localhost"]):
         logger.info("Initializing ElasticSearchIndexer(%r, %r)", indexName, types)
         self.es = get_connection(hosts=serverlist)
-
-        if not indexName.startswith('idigbio-'):
-            indexName = "idigbio-" + indexName
-        self.indexName = indexName
-
+        self.indexName = get_indexname(indexName)
         self.types = types
         for t in self.types:
             self.esMapping(t)

@@ -14,8 +14,8 @@ from cStringIO import StringIO, OutputType
 import logging
 
 # idb imports
-from idb.config import config
 from idb.helpers.conversions import index_field_to_longname
+from idb.indexing.indexer import get_connection, get_indexname
 
 # local imports
 from query_shim import queryFromShim
@@ -24,22 +24,8 @@ from identification import identifiy_locality, identifiy_scientificname
 
 use_string_io = False
 
-sl = config["elasticsearch"]["servers"]
-indexname = config["elasticsearch"]["indexname"]
-if os.environ["ENV"] == "beta":
-    # indexname = "2.5.0"
-    # sl = [
-    #     "c17node52.acis.ufl.edu",
-    #     "c17node53.acis.ufl.edu",
-    #     "c17node54.acis.ufl.edu",
-    #     "c17node55.acis.ufl.edu",
-    #     "c17node56.acis.ufl.edu"
-    # ]
-    pass
-
-indexName = "idigbio-" + indexname
-es = elasticsearch.Elasticsearch(
-    sl, sniff_on_start=False, sniff_on_connection_fail=False, retry_on_timeout=True, max_retries=10, timeout=60)
+indexName = get_indexname()
+es = get_connection()
 
 # 0: Current Year
 # 1: Query Text

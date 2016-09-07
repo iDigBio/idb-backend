@@ -13,8 +13,8 @@ from idb.helpers.storage import IDigBioStorage
 
 #, getRecordsets
 
-
 from .. import app
+
 
 mail_text = """
 The download you requested from iDigBio is ready and can be retrieved from:
@@ -50,6 +50,7 @@ def send_download_email(email,link,params,ip=None,source=None):
         s.post("http://idb-redis-stats.acis.ufl.edu:3000",data=json.dumps(stats_post), headers={'content-type': 'application/json'})
     send_mail("data@idigbio.org",[email],"iDigBio Download Ready",mail_text.format(link,json.dumps(params)))
 
+
 def upload_download_file_to_ceph(tid):
     s = IDigBioStorage()
     fkey = s.upload_file(tid,"idigbio-downloads",tid)
@@ -57,6 +58,7 @@ def upload_download_file_to_ceph(tid):
     fkey.make_public()
     os.unlink(tid)
     return "http://s.idigbio.org/idigbio-downloads/" + tid
+
 
 @app.task(bind=True)
 def downloader(self, params, email=None, ip=None, source=None):
@@ -85,18 +87,20 @@ def downloader(self, params, email=None, ip=None, source=None):
         traceback.print_exc()
     return link
 
+
 def main():
     downloader({
-        "core_source": "indexterms", 
-        "core_type": "records", 
-        "form": "dwca-csv", 
-        "mediarecord_fields": None, 
-        "mq": None, 
-        "record_fields": None, 
+        "core_source": "indexterms",
+        "core_type": "records",
+        "form": "dwca-csv",
+        "mediarecord_fields": None,
+        "mq": None,
+        "record_fields": None,
         "rq": {
             "genus": "acer"
         }
     },"godfoder@gmail.com",source="test",ip="128.227.150.136")
+
 
 if __name__ == '__main__':
     main()

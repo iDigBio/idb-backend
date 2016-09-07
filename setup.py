@@ -57,7 +57,7 @@ setup(
     extras_require={
         'journal': ['python-systemd>=230'],
         'ingestion': [
-            'pydub==0.16.4',
+            'pydub==0.16.5',
             'pillow>=3.2.0',
             'Python-fontconfig',
             'lxml',

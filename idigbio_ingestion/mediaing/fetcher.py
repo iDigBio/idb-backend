@@ -444,6 +444,24 @@ class TropicosItem(FetchItem):
         return self
 
 
+@prefix("http://media.idigbio.org/")
+class OldMediaApiItem(FetchItem):
+    FETCHER_COUNT = 16
+    etag = None
+
+    def get_media(self):
+        try:
+            self.etag = MediaObject.oldmediaapietag(self.url)
+            self.media_object = MediaObject(url=self.url, etag=self.etag,
+                                            type=self.type, bucket=self.type,
+                                            mime=self.mime, detected_mime=self.mime)
+            self.status_code = Status.OK
+        except IndexError:
+            logger.exception("What?")
+            self.status_code = Status.UNHANDLED_FAILURE
+        return self
+
+
 @prefix("http://arctos.database.museum/")
 class ArctosItem(FetchItem):
     FETCHER_COUNT = 1

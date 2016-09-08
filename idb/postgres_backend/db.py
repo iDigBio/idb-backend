@@ -2,6 +2,7 @@ from __future__ import division, absolute_import, print_function
 import uuid
 import json
 import os
+import re
 import sys
 import itertools
 
@@ -567,12 +568,23 @@ class MediaObject(object):
                       for k, v in values.items() if v is not None)
         return "{0}({1})".format(self.__class__.__name__, s)
 
+    @staticmethod
+    def oldmediaapietag(url):
+        """Extract the etag from an old media api url
+
+        E.g. http://media.idigbio.org/lookup/images/6d8fbdfc351a5e085aabdf081fb2c5e6?size=fullsize
+        """
+        re_etag = '^https?://media.idigbio.org/lookup/images/([^?]+)'
+        m = re.search(re_etag, url)
+        return m and m.group(1)
+
+
     @classmethod
     def fromurl(cls, url, idbmodel=apidbpool):
         # Patch special case from old media url.
-        if (url.startswith("http://media.idigbio.org/lookup/images/") or
-            url.startswith("https://media.idigbio.org/lookup/images/")):
-            return cls.frometag(url.split("/")[-1], idbmodel=idbmodel)
+        etag = cls.oldmediaapietag(url)
+        if etag:
+            return cls.frometag(etag, idbmodel=idbmodel)
 
         sql = """
             SELECT DISTINCT ON(media.url)

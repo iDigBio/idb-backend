@@ -14,6 +14,8 @@ import elasticsearch
 import elasticsearch.helpers
 import unicodecsv as csv
 
+from atomicfile import AtomicFile
+
 # idb imports
 from idb.helpers.conversions import index_field_to_longname
 from idb.indexing.indexer import get_connection, get_indexname
@@ -42,7 +44,7 @@ contributed by {4} Recordsets, Recordset identifiers:
 
 def write_citation_file(dl_id,t,query, recordsets):
     filename = "{0}.{1}.citation.txt".format(dl_id,t)
-    with open(filename,"wb") as citefile:
+    with AtomicFile(filename, "wb") as citefile:
         rs_string = ""
         total_recs = 0
         total_rs = len(recordsets.keys())
@@ -312,7 +314,7 @@ def make_file(t, query, raw=False, tabs=False, fields=None, core_type="records",
             sio.seek(0)
             return (sio, final_filename + file_extension, meta_block)
         else:
-            with open(outfile_name, "wb") as outf:
+            with AtomicFile(outfile_name, "wb") as outf:
                 query_to_csv(
                     outf, t, body, converted_fields, fields, id_field, raw, tabs, id_func)
             return (outfile_name, final_filename + file_extension, meta_block)
@@ -347,7 +349,7 @@ def make_file(t, query, raw=False, tabs=False, fields=None, core_type="records",
             sio.seek(0)
             return (sio, final_filename + file_extension, meta_block)
         else:
-            with open(outfile_name, "wb") as outf:
+            with AtomicFile(outfile_name, "wb") as outf:
                 query_to_uniquevals(
                     outf, "records", body, unique_field, tabs, identifiy_locality)
             return (outfile_name, final_filename + file_extension, meta_block)

@@ -1,8 +1,7 @@
-import elasticsearch
-import elasticsearch.helpers
+from __future__ import division, absolute_import, print_function
 
-import unicodecsv as csv
 import json
+import logging
 import traceback
 import zipfile
 import os
@@ -11,16 +10,18 @@ import datetime
 from collections import Counter
 from cStringIO import StringIO, OutputType
 
-import logging
+import elasticsearch
+import elasticsearch.helpers
+import unicodecsv as csv
 
 # idb imports
 from idb.helpers.conversions import index_field_to_longname
 from idb.indexing.indexer import get_connection, get_indexname
 
 # local imports
-from query_shim import queryFromShim
-from meta_xml import make_meta, make_file_block
-from identification import identifiy_locality, identifiy_scientificname
+from .query_shim import queryFromShim
+from .meta_xml import make_meta, make_file_block
+from .identification import identifiy_locality, identifiy_scientificname
 
 use_string_io = False
 

@@ -59,9 +59,9 @@ def download():
                 params[k] = o[k]
 
     if params["rq"] is None and params["mq"] is None:
-        return json_error(400,"Please supply at least one query paramter (rq,mq)")
+        return json_error(400, "Please supply at least one query paramter (rq,mq)")
 
-    h = objectHasher("sha1",params,sort_arrays=True,sort_keys=True)
+    h = objectHasher("sha1", params, sort_arrays=True, sort_keys=True)
 
     email = None
     source = None
@@ -69,13 +69,13 @@ def download():
     forward_ip = request.access_route[0]
 
     if "email" in o:
-        if isinstance(o["email"],list):
+        if isinstance(o["email"], list):
             email = o["email"][0]
         else:
             email = o["email"]
 
     if "source" in o:
-        if isinstance(o["source"],list):
+        if isinstance(o["source"], list):
             source = o["source"][0]
         else:
             source = o["source"]
@@ -85,11 +85,11 @@ def download():
 
     dispatch = False
     if redist.exists(h) and not force:
-        r = downloader.AsyncResult(redist.hget(h,"id"))
+        r = downloader.AsyncResult(redist.hget(h, "id"))
         if r.ready() and email is not None:
-            send_download_email(email,r.get(),params,ip=forward_ip,source=source)
+            send_download_email(email, r.get(), params, ip=forward_ip, source=source)
     else:
-        r = downloader.delay(params,email=email,source=source,ip=forward_ip)
+        r = downloader.delay(params, email=email, source=source, ip=forward_ip)
         dispatch = True
 
     if dispatch:
@@ -102,14 +102,14 @@ def download():
         redist.expire(r.id,expire_time_in_seconds - 60)
         redist.expire(h,expire_time_in_seconds)
     elif r.ready() and email is not None:
-        send_download_email(email,r.get(),params,ip=forward_ip,source=source)
+        send_download_email(email, r.get(), params, ip=forward_ip, source=source)
 
-    dt = datetime.datetime.now() + datetime.timedelta(0,redist.ttl(h))
+    dt = datetime.datetime.now() + datetime.timedelta(0, redist.ttl(h))
     if r.ready():
         params.update({
             "complete": True,
             "task_status": r.state,
-            "status_url": url_for(".status",u=r.id,_external=True, _scheme='https'),
+            "status_url": url_for(".status", u=r.id, _external=True, _scheme='https'),
             "expires": dt.isoformat(),
             "download_url": r.get()
         })
@@ -117,13 +117,14 @@ def download():
         params.update({
             "complete": False,
             "task_status": r.state,
-            "status_url": url_for(".status",u=r.id,_external=True, _scheme='https'),
+            "status_url": url_for(".status", u=r.id, _external=True, _scheme='https'),
             "expires": dt.isoformat()
         })
 
     return jsonify(params)
 
-@this_version.route('/download/<uuid:u>', methods=['GET','OPTIONS'])
+
+@this_version.route('/download/<uuid:u>', methods=['GET', 'OPTIONS'])
 @crossdomain(origin="*")
 def status(u):
     u = str(u)
@@ -133,12 +134,12 @@ def status(u):
         if h is not None:
             params_string = redist.hget(h,"query")
             params = json.loads(params_string)
-            dt = datetime.datetime.now() + datetime.timedelta(0,redist.ttl(h))
+            dt = datetime.datetime.now() + datetime.timedelta(0, redist.ttl(h))
             if r.ready():
                 params.update({
                     "complete": True,
                     "task_status": r.state,
-                    "status_url": url_for(".status",u=r.id,_external=True, _scheme='https'),
+                    "status_url": url_for(".status", u=r.id, _external=True, _scheme='https'),
                     "expires": dt.isoformat(),
                     "download_url": r.get()
                 })
@@ -146,7 +147,7 @@ def status(u):
                 params.update({
                     "complete": False,
                     "task_status": r.state,
-                    "status_url": url_for(".status",u=r.id,_external=True, _scheme='https'),
+                    "status_url": url_for(".status", u=r.id, _external=True, _scheme='https'),
                     "expires": dt.isoformat()
                 })
 
@@ -158,7 +159,7 @@ def status(u):
         params.update({
             "complete": False,
             "task_status": r.state,
-            "status_url": url_for(".status",u=r.id,_external=True, _scheme='https'),
+            "status_url": url_for(".status", u=r.id, _external=True, _scheme='https'),
             "expires": dt.isoformat()
         })
         return jsonify(params)

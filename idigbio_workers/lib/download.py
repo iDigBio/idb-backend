@@ -263,11 +263,9 @@ def make_file(t, query, raw=False, tabs=False, fields=None, core_type="records",
             exclude_from_fields = ["id", "coreid"]
 
         mapping = es.indices.get_mapping(index=indexName, doc_type=t)
-
-        mapping_root = mapping[indexName]["mappings"][t]["properties"]
+        mapping_root = mapping.values()[0]["mappings"][t]["properties"]
         if raw:
-            mapping_root = mapping[indexName]["mappings"][
-                t]["properties"]["data"]["properties"]
+            mapping_root = mapping_root["data"]["properties"]
 
         if fields is None:
             fields = []

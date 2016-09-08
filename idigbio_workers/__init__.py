@@ -17,3 +17,8 @@ def get_redis_conn():
     url = app.conf['CELERY_RESULT_BACKEND']
     scheme, host, port, user, password, path, query = _parse_url(url)
     return redis.StrictRedis(host=host, port=port, db=path)
+
+@app.task()
+def version():
+    import idb
+    return idb.__version__

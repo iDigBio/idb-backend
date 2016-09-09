@@ -51,8 +51,7 @@ setup(
         'feedparser>=5.2.0',
         'click>=6.3, <7.0',
         'atomicfile==1.0',
-        'enum34>=1.1.6, <1.2.0',
-        'pytest-runner',
+        'enum34>=1.1.6, <1.2.0'
     ],
     extras_require={
         'journal': ['python-systemd>=230'],

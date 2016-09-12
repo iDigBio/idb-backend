@@ -230,7 +230,8 @@ def _do_rss(r, db, recordsets, existing_recordsets):
                 """INSERT INTO recordsets
                      (uuid, publisher_uuid, name, recordids, eml_link, file_link, ingest, pub_date)
                    VALUES (%s,%s,%s,%s,%s,%s,%s,%s)
-                   ON CONFLICT (file_link) DO UPDATE set recordids=array_append(recordsets.recordids,%s), pub_date=%s
+                   ON CONFLICT (file_link) DO UPDATE set recordids=array_append(recordsets.recordids,%s), pub_date=%s, 
+                   last_seen = now()
                 """,
                 (rsid, pub_uuid, rs_name, recordids, eml_link, file_link, ingest, date, recordid, date))
             db.execute(*sql)

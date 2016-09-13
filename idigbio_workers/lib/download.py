@@ -244,13 +244,9 @@ type_core_type_ids = {
 }
 
 def make_file(t, query, raw=False, tabs=False, fields=None, core_type="records", core_source="indexterms", file_prefix="", final_filename=""):
-    file_extension = ".csv"
-    if tabs:
-        file_extension = ".tsv"
+    file_extension = ".tsv" if tabs else ".csv"
 
-    core = False
-    if t == core_type and raw == core_source == "raw":
-        core = True
+    core = t == core_type and raw == core_source == "raw"
 
     id_func, core_id_field = type_core_type_ids[(core_type,t,core_source)]
 

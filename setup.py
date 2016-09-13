@@ -64,7 +64,7 @@ setup(
             'pyquery>=1.2',
         ],
         'test': [
-            'pytest>=2.6',
+            'pytest>=3.0',
             'pytest-cov',
             'pytest-flask',
             'pytest-mock',

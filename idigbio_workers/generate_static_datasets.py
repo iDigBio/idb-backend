@@ -3,11 +3,9 @@ import sys
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(__file__)))))
 
-import requests
-import json
 import datetime
 
-from idigbio_workers.lib.download import generate_files, get_recordsets, es, indexName
+from idigbio_workers.lib.download import generate_files, es, indexName
 from idigbio_workers.lib.query_shim import queryFromShim
 from idb.helpers.storage import IDigBioStorage
 #from idb.lib.data.export.eml import eml_from_recordset

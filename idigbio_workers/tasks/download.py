@@ -5,7 +5,7 @@ import json
 import requests
 import uuid
 
-from ..lib.download import generate_files, get_recordsets, generate_queries
+from ..lib.download import generate_files, get_recordsets
 from ..lib.query_shim import queryFromShim
 from ..lib.mailer import send_mail
 

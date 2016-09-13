@@ -125,7 +125,6 @@ def get_recordsets(params, generate=True):
 
 
 def write_citation_files(dl_id, rq, mq, record_query, mediarecord_query):
-    files = []
     for t in ["records", "mediarecords"]:
         query = None
         if t == "records":
@@ -138,8 +137,7 @@ def write_citation_files(dl_id, rq, mq, record_query, mediarecord_query):
             "core_type": t
         }, generate=False)[1])
         if cf is not None:
-            files.append(cf)
-    return files
+            yield cf
 
 
 def count_query(t, query):
@@ -345,12 +343,19 @@ def make_file(t, query, raw=False, tabs=False, fields=None, core_type="records",
         return (outfile_name, final_filename + file_extension, meta_block)
 
 
-def generate_queries(record_query=None, mediarecord_query=None):
+def generate_queries(record_query=None, mediarecord_query=None, core_type=None):
     rq = None
     mq = None
 
     rq_and = []
     mq_and = []
+
+    if core_type == "mediarecords":
+        rq_and.append({
+            "term": {
+                "hasImage": True
+            }
+        })
 
     if record_query == {"filtered":{"filter":{}}}:
         record_query = None
@@ -415,16 +420,9 @@ def generate_queries(record_query=None, mediarecord_query=None):
 def generate_files(core_type="records", core_source="indexterms", record_query=None, mediarecord_query=None,
                    form="csv", filename="dump", record_fields=None, mediarecord_fields=None):
 
-    rq, mq = generate_queries(record_query, mediarecord_query)
-
-    if core_type == "mediarecords":
-        rq["filtered"]["filter"]["and"].append({
-            "term": {
-                "hasImage": True
-            }
-        })
-
     if form in ["csv", "tsv"]:
+        rq, mq = generate_queries(record_query, mediarecord_query, core_type)
+
         q = None
         tabs = form == "tsv"
         fields = None
@@ -441,125 +439,14 @@ def generate_files(core_type="records", core_source="indexterms", record_query=N
         return make_file(core_type, q, raw=(core_source == "raw"), tabs=tabs, core_type=core_type, core_source=core_source, file_prefix=filename + ".", fields=fields)[0]
 
     elif form.startswith("dwca"):
-        tabs = False
-        internal_form = form.split("-")
-        if len(internal_form) > 1 and internal_form[1] == "tsv":
-            tabs = True
-
-        type_source_options = {
-            ("records", "indexterms"): (
-                [
-                    "records",
-                    rq
-                ],
-                {
-                    "raw": False,
-                    "tabs": tabs,
-                    "core_type": core_type,
-                    "core_source": core_source,
-                    "file_prefix": filename + ".",
-                    "fields": None,
-                    "final_filename": "occurrence"
-                }
-            ),
-            ("records", "raw"): (
-                [
-                    "records",
-                    rq
-                ],
-                {
-                    "raw": True,
-                    "tabs": tabs,
-                    "core_type": core_type,
-                    "core_source": core_source,
-                    "file_prefix": filename + ".",
-                    "fields": None,
-                    "final_filename": "occurrence_raw"
-                }
-            ),
-            ("mediarecords", "indexterms"): (
-                [
-                    "mediarecords",
-                    mq
-                ],
-                {
-                    "raw": False,
-                    "tabs": tabs,
-                    "core_type": core_type,
-                    "core_source": core_source,
-                    "file_prefix": filename + ".",
-                    "fields": None,
-                    "final_filename": "multimedia"
-                }
-            ),
-            ("mediarecords", "raw"): (
-                [
-                    "mediarecords",
-                    mq
-                ],
-                {
-                    "raw": True,
-                    "tabs": tabs,
-                    "core_type": core_type,
-                    "core_source": core_source,
-                    "file_prefix": filename + ".",
-                    "fields": None,
-                    "final_filename": "multimedia_raw"
-                }
-            ),
-        }
-
-        if record_fields is not None:
-            type_source_options[("records","raw")][1]["fields"] = []
-            type_source_options[("records","indexterms")][1]["fields"] = []
-            for f in record_fields:
-                if f.startswith("\""):
-                    continue
-                elif f.startswith("data."):
-                    type_source_options[("records","raw")][1]["fields"].append(f)
-                else:
-                    type_source_options[("records","indexterms")][1]["fields"].append(f)
-
-        if mediarecord_fields is not None:
-            type_source_options[("mediarecords","raw")][1]["fields"] = []
-            type_source_options[("mediarecords","indexterms")][1]["fields"] = []
-            for f in mediarecord_fields:
-                if f.startswith("\""):
-                    continue
-                elif f.startswith("data."):
-                    type_source_options[("mediarecords","raw")][1]["fields"].append(f)
-                else:
-                    type_source_options[("mediarecords","indexterms")][1]["fields"].append(f)
-
-        # Order is important here, core must be first for correct meta.xml generation
-        files = []
-        if core_type == "uniquelocality":
-            files.append(make_file(
-                core_type, rq, raw=(core_source == "raw"), tabs=tabs, core_type=core_type, core_source=core_source,
-                file_prefix=filename + ".", fields=None, final_filename="locality"
-            ))
-        elif core_type == "uniquenames":
-            files.append(make_file(
-                core_type, rq, raw=(core_source == "raw"), tabs=tabs, core_type=core_type, core_source=core_source,
-                file_prefix=filename + ".", fields=None, final_filename="names"
-            ))
-        else:
-            # Write out core
-            args, kwargs = type_source_options[(core_type, core_source)]
-            files.append(make_file(*args, **kwargs))
-            del type_source_options[(core_type, core_source)]
-
-        for t,s in type_source_options:
-            # Write out extensions
-            args, kwargs = type_source_options[(t,s)]
-            files.append(make_file(*args, **kwargs))
-
-        files.extend(
-            [(f, ".".join(f.split(".")[1:]), None)
-             for f in write_citation_files(filename, rq, mq, record_query, mediarecord_query)])
-
         meta_string = None
-        with zipfile.ZipFile(filename + ".zip", 'w', zipfile.ZIP_DEFLATED, True) as expzip:
+        files = generate_dwca_files(
+            core_type=core_type, core_source=core_source,
+            record_query=record_query, mediarecord_query=mediarecord_query,
+            form=form, filename=filename,
+            record_fields=record_fields, mediarecord_fields=mediarecord_fields)
+        zipfilename = filename + ".zip"
+        with zipfile.ZipFile(zipfilename, 'w', zipfile.ZIP_DEFLATED, True) as expzip:
             meta_files = []
             for f in files:
                 if f[0] is not None:
@@ -569,9 +456,124 @@ def generate_files(core_type="records", core_source="indexterms", record_query=N
                         meta_files.append(f[2])
             meta_string = make_meta(meta_files)
             expzip.writestr("meta.xml", meta_string)
+        return zipfilename
 
-        return filename
 
+def generate_dwca_files(core_type="records", core_source="indexterms", record_query=None, mediarecord_query=None,
+                        form="dwca", filename="dump", record_fields=None, mediarecord_fields=None):
+
+    tabs = form.endswith("tsv")
+
+    rq, mq = generate_queries(record_query, mediarecord_query, core_type)
+    type_source_options = {
+        ("records", "indexterms"): (
+            [
+                "records",
+                rq
+            ],
+            {
+                "raw": False,
+                "tabs": tabs,
+                "core_type": core_type,
+                "core_source": core_source,
+                "file_prefix": filename + ".",
+                "fields": None,
+                "final_filename": "occurrence"
+            }
+        ),
+        ("records", "raw"): (
+            [
+                "records",
+                rq
+            ],
+            {
+                "raw": True,
+                "tabs": tabs,
+                "core_type": core_type,
+                "core_source": core_source,
+                "file_prefix": filename + ".",
+                "fields": None,
+                "final_filename": "occurrence_raw"
+            }
+        ),
+        ("mediarecords", "indexterms"): (
+            [
+                "mediarecords",
+                mq
+            ],
+            {
+                "raw": False,
+                "tabs": tabs,
+                "core_type": core_type,
+                "core_source": core_source,
+                "file_prefix": filename + ".",
+                "fields": None,
+                "final_filename": "multimedia"
+            }
+        ),
+        ("mediarecords", "raw"): (
+            [
+                "mediarecords",
+                mq
+            ],
+            {
+                "raw": True,
+                "tabs": tabs,
+                "core_type": core_type,
+                "core_source": core_source,
+                "file_prefix": filename + ".",
+                "fields": None,
+                "final_filename": "multimedia_raw"
+            }
+        ),
+    }
+
+    if record_fields is not None:
+        type_source_options[("records","raw")][1]["fields"] = []
+        type_source_options[("records","indexterms")][1]["fields"] = []
+        for f in record_fields:
+            if f.startswith("\""):
+                continue
+            elif f.startswith("data."):
+                type_source_options[("records","raw")][1]["fields"].append(f)
+            else:
+                type_source_options[("records","indexterms")][1]["fields"].append(f)
+
+    if mediarecord_fields is not None:
+        type_source_options[("mediarecords","raw")][1]["fields"] = []
+        type_source_options[("mediarecords","indexterms")][1]["fields"] = []
+        for f in mediarecord_fields:
+            if f.startswith("\""):
+                continue
+            elif f.startswith("data."):
+                type_source_options[("mediarecords","raw")][1]["fields"].append(f)
+            else:
+                type_source_options[("mediarecords","indexterms")][1]["fields"].append(f)
+
+    # Order is important here, core must be first for correct meta.xml generation
+    if core_type == "uniquelocality":
+        yield make_file(
+            core_type, rq, raw=(core_source == "raw"), tabs=tabs, core_type=core_type, core_source=core_source,
+            file_prefix=filename + ".", fields=None, final_filename="locality"
+        )
+    elif core_type == "uniquenames":
+        yield make_file(
+            core_type, rq, raw=(core_source == "raw"), tabs=tabs, core_type=core_type, core_source=core_source,
+            file_prefix=filename + ".", fields=None, final_filename="names"
+        )
+    else:
+        # Write out core
+        args, kwargs = type_source_options.pop((core_type, core_source))
+        yield make_file(*args, **kwargs)
+
+    #TODO: just use `.values`
+    for t,s in type_source_options:
+        # Write out extensions
+        args, kwargs = type_source_options[(t,s)]
+        yield make_file(*args, **kwargs)
+
+    for f in write_citation_files(filename, rq, mq, record_query, mediarecord_query):
+        yield (f, f.split(".", 1)[-1], None)
 
 def main():
     import itertools

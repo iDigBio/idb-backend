@@ -13,8 +13,8 @@ from idb.helpers.storage import IDigBioStorage
 
 #, getRecordsets
 
-
 from .. import app
+
 
 mail_text = """
 The download you requested from iDigBio is ready and can be retrieved from:
@@ -34,7 +34,7 @@ The iDigBio Team
 
 s = requests.Session()
 
-def send_download_email(email,link,params,ip=None,source=None):
+def send_download_email(email, link, params, ip=None, source=None):
     if email is not None and not email.endswith("@acis.ufl.edu"):
         q, recordsets = get_recordsets(params)
         stats_post = {
@@ -47,22 +47,26 @@ def send_download_email(email,link,params,ip=None,source=None):
             stats_post["ip"] = ip
         if source is not None:
             stats_post["source"] = source
-        s.post("http://idb-redis-stats.acis.ufl.edu:3000",data=json.dumps(stats_post), headers={'content-type': 'application/json'})
-    send_mail("data@idigbio.org",[email],"iDigBio Download Ready",mail_text.format(link,json.dumps(params)))
+        s.post("http://idb-redis-stats.acis.ufl.edu:3000",
+               data=json.dumps(stats_post), headers={'content-type': 'application/json'})
+    send_mail("data@idigbio.org", [email], "iDigBio Download Ready",
+              mail_text.format(link, json.dumps(params)))
+
 
 def upload_download_file_to_ceph(tid):
     s = IDigBioStorage()
-    fkey = s.upload_file(tid,"idigbio-downloads",tid)
+    fkey = s.upload_file(tid, "idigbio-downloads", tid)
     fkey.set_metadata('Content-Type', 'application/zip')
     fkey.make_public()
     os.unlink(tid)
     return "http://s.idigbio.org/idigbio-downloads/" + tid
 
+
 @app.task(bind=True)
 def downloader(self, params, email=None, ip=None, source=None):
     original_params = {}
     original_params.update(params)
-    for rename in [("rq","record_query"),("mq","mediarecord_query")]:
+    for rename in [("rq", "record_query"), ("mq", "mediarecord_query")]:
         if params[rename[0]] is not None:
             if rename[1].endswith("query"):
                 params[rename[1]] = queryFromShim(params[rename[0]])["query"]
@@ -80,23 +84,25 @@ def downloader(self, params, email=None, ip=None, source=None):
     link = upload_download_file_to_ceph(tid)
     try:
         if email is not None:
-            send_download_email(email,link,original_params,ip=ip,source=source)
+            send_download_email(email, link, original_params, ip=ip, source=source)
     except:
         traceback.print_exc()
     return link
 
+
 def main():
     downloader({
-        "core_source": "indexterms", 
-        "core_type": "records", 
-        "form": "dwca-csv", 
-        "mediarecord_fields": None, 
-        "mq": None, 
-        "record_fields": None, 
+        "core_source": "indexterms",
+        "core_type": "records",
+        "form": "dwca-csv",
+        "mediarecord_fields": None,
+        "mq": None,
+        "record_fields": None,
         "rq": {
             "genus": "acer"
         }
-    },"godfoder@gmail.com",source="test",ip="128.227.150.136")
+    }, "godfoder@gmail.com", source="test", ip="128.227.150.136")
+
 
 if __name__ == '__main__':
     main()

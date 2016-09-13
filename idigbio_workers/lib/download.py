@@ -100,7 +100,6 @@ def get_recordsets(params,generate=True):
         rq = params["rq"]
         mq = params["mq"]
 
-
     q = None
     t = None
     if params["core_type"] == "mediarecords":
@@ -259,7 +258,7 @@ def make_file(t, query, raw=False, tabs=False, fields=None, core_type="records",
         file_extension = ".tsv"
 
     core = False
-    if t == core_type and (raw==(core_source=="raw")):
+    if t == core_type and raw == core_source == "raw":
         core = True
 
     id_func, core_id_field = type_core_type_ids[(core_type,t,core_source)]
@@ -307,7 +306,6 @@ def make_file(t, query, raw=False, tabs=False, fields=None, core_type="records",
                     converted_fields.append(index_field_to_longname[t][f])
                     filtered_fields.append(f)
             fields = filtered_fields
-
 
         meta_block = make_file_block(
             filename=final_filename + file_extension, core=core, tabs=tabs, fields=converted_fields, t=t)
@@ -463,7 +461,7 @@ def generate_files(core_type="records", core_source="indexterms", record_query=N
         elif core_type.startswith("unique"):
             q = rq
 
-        return make_file(core_type, q, raw=core_source=="raw", tabs=tabs, core_type=core_type, core_source=core_source, file_prefix=filename + ".", fields=fields)
+        return make_file(core_type, q, raw=(core_source == "raw"), tabs=tabs, core_type=core_type, core_source=core_source, file_prefix=filename + ".", fields=fields)
 
     elif form.startswith("dwca"):
         tabs = False
@@ -560,12 +558,12 @@ def generate_files(core_type="records", core_source="indexterms", record_query=N
         files = []
         if core_type == "uniquelocality":
             files.append(make_file(
-                core_type, rq, raw=core_source=="raw", tabs=tabs, core_type=core_type, core_source=core_source,
+                core_type, rq, raw=(core_source == "raw"), tabs=tabs, core_type=core_type, core_source=core_source,
                 file_prefix=filename + ".", fields=None, final_filename="locality"
             ))
         elif core_type == "uniquenames":
             files.append(make_file(
-                core_type, rq, raw=core_source=="raw", tabs=tabs, core_type=core_type, core_source=core_source,
+                core_type, rq, raw=(core_source == "raw"), tabs=tabs, core_type=core_type, core_source=core_source,
                 file_prefix=filename + ".", fields=None, final_filename="names"
             ))
         else:
@@ -607,19 +605,15 @@ def main():
     logger = logging.getLogger()
     logger.setLevel(logging.ERROR)
 
-    # indexName = "idigbio-" + config["elasticsearch"]["indexname"]
-
     # run_id = str(uuid.uuid4())
-
     # Form Testing
-
     rq = {"genus": "acer", "stateprovince": "florida"}
 
     record_query = queryFromShim(rq, "records")["query"]
 
     mediarecord_query = None
 
-    print generate_files(core_type="records", core_source="indexterms", form="dwca-csv", record_query=record_query, mediarecord_query=mediarecord_query, filename=str(uuid.uuid4()))[0]
+    print(generate_files(core_type="records", core_source="indexterms", form="dwca-csv", record_query=record_query, mediarecord_query=mediarecord_query, filename=str(uuid.uuid4()))[0])
 
     # core_types = ["records", "mediarecords", "uniquelocality", "uniquenames"]
     # core_sources = ["indexterms", "raw"]

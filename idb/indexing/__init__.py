@@ -4,10 +4,7 @@ indexing engine.
 Right now this is from postgres to elasticsearch.
 
 """
-
-from __future__ import division, absolute_import
-from __future__ import print_function
-
+from __future__ import division, absolute_import, print_function
 
 import click
 

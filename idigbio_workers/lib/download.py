@@ -2,7 +2,6 @@ from __future__ import division, absolute_import, print_function
 
 import json
 import logging
-import traceback
 import zipfile
 import os
 import datetime
@@ -23,6 +22,8 @@ from idb.indexing.indexer import get_connection, get_indexname
 from .query_shim import queryFromShim
 from .meta_xml import make_meta, make_file_block
 from .identification import identifiy_locality, identifiy_scientificname
+
+logger = logging.getLogger()
 
 indexName = get_indexname()
 es = get_connection()
@@ -184,7 +185,7 @@ def query_to_uniquevals(outf, t, body, val_field, tabs, val_func):
             else:
                 values[""] += 1
         except:
-            traceback.print_exc()
+            logger.exception("Error generating uniquevals")
 
     for k, v in values.most_common():
         cw.writerow([val_func(k), k, v])
@@ -213,7 +214,7 @@ def query_to_csv(outf, t, body, header_fields, fields, id_field, raw, tabs, id_f
                     r_fields.append("")
             cw.writerow(r_fields)
         except:
-            traceback.print_exc()
+            logger.exception("Error generating csv")
 
 
 def acceptable_field_name(f):

@@ -42,19 +42,21 @@ def run_query(q, cache_string):
             if h["_source"]["dwc:taxonomicStatus"] == "accepted":
                 best_response = h
                 break
-            elif h["_source"]["dwc:taxonomicStatus"] == "synonym" and "dwc:acceptedNameUsageID" in h["_source"]:
+            elif "synonym" in h["_source"]["dwc:taxonomicStatus"] and "dwc:acceptedNameUsageID" in h["_source"]:
                 best_response = h
                 break
         elif best_response is None:
+            print (h["_score"], h["_source"]["dwc:taxonomicStatus"])
             if h["_source"]["dwc:taxonomicStatus"] == "accepted":
                 best_response = h
-            elif h["_source"]["dwc:taxonomicStatus"] == "synonym" and "dwc:acceptedNameUsageID" in h["_source"]:
+            elif "synonym" in h["_source"]["dwc:taxonomicStatus"] and "dwc:acceptedNameUsageID" in h["_source"]:
                 best_response = h
         else:
+            print(h["_score"], h["_source"]["dwc:taxonomicStatus"], best_response["_score"], h["_score"] > best_response["_score"])
             if h["_source"]["dwc:taxonomicStatus"] == "accepted":
                 if h["_score"] > best_response["_score"]:
                     best_response = h
-            elif h["_source"]["dwc:taxonomicStatus"] == "synonym" and "dwc:acceptedNameUsageID" in h["_source"]:
+            elif "synonym" in h["_source"]["dwc:taxonomicStatus"] and "dwc:acceptedNameUsageID" in h["_source"]:
                 if h["_score"] > best_response["_score"]:
                     best_response = h
             #print q, h
@@ -204,6 +206,14 @@ def get_taxon_from_index():
             stats["precount"] += 1
             etags.add(etag)
             yield (etag,r["_source"]["data"])        
+
+def test_main():
+    t = ("blahblahblah",  {
+        "dwc:specificEpithet": "ohioense",
+        "dwc:genus": "Archidium",
+        "dwc:scientificName": "Archidium ohioense",
+    })
+    print(work(t))
 
 def main():
     p = pool.Pool(25)

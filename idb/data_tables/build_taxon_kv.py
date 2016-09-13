@@ -46,13 +46,13 @@ def run_query(q, cache_string):
                 best_response = h
                 break
         elif best_response is None:
-            print (h["_score"], h["_source"]["dwc:taxonomicStatus"])
+            #print (h["_score"], h["_source"]["dwc:taxonomicStatus"])
             if h["_source"]["dwc:taxonomicStatus"] == "accepted":
                 best_response = h
             elif "synonym" in h["_source"]["dwc:taxonomicStatus"] and "dwc:acceptedNameUsageID" in h["_source"]:
                 best_response = h
         else:
-            print(h["_score"], h["_source"]["dwc:taxonomicStatus"], best_response["_score"], h["_score"] > best_response["_score"])
+            #print(h["_score"], h["_source"]["dwc:taxonomicStatus"], best_response["_score"], h["_score"] > best_response["_score"])
             if h["_source"]["dwc:taxonomicStatus"] == "accepted":
                 if h["_score"] > best_response["_score"]:
                     best_response = h
@@ -199,7 +199,7 @@ def get_taxon_from_index():
         ]
     }
 
-    for r in elasticsearch.helpers.scan(es, index="idigbio-2.9.3", query=body, size=1000, doc_type=t, scroll="10m"):
+    for r in elasticsearch.helpers.scan(es, index="idigbio-2.10.0", query=body, size=1000, doc_type=t, scroll="10m"):
         etag = objectHasher("sha256", r["_source"], sort_arrays=True)    
         stats["count"] += 1
         if etag not in etags:

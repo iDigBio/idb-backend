@@ -8,7 +8,6 @@ import os
 import datetime
 
 from collections import Counter
-from cStringIO import StringIO, OutputType
 
 import elasticsearch
 import elasticsearch.helpers
@@ -24,8 +23,6 @@ from idb.indexing.indexer import get_connection, get_indexname
 from .query_shim import queryFromShim
 from .meta_xml import make_meta, make_file_block
 from .identification import identifiy_locality, identifiy_scientificname
-
-use_string_io = False
 
 indexName = get_indexname()
 es = get_connection()
@@ -313,17 +310,10 @@ def make_file(t, query, raw=False, tabs=False, fields=None, core_type="records",
             "query": query
         }
 
-        if use_string_io:
-            sio = StringIO()
+        with AtomicFile(outfile_name, "wb") as outf:
             query_to_csv(
-                sio, t, body, converted_fields, fields, id_field, raw, tabs, id_func)
-            sio.seek(0)
-            return (sio, final_filename + file_extension, meta_block)
-        else:
-            with AtomicFile(outfile_name, "wb") as outf:
-                query_to_csv(
-                    outf, t, body, converted_fields, fields, id_field, raw, tabs, id_func)
-            return (outfile_name, final_filename + file_extension, meta_block)
+                outf, t, body, converted_fields, fields, id_field, raw, tabs, id_func)
+        return (outfile_name, final_filename + file_extension, meta_block)
     elif t.startswith("unique"):
         if t == "uniquelocality":
             unique_field = "locality"
@@ -348,17 +338,10 @@ def make_file(t, query, raw=False, tabs=False, fields=None, core_type="records",
         meta_block = make_file_block(
             filename=final_filename + file_extension, core=core, tabs=tabs, fields=converted_fields, t=t)
 
-        if use_string_io:
-            sio = StringIO()
+        with AtomicFile(outfile_name, "wb") as outf:
             query_to_uniquevals(
-                sio, "records", body, unique_field, tabs, identifiy_locality)
-            sio.seek(0)
-            return (sio, final_filename + file_extension, meta_block)
-        else:
-            with AtomicFile(outfile_name, "wb") as outf:
-                query_to_uniquevals(
-                    outf, "records", body, unique_field, tabs, identifiy_locality)
-            return (outfile_name, final_filename + file_extension, meta_block)
+                outf, "records", body, unique_field, tabs, identifiy_locality)
+        return (outfile_name, final_filename + file_extension, meta_block)
 
 
 def generate_queries(record_query=None, mediarecord_query=None):
@@ -579,11 +562,8 @@ def generate_files(core_type="records", core_source="indexterms", record_query=N
             meta_files = []
             for f in files:
                 if f[0] is not None:
-                    if isinstance(f[0], OutputType):
-                        expzip.writestr(f[1], f[0].read())
-                    else:
-                        expzip.write(f[0], f[1])
-                        os.unlink(f[0])
+                    expzip.write(f[0], f[1])
+                    os.unlink(f[0])
                     if f[2] is not None:
                         meta_files.append(f[2])
             meta_string = make_meta(meta_files)

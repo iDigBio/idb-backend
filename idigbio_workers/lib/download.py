@@ -42,14 +42,14 @@ Query: {1},
 contributed by {4} Recordsets, Recordset identifiers:
 {5}"""
 
-def write_citation_file(dl_id,t,query, recordsets):
-    filename = "{0}.{1}.citation.txt".format(dl_id,t)
+def write_citation_file(dl_id, t, query, recordsets):
+    filename = "{0}.{1}.citation.txt".format(dl_id, t)
     with AtomicFile(filename, "wb") as citefile:
         rs_string = ""
         total_recs = 0
         total_rs = len(recordsets.keys())
-        for rs,rsc in sorted([(rs,recordsets[rs]) for rs in recordsets],key=lambda x: x[1],reverse=True):
-            rs_string += "http://www.idigbio.org/portal/recordsets/{0} ({1} records)\n".format(rs,rsc)
+        for rs, rsc in sorted([(rs, recordsets[rs]) for rs in recordsets], key=lambda x: x[1], reverse=True):
+            rs_string += "http://www.idigbio.org/portal/recordsets/{0} ({1} records)\n".format(rs, rsc)
             total_recs += rsc
 
         query_string = json.dumps(query)
@@ -73,7 +73,8 @@ def write_citation_file(dl_id,t,query, recordsets):
         if total_recs > 0:
             return filename
 
-def get_recordsets(params,generate=True):
+
+def get_recordsets(params, generate=True):
     rq, mq = None, None
 
     if generate:
@@ -84,7 +85,7 @@ def get_recordsets(params,generate=True):
 
         if params["mq"] is not None:
             mediarecord_query = queryFromShim(params["mq"])["query"]
-        rq, mq = generate_queries(record_query,mediarecord_query)
+        rq, mq = generate_queries(record_query, mediarecord_query)
     else:
         rq = params["rq"]
         mq = params["mq"]
@@ -124,27 +125,30 @@ def get_recordsets(params,generate=True):
         recsets[b["key"]] = b["doc_count"]
     return (q, recsets)
 
-def write_citation_files(dl_id,rq,mq,record_query,mediarecord_query):
+
+def write_citation_files(dl_id, rq, mq, record_query, mediarecord_query):
     files = []
-    for t in ["records","mediarecords"]:
+    for t in ["records", "mediarecords"]:
         query = None
         if t == "records":
             query = record_query
         elif t == "mediarecords":
             query = mediarecord_query
-        cf = write_citation_file(dl_id,t,query,get_recordsets({
+        cf = write_citation_file(dl_id, t, query, get_recordsets({
             "rq": rq,
             "mq": mq,
             "core_type": t
-        },generate=False)[1])
+        }, generate=False)[1])
         if cf is not None:
             files.append(cf)
     return files
 
+
 def count_query(t, query):
     return es.count(index=indexName, doc_type=t, body=query)["count"]
 
-def get_source_value(source,val_field):
+
+def get_source_value(source, val_field):
     local_source = source
     for vf in val_field.split("."):
         if vf in local_source:
@@ -214,8 +218,10 @@ def query_to_csv(outf, t, body, header_fields, fields, id_field, raw, tabs, id_f
         except:
             traceback.print_exc()
 
+
 def acceptable_field_name(f):
     return "\"" not in f and " " not in f
+
 
 type_core_type_ids = {
     # Core Type, File Type, Core Source : id_func, id_field
@@ -564,7 +570,9 @@ def generate_files(core_type="records", core_source="indexterms", record_query=N
             args, kwargs = type_source_options[(t,s)]
             files.append(make_file(*args, **kwargs))
 
-        files.extend([(f,".".join(f.split(".")[1:]),None) for f in write_citation_files(filename,rq,mq,record_query,mediarecord_query)])
+        files.extend(
+            [(f, ".".join(f.split(".")[1:]), None)
+             for f in write_citation_files(filename, rq, mq, record_query, mediarecord_query)])
 
         meta_string = None
         with zipfile.ZipFile(filename + ".zip", 'w', zipfile.ZIP_DEFLATED, True) as expzip:

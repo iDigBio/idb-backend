@@ -22,13 +22,13 @@ def upload_download_file_to_ceph(s, dsname):
         t = datetime.date.today().isoformat()
         keyname = "idigbio-" + t + ".zip"
         makelink = True
-    fkey = s.upload_file(keyname,"idigbio-static-downloads",dsname)
+    fkey = s.upload_file(keyname, "idigbio-static-downloads", dsname)
 
     fkey.set_metadata('Content-Type', 'application/zip')
     os.unlink(dsname)
 
     if makelink:
-        fkey.copy("idigbio-static-downloads",dsname, preserve_acl=True)
+        fkey.copy("idigbio-static-downloads", dsname, preserve_acl=True)
 
     return "http://s.idigbio.org/idigbio-static-downloads/" + keyname
 
@@ -78,7 +78,7 @@ def main():
     #     # # e = upload_eml_file_to_ceph(s,q[1],rseml)
     #     print q[1], u
     #     count += 1
-    file_name, _, _ = generate_files(record_query=queryFromShim({})["query"],form="dwca-csv",filename="idigbio")
+    file_name, _, _ = generate_files(record_query=queryFromShim({})["query"], form="dwca-csv", filename="idigbio")
     u = upload_download_file_to_ceph(s, file_name)
 
 if __name__ == '__main__':

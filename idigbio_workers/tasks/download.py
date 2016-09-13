@@ -80,7 +80,7 @@ def downloader(self, params, email=None, ip=None, source=None):
         params["filename"] = self.request.id
     else:
         params["filename"] = str(uuid.uuid4())
-    tid = generate_files(**params)[0]
+    tid = generate_files(**params)
     link = upload_download_file_to_ceph(tid)
     try:
         if email is not None:

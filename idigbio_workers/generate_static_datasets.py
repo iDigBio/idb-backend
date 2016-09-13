@@ -71,14 +71,14 @@ def main():
     # count = 0
     # for q in reversed(static_queries):
     #     print count, q
-    #     file_name, _, _ = generate_files(record_query=queryFromShim(q[0])["query"],form="dwca-csv",filename=q[1])
+    #     file_name = generate_files(record_query=queryFromShim(q[0])["query"],form="dwca-csv",filename=q[1])
     #     print q[1], file_name
     #     u = upload_download_file_to_ceph(s,file_name)
     #     # # rseml = eml_from_recordset(q[1],env="prod")
     #     # # e = upload_eml_file_to_ceph(s,q[1],rseml)
     #     print q[1], u
     #     count += 1
-    file_name, _, _ = generate_files(record_query=queryFromShim({})["query"], form="dwca-csv", filename="idigbio")
+    file_name = generate_files(record_query=queryFromShim({})["query"], form="dwca-csv", filename="idigbio")
     u = upload_download_file_to_ceph(s, file_name)
 
 if __name__ == '__main__':

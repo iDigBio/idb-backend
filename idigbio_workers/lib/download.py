@@ -438,7 +438,7 @@ def generate_files(core_type="records", core_source="indexterms", record_query=N
         elif core_type.startswith("unique"):
             q = rq
 
-        return make_file(core_type, q, raw=(core_source == "raw"), tabs=tabs, core_type=core_type, core_source=core_source, file_prefix=filename + ".", fields=fields)
+        return make_file(core_type, q, raw=(core_source == "raw"), tabs=tabs, core_type=core_type, core_source=core_source, file_prefix=filename + ".", fields=fields)[0]
 
     elif form.startswith("dwca"):
         tabs = False
@@ -570,7 +570,7 @@ def generate_files(core_type="records", core_source="indexterms", record_query=N
             meta_string = make_meta(meta_files)
             expzip.writestr("meta.xml", meta_string)
 
-        return (filename + ".zip", filename + ".zip", meta_string)
+        return filename
 
 
 def main():
@@ -589,7 +589,7 @@ def main():
 
     mediarecord_query = None
 
-    print(generate_files(core_type="records", core_source="indexterms", form="dwca-csv", record_query=record_query, mediarecord_query=mediarecord_query, filename=str(uuid.uuid4()))[0])
+    print(generate_files(core_type="records", core_source="indexterms", form="dwca-csv", record_query=record_query, mediarecord_query=mediarecord_query, filename=str(uuid.uuid4())))
 
     # core_types = ["records", "mediarecords", "uniquelocality", "uniquenames"]
     # core_sources = ["indexterms", "raw"]
@@ -599,7 +599,7 @@ def main():
 
     # for t, s, f in combos:
     #     try:
-    #         print t, s, f, generate_files(core_type=t, core_source=s, form=f, record_query=record_query, mediarecord_query=mediarecord_query, filename=str(uuid.uuid4()))[0]
+    #         print t, s, f, generate_files(core_type=t, core_source=s, form=f, record_query=record_query, mediarecord_query=mediarecord_query, filename=str(uuid.uuid4()))
     #     except:
     #         traceback.print_exc()
     #         print
@@ -639,7 +639,7 @@ def main():
     #             print qt[0], "\"" + repr(generate_files(core_type="records", core_source="indexterms",
     #                                         record_query=record_query[
     #                                             "query"], mediarecord_query=None,
-    #                                         form="dwca-csv", filename=str(uuid.uuid4()))[0]) + "\"", "geopoint" in qt[1], (datetime.datetime.now() - t).total_seconds()
+    #                                         form="dwca-csv", filename=str(uuid.uuid4()))) + "\"", "geopoint" in qt[1], (datetime.datetime.now() - t).total_seconds()
     #         except:
     #             print qt
     #             traceback.print_exc()

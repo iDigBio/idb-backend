@@ -28,7 +28,7 @@ class IDigBioStorage(object):
             environment variables.
     """
 
-    def __init__(self,host="s.idigbio.org",access_key=None,secret_key=None):
+    def __init__(self, host="s.idigbio.org", access_key=None, secret_key=None):
         if access_key is None:
             access_key = os.getenv("IDB_STORAGE_ACCESS_KEY")
 
@@ -48,13 +48,13 @@ class IDigBioStorage(object):
             calling_format=boto.s3.connection.OrdinaryCallingFormat(),
         )
 
-    def get_bucket(self,bucket_name):
+    def get_bucket(self, bucket_name):
         """
             Return a boto.s3.Bucket object for the requested bucket.
         """
-        return self.boto_conn.get_bucket(bucket_name,validate=False)
+        return self.boto_conn.get_bucket(bucket_name, validate=False)
 
-    def get_key(self,key_name,bucket_name,bucket=None):
+    def get_key(self, key_name, bucket_name, bucket=None):
         """
             Return a boto.s3.Key object for the requested bucket name and key name.
             If you have already instantiated a bucket object, you may pass that and

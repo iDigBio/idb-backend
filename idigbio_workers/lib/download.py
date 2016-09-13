@@ -243,7 +243,8 @@ type_core_type_ids = {
     ("uniquenames", "mediarecords", "raw"): (lambda r: identifiy_locality(get_source_value(r["inner_hits"]["records"]["hits"]["hits"][0]["_source"],"data.dwc:scientificName")),"data.dwc:scientificName"),
 }
 
-def make_file(t, query, raw=False, tabs=False, fields=None, core_type="records", core_source="indexterms", file_prefix="", final_filename=""):
+def make_file(t, query, raw=False, tabs=False, fields=None,
+              core_type="records", core_source="indexterms", file_prefix="", final_filename=""):
     file_extension = ".tsv" if tabs else ".csv"
 
     core = t == core_type and raw == core_source == "raw"
@@ -326,9 +327,9 @@ def make_file(t, query, raw=False, tabs=False, fields=None, core_type="records",
 
         converted_fields = None
         if unique_field.startswith("data."):
-            converted_fields = [unique_field[5:],"idigbio:itemCount"]
+            converted_fields = [unique_field[5:], "idigbio:itemCount"]
         else:
-            converted_fields = [index_field_to_longname["records"][unique_field],"idigbio:itemCount"]
+            converted_fields = [index_field_to_longname["records"][unique_field], "idigbio:itemCount"]
 
         meta_block = make_file_block(
             filename=final_filename + file_extension, core=core, tabs=tabs, fields=converted_fields, t=t)
@@ -531,13 +532,13 @@ def generate_dwca_files(core_type="records", core_source="indexterms", record_qu
             if f.startswith("\""):
                 continue
             elif f.startswith("data."):
-                type_source_options[("records","raw")][1]["fields"].append(f)
+                type_source_options[("records", "raw")][1]["fields"].append(f)
             else:
-                type_source_options[("records","indexterms")][1]["fields"].append(f)
+                type_source_options[("records", "indexterms")][1]["fields"].append(f)
 
     if mediarecord_fields is not None:
-        type_source_options[("mediarecords","raw")][1]["fields"] = []
-        type_source_options[("mediarecords","indexterms")][1]["fields"] = []
+        type_source_options[("mediarecords", "raw")][1]["fields"] = []
+        type_source_options[("mediarecords", "indexterms")][1]["fields"] = []
         for f in mediarecord_fields:
             if f.startswith("\""):
                 continue

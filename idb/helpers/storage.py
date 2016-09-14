@@ -1,17 +1,21 @@
 """
     Thin wrapper around boto.s3 to ensure consistent access patterns in idigbio scripts
 """
-from __future__ import absolute_import
-import os
-import glob
-import subprocess
+from __future__ import division, absolute_import, print_function
+
 import cStringIO
+import math
+import os
+import time
 
 import boto
 import boto.s3.connection
+from boto.exception import BotoServerError, BotoClientError, S3DataError
 
+from idb.helpers.logging import idblogger
 from idb.postgres_backend.db import MediaObject
 
+logger = idblogger.getChild('storage')
 
 class IDigBioStorage(object):
     """
@@ -67,34 +71,50 @@ class IDigBioStorage(object):
         else:
             return "http://{0}/{1}/{2}".format(self.host,bucket_name,key_name)
 
-    def split_file(self,s3_key_name, in_file, mb_size, split_num=5):
-        prefix = os.path.join(os.path.dirname(in_file), "%sS3PART" % (os.path.basename(s3_key_name)))
-        split_size = int(min(mb_size / (split_num * 2.0), 250))
-        if not os.path.exists("%saa" % prefix):
-            cl = ["split", "-b%sm" % split_size, in_file, prefix]
-            subprocess.check_call(cl)
-        return sorted(glob.glob("%s*" % prefix))
+    MAX_CHUNK_SIZE = 1024 ** 3  # 1GiB
 
-    def upload_file(self,key_name,bucket_name,file_name):
-        bucket = self.get_bucket(bucket_name)
-        k = self.get_key(key_name,bucket_name)
-        mb_size = os.path.getsize(file_name) / 1e6
-        if mb_size > 1000:
-            parts = self.split_file(key_name,file_name,mb_size)
-            mp = bucket.initiate_multipart_upload(key_name)
-            try:
-                for i,part in enumerate(parts):
-                    with open(part,"rb") as pf:
-                        mp.upload_part_from_file(pf,i+1)
-                    os.unlink(part)
-                mp.complete_upload()
-            except Exception, e:
-                mp.cancel_upload()
-                raise e
+    def upload_file(self, key_name, bucket_name, file_name):
+        k = self.get_key(key_name, bucket_name)
+        size = os.path.getsize(file_name)
+        if size > self.MAX_CHUNK_SIZE:
+            self._upload_multipart(k, file_name, size)
         else:
-            k.set_contents_from_filename(file_name)
+            self._upload_loop(lambda: k.set_contents_from_filename(file_name))
         k.make_public()
         return k
+
+    def _upload_multipart(self, k, file_name, size):
+        chunk_count = int(math.ceil(size / self.MAX_CHUNK_SIZE))
+        logger.debug("Starting upload to %r in %d chunks", k, chunk_count)
+        try:
+            mp = k.bucket.initiate_multipart_upload(k.name)
+
+            def onepart(i):
+                offset = i * self.MAX_CHUNK_SIZE
+                remaining = size - offset
+                with open(file_name, 'rb') as fp:
+                    fp.seek(offset)
+                    mp.upload_part_from_file(
+                        fp=fp, part_num=i + 1, size=min([self.MAX_CHUNK_SIZE, remaining]))
+
+            for i in range(chunk_count):
+                self._upload_loop(lambda: onepart(i))
+            mp.complete_upload()
+        except Exception:
+            mp.cancel_upload()
+            raise
+
+    def _upload_loop(self, attemptfn, retries=3):
+        attempt = 1
+        while True:
+            try:
+                return attemptfn()
+            except (BotoServerError, BotoClientError):
+                logger.exception("Failed uploading to storage, attempt %s/%s", attempt, retries)
+                attempt += 1
+                if attempt > retries:
+                    raise
+                time.sleep(2 ** (attempt + 1))
 
     def get_key_by_url(self, url, idbmodel=None):
         mo = MediaObject.fromurl(url, idbmodel)
@@ -145,7 +165,7 @@ class IDigBioStorage(object):
     def get_contents_to_file(key, fp, md5=None):
         key.get_contents_to_file(fp)
         if md5 and key.md5 != md5:
-            raise boto.exception.S3DataError(
+            raise S3DataError(
                 'MD5 of downloaded did not match given MD5'
                 '%s vs. %s' % (key.md5, md5))
         return key

@@ -215,9 +215,6 @@ class FetchItem(object):
     #: Timeout, in sec, of both connect and read
     REQ_TIMEOUT = 15.5
 
-    #: The number of times to retry storage(ceph) uploads before giving up
-    STORAGE_RETRIES = 4
-
     #: Number of concurrent connections allowed
     FETCHER_COUNT = 2
 
@@ -341,33 +338,21 @@ class FetchItem(object):
                 logger.error("HtmlResp  %s %r", self.url, sc)
         return self
 
-    def _upload_loop(self, mo, store, key):
-        if key.exists():
-            logger.debug("NoUpload  %s etag %s, already present", self.url, mo.etag)
-            return True
-
-        attempt = 1
-        while True:
-            try:
-                mo.upload(store, self.content)
-                logger.debug("Uploaded  %s etag %s", self.url, mo.etag)
-                return True
-            except (BotoServerError, BotoClientError) as e:
-                logger.exception("Failed uploading to storage: %s", self.url)
-                self.reason = str(e)
-                attempt += 1
-                if attempt <= self.STORAGE_RETRIES:
-                    sleep(2 * (2 ** attempt))
-                else:
-                    return False
-
     def upload_to_storage(self, store, attempt=1):
         if not self.ok:
             return self
         try:
             mo = self.media_object
             k = mo.get_key(store)
-            if not self._upload_loop(mo, store, k):
+            if key.exists():
+                logger.debug("NoUpload  %s etag %s, already present", self.url, mo.etag)
+                return self
+            try:
+                mo.upload(store, self.content)
+                logger.debug("Uploaded  %s etag %s", self.url, mo.etag)
+            except (BotoServerError, BotoClientError) as e:
+                logger.exception("Failed uploading to storage: %s", self.url)
+                self.reason = str(e)
                 self.status_code = Status.STORAGE_ERROR
                 return self
 
@@ -377,7 +362,7 @@ class FetchItem(object):
                 mo.ensure_object(idbmodel)
                 mo.ensure_media_object(idbmodel)
                 idbmodel.commit()
-        except StandardError:
+        except Exception:
             logger.exception("Error saving object to DB")
             self.status_code = Status.STORAGE_ERROR
         return self

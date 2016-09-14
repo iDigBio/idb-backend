@@ -12,6 +12,9 @@ from idb.helpers.conversions import fields, custom_mappings
 local_tz = timezone('US/Eastern')
 logger = idblogger.getChild('indexing')
 
+# Try using smaller batches.
+INDEX_CHUNK_SIZE = 1000
+#INDEX_CHUNK_SIZE = 1000
 
 def get_connection(**kwargs):
     kwargs.setdefault('hosts', config.config["elasticsearch"]["servers"])
@@ -155,7 +158,7 @@ class ElasticSearchIndexer(object):
 
     def bulk_index(self, tups):
         return elasticsearch.helpers.streaming_bulk(
-            self.es, self.bulk_formater(tups), chunk_size=5000)
+            self.es, self.bulk_formater(tups), chunk_size=INDEX_CHUNK_SIZE)
 
     def close(self):
         if self.disableRefresh:

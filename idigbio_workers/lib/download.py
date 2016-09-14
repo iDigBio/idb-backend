@@ -456,18 +456,15 @@ def generate_files(core_type="records", core_source="indexterms", record_query=N
         return zipfilename
 
 
-def generate_dwca_files(core_type="records", core_source="indexterms", record_query=None, mediarecord_query=None,
-                        form="dwca", filename="dump", record_fields=None, mediarecord_fields=None):
-
+def generate_dwca_files(core_type="records", core_source="indexterms",
+                        record_query=None, mediarecord_query=None,
+                        form="dwca", filename="dump",
+                        record_fields=None, mediarecord_fields=None):
     tabs = form.endswith("tsv")
-
     rq, mq = generate_queries(record_query, mediarecord_query, core_type)
     type_source_options = {
         ("records", "indexterms"): (
-            [
-                "records",
-                rq
-            ],
+            ["records", rq],
             {
                 "raw": False,
                 "tabs": tabs,
@@ -479,10 +476,7 @@ def generate_dwca_files(core_type="records", core_source="indexterms", record_qu
             }
         ),
         ("records", "raw"): (
-            [
-                "records",
-                rq
-            ],
+            ["records", rq],
             {
                 "raw": True,
                 "tabs": tabs,
@@ -494,10 +488,7 @@ def generate_dwca_files(core_type="records", core_source="indexterms", record_qu
             }
         ),
         ("mediarecords", "indexterms"): (
-            [
-                "mediarecords",
-                mq
-            ],
+            ["mediarecords", mq],
             {
                 "raw": False,
                 "tabs": tabs,
@@ -509,10 +500,7 @@ def generate_dwca_files(core_type="records", core_source="indexterms", record_qu
             }
         ),
         ("mediarecords", "raw"): (
-            [
-                "mediarecords",
-                mq
-            ],
+            ["mediarecords", mq],
             {
                 "raw": True,
                 "tabs": tabs,

@@ -5,8 +5,9 @@ import logging
 import zipfile
 import os
 import datetime
+import itertools
 
-from collections import Counter
+from collections import Counter, namedtuple
 
 import elasticsearch
 import elasticsearch.helpers
@@ -243,10 +244,13 @@ type_core_type_ids = {
     ("uniquenames", "mediarecords", "raw"): (lambda r: identifiy_locality(get_source_value(r["inner_hits"]["records"]["hits"]["hits"][0]["_source"],"data.dwc:scientificName")),"data.dwc:scientificName"),
 }
 
+FileArtifact = namedtuple("FileArtifact", ["filename", "archivename", "meta_block"])
+
+
 def make_file(t, query, raw=False, tabs=False, fields=None,
               core_type="records", core_source="indexterms", file_prefix="", final_filename=""):
     file_extension = ".tsv" if tabs else ".csv"
-
+    final_filename = final_filename + file_extension
     core = t == core_type and raw == core_source == "raw"
 
     id_func, core_id_field = type_core_type_ids[(core_type,t,core_source)]
@@ -254,6 +258,7 @@ def make_file(t, query, raw=False, tabs=False, fields=None,
     outfile_name = file_prefix + t + file_extension
     if raw:
         outfile_name = file_prefix + t + ".raw" + file_extension
+    logger.debug("Creating %r")
 
     if t in ["records", "mediarecords"]:
         id_field = "id"
@@ -279,7 +284,7 @@ def make_file(t, query, raw=False, tabs=False, fields=None,
                         fields.append(f)
             fields = sorted(fields)
         elif len(fields) == 0:
-            return (None, None, None)
+            return None
 
         if raw:
             # Remove "data."
@@ -294,7 +299,7 @@ def make_file(t, query, raw=False, tabs=False, fields=None,
             fields = filtered_fields
 
         meta_block = make_file_block(
-            filename=final_filename + file_extension, core=core, tabs=tabs, fields=converted_fields, t=t)
+            filename=final_filename, core=core, tabs=tabs, fields=converted_fields, t=t)
 
         if core_id_field is not None:
             fields_include = fields + [core_id_field]
@@ -309,7 +314,7 @@ def make_file(t, query, raw=False, tabs=False, fields=None,
         with AtomicFile(outfile_name, "wb") as outf:
             query_to_csv(
                 outf, t, body, converted_fields, fields, id_field, raw, tabs, id_func)
-        return (outfile_name, final_filename + file_extension, meta_block)
+        return FileArtifact(outfile_name, final_filename, meta_block)
     elif t.startswith("unique"):
         if t == "uniquelocality":
             unique_field = "locality"
@@ -332,12 +337,12 @@ def make_file(t, query, raw=False, tabs=False, fields=None,
             converted_fields = [index_field_to_longname["records"][unique_field], "idigbio:itemCount"]
 
         meta_block = make_file_block(
-            filename=final_filename + file_extension, core=core, tabs=tabs, fields=converted_fields, t=t)
+            filename=final_filename, core=core, tabs=tabs, fields=converted_fields, t=t)
 
         with AtomicFile(outfile_name, "wb") as outf:
             query_to_uniquevals(
                 outf, "records", body, unique_field, tabs, identifiy_locality)
-        return (outfile_name, final_filename + file_extension, meta_block)
+        return FileArtifact(outfile_name, final_filename, meta_block)
 
 
 def generate_queries(record_query=None, mediarecord_query=None, core_type=None):
@@ -433,7 +438,10 @@ def generate_files(core_type="records", core_source="indexterms", record_query=N
         elif core_type.startswith("unique"):
             q = rq
 
-        return make_file(core_type, q, raw=(core_source == "raw"), tabs=tabs, core_type=core_type, core_source=core_source, file_prefix=filename + ".", fields=fields)[0]
+        fa = make_file(core_type, q, raw=(core_source == "raw"),
+                       tabs=tabs, core_type=core_type, core_source=core_source,
+                       file_prefix=filename + ".", fields=fields)
+        return fa and fa.filename
 
     elif form.startswith("dwca"):
         meta_string = None
@@ -445,12 +453,11 @@ def generate_files(core_type="records", core_source="indexterms", record_query=N
         zipfilename = filename + ".zip"
         with zipfile.ZipFile(zipfilename, 'w', zipfile.ZIP_DEFLATED, True) as expzip:
             meta_files = []
-            for f in files:
-                if f[0] is not None:
-                    expzip.write(f[0], f[1])
-                    os.unlink(f[0])
-                    if f[2] is not None:
-                        meta_files.append(f[2])
+            for fa in itertools.ifilter(None, files):
+                expzip.write(fa.filename, fa.archivename)
+                os.unlink(fa.filename)
+                if fa.meta_block is not None:
+                    meta_files.append(fa.meta_block)
             meta_string = make_meta(meta_files)
             expzip.writestr("meta.xml", meta_string)
         return zipfilename
@@ -539,13 +546,11 @@ def generate_dwca_files(core_type="records", core_source="indexterms",
     if core_type == "uniquelocality":
         yield make_file(
             core_type, rq, raw=(core_source == "raw"), tabs=tabs, core_type=core_type, core_source=core_source,
-            file_prefix=filename + ".", fields=None, final_filename="locality"
-        )
+            file_prefix=filename + ".", fields=None, final_filename="locality")
     elif core_type == "uniquenames":
         yield make_file(
             core_type, rq, raw=(core_source == "raw"), tabs=tabs, core_type=core_type, core_source=core_source,
-            file_prefix=filename + ".", fields=None, final_filename="names"
-        )
+            file_prefix=filename + ".", fields=None, final_filename="names")
     else:
         # Write out core
         args, kwargs = type_source_options.pop((core_type, core_source))
@@ -558,10 +563,10 @@ def generate_dwca_files(core_type="records", core_source="indexterms",
         yield make_file(*args, **kwargs)
 
     for f in write_citation_files(filename, rq, mq, record_query, mediarecord_query):
-        yield (f, f.split(".", 1)[-1], None)
+        yield FileArtifact(f, f.split(".", 1)[-1], None)
+
 
 def main():
-    import itertools
     import datetime
     import uuid
 

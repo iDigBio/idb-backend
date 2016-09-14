@@ -42,18 +42,20 @@ contributed by {4} Recordsets, Recordset identifiers:
 
 def write_citation_file(dl_id, t, query, recordsets):
     filename = "{0}.{1}.citation.txt".format(dl_id, t)
+    logger.debug("Generating citation file: %r", filename)
+    rs_strings = []
+    total_recs = 0
+    total_rs = len(recordsets.keys())
+    for rs, rsc in sorted([(rs, recordsets[rs]) for rs in recordsets], key=lambda x: x[1], reverse=True):
+        rs_strings.append("http://www.idigbio.org/portal/recordsets/{0} ({1} records)".format(rs, rsc))
+        total_recs += rsc
+    if total_recs == 0:
+        return None
+    query_string = json.dumps(query)
+    now = datetime.datetime.now()
+    rs_string = "\n".join(rs_strings) + "\n"
+
     with AtomicFile(filename, "wb") as citefile:
-        rs_string = ""
-        total_recs = 0
-        total_rs = len(recordsets.keys())
-        for rs, rsc in sorted([(rs, recordsets[rs]) for rs in recordsets], key=lambda x: x[1], reverse=True):
-            rs_string += "http://www.idigbio.org/portal/recordsets/{0} ({1} records)\n".format(rs, rsc)
-            total_recs += rsc
-
-        query_string = json.dumps(query)
-
-        now = datetime.datetime.now()
-
         # 0: Current Year
         # 1: Query Text
         # 2: Total Number of Records
@@ -68,9 +70,7 @@ def write_citation_file(dl_id, t, query, recordsets):
             total_rs,           # 4: Number of recordsets
             rs_string,          # 5: List of recordset IDs and counts
         ))
-        if total_recs > 0:
-            return filename
-
+    return filename
 
 def get_recordsets(params, generate=True):
     rq, mq = None, None

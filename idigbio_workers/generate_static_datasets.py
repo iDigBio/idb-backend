@@ -1,17 +1,17 @@
+from __future__ import division, absolute_import, print_function
 import os
-import sys
-
-sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(__file__)))))
 
 import datetime
 
-from idigbio_workers.lib.download import generate_files, es, indexName
+from idb.indexing.indexer import get_connection, get_indexname
+
+from idigbio_workers.lib.download import generate_files
 from idigbio_workers.lib.query_shim import queryFromShim
 from idb.helpers.storage import IDigBioStorage
 #from idb.lib.data.export.eml import eml_from_recordset
 
 def runQuery(query):
-    return es.search(index=indexName,doc_type="record,mediarecords",body=query)
+    return get_connection().search(index=get_indexname(), doc_type="record,mediarecords", body=query)
 
 def upload_download_file_to_ceph(s, dsname):
     keyname = dsname
@@ -61,20 +61,20 @@ def main():
     # ro = runQuery(rsquery)
     # if ro is not None:
     #     for b in ro["aggregations"]["recordset_counts"]["buckets"]:
-    #         #print b["key"], b["doc_count"], b["doc_count"] * 7 / 10000
+    #         #print(b["key"], b["doc_count"], b["doc_count"] * 7 / 10000)
     #         static_queries.append(({
     #             "recordset": b["key"]
     #         },b["key"]))
 
     # count = 0
     # for q in reversed(static_queries):
-    #     print count, q
+    #     print(count, q)
     #     file_name = generate_files(record_query=queryFromShim(q[0])["query"],form="dwca-csv",filename=q[1])
-    #     print q[1], file_name
+    #     print(q[1], file_name)
     #     u = upload_download_file_to_ceph(s,file_name)
     #     # # rseml = eml_from_recordset(q[1],env="prod")
     #     # # e = upload_eml_file_to_ceph(s,q[1],rseml)
-    #     print q[1], u
+    #     print(q[1], u)
     #     count += 1
     file_name = generate_files(record_query=queryFromShim({})["query"], form="dwca-csv", filename="idigbio")
     u = upload_download_file_to_ceph(s, file_name)

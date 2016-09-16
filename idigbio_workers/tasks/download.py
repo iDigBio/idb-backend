@@ -3,6 +3,7 @@ import sys
 import traceback
 import json
 import requests
+import tempfile
 import uuid
 
 from ..lib.download import generate_files, get_recordsets
@@ -53,13 +54,13 @@ def send_download_email(email, link, params, ip=None, source=None):
               mail_text.format(link, json.dumps(params)))
 
 
-def upload_download_file_to_ceph(tid):
+def upload_download_file_to_ceph(filename):
     s = IDigBioStorage()
-    fkey = s.upload_file(tid, "idigbio-downloads", tid)
+    fkey = s.upload_file(os.path.basename(filename), "idigbio-downloads", filename)
     fkey.set_metadata('Content-Type', 'application/zip')
     fkey.make_public()
-    os.unlink(tid)
-    return "http://s.idigbio.org/idigbio-downloads/" + tid
+    os.unlink(filename)
+    return "http://s.idigbio.org/idigbio-downloads/" + fkey.name
 
 
 @app.task(bind=True)
@@ -80,6 +81,7 @@ def downloader(self, params, email=None, ip=None, source=None):
         params["filename"] = self.request.id
     else:
         params["filename"] = str(uuid.uuid4())
+    params["filename"] = os.path.join(tempfile.gettempdir(), params["filename"])
     tid = generate_files(**params)
     link = upload_download_file_to_ceph(tid)
     try:

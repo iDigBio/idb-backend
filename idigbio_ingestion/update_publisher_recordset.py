@@ -129,8 +129,6 @@ def update_db_from_rss():
                 except:
                     db.rollback()
                     raise
-            else:
-                logger.error("Failed fetching ")
     logger.info("Finished processing add publisher RSS feeds")
 
 

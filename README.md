@@ -47,6 +47,17 @@ To setup persistent tasks and cron tasks
     systemctl enable --now $(grep -l Install $PWD/etc/systemd/system/*)
 
 
+For partial installation (without extra components) you can just run
+
+    pip install -e .
+
+The available extra components are:
+
+ * `journal`: Writes directly to systemd-journald
+ * `ingestion`:  the extra librs for running ingestion
+ * `test`: the extra libs for testing
+
+
 ## Running
 
 The main entry point is the `idb` command; you can run `idb --help` to
@@ -54,6 +65,11 @@ see what subcommands are available. When invoking this script there is
 no need to set the `PYTHONPATH`.
 
 ## Testing
+
+To run tests:
+
+    py.test
+
 
 Relies on having a local postgresql with user/pass `test` / `test`
 that can connect to DB `test_idigbio`. The data in the DB will be

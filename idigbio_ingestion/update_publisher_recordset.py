@@ -96,9 +96,12 @@ def get_feed(rss_url):
     except requests.exceptions.SSLError:
         # Ignore urllib3 SSL issues on this quick check
         pass
-    except Exception:
+    except Exception as e:
         logger.error("Failed to read %r; reason: %s",
-                     rss_url, feedtest is not None and feedtest.reason)
+                     rss_url,
+                     feedtest.reason if feedtest is not None else "non-http error")
+        if feedtest is None:
+            logger.debug("Specific reason: %s", e)
         return False
     return feedtest.text
 

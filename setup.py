@@ -58,7 +58,6 @@ setup(
         'ingestion': [
             'pydub==0.16.5',
             'pillow>=3.2.0',
-            'Python-fontconfig',
             'lxml',
             'chardet',
             'pyquery>=1.2',

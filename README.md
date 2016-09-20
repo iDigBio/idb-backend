@@ -26,11 +26,11 @@ For ingestion the following are also needed:
 
 In Ubuntu 14.04:
 
-    apt-get install libfontconfig-dev libxml2 libxslt1-dev libav-tools
+    apt-get install libxml2 libxslt1-dev libav-tools fonts-dejavu-core
 
 In Ubuntu 16.04:
 
-    apt-get install libfontconfig1-dev libxml2 libxslt1-dev ffmpeg
+    apt-get install libxml2 libxslt1-dev ffmpeg fonts-dejavu-core
 
 
 ### Package installation

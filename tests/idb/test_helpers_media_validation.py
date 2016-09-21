@@ -29,7 +29,7 @@ def test_validate_mime_for_type():
         mv.validate_mime_for_type('application/zip', 'images')
 
 
-def test_validation_jpg(jpgpath):
+def test_validation_jpeg(jpgpath):
     mime, mt = mv.validate(jpgpath.open('rb').read(1024))
     assert mime == u'image/jpeg'
     assert mt == u'images'
@@ -45,6 +45,20 @@ def test_validation_jpg(jpgpath):
     mime, mt = mv.validate(jpgpath.open('rb').read(1024), mime=u'image/jpeg', type='images')
     assert mime == u'image/jpeg'
     assert mt == u'images'
+
+
+def test_validation_jpg(jpgpath):
+    """Test validation when submitted with the incorrect mime type image/jpg
+
+    We've decided on the policy that instead this should be kicked
+    back to the provider for correction.
+
+    """
+    with pytest.raises(mv.UnknownBucketError):
+        mime, mt = mv.validate(jpgpath.open('rb').read(1024), mime=u'image/jpg')
+
+    with pytest.raises(mv.MimeNotAllowedError):
+        mime, mt = mv.validate(jpgpath.open('rb').read(1024), mime=u'image/jpg', type='images')
 
 
 def test_validation_png(pngpath):

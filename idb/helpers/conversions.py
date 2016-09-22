@@ -91,8 +91,11 @@ fields = {
         ["group", "dwc:group", "text", 1, None],
         ["member", "dwc:member", "text", 1, None],
         ["formation", "dwc:formation", "text", 1, None],
+        ["geologicalcontextid", "dwc:geologicalContextID", "text", 1, None],
         ["lowestbiostratigraphiczone",
             "dwc:lowestBiostratigraphicZone", "text", 1, None],
+        ["highestbiostratigraphiczone",
+            "dwc:highestBiostratigraphicZone", "text", 1, None],
         ["lithostratigraphicterms",
             "dwc:lithostratigraphicTerms", "text", 1, None],
         ["earliestperiodorlowestsystem",
@@ -103,6 +106,8 @@ fields = {
             "dwc:earliestEpochOrLowestSeries", "text", 1, None],
         ["earliestageorloweststage",
             "dwc:earliestAgeOrLowestStage", "text", 1, None],
+        ["earliesteonorlowesteonothem",
+            "dwc:earliestEonOrLowestEonothem", "text", 1, None],
         ["latesteraorhighesterathem",
             "dwc:latestEraOrHighestErathem", "text", 1, None],
         ["latestepochorhighestseries",
@@ -111,6 +116,8 @@ fields = {
             "dwc:latestAgeOrHighestStage", "text", 1, None],
         ["latestperiodorhighestsystem",
             "dwc:latestPeriodOrHighestSystem", "text", 1, None],
+        ["latesteonorhighesteonothem",
+            "dwc:latestEonOrHighestEonothem", "text", 1, None],
         ["individualcount", "", "float", 0, "dwc:individualCount"],
         ["flags", "", "list", 0, "idigbio:flags"],
         ["dqs", "", "float", 0, "idigbio:dataQualityScore"],
@@ -819,30 +826,45 @@ def fixBOR(t, r):
             r["flag_dwc_basisofrecord_removed"] = True
             r["flag_dwc_basisofrecord_invalid"] = True
 
-        if r["basisofrecord"] == "preservedspecimen":
-            paleo_terms = [
-                "bed",
-                "group",
-                "member",
-                "formation",
-                "lowestbiostratigraphiczone",
-                "lithostratigraphicterms",
-                "earliestperiodorlowestsystem",
-                "earliesteraorlowesterathem",
-                "earliestepochorlowestseries",
-                "earliestageorloweststage",
-                "latesteraorhighesterathem",
-                "latestepochorhighestseries",
-                "latestageorhigheststage",
-                "latestperiodorhighestsystem",
-            ]
+        # Disable based on feedback from John W. and Joanna
+        # if r["basisofrecord"] == "preservedspecimen":
+        #     paleo_terms = [
+        #         "bed",
+        #         "group",
+        #         "member",
+        #         "formation",
+        #         "lowestbiostratigraphiczone",
+        #         "lithostratigraphicterms",
+        #         "earliestperiodorlowestsystem",
+        #         "earliesteraorlowesterathem",
+        #         "earliestepochorlowestseries",
+        #         "earliestageorloweststage",
+        #         "latesteraorhighesterathem",
+        #         "latestepochorhighestseries",
+        #         "latestageorhigheststage",
+        #         "latestperiodorhighestsystem",
+        #     ]
 
-            for f in paleo_terms:
-                if filled(f,r):
-                    r["flag_dwc_basisofrecord_paleo_conflict"] = True
-                    r["flag_dwc_basisofrecord_replaced"] = True
-                    r["basisofrecord"] = "fossilspecimen"
-                    break
+        #     for f in paleo_terms:
+        #         if filled(f,r):
+        #             r["flag_dwc_basisofrecord_paleo_conflict"] = True
+        #             r["flag_dwc_basisofrecord_replaced"] = True
+        #             r["basisofrecord"] = "fossilspecimen"
+        #             break
+
+def fix_taxon_rank(t, r):
+    if filled("taxonrank", r):
+        if r["taxonrank"] in taxon_rank.mapping:
+            r["taxonrank"] = taxon_rank.mapping[r["taxonrank"]]
+            if r["taxonrank"] is None:
+                r["flag_dwc_taxonrank_removed"] = True
+                r["flag_dwc_taxonrank_invalid"] = True
+            else:
+                r["flag_dwc_taxonrank_replaced"] = True
+        elif r["taxonrank"] not in taxon_rank.acceptable:
+            r["taxonrank"] = None
+            r["flag_dwc_taxonrank_removed"] = True
+            r["flag_dwc_taxonrank_invalid"] = True        
 
 # Step, count, ms, ms/count     action
 # rc 1000 354.179 0.354179      record corrector
@@ -877,6 +899,7 @@ def grabAll(t, d):
 
     gs_sn_crossfill(t, r)
     fixBOR(t, r)
+    fix_taxon_rank(t, r)
 
     # Disable geoshape for now, it uses a ton of space
     # r.update(geoshape_fill(t, d, r))

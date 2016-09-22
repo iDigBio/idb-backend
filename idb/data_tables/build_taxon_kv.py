@@ -15,6 +15,7 @@ import elasticsearch.helpers
 from elasticsearch import Elasticsearch
 
 from idb.helpers.etags import objectHasher
+import taxon_rank
 
 es = Elasticsearch([
     "c18node2.acis.ufl.edu",
@@ -140,10 +141,23 @@ def work(t):
             }
             match = fuzzy_wuzzy_string(r["dwc:genus"] + " " + r["dwc:specificepithet"])
         elif "dwc:scientificName" in r:
+            rank = None
+            if "dwc:taxonRank" in r:
+                cand_rank = r["dwc:taxonRank"].lower()
+                if cand_rank in taxon_rank.acceptable:
+                    rank = cand_rank
+                elif cand_rank in taxon_rank.mapping:
+                    rank = taxon_rank.mapping[cand_rank]
+                else:
+                    print "unkown rank:", cand_rank
+
+            if rank is None:
+                rank = "species"
+
             rt = {
                 "dwc:scientificName": r["dwc:scientificName"]
             }
-            match = fuzzy_wuzzy_string(r["dwc:scientificName"])
+            match = fuzzy_wuzzy_string(r["dwc:scientificName"], rank=rank)
         elif "dwc:genus" in r:
             rt = {
                 "dwc:genus": r["dwc:genus"]
@@ -196,6 +210,7 @@ def get_taxon_from_index():
             "data.dwc:genus",
             "data.dwc:specificEpithet",
             "data.dwc:scientificName",
+            "data.dwc:taxonRank",
         ]
     }
 

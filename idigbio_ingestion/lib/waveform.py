@@ -3,18 +3,13 @@ from __future__ import print_function
 from __future__ import division
 
 import datetime
+import os.path
+
 from pydub import AudioSegment
 from PIL import Image, ImageDraw, ImageFont
 
-import fontconfig
-fonts = fontconfig.query(family='ubuntu', lang='en')
-font_file = None
-for f in fonts:
-    if f.endswith("Ubuntu-B.ttf"):
-        font_file = f
-        break
-else:
-    font_file = "/usr/share/fonts/truetype/ubuntu-font-family/Ubuntu-R.ttf"
+
+FONT_FILE = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
 
 
 # Based on https://gist.github.com/mixxorz/abb8a2f22adbdb6d387f
@@ -63,6 +58,7 @@ class Waveform(object):
     def generate_waveform_image(self):
         """ Returns the full waveform image """
 
+        assert os.path.exists(FONT_FILE), "Missing font, install fonts-dejavu-core"
         im = Image.new('RGB', (840, 150), '#f5f5f5')
         for index, value in enumerate(self.peaks, start=0):
             column = index * 8 + 2
@@ -73,7 +69,7 @@ class Waveform(object):
                     (4, value * 2), '#424242'), (column, upper_endpoint))
 
         draw = ImageDraw.Draw(im)
-        font = ImageFont.truetype(font_file, 16)
+        font = ImageFont.truetype(FONT_FILE, 16)
         t = (datetime.datetime.min + datetime.timedelta(milliseconds=self.length))
         text = "Duration: " + t.time().isoformat()
         draw.text((0, 128), text, '#424242', font=font)

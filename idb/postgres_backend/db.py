@@ -158,6 +158,7 @@ class PostgresDB(object):
         return self
 
     def __exit__(self, type, value, traceback):
+        # TODO: this should rollback if exception
         self.close()
 
     def close(self):

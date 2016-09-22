@@ -1,5 +1,9 @@
+### This file is for a complete, editable installation of idb-backend
+### and all of it's extra components. Otherwise you can get a more
+### minimal installation with `pip install -e .`
+
 # This is an implicit value, here for clarity
 --index-url https://pypi.python.org/simple/
 
 https://github.com/systemd/python-systemd/archive/v231.tar.gz#egg=python-systemd
--e .[ingestion,test]
+-e .[ingestion,test,journal]

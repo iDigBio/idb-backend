@@ -2,6 +2,7 @@ BROKER_URL = 'redis://idb-redis-celery-beta.acis.ufl.edu:6379/0'
 CELERY_RESULT_BACKEND = 'redis://idb-redis-celery-beta.acis.ufl.edu:6379/0'
 
 CELERYD_CONCURRENCY = 4
+CELERYD_PREFETCH_MULTIPLIER = 1
 CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
 CELERY_ACCEPT_CONTENT = ['json']

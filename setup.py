@@ -58,13 +58,12 @@ setup(
         'ingestion': [
             'pydub==0.16.5',
             'pillow>=3.2.0',
-            'Python-fontconfig',
             'lxml',
             'chardet',
             'pyquery>=1.2',
         ],
         'test': [
-            'pytest>=2.6',
+            'pytest>=3.0',
             'pytest-cov',
             'pytest-flask',
             'pytest-mock',

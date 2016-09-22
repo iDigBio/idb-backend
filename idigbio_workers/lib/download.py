@@ -1,45 +1,33 @@
-import elasticsearch
-import elasticsearch.helpers
+from __future__ import division, absolute_import, print_function
 
-import unicodecsv as csv
 import json
-import traceback
+import logging
 import zipfile
 import os
 import datetime
+import itertools
 
-from collections import Counter
-from cStringIO import StringIO, OutputType
+from collections import Counter, namedtuple
 
-import logging
+import elasticsearch
+import elasticsearch.helpers
+import unicodecsv as csv
+
+from atomicfile import AtomicFile
 
 # idb imports
-from idb.config import config
 from idb.helpers.conversions import index_field_to_longname
+from idb.indexing.indexer import get_connection, get_indexname
 
 # local imports
-from query_shim import queryFromShim
-from meta_xml import make_meta, make_file_block
-from identification import identifiy_locality, identifiy_scientificname
+from .query_shim import queryFromShim
+from .meta_xml import make_meta, make_file_block
+from .identification import identifiy_locality, identifiy_scientificname
 
-use_string_io = False
+logger = logging.getLogger()
 
-sl = config["elasticsearch"]["servers"]
-indexname = config["elasticsearch"]["indexname"]
-if os.environ["ENV"] == "beta":
-    # indexname = "2.5.0"
-    # sl = [
-    #     "c17node52.acis.ufl.edu",
-    #     "c17node53.acis.ufl.edu",
-    #     "c17node54.acis.ufl.edu",
-    #     "c17node55.acis.ufl.edu",
-    #     "c17node56.acis.ufl.edu"
-    # ]
-    pass
-
-indexName = "idigbio-" + indexname
-es = elasticsearch.Elasticsearch(
-    sl, sniff_on_start=False, sniff_on_connection_fail=False, retry_on_timeout=True, max_retries=10, timeout=60)
+indexName = get_indexname()
+es = get_connection()
 
 # 0: Current Year
 # 1: Query Text
@@ -53,20 +41,22 @@ Query: {1},
 contributed by {4} Recordsets, Recordset identifiers:
 {5}"""
 
-def write_citation_file(dl_id,t,query, recordsets):
-    filename = "{0}.{1}.citation.txt".format(dl_id,t)
-    with open(filename,"wb") as citefile:
-        rs_string = ""
-        total_recs = 0
-        total_rs = len(recordsets.keys())
-        for rs,rsc in sorted([(rs,recordsets[rs]) for rs in recordsets],key=lambda x: x[1],reverse=True):
-            rs_string += "http://www.idigbio.org/portal/recordsets/{0} ({1} records)\n".format(rs,rsc)
-            total_recs += rsc
+def write_citation_file(dl_id, t, query, recordsets):
+    filename = "{0}.{1}.citation.txt".format(dl_id, t)
+    logger.debug("Generating citation file: %r", filename)
+    rs_strings = []
+    total_recs = 0
+    total_rs = len(recordsets.keys())
+    for rs, rsc in sorted([(rs, recordsets[rs]) for rs in recordsets], key=lambda x: x[1], reverse=True):
+        rs_strings.append("http://www.idigbio.org/portal/recordsets/{0} ({1} records)".format(rs, rsc))
+        total_recs += rsc
+    if total_recs == 0:
+        return None
+    query_string = json.dumps(query)
+    now = datetime.datetime.now()
+    rs_string = "\n".join(rs_strings) + "\n"
 
-        query_string = json.dumps(query)
-
-        now = datetime.datetime.now()
-
+    with AtomicFile(filename, "wb") as citefile:
         # 0: Current Year
         # 1: Query Text
         # 2: Total Number of Records
@@ -81,10 +71,9 @@ def write_citation_file(dl_id,t,query, recordsets):
             total_rs,           # 4: Number of recordsets
             rs_string,          # 5: List of recordset IDs and counts
         ))
-        if total_recs > 0:
-            return filename
+    return filename
 
-def get_recordsets(params,generate=True):
+def get_recordsets(params, generate=True):
     rq, mq = None, None
 
     if generate:
@@ -95,7 +84,7 @@ def get_recordsets(params,generate=True):
 
         if params["mq"] is not None:
             mediarecord_query = queryFromShim(params["mq"])["query"]
-        rq, mq = generate_queries(record_query,mediarecord_query)
+        rq, mq = generate_queries(record_query, mediarecord_query)
     else:
         rq = params["rq"]
         mq = params["mq"]
@@ -135,27 +124,28 @@ def get_recordsets(params,generate=True):
         recsets[b["key"]] = b["doc_count"]
     return (q, recsets)
 
-def write_citation_files(dl_id,rq,mq,record_query,mediarecord_query):
-    files = []
-    for t in ["records","mediarecords"]:
+
+def write_citation_files(dl_id, rq, mq, record_query, mediarecord_query):
+    for t in ["records", "mediarecords"]:
         query = None
         if t == "records":
             query = record_query
         elif t == "mediarecords":
             query = mediarecord_query
-        cf = write_citation_file(dl_id,t,query,get_recordsets({
+        cf = write_citation_file(dl_id, t, query, get_recordsets({
             "rq": rq,
             "mq": mq,
             "core_type": t
-        },generate=False)[1])
+        }, generate=False)[1])
         if cf is not None:
-            files.append(cf)
-    return files
+            yield cf
+
 
 def count_query(t, query):
     return es.count(index=indexName, doc_type=t, body=query)["count"]
 
-def get_source_value(source,val_field):
+
+def get_source_value(source, val_field):
     local_source = source
     for vf in val_field.split("."):
         if vf in local_source:
@@ -194,7 +184,7 @@ def query_to_uniquevals(outf, t, body, val_field, tabs, val_func):
             else:
                 values[""] += 1
         except:
-            traceback.print_exc()
+            logger.exception("Error generating uniquevals")
 
     for k, v in values.most_common():
         cw.writerow([val_func(k), k, v])
@@ -223,10 +213,12 @@ def query_to_csv(outf, t, body, header_fields, fields, id_field, raw, tabs, id_f
                     r_fields.append("")
             cw.writerow(r_fields)
         except:
-            traceback.print_exc()
+            logger.exception("Error generating csv")
+
 
 def acceptable_field_name(f):
     return "\"" not in f and " " not in f
+
 
 type_core_type_ids = {
     # Core Type, File Type, Core Source : id_func, id_field
@@ -252,20 +244,21 @@ type_core_type_ids = {
     ("uniquenames", "mediarecords", "raw"): (lambda r: identifiy_locality(get_source_value(r["inner_hits"]["records"]["hits"]["hits"][0]["_source"],"data.dwc:scientificName")),"data.dwc:scientificName"),
 }
 
-def make_file(t, query, raw=False, tabs=False, fields=None, core_type="records", core_source="indexterms", file_prefix="", final_filename=""):
-    file_extension = ".csv"
-    if tabs:
-        file_extension = ".tsv"
+FileArtifact = namedtuple("FileArtifact", ["filename", "archivename", "meta_block"])
 
-    core = False
-    if t == core_type and raw == core_source == "raw":
-        core = True
+
+def make_file(t, query, raw=False, tabs=False, fields=None,
+              core_type="records", core_source="indexterms", file_prefix="", final_filename=""):
+    file_extension = ".tsv" if tabs else ".csv"
+    final_filename = final_filename + file_extension
+    core = t == core_type and raw == core_source == "raw"
 
     id_func, core_id_field = type_core_type_ids[(core_type,t,core_source)]
 
     outfile_name = file_prefix + t + file_extension
     if raw:
         outfile_name = file_prefix + t + ".raw" + file_extension
+    logger.debug("Creating %r")
 
     if t in ["records", "mediarecords"]:
         id_field = "id"
@@ -277,11 +270,9 @@ def make_file(t, query, raw=False, tabs=False, fields=None, core_type="records",
             exclude_from_fields = ["id", "coreid"]
 
         mapping = es.indices.get_mapping(index=indexName, doc_type=t)
-
-        mapping_root = mapping[indexName]["mappings"][t]["properties"]
+        mapping_root = mapping.values()[0]["mappings"][t]["properties"]
         if raw:
-            mapping_root = mapping[indexName]["mappings"][
-                t]["properties"]["data"]["properties"]
+            mapping_root = mapping_root["data"]["properties"]
 
         if fields is None:
             fields = []
@@ -293,7 +284,7 @@ def make_file(t, query, raw=False, tabs=False, fields=None, core_type="records",
                         fields.append(f)
             fields = sorted(fields)
         elif len(fields) == 0:
-            return (None, None, None)
+            return None
 
         if raw:
             # Remove "data."
@@ -308,7 +299,7 @@ def make_file(t, query, raw=False, tabs=False, fields=None, core_type="records",
             fields = filtered_fields
 
         meta_block = make_file_block(
-            filename=final_filename + file_extension, core=core, tabs=tabs, fields=converted_fields, t=t)
+            filename=final_filename, core=core, tabs=tabs, fields=converted_fields, t=t)
 
         if core_id_field is not None:
             fields_include = fields + [core_id_field]
@@ -320,17 +311,10 @@ def make_file(t, query, raw=False, tabs=False, fields=None, core_type="records",
             "query": query
         }
 
-        if use_string_io:
-            sio = StringIO()
+        with AtomicFile(outfile_name, "wb") as outf:
             query_to_csv(
-                sio, t, body, converted_fields, fields, id_field, raw, tabs, id_func)
-            sio.seek(0)
-            return (sio, final_filename + file_extension, meta_block)
-        else:
-            with open(outfile_name, "wb") as outf:
-                query_to_csv(
-                    outf, t, body, converted_fields, fields, id_field, raw, tabs, id_func)
-            return (outfile_name, final_filename + file_extension, meta_block)
+                outf, t, body, converted_fields, fields, id_field, raw, tabs, id_func)
+        return FileArtifact(outfile_name, final_filename, meta_block)
     elif t.startswith("unique"):
         if t == "uniquelocality":
             unique_field = "locality"
@@ -348,32 +332,32 @@ def make_file(t, query, raw=False, tabs=False, fields=None, core_type="records",
 
         converted_fields = None
         if unique_field.startswith("data."):
-            converted_fields = [unique_field[5:],"idigbio:itemCount"]
+            converted_fields = [unique_field[5:], "idigbio:itemCount"]
         else:
-            converted_fields = [index_field_to_longname["records"][unique_field],"idigbio:itemCount"]
+            converted_fields = [index_field_to_longname["records"][unique_field], "idigbio:itemCount"]
 
         meta_block = make_file_block(
-            filename=final_filename + file_extension, core=core, tabs=tabs, fields=converted_fields, t=t)
+            filename=final_filename, core=core, tabs=tabs, fields=converted_fields, t=t)
 
-        if use_string_io:
-            sio = StringIO()
+        with AtomicFile(outfile_name, "wb") as outf:
             query_to_uniquevals(
-                sio, "records", body, unique_field, tabs, identifiy_locality)
-            sio.seek(0)
-            return (sio, final_filename + file_extension, meta_block)
-        else:
-            with open(outfile_name, "wb") as outf:
-                query_to_uniquevals(
-                    outf, "records", body, unique_field, tabs, identifiy_locality)
-            return (outfile_name, final_filename + file_extension, meta_block)
+                outf, "records", body, unique_field, tabs, identifiy_locality)
+        return FileArtifact(outfile_name, final_filename, meta_block)
 
 
-def generate_queries(record_query=None, mediarecord_query=None):
+def generate_queries(record_query=None, mediarecord_query=None, core_type=None):
     rq = None
     mq = None
 
     rq_and = []
     mq_and = []
+
+    if core_type == "mediarecords":
+        rq_and.append({
+            "term": {
+                "hasImage": True
+            }
+        })
 
     if record_query == {"filtered":{"filter":{}}}:
         record_query = None
@@ -438,16 +422,9 @@ def generate_queries(record_query=None, mediarecord_query=None):
 def generate_files(core_type="records", core_source="indexterms", record_query=None, mediarecord_query=None,
                    form="csv", filename="dump", record_fields=None, mediarecord_fields=None):
 
-    rq, mq = generate_queries(record_query, mediarecord_query)
-
-    if core_type == "mediarecords":
-        rq["filtered"]["filter"]["and"].append({
-            "term": {
-                "hasImage": True
-            }
-        })
-
     if form in ["csv", "tsv"]:
+        rq, mq = generate_queries(record_query, mediarecord_query, core_type)
+
         q = None
         tabs = form == "tsv"
         fields = None
@@ -461,144 +438,135 @@ def generate_files(core_type="records", core_source="indexterms", record_query=N
         elif core_type.startswith("unique"):
             q = rq
 
-        return make_file(core_type, q, raw=(core_source == "raw"), tabs=tabs, core_type=core_type, core_source=core_source, file_prefix=filename + ".", fields=fields)
+        fa = make_file(core_type, q, raw=(core_source == "raw"),
+                       tabs=tabs, core_type=core_type, core_source=core_source,
+                       file_prefix=filename + ".", fields=fields)
+        return fa and fa.filename
 
     elif form.startswith("dwca"):
-        tabs = False
-        internal_form = form.split("-")
-        if len(internal_form) > 1 and internal_form[1] == "tsv":
-            tabs = True
-
-        type_source_options = {
-            ("records", "indexterms"): (
-                [
-                    "records",
-                    rq
-                ],
-                {
-                    "raw": False,
-                    "tabs": tabs,
-                    "core_type": core_type,
-                    "core_source": core_source,
-                    "file_prefix": filename + ".",
-                    "fields": None,
-                    "final_filename": "occurrence"
-                }
-            ),
-            ("records", "raw"): (
-                [
-                    "records",
-                    rq
-                ],
-                {
-                    "raw": True,
-                    "tabs": tabs,
-                    "core_type": core_type,
-                    "core_source": core_source,
-                    "file_prefix": filename + ".",
-                    "fields": None,
-                    "final_filename": "occurrence_raw"
-                }
-            ),
-            ("mediarecords", "indexterms"): (
-                [
-                    "mediarecords",
-                    mq
-                ],
-                {
-                    "raw": False,
-                    "tabs": tabs,
-                    "core_type": core_type,
-                    "core_source": core_source,
-                    "file_prefix": filename + ".",
-                    "fields": None,
-                    "final_filename": "multimedia"
-                }
-            ),
-            ("mediarecords", "raw"): (
-                [
-                    "mediarecords",
-                    mq
-                ],
-                {
-                    "raw": True,
-                    "tabs": tabs,
-                    "core_type": core_type,
-                    "core_source": core_source,
-                    "file_prefix": filename + ".",
-                    "fields": None,
-                    "final_filename": "multimedia_raw"
-                }
-            ),
-        }
-
-        if record_fields is not None:
-            type_source_options[("records","raw")][1]["fields"] = []
-            type_source_options[("records","indexterms")][1]["fields"] = []
-            for f in record_fields:
-                if f.startswith("\""):
-                    continue
-                elif f.startswith("data."):
-                    type_source_options[("records","raw")][1]["fields"].append(f)
-                else:
-                    type_source_options[("records","indexterms")][1]["fields"].append(f)
-
-        if mediarecord_fields is not None:
-            type_source_options[("mediarecords","raw")][1]["fields"] = []
-            type_source_options[("mediarecords","indexterms")][1]["fields"] = []
-            for f in mediarecord_fields:
-                if f.startswith("\""):
-                    continue
-                elif f.startswith("data."):
-                    type_source_options[("mediarecords","raw")][1]["fields"].append(f)
-                else:
-                    type_source_options[("mediarecords","indexterms")][1]["fields"].append(f)
-
-        # Order is important here, core must be first for correct meta.xml generation
-        files = []
-        if core_type == "uniquelocality":
-            files.append(make_file(
-                core_type, rq, raw=(core_source == "raw"), tabs=tabs, core_type=core_type, core_source=core_source,
-                file_prefix=filename + ".", fields=None, final_filename="locality"
-            ))
-        elif core_type == "uniquenames":
-            files.append(make_file(
-                core_type, rq, raw=(core_source == "raw"), tabs=tabs, core_type=core_type, core_source=core_source,
-                file_prefix=filename + ".", fields=None, final_filename="names"
-            ))
-        else:
-            # Write out core
-            args, kwargs = type_source_options[(core_type, core_source)]
-            files.append(make_file(*args, **kwargs))
-            del type_source_options[(core_type, core_source)]
-
-        for t,s in type_source_options:
-            # Write out extensions
-            args, kwargs = type_source_options[(t,s)]
-            files.append(make_file(*args, **kwargs))
-
-        files.extend([(f,".".join(f.split(".")[1:]),None) for f in write_citation_files(filename,rq,mq,record_query,mediarecord_query)])
-
         meta_string = None
-        with zipfile.ZipFile(filename + ".zip", 'w', zipfile.ZIP_DEFLATED, True) as expzip:
+        files = generate_dwca_files(
+            core_type=core_type, core_source=core_source,
+            record_query=record_query, mediarecord_query=mediarecord_query,
+            form=form, filename=filename,
+            record_fields=record_fields, mediarecord_fields=mediarecord_fields)
+        zipfilename = filename + ".zip"
+        with zipfile.ZipFile(zipfilename, 'w', zipfile.ZIP_DEFLATED, True) as expzip:
             meta_files = []
-            for f in files:
-                if f[0] is not None:
-                    if isinstance(f[0], OutputType):
-                        expzip.writestr(f[1], f[0].read())
-                    else:
-                        expzip.write(f[0], f[1])
-                        os.unlink(f[0])
-                    if f[2] is not None:
-                        meta_files.append(f[2])
+            for fa in itertools.ifilter(None, files):
+                expzip.write(fa.filename, fa.archivename)
+                os.unlink(fa.filename)
+                if fa.meta_block is not None:
+                    meta_files.append(fa.meta_block)
             meta_string = make_meta(meta_files)
             expzip.writestr("meta.xml", meta_string)
+        return zipfilename
 
-        return (filename + ".zip", filename + ".zip", meta_string)
+
+def generate_dwca_files(core_type="records", core_source="indexterms",
+                        record_query=None, mediarecord_query=None,
+                        form="dwca", filename="dump",
+                        record_fields=None, mediarecord_fields=None):
+    tabs = form.endswith("tsv")
+    rq, mq = generate_queries(record_query, mediarecord_query, core_type)
+    type_source_options = {
+        ("records", "indexterms"): (
+            ["records", rq],
+            {
+                "raw": False,
+                "tabs": tabs,
+                "core_type": core_type,
+                "core_source": core_source,
+                "file_prefix": filename + ".",
+                "fields": None,
+                "final_filename": "occurrence"
+            }
+        ),
+        ("records", "raw"): (
+            ["records", rq],
+            {
+                "raw": True,
+                "tabs": tabs,
+                "core_type": core_type,
+                "core_source": core_source,
+                "file_prefix": filename + ".",
+                "fields": None,
+                "final_filename": "occurrence_raw"
+            }
+        ),
+        ("mediarecords", "indexterms"): (
+            ["mediarecords", mq],
+            {
+                "raw": False,
+                "tabs": tabs,
+                "core_type": core_type,
+                "core_source": core_source,
+                "file_prefix": filename + ".",
+                "fields": None,
+                "final_filename": "multimedia"
+            }
+        ),
+        ("mediarecords", "raw"): (
+            ["mediarecords", mq],
+            {
+                "raw": True,
+                "tabs": tabs,
+                "core_type": core_type,
+                "core_source": core_source,
+                "file_prefix": filename + ".",
+                "fields": None,
+                "final_filename": "multimedia_raw"
+            }
+        ),
+    }
+
+    if record_fields is not None:
+        type_source_options[("records","raw")][1]["fields"] = []
+        type_source_options[("records","indexterms")][1]["fields"] = []
+        for f in record_fields:
+            if f.startswith("\""):
+                continue
+            elif f.startswith("data."):
+                type_source_options[("records", "raw")][1]["fields"].append(f)
+            else:
+                type_source_options[("records", "indexterms")][1]["fields"].append(f)
+
+    if mediarecord_fields is not None:
+        type_source_options[("mediarecords", "raw")][1]["fields"] = []
+        type_source_options[("mediarecords", "indexterms")][1]["fields"] = []
+        for f in mediarecord_fields:
+            if f.startswith("\""):
+                continue
+            elif f.startswith("data."):
+                type_source_options[("mediarecords","raw")][1]["fields"].append(f)
+            else:
+                type_source_options[("mediarecords","indexterms")][1]["fields"].append(f)
+
+    # Order is important here, core must be first for correct meta.xml generation
+    if core_type == "uniquelocality":
+        yield make_file(
+            core_type, rq, raw=(core_source == "raw"), tabs=tabs, core_type=core_type, core_source=core_source,
+            file_prefix=filename + ".", fields=None, final_filename="locality")
+    elif core_type == "uniquenames":
+        yield make_file(
+            core_type, rq, raw=(core_source == "raw"), tabs=tabs, core_type=core_type, core_source=core_source,
+            file_prefix=filename + ".", fields=None, final_filename="names")
+    else:
+        # Write out core
+        args, kwargs = type_source_options.pop((core_type, core_source))
+        yield make_file(*args, **kwargs)
+
+    #TODO: just use `.values`
+    for t,s in type_source_options:
+        # Write out extensions
+        args, kwargs = type_source_options[(t,s)]
+        yield make_file(*args, **kwargs)
+
+    for f in write_citation_files(filename, rq, mq, record_query, mediarecord_query):
+        yield FileArtifact(f, f.split(".", 1)[-1], None)
 
 
 def main():
-    import itertools
     import datetime
     import uuid
 
@@ -613,7 +581,7 @@ def main():
 
     mediarecord_query = None
 
-    print(generate_files(core_type="records", core_source="indexterms", form="dwca-csv", record_query=record_query, mediarecord_query=mediarecord_query, filename=str(uuid.uuid4()))[0])
+    print(generate_files(core_type="records", core_source="indexterms", form="dwca-csv", record_query=record_query, mediarecord_query=mediarecord_query, filename=str(uuid.uuid4())))
 
     # core_types = ["records", "mediarecords", "uniquelocality", "uniquenames"]
     # core_sources = ["indexterms", "raw"]
@@ -623,7 +591,7 @@ def main():
 
     # for t, s, f in combos:
     #     try:
-    #         print t, s, f, generate_files(core_type=t, core_source=s, form=f, record_query=record_query, mediarecord_query=mediarecord_query, filename=str(uuid.uuid4()))[0]
+    #         print t, s, f, generate_files(core_type=t, core_source=s, form=f, record_query=record_query, mediarecord_query=mediarecord_query, filename=str(uuid.uuid4()))
     #     except:
     #         traceback.print_exc()
     #         print
@@ -663,7 +631,7 @@ def main():
     #             print qt[0], "\"" + repr(generate_files(core_type="records", core_source="indexterms",
     #                                         record_query=record_query[
     #                                             "query"], mediarecord_query=None,
-    #                                         form="dwca-csv", filename=str(uuid.uuid4()))[0]) + "\"", "geopoint" in qt[1], (datetime.datetime.now() - t).total_seconds()
+    #                                         form="dwca-csv", filename=str(uuid.uuid4()))) + "\"", "geopoint" in qt[1], (datetime.datetime.now() - t).total_seconds()
     #         except:
     #             print qt
     #             traceback.print_exc()

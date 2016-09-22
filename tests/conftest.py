@@ -102,9 +102,13 @@ def testdb(logger):
     spec['user'] = 'test'
     spec['password'] = 'test'
     logger.info("Verifying testdb %r", spec)
-    with psycopg2.connect(**spec) as conn:
-        with conn.cursor() as cur:
-            cur.execute("SELECT 1")
+    try:
+        with psycopg2.connect(**spec) as conn:
+            with conn.cursor() as cur:
+                cur.execute("SELECT 1")
+    except psycopg2.OperationalError:
+        pytest.skip("Unable to connect to PG.")
+
     return spec
 
 

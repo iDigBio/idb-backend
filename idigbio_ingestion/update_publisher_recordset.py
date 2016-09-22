@@ -87,18 +87,23 @@ def id_func(portal_url, e):
     return id
 
 
-def check_feed(rss_url):
-    "Quick check on the feed url since feedparser does not have a timeout parameter"
+def get_feed(rss_url):
+    "Download contents of feed url since feedparser does not have a timeout parameter"
+    feedtest = None
     try:
         feedtest = requests.get(rss_url, timeout=10)
         feedtest.raise_for_status()
-        return True
     except requests.exceptions.SSLError:
         # Ignore urllib3 SSL issues on this quick check
-        return True
-    except:
-        logger.error("Failed to read %r", rss_url)
+        pass
+    except Exception as e:
+        logger.error("Failed to read %r; reason: %s",
+                     rss_url,
+                     feedtest.reason if feedtest is not None else "non-http error")
+        if feedtest is None:
+            logger.debug("Specific reason: %s", e)
         return False
+    return feedtest.text
 
 
 def update_db_from_rss():
@@ -114,22 +119,25 @@ def update_db_from_rss():
         pub_recs = db.fetchall("SELECT * FROM publishers")
         logger.debug("Checking %d publishers", len(pub_recs))
         for r in pub_recs:
-            if check_feed(r['rss_url']):
+            uuid, rss_url = r['uuid'], r['rss_url']
+            logger.info("Starting Publisher Feed: %s %s", uuid, rss_url)
+            rsscontents = get_feed(rss_url)
+            if rsscontents:
                 try:
-                    _do_rss(r, db, recordsets, existing_recordsets)
+                    _do_rss(rsscontents, r, db, recordsets, existing_recordsets)
                     db.commit()
-                except KeyboardInterrupt:
+                except Exception:
+                    logger.exception("Error with %s %s", uuid, rss_url)
+                    db.rollback()
+                except:
                     db.rollback()
                     raise
-                except:
-                    logger.exception("Error with %s", r)
-                    db.rollback()
-    logger.info("Finished processing RSS")
+    logger.info("Finished processing add publisher RSS feeds")
 
 
-def _do_rss(r, db, recordsets, existing_recordsets):
-    logger.info("Starting Publisher Feed: %s %s", r['uuid'], r['rss_url'])
-    feed = feedparser.parse(r["rss_url"])
+def _do_rss(rsscontents, r, db, recordsets, existing_recordsets):
+    logger.debug("Start parsing results of %s, length: %s", r['rss_url'], len(rsscontents))
+    feed = feedparser.parse(rsscontents)
     pub_uuid = r["uuid"]
     if pub_uuid is None:
         pub_uuid, _, _ = db.get_uuid(r["recordids"])

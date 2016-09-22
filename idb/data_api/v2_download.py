@@ -3,10 +3,9 @@ from __future__ import division, absolute_import, print_function
 import json
 import datetime
 
-import redis
 from flask import Blueprint, jsonify, url_for, request
 
-from idigbio_workers import downloader, send_download_email
+from idigbio_workers import downloader, send_download_email, get_redis_conn
 
 from idb.helpers.cors import crossdomain
 from idb.helpers.etags import objectHasher
@@ -17,13 +16,11 @@ this_version = Blueprint(__name__,__name__)
 
 expire_time_in_seconds = 23 * 60 * 60
 
-redist = redis.StrictRedis(host='idb-redis-celery.acis.ufl.edu', port=6379, db=0)
-
 
 @this_version.route('/download', methods=['GET','POST','OPTIONS'])
 @crossdomain(origin="*")
 def download():
-
+    redist = get_redis_conn()
     params = {
         "core_type": "records",
         "core_source": "indexterms",
@@ -128,6 +125,7 @@ def download():
 @crossdomain(origin="*")
 def status(u):
     u = str(u)
+    redist = get_redis_conn()
     try:
         r = downloader.AsyncResult(u)
         h = redist.get(u)

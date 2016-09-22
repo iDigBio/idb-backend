@@ -1,6 +1,0 @@
-pytest
-pytest-cov
-pytest-sugar
-pytest-flask
-pytest-mock
-pytest-capturelog

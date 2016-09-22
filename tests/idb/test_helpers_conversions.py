@@ -265,7 +265,6 @@ class TestScientificNameFiller(unittest.TestCase):
 
 class TestGrabAll(unittest.TestCase):
     def test_grab_all(self):
-        self.maxDiff = 5000
         r = {
             "idigbio:uuid": "0000012b-9bb8-42f4-ad3b-c958cb22ae45",
             "idigbio:etag": "cb7d64ec3aef36fa4dec6a028b818e331a67aacc",
@@ -326,91 +325,66 @@ class TestGrabAll(unittest.TestCase):
                 "urn:uuid:ed400275-09d7-4302-b777-b4e0dcf7f2a3"
             ]
         }
-        e = {
-            'accessuri': None,
-            'barcodevalue': None,
-            'basisofrecord': 'preservedspecimen',
-            'bed': None,
-            'catalognumber': 'asu0010142',
-            'class': None,
-            'collectioncode': 'plants',
-            'collectionid': 'a2e32c87-d320-4a01-bafd-a9182ae2e191',
-            'collectionname': None,
-            'collector': 'p. acevedo; a. reilly',
-            'commonname': None,
-            'continent': None,
-            'coordinateuncertainty': 2000.0,
-            'country': 'u.s. virgin islands',
-            'countrycode': None,
-            'county': None,
-            'datecollected': datetime.datetime(1987, 8, 21, tzinfo=pytz.utc),
-            'datemodified': datetime.datetime(2015, 1, 17, 8, 35, 59, 395000, tzinfo=pytz.utc),
-            'dqs': 0.3492063492063492,
-            'earliestageorloweststage': None,
-            'earliestepochorlowestseries': None,
-            'earliesteraorlowesterathem': None,
-            'earliestperiodorlowestsystem': None,
-            'etag': 'cb7d64ec3aef36fa4dec6a028b818e331a67aacc',
-            'eventdate': '1987-08-21',
-            'family': 'myrtaceae',
-            'fieldnumber': None,
-            'flags': ['geopoint_datum_missing'],
-            'formation': None,
-            'gbif_cannonicalname': None,
-            'gbif_genus': None,
-            'gbif_specificepithet': None,
-            'gbif_taxonid': None,
-            'genus': 'eugenia',
-            'geopoint': (-64.7131, 18.348),
-            'geoshape': None,
-            'group': None,
-            'hasImage': True,
-            'hasMedia': True,
-            'highertaxon': None,
-            'individualcount': None,
-            'infraspecificepithet': None,
-            'institutioncode': 'asu',
-            'institutionid': None,
-            'institutionname': None,
-            'kingdom': 'plantae',
-            'latestageorhigheststage': None,
-            'latestepochorhighestseries': None,
-            'latesteraorhighesterathem': None,
-            'latestperiodorhighestsystem': None,
-            'lithostratigraphicterms': None,
-            'locality': 'coral bay quarter, bordeaux mountain road.',
-            'lowestbiostratigraphiczone': None,
-            'maxdepth': None,
-            'maxelevation': None,
-            'mediarecords': ['ae175cc6-82f4-456b-910c-34da322e768d',
-                             'd0ca23cd-d4eb-43b5-aaba-cb75f8aef9e3'],
-            'member': None,
-            'mindepth': None,
-            'minelevation': None,
-            'municipality': None,
-            'occurrenceid': 'urn:uuid:ed400275-09d7-4302-b777-b4e0dcf7f2a3',
-            'order': 'myrtales',
-            'phylum': 'magnoliophyta',
-            'recordids': ['urn:uuid:ed400275-09d7-4302-b777-b4e0dcf7f2a3'],
-            'recordnumber': '1897',
-            'recordset': '40250f4d-7aa6-4fcc-ac38-2868fa4846bd',
-            'scientificname': 'eugenia monticola',
-            'specificepithet': 'monticola',
-            'startdayofyear': 233,
-            'stateprovince': 'saint john',
-            'typestatus': None,
-            'uuid': '0000012b-9bb8-42f4-ad3b-c958cb22ae45',
-            'verbatimeventdate': None,
-            'verbatimlocality': None,
-            'version': 5,
-            'waterbody': None
-        }
         d = copy.deepcopy(r["idigbio:data"])
         d.update(r)
         del d["idigbio:data"]
         # from pprint import pprint
         # pprint(grabAll("records", d))
-        self.assertEqual(e, conversions.grabAll("records", d))
+        output = conversions.grabAll("records", d)
+        NULLKEYS = '''accessuri barcodevalue bed class collectionname commonname
+                      continent countrycode county
+                      earliestageorloweststage
+                      earliestepochorlowestseries
+                      earliesteraorlowesterathem
+                      earliestperiodorlowestsystem fieldnumber
+                      formation geoshape group highertaxon
+                      individualcount infraspecificepithet
+                      institutionid institutionname
+                      latestageorhigheststage
+                      latestepochorhighestseries
+                      latesteraorhighesterathem
+                      latestperiodorhighestsystem
+                      lithostratigraphicterms
+                      lowestbiostratigraphiczone maxdepth maxelevation
+                      member mindepth minelevation municipality
+                      taxonid taxonomicstatus taxonrank typestatus
+                      verbatimeventdate verbatimlocality waterbody'''.split()
+        for k in NULLKEYS:
+            self.assertIsNone(output[k])
+        self.assertEqual(output['institutioncode'], 'asu')
+        self.assertEqual(output['kingdom'], 'plantae')
+        self.assertEqual(output['locality'], 'coral bay quarter, bordeaux mountain road.')
+        self.assertEqual(output['mediarecords'], ['ae175cc6-82f4-456b-910c-34da322e768d', 'd0ca23cd-d4eb-43b5-aaba-cb75f8aef9e3'])
+        self.assertEqual(output['occurrenceid'], 'urn:uuid:ed400275-09d7-4302-b777-b4e0dcf7f2a3')
+        self.assertEqual(output['order'], 'myrtales')
+        self.assertEqual(output['phylum'], 'magnoliophyta')
+        self.assertEqual(output['recordids'], ['urn:uuid:ed400275-09d7-4302-b777-b4e0dcf7f2a3'])
+        self.assertEqual(output['recordnumber'], '1897')
+        self.assertEqual(output['recordset'], '40250f4d-7aa6-4fcc-ac38-2868fa4846bd')
+        self.assertEqual(output['scientificname'], 'eugenia monticola')
+        self.assertEqual(output['specificepithet'], 'monticola')
+        self.assertEqual(output['startdayofyear'], 233)
+        self.assertEqual(output['stateprovince'], 'saint john')
+        self.assertEqual(output['uuid'], '0000012b-9bb8-42f4-ad3b-c958cb22ae45')
+        self.assertEqual(output['version'], 5)
+        self.assertEqual(output['basisofrecord'], 'preservedspecimen')
+        self.assertEqual(output['catalognumber'], 'asu0010142')
+        self.assertEqual(output['collectioncode'], 'plants')
+        self.assertEqual(output['collectionid'], 'a2e32c87-d320-4a01-bafd-a9182ae2e191')
+        self.assertEqual(output['collector'], 'p. acevedo; a. reilly')
+        self.assertAlmostEqual(output['coordinateuncertainty'], 2000.0)
+        self.assertEqual(output['country'], 'u.s. virgin islands')
+        self.assertEqual(output['datecollected'], datetime.datetime(1987, 8, 21, tzinfo=pytz.utc))
+        self.assertEqual(output['datemodified'], datetime.datetime(2015, 1, 17, 8, 35, 59, 395000, tzinfo=pytz.utc))
+        self.assertAlmostEqual(output['dqs'], 0.359375)
+        self.assertEqual(output['etag'], 'cb7d64ec3aef36fa4dec6a028b818e331a67aacc')
+        self.assertEqual(output['eventdate'], '1987-08-21')
+        self.assertEqual(output['family'], 'myrtaceae')
+        self.assertEqual(output['flags'], ['geopoint_datum_missing'])
+        self.assertEqual(output['genus'], 'eugenia')
+        self.assertEqual(output['geopoint'], (-64.7131, 18.348))
+        self.assertEqual(output['hasImage'], True)
+        self.assertEqual(output['hasMedia'], True)
 
 
 class TestGetfield(unittest.TestCase):

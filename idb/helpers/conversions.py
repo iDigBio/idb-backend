@@ -12,6 +12,7 @@ from shapely.geometry import Polygon, mapping
 
 
 from idb.data_tables.rights_strings import acceptable_licenses_trans, licenses
+from idb.data_tables import taxon_rank
 
 from .biodiversity_socket_connector import Biodiversity
 from .rg import get_country

@@ -16,7 +16,8 @@ def get_data():
             if "dwc:scientificName" in v:
                 v["gbif:canonicalName"] = v["dwc:scientificName"]
                 del v["dwc:scientificName"]
-            v["flag_gbif_taxon_corrected"] = True
+            if "flag_taxon_match_failed" not in v:
+                v["flag_gbif_taxon_corrected"] = True
             yield (k, v, 'gbif_checklist_extended', True)
 
 def get_sources():

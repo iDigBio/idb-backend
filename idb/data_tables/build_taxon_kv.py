@@ -17,6 +17,8 @@ from elasticsearch import Elasticsearch
 from idb.helpers.etags import objectHasher
 import taxon_rank
 
+DEBUG = False
+
 es = Elasticsearch([
     "c18node2.acis.ufl.edu",
     "c18node6.acis.ufl.edu",
@@ -38,6 +40,8 @@ def run_query(q, cache_string):
 
     best_response = None
     for h in rsp["hits"]["hits"]:
+        if DEBUG:
+            print(h)
         if h["_source"]["dwc:scientificName"].lower() == cache_string:
             #search_cache[cache_string] = h["_source"]
             if h["_source"]["dwc:taxonomicStatus"] == "accepted":
@@ -64,12 +68,14 @@ def run_query(q, cache_string):
 
     #search_cache[cache_string] = None
     if best_response is not None:
-        if best_response["_source"]["dwc:taxonomicStatus"] == "synonym":
+        if DEBUG:
+            print(best_response, "synonym" in best_response["_source"]["dwc:taxonomicStatus"])
+        if "synonym" in best_response["_source"]["dwc:taxonomicStatus"]:
             rsp = es.search(index="taxonnames",doc_type="taxonnames",body={
                 "size": 1,
                 "query": {
                     "term": {
-                        "id": best_response["_source"]["dwc:acceptedNameUsageID"]
+                        "dwc:taxonID": best_response["_source"]["dwc:acceptedNameUsageID"]
                     }
                 }
             })
@@ -82,31 +88,82 @@ def run_query(q, cache_string):
     else:
         return None
 
-def fuzzy_wuzzy_string(s, rank="species"):
+def fuzzy_wuzzy_string(s, rank="species", should=None):
     # if s in search_cache:
     #     return search_cache[s]
 
     q = {
       "query": {
         "bool": {
-          "must": [
-            {
-              "match": {
-                "dwc:scientificName": {
-                  "query": s,
-                  "fuzziness": "AUTO"
+            "must": [
+                {
+                  "match": {
+                    "dwc:scientificName": {
+                      "query": s,
+                      "fuzziness": "AUTO"
+                    }
+                  }
+                },
+                {
+                    "term": {
+                        "dwc:taxonRank": rank
+                    }
+                },
+                {
+                    "or": [
+                        {
+                            "term": {
+                                "dwc:kingdom": "animalia"
+                            }
+                        },
+                        {
+                            "term": {
+                                "dwc:kingdom": "plantae"
+                            }
+                        },
+                        {
+                            "term": {
+                                "dwc:kingdom": "fungi"
+                            }
+                        },
+                        {
+                            "term": {
+                                "dwc:kingdom": "chromista"
+                            }
+                        },
+                        {
+                            "term": {
+                                "dwc:kingdom": "protista"
+                            }
+                        },
+                        {
+                            "term": {
+                                "dwc:kingdom": "protozoa"
+                            }
+                        }
+                    ]
                 }
-              }
-            },
-            { 
-                "term": {
-                    "dwc:taxonRank": rank
-                }
-            }
-          ]
+            ]
         }
       }
     }
+
+    if DEBUG:
+        print(json.dumps(q, indent=2))
+
+    if should is not None:
+        q["query"]["bool"]["should"] = []
+        shd = q["query"]["bool"]["should"]
+        for k in should:
+            shd.append({
+                "match": {
+                    k: {
+                        "query": should[k],
+                        "fuzziness": "AUTO"
+                    }
+                }
+            })
+
     return run_query(q, s.lower())
 
 stats = Counter()
@@ -134,12 +191,18 @@ def work(t):
     try:
         rt = None
         match = None
-        if "dwc:genus" in r and "dwc:specificepithet" in r:
-            rt = { 
+
+        should = {}
+
+        if "dwc:kingdom" in r:
+            should["dwc:kingdom"] = r["dwc:kingdom"]
+
+        if "dwc:genus" in r and "dwc:specificEpithet" in r:
+            rt = {
                 "dwc:genus": r["dwc:genus"],
-                "dwc:specificepithet": r["dwc:specificepithet"]
+                "dwc:specificEpithet": r["dwc:specificEpithet"]
             }
-            match = fuzzy_wuzzy_string(r["dwc:genus"] + " " + r["dwc:specificepithet"])
+            match = fuzzy_wuzzy_string(r["dwc:genus"] + " " + r["dwc:specificEpithet"])
         elif "dwc:scientificName" in r:
             rank = None
             if "dwc:taxonRank" in r:
@@ -152,17 +215,20 @@ def work(t):
                     print "unkown rank:", cand_rank
 
             if rank is None:
-                rank = "species"
+                if len(r["dwc:scientificName"].split()) == 1:
+                    rank = "genus"
+                else:
+                    rank = "species"
 
             rt = {
                 "dwc:scientificName": r["dwc:scientificName"]
             }
-            match = fuzzy_wuzzy_string(r["dwc:scientificName"], rank=rank)
+            match = fuzzy_wuzzy_string(r["dwc:scientificName"], rank=rank, should=should)
         elif "dwc:genus" in r:
             rt = {
                 "dwc:genus": r["dwc:genus"]
             }
-            match = fuzzy_wuzzy_string(r["dwc:genus"], rank="genus")
+            match = fuzzy_wuzzy_string(r["dwc:genus"], rank="genus", should=should)
         else:
             print r
             return ("failout", (None, None))
@@ -211,22 +277,24 @@ def get_taxon_from_index():
             "data.dwc:specificEpithet",
             "data.dwc:scientificName",
             "data.dwc:taxonRank",
+            "data.dwc:kingdom",
         ]
     }
 
-    for r in elasticsearch.helpers.scan(es, index="idigbio-2.10.0", query=body, size=1000, doc_type=t, scroll="10m"):
-        etag = objectHasher("sha256", r["_source"], sort_arrays=True)    
+    for r in elasticsearch.helpers.scan(es, index="idigbio-2.10.1", query=body, size=1000, doc_type=t, scroll="10m"):
+        etag = objectHasher("sha256", r["_source"], sort_arrays=True)
         stats["count"] += 1
         if etag not in etags:
             stats["precount"] += 1
             etags.add(etag)
-            yield (etag,r["_source"]["data"])        
+            yield (etag,r["_source"]["data"])
 
 def test_main():
+    global DEBUG
+    DEBUG = True
     t = ("blahblahblah",  {
-        "dwc:specificEpithet": "ohioense",
-        "dwc:genus": "Archidium",
-        "dwc:scientificName": "Archidium ohioense",
+        "dwc:genus": "Sarcosoma",
+        "dwc:specificEpithet": "latahense"
     })
     print(work(t))
 
@@ -238,10 +306,10 @@ def main():
             if r[0] is not None:
                 outf.write(json.dumps(list(r)) + "\n")
 
-    print stats.most_common()
+    print(stats.most_common())
 
     # with open("search_cache.json", "wb") as pp:
     #     json.dump(search_cache,pp)
 
 if __name__ == '__main__':
-    main()
+    test_main()

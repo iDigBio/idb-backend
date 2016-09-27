@@ -81,6 +81,7 @@ mapping = {
     u"phylym": u"phylum",
     u"s.": u"species",
     u"section[genus]": u"genus",
+    u"sect.": u"section",
     u"specie": u"species",
     u"species": u"species",
     u"specificepithet": u"species",

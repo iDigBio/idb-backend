@@ -60,7 +60,9 @@ fields = {
         ["locality", "dwc:locality", "longtext", 1, None],
         ["verbatimlocality", "dwc:verbatimLocality", "longtext", 1, None],
         ["geopoint", "", "point", 1, "idigbio:geoPoint"],
-        ["geoshape", "", "shape", 1, "idigbio:geoShape"],
+        # Comment out because this is unused and breaking the es-hadoop connector
+        # Do not re-add unless populating with data. https://github.com/bio-guoda/guoda-datasets/issues/3
+        # ["geoshape", "", "shape", 1, "idigbio:geoShape"],
         ["minelevation", "", "float", 1, "dwc:minimumElevationInMeters"],
         ["maxelevation", "", "float", 1, "dwc:maximumElevationInMeters"],
         ["mindepth", "", "float", 1, "dwc:minimumDepthInMeters"],

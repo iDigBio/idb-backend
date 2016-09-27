@@ -312,4 +312,9 @@ def main():
     #     json.dump(search_cache,pp)
 
 if __name__ == '__main__':
-    test_main()
+    import sys
+
+    if len(sys.argv) > 1 and sys.argv[1] == "test":
+        test_main()
+    else:
+        main()

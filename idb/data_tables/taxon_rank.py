@@ -84,6 +84,7 @@ mapping = {
     u"sect.": u"section",
     u"specie": u"species",
     u"species": u"species",
+    u"species group": u"species",
     u"specificepithet": u"species",
     u"spp.": u"subspecies",
     u"ssp": u"subspecies",

@@ -34,6 +34,7 @@ es = Elasticsearch([
 # print "Search Cache: {0}".format(len(search_cache))
 
 good_status = {"accepted", "synonym"}
+score_stats = Counter()
 def run_query(q, cache_string):
     rsp = es.search(index="taxonnames",doc_type="taxonnames",body=q)
 
@@ -68,6 +69,12 @@ def run_query(q, cache_string):
 
     #search_cache[cache_string] = None
     if best_response is not None:
+        score_stats[int(best_response["_score"]*10)] += 1
+
+        # Reject low quality matches
+        if best_response["_score"] <= 1.0:
+            return None
+
         if DEBUG:
             print(best_response, "synonym" in best_response["_source"]["dwc:taxonomicStatus"])
         if "synonym" in best_response["_source"]["dwc:taxonomicStatus"]:
@@ -182,7 +189,7 @@ def result_collector(map_r):
         stats["postcount"] += 1
 
         if stats["postcount"] % 10000 == 0:
-            print stats.most_common()
+            print(stats.most_common(), score_stats.most_common())
 
         yield r[1]
 
@@ -293,8 +300,8 @@ def test_main():
     global DEBUG
     DEBUG = True
     t = ("blahblahblah",  {
-        "dwc:genus": "Sarcosoma",
-        "dwc:specificEpithet": "latahense"
+        "dwc:genus": "Eupsophus",
+        "dwc:specificEpithet": "juniensis"
     })
     print(work(t))
 

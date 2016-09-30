@@ -6,6 +6,7 @@ IGNORE_PREFIXES = [
     "http://media.idigbio.org/",
     "http://api.idigbio.org/v1/recordsets/",
     "https://api.idigbio.org/v2/media/",
+    "http://api.idigbio.org/v2/media/",
     "http://www.tropicos.org/"
 ]
 

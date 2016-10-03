@@ -323,7 +323,7 @@ def test_main():
         #     "dwc:genus": "Caulerpa",
         #     "dwc:specificEpithet": "filicoides"
         # },
-        # {
+        # {  # Fail, Fucus crispatus != Fucus crispus
         #     "dwc:scientificName": "Fucus crispus",
         # },
         # { # Works
@@ -331,7 +331,7 @@ def test_main():
         #     "dwc:specificEpithet": "arbutifolia",
         # },
         # { # Works
-        #     "dwc:genus": "Photinia",   
+        #     "dwc:genus": "Photinia",
         #     "dwc:specificEpithet": "pyrifolia",
         # }
     ]

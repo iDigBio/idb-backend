@@ -333,6 +333,10 @@ def test_main():
         # { # Works
         #     "dwc:genus": "Photinia",
         #     "dwc:specificEpithet": "pyrifolia",
+        # },
+        # { # Works
+        #     "dwc:genus": "Pseudoliomera",
+        #     "dwc:specificEpithet": "granosimana",
         # }
     ]
     for i, t in enumerate(tests):

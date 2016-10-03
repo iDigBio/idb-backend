@@ -575,7 +575,7 @@ class MediaObject(object):
 
         E.g. http://media.idigbio.org/lookup/images/6d8fbdfc351a5e085aabdf081fb2c5e6?size=fullsize
         """
-        re_etag = '^https?://media.idigbio.org/lookup/images/([^?]+)'
+        re_etag = '^https?://(?:media.idigbio.org/lookup/images/|api.idigbio.org/v2/media/)([^?]+)'
         m = re.search(re_etag, url)
         return m and m.group(1)
 

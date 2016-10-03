@@ -120,3 +120,16 @@ def test_mobj_media_idigibio_patch(testidbmodel):
     assert mfu.etag == etag
     assert mfu.detected_mime == 'image/jpeg'
     assert mfu.url is None
+
+
+def test_mobj_apimedia_idigibio_patch(testidbmodel):
+    "URLs that are api.idigbio.org/v2/media contain etags and there is special handling for them"
+    etag = "924709c6ebbd34030468185a323a437"
+    url = "https://api.idigbio.org/v2/media/" + etag
+    mo = MediaObject(etag=etag, bucket="images", detected_mime='image/jpeg')
+    mo.ensure_object(idbmodel=testidbmodel)
+
+    mfu = MediaObject.fromurl(url, idbmodel=testidbmodel)
+    assert mfu.etag == etag
+    assert mfu.detected_mime == 'image/jpeg'
+    assert mfu.url is None

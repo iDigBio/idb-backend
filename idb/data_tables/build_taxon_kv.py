@@ -190,6 +190,7 @@ def result_collector(map_r):
 
         if stats["postcount"] % 10000 == 0:
             print(stats.most_common(), score_stats.most_common())
+            show_plot()
 
         yield r[1]
 
@@ -201,8 +202,9 @@ def work(t):
 
         should = {}
 
-        if "dwc:kingdom" in r:
-            should["dwc:kingdom"] = r["dwc:kingdom"]
+        for k in ["dwc:kingdom", "dwc:phylum", "dwc:class", "dwc:order"]:
+            if k in r:
+                should[k] = r[k]
 
         if "dwc:genus" in r and "dwc:specificEpithet" in r:
             rt = {
@@ -285,6 +287,9 @@ def get_taxon_from_index():
             "data.dwc:scientificName",
             "data.dwc:taxonRank",
             "data.dwc:kingdom",
+            "data.dwc:phylum",
+            "data.dwc:class",
+            "data.dwc:order",
         ]
     }
 
@@ -299,11 +304,53 @@ def get_taxon_from_index():
 def test_main():
     global DEBUG
     DEBUG = True
-    t = ("blahblahblah",  {
-        "dwc:genus": "Eupsophus",
-        "dwc:specificEpithet": "juniensis"
-    })
-    print(work(t))
+    tests = [
+        # { # Works, no match
+        #     "dwc:genus": "Eupsophus",
+        #     "dwc:specificEpithet": "juniensis"
+        # },
+        # { # Data fail, name not actually genus
+        #     "dwc:genus": "Brachyura",
+        # },
+        # { # Fail, name not in backbone
+        #      "dwc:scientificName": "Squalodon errabundus"
+        # },
+        # { # Works
+        #     "dwc:genus": "Caulerpa",
+        #     "dwc:specificEpithet": "acuta"
+        # },
+        # { # Works
+        #     "dwc:genus": "Caulerpa",
+        #     "dwc:specificEpithet": "filicoides"
+        # },
+        # {
+        #     "dwc:scientificName": "Fucus crispus",
+        # },
+        # { # Works
+        #     "dwc:genus": "Aronia",
+        #     "dwc:specificEpithet": "arbutifolia",
+        # },
+        # { # Works
+        #     "dwc:genus": "Photinia",   
+        #     "dwc:specificEpithet": "pyrifolia",
+        # }
+    ]
+    for i, t in enumerate(tests):
+        print(work((str(i), t)))
+
+import numpy as np
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
+def show_plot():
+    labels, values = zip(*score_stats.items())
+
+    indexes = np.arange(len(labels))
+    width = 1
+
+    plt.bar(indexes, values, width)
+    plt.xticks(indexes + width * 0.5, labels)
+    plt.savefig("plot")
 
 def main():
     p = pool.Pool(25)

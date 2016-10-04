@@ -649,7 +649,8 @@ class MediaObject(object):
         rec = idbmodel.get_item(uuid)
         if rec is not None:
             ref = get_accessuri(rec["type"], rec["data"])["accessuri"]
-            return cls.fromurl(ref, idbmodel=idbmodel)
+            if ref:
+                return cls.fromurl(ref, idbmodel=idbmodel)
 
     @classmethod
     def frombuff(cls, buff, **attrs):

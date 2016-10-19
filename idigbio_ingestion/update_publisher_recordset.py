@@ -101,7 +101,7 @@ def get_feed(rss_url):
                      rss_url,
                      feedtest.reason if feedtest is not None else "non-http error")
         if feedtest is None:
-            logger.debug("Specific reason: %s", e)
+            logger.error("Specific reason: %s", e)
         return False
     return feedtest.text
 

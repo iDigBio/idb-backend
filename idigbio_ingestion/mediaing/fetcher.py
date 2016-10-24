@@ -45,6 +45,8 @@ def once(prefix=None, ignores=IGNORE_PREFIXES):
     fetchitems = get_items(prefix=prefix)
     groups = group_by_prefix(fetchitems)
     procs = start_all_procs(groups).values()
+    fetchitems = None
+    groups = None
     logger.debug("%d procs started, waiting...", len(procs))
     for p in procs:
         p.join()
@@ -88,6 +90,8 @@ def continuous(prefix=None, looptime=3600):
         fetchitems = get_items(ignores=ignores, prefix=prefix)
         groups = group_by_prefix(fetchitems)
         running = start_all_procs(groups, running)
+        fetchitems = None
+        groups = None
         time = (datetime.now() - t1).total_seconds()
         logger.debug("Finished loop in %s", time)
         sleep(looptime - time)
@@ -106,6 +110,7 @@ def process_list(fetchitems, forprefix=''):
         uploadpool = gevent.pool.Pool(8)
         items = fetchrpool.imap_unordered(lambda fi: fi.get_media(), fetchitems, maxsize=10)
         items = uploadpool.imap_unordered(lambda fi: fi.upload_to_storage(store), items, maxsize=10)
+        items = itertools.imap(FetchItem.cleanup, items)
         items = count_result_types(items, forprefix=forprefix)
         return ilen(items)  # consume the generator
     except StandardError:
@@ -212,7 +217,6 @@ class FetchItem(object):
 
     status_code = None
     response = None
-    content = None
     reason = None
 
     media_object = None
@@ -236,6 +240,10 @@ class FetchItem(object):
     def ok(self):
         return self.status_code == Status.OK
 
+    @property
+    def content(self):
+        return self.response.content
+
     def get_media(self):
         "This calls get_media and handles all the failure scenarios"
         try:
@@ -253,7 +261,6 @@ class FetchItem(object):
         logger.debug("Starting  %s", self.url)
         try:
             self.response = self._get()
-            self.content = self.response.content
             self.reason = self.response.reason
         except (MissingSchema, InvalidSchema, InvalidURL) as mii:
             self.reason = str(mii)
@@ -353,6 +360,20 @@ class FetchItem(object):
             logger.exception("Error saving object to DB")
             self.status_code = Status.STORAGE_ERROR
         return self
+
+    def cleanup(self):
+        "Get rid of all the big references, hang on to url and status_code"
+        if self.response is not None:
+            del self.response
+            self.response = None
+        if self.media_object is not None:
+            del self.media_object
+            self.media_object = None
+        self.reason = None
+
+    def __del__(self):
+        self.cleanup()
+
 
 
 DENIED_RE = re.compile("access denied", re.I)

@@ -370,6 +370,7 @@ class FetchItem(object):
             del self.media_object
             self.media_object = None
         self.reason = None
+        return self
 
     def __del__(self):
         self.cleanup()

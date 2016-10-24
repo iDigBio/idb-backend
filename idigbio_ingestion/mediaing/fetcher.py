@@ -357,7 +357,7 @@ class FetchItem(object):
                 mo.update_media(idbmodel)
                 idbmodel.commit()
         except Exception:
-            logger.exception("Error saving object to DB")
+            logger.exception("DbSaveErr %s", self.url)
             self.status_code = Status.STORAGE_ERROR
         return self
 

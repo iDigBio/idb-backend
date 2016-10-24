@@ -106,7 +106,6 @@ def process_list(fetchitems, forprefix=''):
         uploadpool = gevent.pool.Pool(8)
         items = fetchrpool.imap_unordered(lambda fi: fi.get_media(), fetchitems, maxsize=10)
         items = uploadpool.imap_unordered(lambda fi: fi.upload_to_storage(store), items, maxsize=10)
-        items = update_db_status(items)
         items = count_result_types(items, forprefix=forprefix)
         return ilen(items)  # consume the generator
     except StandardError:
@@ -167,23 +166,6 @@ def count_result_types(results, interval=1000, forprefix=''):
                 output()
             yield r
     logger.info("%s Count: %8d; codecounts: %r FINISHED!", forprefix, count, counts.most_common())
-
-
-def update_db_status(items):
-    rc = 0
-    with apidbpool.cursor(autocommit=True) as cur:
-        for fi in items:
-            try:
-                status = fi.status_code.value
-            except AttributeError:
-                status = fi.status_code
-            cur.execute(
-                "UPDATE media SET last_status=%s, last_check=now() WHERE url=%s",
-                (status, fi.url)
-            )
-            rc += cur.rowcount
-            yield fi
-    logger.info("Finished updating %d records", rc)
 
 
 ITEMCLASSES = {}
@@ -357,10 +339,15 @@ class FetchItem(object):
                 return self
 
             with PostgresDB() as idbmodel:
-                # Don't need to ensure_media, we're processing
-                # through media entries
                 mo.ensure_object(idbmodel)
                 mo.ensure_media_object(idbmodel)
+                try:
+                    mo.last_status = self.status_code.value
+                except AttributeError:
+                    mo.last_status = self.status_code
+                # Don't need to ensure_media, we're processing through
+                # media entries, just update the last_check and status
+                mo.update_media(idbmodel)
                 idbmodel.commit()
         except Exception:
             logger.exception("Error saving object to DB")

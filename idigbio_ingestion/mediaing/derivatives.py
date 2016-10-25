@@ -65,16 +65,24 @@ def continuous(buckets):
 def main(buckets, run_migrate=True):
     if not buckets:
         buckets = ('images', 'sounds')
-    t1 = datetime.now()
     if run_migrate:
         migrate()
-    objects = get_objects(buckets)
-    logger.info("Checking derivatives for %d objects", len(objects))
+    objects = objects_for_buckets(buckets)
+    process_objects(objects)
 
+
+def process_etags(etags):
+    objects = objects_for_etags(etags)
+    process_objects(objects)
+
+
+def process_objects(objects):
+    t1 = datetime.now()
+    logger.info("Checking derivatives for %d objects", len(objects))
     pool = Pool(POOLSIZE)
-    check_items = pool.imap_unordered(get_keys, objects)
+    check_items = pool.imap_unordered(get_keys, objects, maxsize=1000)
     check_items = pool.imap_unordered(check_all, check_items)
-    results = pool.imap_unordered(generate_all, check_items)
+    results = pool.imap_unordered(generate_all, check_items, maxsize=500)
     results = pool.imap_unordered(upload_all, results, maxsize=100)
     results = count_results(results, update_freq=100)
     etags = ((gr.etag,) for gr in results if gr)
@@ -86,10 +94,9 @@ def main(buckets, run_migrate=True):
     )
     logger.info("Updated %s records", count)
     pool.join(raise_error=True)
-    logger.info("Completed complete derivatives run in %s", (datetime.now() - t1))
+    logger.info("Completed derivatives run in %s", (datetime.now() - t1))
 
-
-def get_objects(buckets):
+def objects_for_buckets(buckets):
     assert isinstance(buckets, (tuple, list))
     sql = """SELECT etag, bucket
              FROM objects
@@ -97,6 +104,14 @@ def get_objects(buckets):
              ORDER BY random()
     """
     return apidbpool.fetchall(sql, (buckets,), cursor_factory=NamedTupleCursor)
+
+def objects_for_etags(etags):
+    assert isinstance(etags, (tuple, list))
+    sql = """SELECT etag, bucket
+             FROM objects
+             WHERE derivatives=false AND etag IN %s
+    """
+    return apidbpool.fetchall(sql, (etags,), cursor_factory=NamedTupleCursor)
 
 
 def count_results(results, update_freq=100):
@@ -216,6 +231,7 @@ def upload_item(item):
         logger.debug("%s uploading", key)
         key.set_metadata('Content-Type', 'image/jpeg')
         key.set_contents_from_file(data)
+    item.data = None
     key.make_public()
 
 
@@ -282,6 +298,7 @@ def load_img(buff):
     return img
 
 def migrate():
+    t1 = datetime.now()
     logger.info("Checking for objects in the old media api")
     try:
         sql = """INSERT INTO objects (bucket, etag)
@@ -324,6 +341,6 @@ def migrate():
                 AND idb_object_keys.user_uuid <> %s)
         """
         rc = apidbpool.execute(sql, (config.IDB_UUID,))
-        logger.info("Media Objects Migrated: %s", rc)
+        logger.info("Media Objects Migrated: %s in %ss", rc, (datetime.now() - t1))
     except Exception:
         logger.exception("Failed migrating from old media api")

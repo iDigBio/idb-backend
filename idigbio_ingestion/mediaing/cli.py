@@ -67,6 +67,13 @@ def derivatives(continuous, bucket):
     else:
         derivatives.main(bucket)
 
+@cli.command(help="Generate derivatives for the specified etags", name="derive-etags")
+@click.argument('etags', nargs=-1)
+@fnlogged
+def derive_etags(etags):
+    from idigbio_ingestion.mediaing import derivatives
+    derivatives.process_etags(etags)
+
 
 @cli.command(name="migrate-media-objects", help="Migrate database entries from old media api table.")
 @fnlogged

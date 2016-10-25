@@ -3,7 +3,6 @@ from __future__ import print_function
 from future_builtins import map, filter
 
 import cStringIO
-import itertools
 
 from datetime import datetime
 from collections import Counter, namedtuple
@@ -81,20 +80,21 @@ def process_objects(objects):
     t1 = datetime.now()
     logger.info("Checking derivatives for %d objects", len(objects))
     pool = Pool(POOLSIZE)
-    check_items = itertools.imap(get_keys, objects)
-    check_items = itertools.imap(check_all, check_items)
-    results = itertools.imap(generate_all, check_items)
-    results = itertools.imap(upload_all, results)
+    check_items = pool.imap_unordered(get_keys, objects, maxsize=1000)
+    check_items = pool.imap_unordered(check_all, check_items)
+    results = pool.imap_unordered(generate_all, check_items, maxsize=500)
+    results = pool.imap_unordered(upload_all, results, maxsize=100)
     results = count_results(results, update_freq=100)
-    etags = pool.imap_unordered(lambda gr: (gr.etag,), results)
+    etags = ((gr.etag,) for gr in results if gr)
+
     count = apidbpool.executemany(
         "UPDATE objects SET derivatives=true WHERE etag = %s",
-        etags, autocommit=True
+        etags,
+        autocommit=True
     )
     logger.info("Updated %s records", count)
     pool.join(raise_error=True)
     logger.info("Completed derivatives run in %s", (datetime.now() - t1))
-
 
 def objects_for_buckets(buckets):
     assert isinstance(buckets, (tuple, list))
@@ -104,7 +104,6 @@ def objects_for_buckets(buckets):
              ORDER BY random()
     """
     return apidbpool.fetchall(sql, (buckets,), cursor_factory=NamedTupleCursor)
-
 
 def objects_for_etags(etags):
     assert isinstance(etags, (tuple, list))

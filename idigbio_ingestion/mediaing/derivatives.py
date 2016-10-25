@@ -231,7 +231,6 @@ def upload_item(item):
         logger.debug("%s uploading", key)
         key.set_metadata('Content-Type', 'image/jpeg')
         key.set_contents_from_file(data)
-    item.data = None
     key.make_public()
 
 

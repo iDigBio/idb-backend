@@ -86,7 +86,7 @@ def process_objects(objects):
     results = itertools.imap(generate_all, check_items)
     results = itertools.imap(upload_all, results)
     results = count_results(results, update_freq=100)
-    etags = pool.imap_unordered(lambda gr: gr.etag, results)
+    etags = pool.imap_unordered(lambda gr: (gr.etag,), results)
     count = apidbpool.executemany(
         "UPDATE objects SET derivatives=true WHERE etag = %s",
         etags, autocommit=True

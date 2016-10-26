@@ -6,6 +6,7 @@ import cStringIO
 
 from datetime import datetime
 from collections import Counter, namedtuple
+import itertools
 
 import gevent
 from gevent.pool import Pool
@@ -13,7 +14,7 @@ from PIL import Image
 from boto.exception import S3ResponseError, S3DataError
 
 
-from idb.helpers import first
+from idb.helpers import first, gipcpool, ilen, grouper
 from idb.helpers.memoize import memoized
 from idb import __version__
 from idb import config
@@ -62,31 +63,45 @@ def continuous(buckets):
         gevent.sleep(600)  # 10 minutes
 
 
-def main(buckets, run_migrate=True):
+def main(buckets, run_migrate=True, procs=4):
     if not buckets:
         buckets = ('images', 'sounds')
     if run_migrate:
         migrate()
     objects = objects_for_buckets(buckets)
-    process_objects(objects)
+
+    t1 = datetime.now()
+    logger.info("Checking derivatives for %d objects", len(objects))
+
+    if procs > 1:
+        apidbpool.closeall()
+        pool = gipcpool.Pool(procs)
+        c = ilen(pool.imap_unordered(process_objects, grouper(objects, 1000)))
+        logger.debug("Finished %d subprocesses", c)
+    else:
+        process_objects(objects)
+    logger.info("Completed derivatives run in %s", (datetime.now() - t1))
 
 
 def process_etags(etags):
     objects = objects_for_etags(etags)
+    t1 = datetime.now()
+    logger.info("Checking derivatives for %d objects", len(objects))
     process_objects(objects)
+    logger.info("Completed derivatives run in %s", (datetime.now() - t1))
 
 
 def process_objects(objects):
-    t1 = datetime.now()
-    logger.info("Checking derivatives for %d objects", len(objects))
     pool = Pool(POOLSIZE)
-    check_items = pool.imap_unordered(get_keys, objects, maxsize=1000)
-    check_items = pool.imap_unordered(check_all, check_items)
-    results = pool.imap_unordered(generate_all, check_items, maxsize=500)
-    results = pool.imap_unordered(upload_all, results, maxsize=100)
+
+    def one(o):
+        ci = get_keys(o)
+        ci = check_all(ci)
+        gr = generate_all(ci)
+        return upload_all(gr)
+    results = pool.imap_unordered(one, itertools.ifilter(None, objects))
     results = count_results(results, update_freq=100)
     etags = ((gr.etag,) for gr in results if gr)
-
     count = apidbpool.executemany(
         "UPDATE objects SET derivatives=true WHERE etag = %s",
         etags,
@@ -94,7 +109,7 @@ def process_objects(objects):
     )
     logger.info("Updated %s records", count)
     pool.join(raise_error=True)
-    logger.info("Completed derivatives run in %s", (datetime.now() - t1))
+
 
 def objects_for_buckets(buckets):
     assert isinstance(buckets, (tuple, list))
@@ -104,6 +119,7 @@ def objects_for_buckets(buckets):
              ORDER BY random()
     """
     return apidbpool.fetchall(sql, (buckets,), cursor_factory=NamedTupleCursor)
+
 
 def objects_for_etags(etags):
     assert isinstance(etags, (tuple, list))

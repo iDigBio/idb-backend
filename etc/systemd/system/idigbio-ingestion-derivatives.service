@@ -4,4 +4,4 @@ Description=iDigBio mediaing derivatives generation
 [Service]
 Type=oneshot
 Environment=LANG=en_US.UTF-8
-ExecStart=/usr/local/bin/idigbio-ingestion -vv --journal derivatives --procs 4
+ExecStart=/usr/local/bin/idigbio-ingestion -vv --journal derivatives --procs 3

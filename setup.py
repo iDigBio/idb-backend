@@ -57,7 +57,7 @@ setup(
         'journal': ['python-systemd>=230'],
         'ingestion': [
             'pydub==0.16.5',
-            'pillow>=3.2.0',
+            'pillow-simd>=3.4',
             'lxml',
             'chardet',
             'pyquery>=1.2',

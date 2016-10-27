@@ -53,21 +53,14 @@ class BadImageError(Exception):
 def continuous(buckets):
     "Continuously run the main loop, checking for derivatives"
     logger.info("Starting up continuous operation, version: %s", __version__)
-    migrate_greenlet, main_greenlet = None, None
-
     while True:
-        if migrate_greenlet is None or migrate_greenlet.ready():
-            migrate_greenlet = gevent.spawn(migrate)
-        if main_greenlet is None or main_greenlet.ready():
-            main_greenlet = gevent.spawn(main, buckets, run_migrate=False)
+        main(buckets)
         gevent.sleep(600)  # 10 minutes
 
 
-def main(buckets, run_migrate=True, procs=4):
+def main(buckets, procs=4):
     if not buckets:
         buckets = ('images', 'sounds')
-    if run_migrate:
-        migrate()
     objects = objects_for_buckets(buckets)
 
     t1 = datetime.now()
@@ -311,51 +304,3 @@ def load_img(buff):
     if img.mode != 'RGB':
         img = img.convert('RGB')
     return img
-
-def migrate():
-    t1 = datetime.now()
-    logger.info("Checking for objects in the old media api")
-    try:
-        sql = """INSERT INTO objects (bucket, etag)
-              (SELECT DISTINCT
-                type,
-                etag
-              FROM idb_object_keys
-              LEFT JOIN objects USING (etag)
-              WHERE objects.etag IS NULL
-                AND idb_object_keys.user_uuid <> %s);
-        """
-        rc = apidbpool.execute(sql, (config.IDB_UUID,))
-        logger.info("Objects Migrated: %s", rc)
-        sql = """INSERT INTO media (url, type, owner, last_status, last_check)
-              (SELECT
-                idb_object_keys.lookup_key,
-                idb_object_keys.type,
-                idb_object_keys.user_uuid::uuid,
-                200,
-                now()
-              FROM idb_object_keys
-              LEFT JOIN media ON lookup_key = url
-              WHERE media.url IS NULL
-                AND idb_object_keys.user_uuid <> %s);
-        """
-        rc = apidbpool.execute(sql, (config.IDB_UUID,))
-        logger.info("Media Migrated: %s", rc)
-        sql = """
-            INSERT INTO media_objects (url, etag, modified)
-              (SELECT
-                idb_object_keys.lookup_key,
-                idb_object_keys.etag,
-                idb_object_keys.date_modified
-              FROM idb_object_keys
-              JOIN media ON idb_object_keys.lookup_key = media.url
-              JOIN objects ON idb_object_keys.etag = objects.etag
-              LEFT JOIN media_objects ON lookup_key = media.url
-                    AND media_objects.etag = idb_object_keys.etag
-              WHERE media_objects.url IS NULL
-                AND idb_object_keys.user_uuid <> %s)
-        """
-        rc = apidbpool.execute(sql, (config.IDB_UUID,))
-        logger.info("Media Objects Migrated: %s in %ss", rc, (datetime.now() - t1))
-    except Exception:
-        logger.exception("Failed migrating from old media api")

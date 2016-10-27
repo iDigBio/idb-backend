@@ -75,8 +75,8 @@ def derive_etags(etags):
     derivatives.process_etags(etags)
 
 
-@cli.command(name="migrate-media-objects", help="Migrate database entries from old media api table.")
+@mediaing.command(name="migrate", help="Migrate database entries from old media api table.")
 @fnlogged
 def migrate_media_objects():
-    from idigbio_ingestion.mediaing.derivatives import migrate
+    from idigbio_ingestion.mediaing.migrate import migrate
     migrate()

@@ -2,12 +2,6 @@
 Description=iDigBio mediaing derivatives generation
 
 [Service]
-Type=simple
+Type=oneshot
 Environment=LANG=en_US.UTF-8
-ExecStart=/usr/local/bin/idigbio-ingestion -vv --journal \
-          derivatives --continuous
-
-RestartSec=5min
-
-[Install]
-WantedBy=multi-user.target
+ExecStart=/usr/local/bin/idigbio-ingestion -vv --journal derivatives --procs 2

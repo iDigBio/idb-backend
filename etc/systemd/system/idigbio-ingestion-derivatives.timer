@@ -1,0 +1,10 @@
+[Unit]
+Description="Timer for idigbio-ingestion derivatives"
+
+[Timer]
+OnBootSec=13min
+OnUnitInactiveSec=10min
+RandomizedDelaySec=4m
+
+[Install]
+WantedBy=timers.target

@@ -55,17 +55,14 @@ def mediaing_updatedb(mediaing_params, daily):
 @cli.command(help="Generate derivatives in the specified buckets."
              " Buckets currently can be {'images', 'sounds'}."
              " Defaults to both.")
-@click.option('--continuous/--no-continuous', default=False,
-              help="Run derivatives continuously w/o exiting")
+@click.option('--procs', default=1,
+              help="How many processes should simultaneously work on derivatives")
 @click.argument('bucket', nargs=-1)
 @fnlogged
-def derivatives(continuous, bucket):
+def derivatives(procs, bucket):
     monkey.patch_all()
     from idigbio_ingestion.mediaing import derivatives
-    if continuous:
-        derivatives.continuous(bucket)
-    else:
-        derivatives.main(bucket)
+    derivatives.main(bucket, procs=procs)
 
 @cli.command(help="Generate derivatives for the specified etags", name="derive-etags")
 @click.argument('etags', nargs=-1)

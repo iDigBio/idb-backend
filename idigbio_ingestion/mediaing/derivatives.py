@@ -8,7 +8,6 @@ from datetime import datetime
 from collections import Counter, namedtuple
 import itertools
 
-import gevent
 from gevent.pool import Pool
 from PIL import Image
 from boto.exception import S3ResponseError, S3DataError
@@ -16,7 +15,6 @@ from boto.exception import S3ResponseError, S3DataError
 
 from idb.helpers import first, gipcpool, ilen, grouper
 from idb.helpers.memoize import memoized
-from idb import __version__
 from idb import config
 from idb.helpers.storage import IDigBioStorage
 from idb.postgres_backend import apidbpool, NamedTupleCursor
@@ -48,14 +46,6 @@ class BadImageError(Exception):
     def __init__(self, message, inner=None):
         self.message = message
         self.inner = inner
-
-
-def continuous(buckets):
-    "Continuously run the main loop, checking for derivatives"
-    logger.info("Starting up continuous operation, version: %s", __version__)
-    while True:
-        main(buckets)
-        gevent.sleep(600)  # 10 minutes
 
 
 def main(buckets, procs=4):
@@ -222,9 +212,7 @@ def upload_all(gr):
         return gr
     except S3ResponseError:
         logger.exception("%s failed uploading derivatives", gr.etag)
-    except KeyboardInterrupt:
-        raise
-    except:
+    except Exception:
         logger.exception("Unexpected error")
 
 def upload_item(item):

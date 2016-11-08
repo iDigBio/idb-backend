@@ -353,15 +353,15 @@ class FetchItem(object):
             k = mo.get_key(store)
             if k.exists():
                 logger.debug("NoUpload  %s etag %s, already present", self.url, mo.etag)
-                return self
-            try:
-                mo.upload(store, self.content)
-                logger.debug("Uploaded  %s etag %s", self.url, mo.etag)
-            except (BotoServerError, BotoClientError) as e:
-                logger.exception("Failed uploading to storage: %s", self.url)
-                self.reason = str(e)
-                self.status_code = Status.STORAGE_ERROR
-                return self
+            else:
+                try:
+                    mo.upload(store, self.content)
+                    logger.debug("Uploaded  %s etag %s", self.url, mo.etag)
+                except (BotoServerError, BotoClientError) as e:
+                    logger.exception("Failed uploading to storage: %s", self.url)
+                    self.reason = str(e)
+                    self.status_code = Status.STORAGE_ERROR
+                    return self
 
             with PostgresDB() as idbmodel:
                 # Don't need to ensure_media, we're processing

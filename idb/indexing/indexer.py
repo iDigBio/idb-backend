@@ -81,7 +81,7 @@ class ElasticSearchIndexer(object):
                 }
             })
 
-    def esMapping(self, t):
+    def esMapping(self, t, field_list):
         m = {
             "date_detection": False,
             "properties": {}

@@ -268,8 +268,10 @@ def score(t, d):
     return scorenum / maxscores[t]
 
 
-def getfield(f, d, t="text"):
+def getfield(f, d, t="text", return_field=False):
     fl = f.lower()
+    v = None
+    fld = None
     if fl in d:
         f = fl
     if f in d and d[f] is not None:
@@ -277,17 +279,27 @@ def getfield(f, d, t="text"):
             return [x.lower().strip() for x in d[f]]
         else:
             if isinstance(d[f], str) or isinstance(d[f], unicode):
-                return d[f].lower().strip()
+                v = d[f].lower().strip()
+                fld = f
             else:
-                return d[f]
+                v = d[f]
+                fld = f
+
+    if return_field:
+        return (v, fld)
     else:
-        return None
+        return v
 
 
 def verbatimGrabber(t, d):
     r = {}
+    data_fields = set()
     for f in fields[t]:
-        r[f[0]] = getfield(f[1], d, t=f[2])
+        r[f[0]], df = getfield(f[1], d, t=f[2], return_field=True)
+        data_fields.add(df)
+    for k in d:
+        if k not in data_fields:
+            r[k] = d[k]
     return r
 
 gfn = re.compile("([+-]?[0-9]+(?:[,][0-9]{3})*(?:[\.][0-9]*)?)")
@@ -647,11 +659,11 @@ def relationsGrabber(t, d):
         if t in PARENT_MAP:
             r["".join(PARENT_MAP[t][:-1])] = d["idigbio:parent"]
 
-    if t == "mediarecords":
-        r["hasSpecimen"] = "records" in r and r["records"] is not None
-    elif t == "records":
-        r["hasImage"] = "mediarecords" in r and r["mediarecords"] is not None
-        r["hasMedia"] = "mediarecords" in r and r["mediarecords"] is not None
+    # if t == "mediarecords":
+    #     r["hasSpecimen"] = "records" in r and r["records"] is not None
+    # elif t == "records":
+    #     r["hasImage"] = "mediarecords" in r and r["mediarecords"] is not None
+    #     r["hasMedia"] = "mediarecords" in r and r["mediarecords"] is not None
 
     return r
 
@@ -792,11 +804,11 @@ def geoshape_fill(t, d, r):
     return resp
 
 def collect_common_names(t, d):
+    cns = []
     if t == "records":
         dcn = d.get("dwc:vernacularName")
         vns = d.get("gbif:vernacularname", [])
 
-        cns = []
         if dcn is not None:
             cns.append(dcn)
 
@@ -804,6 +816,7 @@ def collect_common_names(t, d):
             if d.get("dwc:vernacularname") is not None:
                 cns.append(d.get("dwc:vernacularname"))
 
+    if len(cns) > 0:
         return {
             "commonnames": cns
         }
@@ -940,7 +953,7 @@ def grabAll(t, d):
     for k in d.keys():
         if k.startswith("flag_"):
             r["flags"].append("_".join(k.split("_")[1:]))
-    r["dqs"] = score(t, r)
+    # r["dqs"] = score(t, r)
 
     return r
 

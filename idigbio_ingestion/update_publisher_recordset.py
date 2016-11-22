@@ -107,7 +107,8 @@ def get_feed(rss_url):
     if feedtest.text is None:
         logger.error("Feed has no text. rss_url = %r", rss_url)
         return False
-    else return feedtest.text
+    else:
+        return feedtest.text
 
 
 def update_db_from_rss():

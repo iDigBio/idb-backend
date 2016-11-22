@@ -104,8 +104,8 @@ def get_feed(rss_url):
             logger.error("Specific reason: %s", e)
         return False
     # At this point we could have feedtest.text = None even though no exceptions raised above.  Why????
-    if feedtest.text is None:
-        logger.error("Feed has no text. rss_url = %r", rss_url)
+    if feedtest is None:
+        logger.error("Feed error on rss_url = %r", rss_url)
         return False
     else:
         return feedtest.text

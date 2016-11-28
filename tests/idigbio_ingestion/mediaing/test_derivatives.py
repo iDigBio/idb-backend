@@ -149,16 +149,6 @@ def test_resize(img, monkeypatch):
     assert derivatives.resize_image(img, 'foo')
 
 
-def test_check_all_existed(existing_CheckItem):
-    ci = derivatives.check_all(existing_CheckItem)
-    assert len(ci.keys) == 0
-
-
-def test_check_and_gen_nonexist(nonexisting_CheckItem):
-    ci = nonexisting_CheckItem
-    ci = derivatives.check_all(ci)
-    assert len(ci.keys) == 2
-
 def test_generate_all_empty(empty_CheckItem):
     gr = derivatives.generate_all(empty_CheckItem)
     assert gr.etag == empty_CheckItem.etag

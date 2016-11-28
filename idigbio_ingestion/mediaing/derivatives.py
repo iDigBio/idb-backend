@@ -10,7 +10,7 @@ import itertools
 
 from gevent.pool import Pool
 from PIL import Image
-from boto.exception import S3ResponseError, S3DataError
+from boto.exception import BotoServerError, BotoClientError, S3DataError
 
 
 from idb.helpers import first, gipcpool, ilen, grouper
@@ -79,7 +79,6 @@ def process_objects(objects):
 
     def one(o):
         ci = get_keys(o)
-        ci = check_all(ci)
         gr = generate_all(ci)
         return upload_all(gr)
     results = pool.imap_unordered(one, itertools.ifilter(None, objects))
@@ -153,18 +152,6 @@ def get_keys(obj):
     return CheckItem(etag, bucket, mediakey, keys)
 
 
-def check_key(k):
-    if k.exists():
-        logger.debug("%s: derivative exists", k)
-        return False
-    return True
-
-
-def check_all(item):
-    keys = filter(check_key, item.keys)
-    return CheckItem(item.etag, item.bucket, item.media, list(keys))
-
-
 def generate_all(item):
     if len(item.keys) == 0:
         return GenerateResult(item.etag, [])
@@ -173,7 +160,7 @@ def generate_all(item):
     try:
         buff = fetch_media(item.media)
         img = convert_media(item, buff)
-    except (S3ResponseError, S3DataError):
+    except (BotoServerError, BotoClientError):
         return None
     except BadImageError as bie:
         logger.error("%s: %s", item.etag, bie.message)
@@ -208,12 +195,13 @@ def upload_all(gr):
         return
     try:
         for item in gr.items:
-            upload_item(item)
+            IDigBioStorage.retry_loop(lambda: upload_item(item))
         return gr
-    except S3ResponseError:
+    except (BotoServerError, BotoClientError):
         logger.exception("%s failed uploading derivatives", gr.etag)
     except Exception:
-        logger.exception("Unexpected error")
+        logger.exception("%s Unexpected error", gr.etag)
+
 
 def upload_item(item):
     key = item.key
@@ -226,8 +214,9 @@ def upload_item(item):
     else:
         # no key exists check here, that was done in build_deriv
         logger.debug("%s uploading", key)
-        key.set_metadata('Content-Type', 'image/jpeg')
         key.set_contents_from_file(data)
+
+    key.set_metadata('Content-Type', 'image/jpeg')
     key.make_public()
 
 
@@ -258,11 +247,14 @@ def resize_image(img, deriv):
 def fetch_media(key):
     try:
         return IDigBioStorage.get_contents_to_mem(key, md5=key.name)
-    except S3ResponseError as e:
+    except BotoServerError as e:
         logger.error("%r failed downloading with %r %s %s", key, e.status, e.reason, key.name)
         raise
     except S3DataError as e:
         logger.error("%r failed downloading on md5 mismatch", key)
+        raise
+    except BotoClientError as e:
+        logger.exception("%r failed downloading because...")
         raise
 
 def convert_media(item, buff):

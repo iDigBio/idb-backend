@@ -34,11 +34,11 @@ class Waveform(object):
             for i in range(self.bar_count)
         ]
 
-        max_rms = max(loudness_of_chunks) * 1.00
+        max_rms = max(loudness_of_chunks)
         if max_rms == 0:
             return [0] * len(loudness_of_chunks)
 
-        return [int((loudness // max_rms) * self.db_ceiling)
+        return [int((loudness / max_rms) * self.db_ceiling)
                 for loudness in loudness_of_chunks]
 
     def _get_bar_image(self, size, fill):
@@ -63,10 +63,10 @@ class Waveform(object):
         for index, value in enumerate(self.peaks, start=0):
             column = index * 8 + 2
             upper_endpoint = 64 - value
-
-            im.paste(
-                self._get_bar_image(
-                    (4, value * 2), '#424242'), (column, upper_endpoint))
+            if value > 0:
+                im.paste(
+                    self._get_bar_image(
+                        (4, max(1, value * 2)), '#424242'), (column, upper_endpoint))
 
         draw = ImageDraw.Draw(im)
         font = ImageFont.truetype(FONT_FILE, 16)

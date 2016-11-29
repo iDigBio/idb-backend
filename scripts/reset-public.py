@@ -91,8 +91,10 @@ def keyfn(obj):
     k = conn.Object(bucket, etag)
     try:
         if mime and not check_mime(k, mime):
+            logger.debug("Fixing %s, ACL, mime", k)
             k.put(ACL="public-read", ContentType=mime)
         elif not check_pub(k):
+            logger.debug("Fixing %s, ACL", k)
             k.put(ACL="public-read")
 
     except botocore.exceptions.ClientError as ce:
@@ -107,6 +109,7 @@ def keyfn(obj):
         try:
             mime = 'image/jpeg'
             if not (check_mime(k, mime) and check_pub(k)):
+                logger.debug("Fixing %s, ACL, mime", k)
                 k.put(ACL="public-read", ContentType=mime)
         except botocore.exceptions.ClientError as ce:
             if ce.response['Error']['Code'] == "404":

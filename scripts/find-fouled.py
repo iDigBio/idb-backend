@@ -1,12 +1,9 @@
-"""This script is trying to fixup errors where images weren't properly marked public
+"""This script is trying to find(and fix some of) errors made by ./reset-public.py
 
-This happened b/c sometimes there was an error in between uploading it
-and making it public in the derivatives script.
-
-While we're workin on it we were trying to update the mime type, but
-the k.put request ended up erasing the objects!!!
-
-THIS SCRIPT IS CURRENTLY BROKEN (noop)
+That script accidently overwrote object contents while trying to
+adjust metadata. we know the set of objects it was working with, so go
+through those and see which ones are missing; if we can restore it
+from the fullsize bucket then do so.
 
 """
 from __future__ import division, absolute_import, print_function
@@ -18,6 +15,7 @@ monkey.patch_all()
 from datetime import datetime
 import time
 import cPickle
+import json
 import atexit
 import logging
 
@@ -44,40 +42,27 @@ def s3connection():
 
 
 def process_keys(fn, keylist, poolsize=20):
-    workqueue = queue.Queue(items=keylist)
-    successful, failed = queue.Queue(), queue.Queue()
 
     def wkfn(k):
         retries = 3
         attempt = 1
         while True:
             try:
-                successful.put((k, fn(k)))
-                return
+                return (k, fn(k))
             except botocore.exceptions.ClientError as ce:
                 logger.exception("Failed operation on storage, attempt %s/%s", attempt, retries)
                 attempt += 1
                 if attempt > retries:
-                    failed.put((k, ce))
+                    return (k, ce)
                 time.sleep(2 ** (attempt + 1))
+            except (DestroyedObjectError, MissingOriginalError) as doe:
+                return (k, doe)
             except Exception as e:
                 logger.exception("Unexpected exception handling %s", k)
-                failed.put((k, e))
-
-    def worker():
-        while not workqueue.empty():
-            wkfn(workqueue.get())
+                return (k, e)
 
     p = pool.Pool(poolsize)
-    while not p.full():
-        p.spawn(worker)
-
-    def waiter():
-        p.join()
-        successful.put(StopIteration)
-        failed.put(StopIteration)
-    gevent.spawn(waiter)
-    return successful, failed
+    return p.imap_unordered(wkfn, keylist)
 
 
 PUBLIC_READ = {u'Grantee': {u'Type': 'Group',
@@ -94,6 +79,9 @@ def check_pub(k):
 class MissingOriginalError(Exception):
     pass
 
+class DestroyedObjectError(Exception):
+    pass
+
 def keyfn(obj):
     bucket, etag, mime = obj
     bucket = 'idigbio-' + bucket + '-prod'
@@ -101,37 +89,25 @@ def keyfn(obj):
 
     k = conn.Object(bucket, etag)
     try:
-        if mime and not check_mime(k, mime):
-            logger.debug("Fixing %s, ACL, mime", k)
-#            k.put(ACL="public-read", ContentType=mime)
-        elif not check_pub(k):
-            logger.debug("Fixing %s, ACL", k)
-#            k.put(ACL="public-read")
-
+        k.load()
     except botocore.exceptions.ClientError as ce:
         if ce.response['Error']['Code'] == "404":
-            logger.error("Missing %s alltogether!", k)
             raise MissingOriginalError()
-        else:
-            raise
-
-    for ext in ['webview', 'thumbnail', 'fullsize']:
-        k = conn.Object(bucket + '-' + ext, etag + '.jpg')
+    if k.content_length == 0:
+        fullk = conn.Object(bucket + '-fullsize', etag + '.jpg')
         try:
-            mime = 'image/jpeg'
-            if not (check_mime(k, mime) and check_pub(k)):
-                logger.debug("Fixing %s, ACL, mime", k)
-#                k.put(ACL="public-read", ContentType=mime)
+            fullk.load()
         except botocore.exceptions.ClientError as ce:
-            if ce.response['Error']['Code'] == "404":
-                logger.warn("NoDeriv %s", k)
-                apidbpool.execute(
-                    "UPDATE objects SET derivatives=false WHERE etag LIKE %s", (etag,))
-                return True  # derivatives will redo this entire etag and fix it up.
-            else:
-                raise
+            raise DestroyedObjectError()
+        if fullk.content_length == 0:
+            raise DestroyedObjectError()
+        if mime == 'image/jpeg' or fullk.e_tag == '"{0}"'.format(etag):
+            src = fullk.bucket_name + '/' + fullk.key
+            k.copy_from(ACL='public-read', ContentType='image/jpeg', CopySource=src)
+            logger.debug("Restored %s from fullsize", etag)
+            return True
+        raise DestroyedObjectError()
     return True
-
 
 def filecached(filename):
     def writecache(value):
@@ -156,8 +132,7 @@ def filecached(filename):
     return getfn
 
 
-@filecached('/tmp/checkitems.picklecache')
-def getitems():
+def allitems():
     sql = """SELECT objects.bucket, objects.etag, objects.detected_mime as mime
              FROM objects
              JOIN media_objects USING (etag)
@@ -166,23 +141,42 @@ def getitems():
     """
     return set(apidbpool.fetchall(sql, cursor_factory=cursor))
 
+def untoucheditems():
+    with open("/tmp/checkitems.picklecache", 'rb') as f:
+        return cPickle.load(f)
+
+@filecached('/tmp/possiblyfouled.picklecache')
+def possiblyfouled():
+    return allitems() - untoucheditems()
+
+# @filecached('/tmp/checkitems.picklecache')
+# def getitems():
+#     sql = """SELECT objects.bucket, objects.etag, objects.detected_mime as mime
+#              FROM objects
+#              JOIN media_objects USING (etag)
+#              WHERE media_objects.modified > '2016-08-01'
+#                AND derivatives = true
+#     """
+#     return set(apidbpool.fetchall(sql, cursor_factory=cursor))
+
 def kickstart():
-    itemset = getitems()
+    itemset = possiblyfouled()
     logger.info("Found %s records to check", len(itemset))
     start = datetime.now()
-    successful, failed = process_keys(keyfn, itemset)
-    count = 0
-    for (k, result) in successful:
+    count, fixed = 0, 0
+    for (k, result) in process_keys(keyfn, list(itemset)):
         count += 1
-        itemset.remove(k)
+        if result is True:
+            fixed += 1
+            itemset.remove(k)
         if count % 100 == 0:
             rate = count / max([(datetime.now() - start).total_seconds(), 1])
             remaining = len(itemset) / rate
-            logger.info("Processed %d records at %4.1f/s; %6.1fs remaining",
-                        count, rate, remaining)
+            logger.info("Fixed %d of %d records at %4.1f/s; %6.1fs remaining",
+                        fixed, count, rate, remaining)
 
-    for (k, err) in failed:
-        logger.info("%r failed with %r", k, err)
+    with open('/home/nbird/projects/idigbio/definitely-fouled.json', 'wb') as f:
+        json.dump(list(itemset))
 
 
 if __name__ == '__main__':

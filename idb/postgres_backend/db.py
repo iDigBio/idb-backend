@@ -700,6 +700,8 @@ class MediaObject(object):
     def upload(self, media_store, fobj, force=False):
         k = self.get_key(media_store)
         if force or not k.exists():
+            if self.detected_mime:
+                k.set_metadata('Content-Type', self.detected_mime)
             try:
                 fobj.seek(0)
                 k.set_contents_from_file(fobj, md5=k.get_md5_from_hexdigest(self.etag))

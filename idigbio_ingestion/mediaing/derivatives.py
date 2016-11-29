@@ -214,8 +214,8 @@ def upload_item(item):
     else:
         # no key exists check here, that was done in build_deriv
         logger.debug("%s uploading", key)
-        key.set_contents_from_file(data)
         key.set_metadata('Content-Type', 'image/jpeg')
+        key.set_contents_from_file(data)
     key.make_public()
 
 

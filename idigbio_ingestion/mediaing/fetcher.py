@@ -351,7 +351,8 @@ class FetchItem(object):
         try:
             mo = self.media_object
             k = mo.get_key(store)
-            if k.exists():
+
+            if k.exists() and k.read() and k.etag == '"{0}"'.format(mo.etag):
                 logger.debug("NoUpload  %s etag %s, already present", self.url, mo.etag)
             else:
                 try:

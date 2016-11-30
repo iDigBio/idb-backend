@@ -101,7 +101,7 @@ def keyfn(obj):
             return "gone"
         if fullk.content_length == 0:
             return "gone"
-        if mime == 'image/jpeg' or fullk.e_tag == '"{0}"'.format(etag):
+        if fullk.e_tag == '"{0}"'.format(etag):
             src = fullk.bucket_name + '/' + fullk.key
             k.copy_from(ACL='public-read', ContentType='image/jpeg', CopySource=src)
             logger.debug("Restored %s from fullsize", etag)
@@ -147,10 +147,12 @@ def allitems():
     """
     return set(apidbpool.fetchall(sql, cursor_factory=cursor))
 
+
 def untoucheditems():
     "These are the items we never touched in the original bad script"
-    with open("/home/nbird/projects/idigbio/untouched.picklecache", 'rb') as f:
+    with open("/root/untouched.picklecache", 'rb') as f:
         return cPickle.load(f)
+
 
 @filecached('/tmp/possiblyfouled.picklecache')
 def possiblyfouled():
@@ -172,7 +174,7 @@ def kickstart():
     time.sleep(3)
     start = datetime.now()
     results = Counter()
-    count, fine, rederive = 0, 0
+    count = 0
     for (k, result) in process_keys(keyfn, list(itemset)):
         count += 1
         results[result] += 1
@@ -186,12 +188,12 @@ def kickstart():
 
     logger.info("Checked %d records;  %r", count, results)
 
-    with open('/home/nbird/projects/idigbio/definitely-fouled.json', 'wb') as f:
+    with open('/root/definitely-fouled.json', 'wb') as f:
         json.dump(list(itemset), f)
 
 
 if __name__ == '__main__':
-    configure_app_log(2)
+    configure_app_log(2, journal=True)
     logging.getLogger('boto3.resources.action').setLevel(25)
     logging.getLogger('botocore').setLevel(20)
     logging.getLogger('boto3').setLevel(20)

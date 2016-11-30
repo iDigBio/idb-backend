@@ -2,6 +2,7 @@ from __future__ import division, absolute_import
 from __future__ import print_function
 
 from functools import wraps
+import cPickle
 
 def _memoize_0args(fn):
     "A memoizer for a no arg function; only need a single cell storage"
@@ -86,4 +87,28 @@ def memoized(unhashable="cPickle"):
         else:
             memo.__doc__
         return memo
+    return getfn
+
+
+def filecached(filename, writeback=True):
+    "Cache (with pickle) the results of wrapped fn in a file"
+    def writecache(value):
+        with open(filename, 'wb') as f:
+            cPickle.dump(value, f)
+
+    def getfn(fn):
+        @wraps(fn)
+        def thunk(*args, **kwargs):
+            val = None
+            try:
+                with open(filename, 'rb') as f:
+                    val = cPickle.load(f)
+            except (IOError, EOFError):
+                val = fn(*args, **kwargs)
+                writecache(val)
+            if writeback:
+                import atexit
+                atexit.register(writecache, val)
+            return val
+        return thunk
     return getfn

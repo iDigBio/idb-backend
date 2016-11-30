@@ -12,13 +12,13 @@ import gevent
 from gevent import monkey, pool, queue
 monkey.patch_all()
 
-from datetime import datetime
 import time
 import cPickle
 import json
 import atexit
 import logging
-
+from datetime import datetime
+from collections import Counter
 from functools import wraps
 
 import boto3
@@ -98,16 +98,22 @@ def keyfn(obj):
         try:
             fullk.load()
         except botocore.exceptions.ClientError as ce:
-            raise DestroyedObjectError()
+            return "gone"
         if fullk.content_length == 0:
-            raise DestroyedObjectError()
+            return "gone"
         if mime == 'image/jpeg' or fullk.e_tag == '"{0}"'.format(etag):
             src = fullk.bucket_name + '/' + fullk.key
             k.copy_from(ACL='public-read', ContentType='image/jpeg', CopySource=src)
             logger.debug("Restored %s from fullsize", etag)
-            return True
-        raise DestroyedObjectError()
-    return True
+        else:
+            return "gone"
+
+    for ext in ['webview', 'thumbnail', 'fullsize']:
+        k = conn.Object(bucket + '-' + ext, etag + '.jpg')
+        if k.content_length == 0:
+            apidbpool.execute("UPDATE objects SET derivatives=false WHERE etag LIKE %s", (etag,))
+            return "rederive"
+    return "fine"
 
 def filecached(filename):
     def writecache(value):
@@ -142,7 +148,8 @@ def allitems():
     return set(apidbpool.fetchall(sql, cursor_factory=cursor))
 
 def untoucheditems():
-    with open("/tmp/checkitems.picklecache", 'rb') as f:
+    "These are the items we never touched in the original bad script"
+    with open("/home/nbird/projects/idigbio/untouched.picklecache", 'rb') as f:
         return cPickle.load(f)
 
 @filecached('/tmp/possiblyfouled.picklecache')
@@ -162,21 +169,25 @@ def possiblyfouled():
 def kickstart():
     itemset = possiblyfouled()
     logger.info("Found %s records to check", len(itemset))
+    time.sleep(3)
     start = datetime.now()
-    count, fixed = 0, 0
+    results = Counter()
+    count, fine, rederive = 0, 0
     for (k, result) in process_keys(keyfn, list(itemset)):
         count += 1
-        if result is True:
-            fixed += 1
+        results[result] += 1
+        if result == "fine" or result == "rederive":
             itemset.remove(k)
         if count % 100 == 0:
             rate = count / max([(datetime.now() - start).total_seconds(), 1])
             remaining = len(itemset) / rate
-            logger.info("Fixed %d of %d records at %4.1f/s; %6.1fs remaining",
-                        fixed, count, rate, remaining)
+            logger.info("Checked %d records at %4.1f/s; %6.1fs remaining; gone:%s, rederive:%s",
+                        count, rate, remaining, results["gone"], results["rederive"])
+
+    logger.info("Checked %d records;  %r", count, results)
 
     with open('/home/nbird/projects/idigbio/definitely-fouled.json', 'wb') as f:
-        json.dump(list(itemset))
+        json.dump(list(itemset), f)
 
 
 if __name__ == '__main__':

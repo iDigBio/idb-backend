@@ -3,6 +3,9 @@ from __future__ import print_function
 
 from functools import wraps
 import cPickle
+from idb.helpers.logging import getLogger
+
+logger = getLogger('memoize')
 
 def _memoize_0args(fn):
     "A memoizer for a no arg function; only need a single cell storage"
@@ -93,6 +96,7 @@ def memoized(unhashable="cPickle"):
 def filecached(filename, writeback=True):
     "Cache (with pickle) the results of wrapped fn in a file"
     def writecache(value):
+        logger.debug("Writing cache to %r", filename)
         with open(filename, 'wb') as f:
             cPickle.dump(value, f)
 
@@ -103,6 +107,7 @@ def filecached(filename, writeback=True):
             try:
                 with open(filename, 'rb') as f:
                     val = cPickle.load(f)
+                    logger.debug("read cache from %r", filename)
             except (IOError, EOFError):
                 val = fn(*args, **kwargs)
                 writecache(val)

@@ -4,6 +4,7 @@ from __future__ import print_function
 from functools import wraps
 import cPickle
 from idb.helpers.logging import getLogger
+from atomicfile import AtomicFile
 
 logger = getLogger('memoize')
 
@@ -97,7 +98,7 @@ def filecached(filename, writeback=True):
     "Cache (with pickle) the results of wrapped fn in a file"
     def writecache(value):
         logger.debug("Writing cache to %r", filename)
-        with open(filename, 'wb') as f:
+        with AtomicFile(filename, 'wb') as f:
             cPickle.dump(value, f)
 
     def getfn(fn):

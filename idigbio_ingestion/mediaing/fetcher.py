@@ -356,7 +356,7 @@ class FetchItem(object):
                 logger.debug("NoUpload  %s etag %s, already present", self.url, mo.etag)
             else:
                 try:
-                    mo.upload(store, self.content)
+                    mo.upload(store, self.content, force=True)
                     logger.debug("Uploaded  %s etag %s", self.url, mo.etag)
                 except (BotoServerError, BotoClientError) as e:
                     logger.exception("Failed uploading to storage: %s", self.url)

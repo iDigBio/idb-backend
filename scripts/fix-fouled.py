@@ -73,8 +73,6 @@ def geturls(etag):
 
 def keyfn(obj):
     bucket, etag, mime = obj
-    if mime is None:
-        return "nomime"
 
     sql = """SELECT DISTINCT url
              FROM media_objects

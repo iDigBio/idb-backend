@@ -73,11 +73,7 @@ def geturls(etag):
 
 def keyfn(obj):
     bucket, etag, mime = obj
-
-    sql = """SELECT DISTINCT url
-             FROM media_objects
-             WHERE etag LIKE %s"""
-    urls = set(u[0] for u in apidbpool.fetchall(sql, (etag,), cursor_factory=cursor))
+    urls = geturls(etag)
     for url in urls:
         fi = FetchItem(url, bucket, mime)
         if not fi.prefix:
@@ -125,6 +121,19 @@ def kickstart():
                         count, rate, remaining, results["downloaded"], results["nomime"], results["novalidurl"])
 
     logger.info("Checked %d records;  %r", count, results)
+
+
+def delete_remaining_zeros(fouled):
+    conn = s3connection()
+    for bucket, etag, mime in fouled:
+        k = conn.Object('idigbio-{0}-prod'.format(bucket), etag)
+        k.delete()
+        for typ in ['thumbnail', 'webview', 'fullsize']:
+            k = conn.Object('idigbio-{0}-prod-{1}'.format(bucket, typ), etag + '.jpg')
+            if k.content_length == 0:
+                k.delete()
+        apidbpool.execute("UPDATE objects SET derivatives=false WHERE etag LIKE %s", (etag,))
+
 
 
 if __name__ == '__main__':

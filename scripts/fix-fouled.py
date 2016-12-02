@@ -135,7 +135,6 @@ def delete_remaining_zeros(fouled):
         apidbpool.execute("UPDATE objects SET derivatives=false WHERE etag LIKE %s", (etag,))
 
 
-
 if __name__ == '__main__':
     configure_app_log(2, journal='auto')
     logging.getLogger('boto3.resources.action').setLevel(25)

@@ -94,6 +94,8 @@ def memoized(unhashable="cPickle"):
     return getfn
 
 
+atexithandlers = set([])
+
 def filecached(filename, writeback=True):
     "Cache (with pickle) the results of wrapped fn in a file"
     def writecache(value):
@@ -112,9 +114,10 @@ def filecached(filename, writeback=True):
             except (IOError, EOFError):
                 val = fn(*args, **kwargs)
                 writecache(val)
-            if writeback:
+            if writeback and filename not in atexithandlers:
                 import atexit
                 atexit.register(writecache, val)
+                atexithandlers.add(filename)
             return val
         return thunk
     return getfn

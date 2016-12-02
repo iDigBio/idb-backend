@@ -4,6 +4,7 @@ from idb.helpers.logging import getLogger, configure_app_log
 from idb.helpers.storage import IDigBioStorage
 from idb.helpers.media_validation import sniff_mime
 from idb.helpers.memoize import filecached
+import hashlib
 
 logger = getLogger("restore")
 store = IDigBioStorage()
@@ -11,7 +12,11 @@ store = IDigBioStorage()
 
 def get_object_from_backup(etag):
     "need to return a buffer that is the contents of the object that should be in `idigbio-images-prod/$etag`"
-    pass
+    obj = open('reestores/' + etag, 'rb').read()
+    md5 = hashlib.md5()
+    md5.update(obj)
+    assert etag == md5.hexdigest()
+    return obj
 
 
 @filecached("/tmp/restore-from-backup.picklecache")
@@ -57,22 +62,27 @@ def get_fouled():
             (u'images', u'fc0f15eef1a7cc33f8c9b4a695f6df36', u'image/jpeg')}
 
 
+def restore_one(f):
+    bucket, etag, mime = f
+    try:
+        logger.debug("%s attempting restore", etag)
+        contents = get_object_from_backup(etag)
+        k = store.get_key(etag, 'idigbio-images-prod')
+        if mime is None:
+            mime = sniff_mime(contents)
+            logger.debug("%s detected mime of %s", etag, mime)
+        k.set_metadata('Content-Type', mime)
+        k.set_contents_from_string(contents, policy='public-read')
+        logger.info("%s successfully restored", etag)
+        return True
+    except Exception:
+        logger.exception("%s failed", etag)
+        return False
+
 def restore_all(fouled):
     for f in list(fouled):
-        bucket, etag, mime = f
-        try:
-            logger.debug("%s attempting restore", etag)
-            contents = get_object_from_backup(etag)
-            k = store.get_key(etag, 'idigbio-images-prod')
-            if mime is None:
-                mime = sniff_mime(mime)
-                logger.debug("%s detected mime of %s", etag, mime)
-            k.set_metadata('Content-Type', mime)
-            k.set_contents_from_string(contents, policy='public-read')
-            logger.info("%s successfully restored", etag)
+        if restore_one(f):
             fouled.remove(f)
-        except Exception:
-            logger.exception("%s failed", etag)
     return fouled
 
 

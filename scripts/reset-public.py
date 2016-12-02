@@ -139,20 +139,22 @@ def kickstart():
     start = datetime.now()
     results = Counter()
     count = 0
-    for k, result in process_keys(keyfn, list(itemset)):
-        count += 1
-        if result is Status.ok or result is Status.rederive:
-            itemset.remove(k)
-        elif isinstance(result, Exception):
-            raise result
-        results[result] += 1
-        if count % 100 == 0:
-            rate = count / max([(datetime.now() - start).total_seconds(), 1])
-            remaining = len(itemset) / rate
-            logger.info("Processed %d records at %4.1f/s; %6.1fs remaining",
-                        count, rate, remaining)
+    try:
+        for k, result in process_keys(keyfn, list(itemset)):
+            count += 1
+            if result is Status.ok or result is Status.rederive:
+                itemset.remove(k)
+            elif isinstance(result, Exception):
+                raise result
+            results[result] += 1
+            if count % 100 == 0:
+                rate = count / max([(datetime.now() - start).total_seconds(), 1])
+                remaining = len(itemset) / rate
+                logger.info("Processed %d records at %4.1f/s; %6.1fs remaining",
+                            count, rate, remaining)
+    finally:
+        logger.info("Finished %d records, %r", count, results)
 
-    logger.info("Finished %d records, %r", count, results)
 
 
 if __name__ == '__main__':

@@ -10,6 +10,12 @@ trying deeper levels of repair. This includes:
  * Can we redownload from the original source?
  * Do we need to redo derivates
 
+
+systemd-run --unit=fixup-objects --service-type=oneshot \
+    --description "Checking metadata and health of objects" \
+    --no-block --remain-after-exit \
+    --property KillSignal=SIGINT \
+    python /root/idb-backend/scripts/fixup-objects.py
 """
 from __future__ import division, absolute_import, print_function
 

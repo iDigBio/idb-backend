@@ -149,13 +149,13 @@ def check_key(k, mime=None, etag=None):
             return Status.etagmismatch
 
         if mime and k.content_type != mime:
-            logger.debug("%s/%s, Fixing ACL+Mime", k.bucket_name, k.key)
+            logger.debug("%s/%s Fixing ACL+Mime", k.bucket_name, k.key)
             cs = "{0}/{1}".format(k.bucket_name, k.key)
             k.copy_from(CopySource=cs, ACL='public-read',
                         ContentType=mime, MetadataDirective="REPLACE")
 
         elif PUBLIC_READ not in k.Acl().grants:
-            logger.debug("%s/%s, Fixing ACL", k.bucket_name, k.key)
+            logger.debug("%s/%s Fixing ACL", k.bucket_name, k.key)
             k.Acl().put(ACL="public-read")
 
         return Status.ok

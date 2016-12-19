@@ -1,10 +1,9 @@
 [Unit]
-Description="15minute timer for idb api-stats"
+Description="Daily timer for idb api-stats"
 
 [Timer]
-OnBootSec=5min
-OnUnitInactiveSec=15min
-RandomizedDelaySec=1m
+OnCalendar=*-*-* 21:00:00
+
 
 [Install]
 WantedBy=timers.target

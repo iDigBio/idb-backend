@@ -79,7 +79,7 @@ class IDigBioStorage(object):
         if size > self.MAX_CHUNK_SIZE:
             self._upload_multipart(k, file_name, size)
         else:
-            self._upload_loop(lambda: k.set_contents_from_filename(file_name))
+            self.retry_loop(lambda: k.set_contents_from_filename(file_name))
         k.make_public()
         return k
 
@@ -98,19 +98,20 @@ class IDigBioStorage(object):
                         fp=fp, part_num=i + 1, size=min([self.MAX_CHUNK_SIZE, remaining]))
 
             for i in range(chunk_count):
-                self._upload_loop(lambda: onepart(i))
+                self.retry_loop(lambda: onepart(i))
             mp.complete_upload()
         except Exception:
             mp.cancel_upload()
             raise
 
-    def _upload_loop(self, attemptfn, retries=3):
+    @staticmethod
+    def retry_loop(attemptfn, retries=3):
         attempt = 1
         while True:
             try:
                 return attemptfn()
             except (BotoServerError, BotoClientError):
-                logger.exception("Failed uploading to storage, attempt %s/%s", attempt, retries)
+                logger.exception("Failed operation on storage, attempt %s/%s", attempt, retries)
                 attempt += 1
                 if attempt > retries:
                     raise

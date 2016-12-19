@@ -2,6 +2,11 @@ from __future__ import division, absolute_import
 from __future__ import print_function
 
 from functools import wraps
+import cPickle
+from idb.helpers.logging import getLogger
+from atomicfile import AtomicFile
+
+logger = getLogger('memoize')
 
 def _memoize_0args(fn):
     "A memoizer for a no arg function; only need a single cell storage"
@@ -86,4 +91,33 @@ def memoized(unhashable="cPickle"):
         else:
             memo.__doc__
         return memo
+    return getfn
+
+
+atexithandlers = set([])
+
+def filecached(filename, writeback=True):
+    "Cache (with pickle) the results of wrapped fn in a file"
+    def writecache(value):
+        logger.debug("Writing cache to %r", filename)
+        with AtomicFile(filename, 'wb') as f:
+            cPickle.dump(value, f)
+
+    def getfn(fn):
+        @wraps(fn)
+        def thunk(*args, **kwargs):
+            val = None
+            try:
+                with open(filename, 'rb') as f:
+                    val = cPickle.load(f)
+                    logger.debug("read cache from %r", filename)
+            except (IOError, EOFError):
+                val = fn(*args, **kwargs)
+                writecache(val)
+            if writeback and filename not in atexithandlers:
+                import atexit
+                atexit.register(writecache, val)
+                atexithandlers.add(filename)
+            return val
+        return thunk
     return getfn

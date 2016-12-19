@@ -64,7 +64,7 @@ def configure_app_log(verbose, logfile=None, journal=False):
         add_file_handler(filename=logfile, level=lvls.get(verbose + 1, logging.INFO))
 
     logging_level = lvls.get(verbose, logging.DEBUG)
-    if journal:
+    if journal is True or (journal == 'auto' and not os.isatty(sys.stderr.fileno())):
         add_stderr_journal_handler(level=logging_level)
     else:
         add_stderr_handler(level=logging_level)

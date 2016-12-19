@@ -94,7 +94,10 @@ def get_feed(rss_url):
         feedtest = requests.get(rss_url, timeout=10)
         feedtest.raise_for_status()
     except requests.exceptions.SSLError:
-        # Ignore urllib3 SSL issues on this quick check
+        # Ignore urllib3 SSL issues on this check?
+        # Most of the time, SSL issues are simply certificate errors at the provider side and we feel ok skipping.
+        #
+        # However, "special" kinds of server errors such as documented in redmine #2114 get skipped if we do nothing, hence the extra check below.
         pass
     except Exception as e:
         logger.error("Failed to read %r; reason: %s",
@@ -103,7 +106,12 @@ def get_feed(rss_url):
         if feedtest is None:
             logger.error("Specific reason: %s", e)
         return False
-    return feedtest.text
+    # At this point we could have feedtest = None coming out of the SSLError exception above. 
+    if feedtest is None:
+        logger.error("Feed error on rss_url = %r", rss_url)
+        return False
+    else:
+        return feedtest.text
 
 
 def update_db_from_rss():

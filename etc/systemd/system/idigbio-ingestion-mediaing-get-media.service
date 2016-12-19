@@ -5,7 +5,7 @@ Description=iDigBio mediaing fetcher
 Type=simple
 Environment=LANG=en_US.UTF-8
 ExecStart=/usr/local/bin/idigbio-ingestion \
-    -vv --logfile=mediaing-get-media.log --journal \
+    -vv --journal \
     mediaing get-media --continuous
 
 RestartSec=5min

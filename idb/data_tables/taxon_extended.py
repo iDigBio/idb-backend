@@ -3,7 +3,10 @@ import json
 def get_data():
     with open("taxon_kv.txt") as tkvf:
         for l in tkvf:
-            k, v = json.loads(l)
+            # There could be 2 or more elements of o, so we cant to a simple assignment
+            o = json.loads(l)
+            k = o[0]
+            v = o[1]
             # correction_value = {
             #     "gbif:canonicalName": v["dwc:scientifcName"],
             #     "dwc:taxonomicStatus": v["dwc:taxonomicStatus"],

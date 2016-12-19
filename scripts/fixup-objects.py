@@ -11,9 +11,9 @@ trying deeper levels of repair. This includes:
  * Do we need to redo derivates
 
 
-systemd-run --unit=fixup-objects --service-type=oneshot \
+systemd-run --unit=fixup-objects  \
     --description "Checking metadata and health of objects" \
-    --no-block --remain-after-exit \
+    --no-block \
     --property KillSignal=SIGINT \
     python /root/idb-backend/scripts/fixup-objects.py
 """

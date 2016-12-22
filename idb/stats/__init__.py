@@ -6,7 +6,7 @@ import click
 from idb.clibase import cli
 from idb.helpers.logging import fnlogged
 
-indexName = "stats-2.5.0"
+indexName = "stats"
 typeName = "search"
 
 

@@ -1,12 +1,19 @@
 import sys
 import traceback
+from idb.helpers.logging import getLogger, configure_app_log
+
+configure_app_log(2, journal='auto')
+logger = getLogger("stats-rewrite")
+
 import datetime
+import time
 
 from elasticsearch.helpers import expand_action, scan, bulk
-from elasticsearch.exceptions import ConnectionTimeout
+from elasticsearch.exceptions import ConnectionTimeout, ConnectionError
 from elasticsearch import Elasticsearch
 from collections import Counter
 import json
+
 
 from elasticsearch.helpers import reindex
 
@@ -36,7 +43,7 @@ def resume_reindex(client, source_index, target_index, query=None, target_client
     """
     target_client = client if target_client is None else target_client
 
-    print "Building skip list"
+    logger.info("Building skip list")
     target_docs = set()
     for h in scan(
         target_client,
@@ -50,12 +57,24 @@ def resume_reindex(client, source_index, target_index, query=None, target_client
         size=5000
     ):
         target_docs.add(h['_id'])
-    print "Skip list build: {} docs".format(len(target_docs))
+    logger.info("Skip list build: {} docs".format(len(target_docs)))    
 
-    base_num = 16
+    base_num = 0
+    end_num = 48
+
+    try:
+        with open("numbers.txt","r") as inf:
+            base_num, end_num = inf.read().split(",")
+    except Exception:
+        pass
+    logger.info("Start: {}, End: {}".format(base_num, end_num))
+
     base_query = query["query"]
     # A successful index returns out of this function.
-    dates = [datetime.date(*(2016-int(i/12),12 - i%12, 1)) for i in range(base_num, 18)]
+
+    #dates = [datetime.date(*(2017-int(i/12),12 - i%12, 1)) for i in range(base_num, end_num)]
+    base = datetime.datetime.today()
+    dates = [base - datetime.timedelta(days=x*30) for x in range(base_num, end_num)]
     for i, d in enumerate(dates[:-1]):
         try:
             query = {
@@ -75,31 +94,54 @@ def resume_reindex(client, source_index, target_index, query=None, target_client
                     }
                 }
             }
-            print base_num + i, query
+            logger.debug(", ".join([str(base_num + i), json.dumps(query)]))
             docs = scan(client, query=query, index=source_index, scroll=scroll, **scan_kwargs)
             stats = Counter()
-            def _change_doc_index(hits, index):
-                for h in hits:
-                    stats["docs"] += 1
-                    if h["_id"] in target_docs:
-                        stats["skip"] += 1
-                    else:
-                        h['_index'] = index
-                        stats["done"] += 1
+            # def _change_doc_index(hits, index):
+            #     for h in hits:
+            #         stats["docs"] += 1
+            #         if h["_id"] in target_docs:
+            #             stats["skip"] += 1
+            #         else:
+            #             h['_index'] = index
+            #             stats["done"] += 1
 
-                        yield h
-                        target_docs.add(h["_id"])
+            #             yield h
+            #             target_docs.add(h["_id"])
 
-                    if stats["docs"] % 10000 == 0:
-                        print stats.most_common()
+            #         if stats["docs"] % 10000 == 0:
+            #             print stats.most_common()
 
 
-            bulk(target_client, _change_doc_index(docs, target_index),
-                chunk_size=chunk_size, stats_only=True, **bulk_kwargs)
-            print stats.most_common()
-            print base_num + i, "Done"
-        except ConnectionTimeout:
-            print "Timeout in {}, continuing".format(d)
+            # bulk(target_client, _change_doc_index(docs, target_index),
+            #     chunk_size=chunk_size, stats_only=True, **bulk_kwargs)
+
+            for h in docs:
+                stats["docs"] += 1
+                if h["_id"] in target_docs:
+                    stats["skip"] += 1
+                else:
+                    print h
+                    target_client.index(index=target_index,doc_type=h["_type"],body=h["_source"])                    
+                    stats["done"] += 1
+                    target_docs.add(h["_id"])
+
+                if stats["docs"] % 10000 == 0:
+                    print stats.most_common()                    
+
+
+            logger.info(stats.most_common())
+            logger.info(base_num + i, "Done")
+            try:
+                with open("numbers.txt","w") as inf:
+                    inf.write("{},{}".format(base_num+1,end_num))
+            except Exception:
+                logger.excetion("Error writing skip file.")
+                pass
+        except (ConnectionTimeout,) as e:
+            logger.exception("Timeout or Error in {}, continuing in 10 seconds".format(d))
+            time.sleep(10)
+
 
 
 es = Elasticsearch([
@@ -108,7 +150,7 @@ es = Elasticsearch([
     "c18node10.acis.ufl.edu",
     "c18node12.acis.ufl.edu",
     "c18node14.acis.ufl.edu"
-], sniff_on_start=False, sniff_on_connection_fail=False,retry_on_timeout=True,max_retries=3,timeout=30)
+], sniff_on_start=False, sniff_on_connection_fail=False,retry_on_timeout=False,max_retries=3,timeout=30)
 
 # esb = Elasticsearch([
 #     "c17node52.acis.ufl.edu",
@@ -314,7 +356,7 @@ es = Elasticsearch([
 source_index = "stats-2.5.0"
 target_index = "stats-2.6.0"
 
-m = es.indices.get_mapping(index=source_index,doc_type="api,digest,search")
+# m = es.indices.get_mapping(index=source_index,doc_type="api,digest,search")
 
 # re_map = {
 #     "http://rs.gbif.org/terms/1.0/Reference": "gbif:Reference",
@@ -341,9 +383,9 @@ m = es.indices.get_mapping(index=source_index,doc_type="api,digest,search")
 #   "analyzer": "keyword"
 # }
 
-print "Copying Mappings"
-for k in m[source_index]["mappings"].keys():
-    es.indices.put_mapping(index=target_index,doc_type=k,body={ k: m[source_index]["mappings"][k] })
+# print "Copying Mappings"
+# for k in m[source_index]["mappings"].keys():
+#     es.indices.put_mapping(index=target_index,doc_type=k,body={ k: m[source_index]["mappings"][k] })
 
 # def alter_fields(d):
 #     action, data = expand_action(d)
@@ -1747,46 +1789,55 @@ recordsets = [
     "ffae5ae7-431e-4858-ac0d-1e511d8f8687",
 ]
 
-print "Summarizing Recordsets"
-for rs in recordsets:
-    print rs
-    res = es.search(index=source_index,doc_type="api",body={
-      "query": {
-        "term": {
-          "recordset_id": rs
-        }
-      },
-      "size": 0,
-      "aggs": {
-        "dh": {
-          "date_histogram": {
-            "field": "harvest_date",
-            "interval": "day"
-          },
-          "aggs": {
-            "rc": {
-              "avg": {
-                "field": "records_count"
-              }
-            },
-            "mc": {
-              "avg": {
-                "field": "mediarecords_count"
-              }
-            }
-          }
-        }
-      }
-    })
+# print "Summarizing Recordsets"
+# for rs in recordsets:
+#     print rs
+#     res = es.search(index=source_index,doc_type="api",body={
+#       "query": {
+#         "term": {
+#           "recordset_id": rs
+#         }
+#       },
+#       "size": 0,
+#       "aggs": {
+#         "dh": {
+#           "date_histogram": {
+#             "field": "harvest_date",
+#             "interval": "day"
+#           },
+#           "aggs": {
+#             "rc": {
+#               "avg": {
+#                 "field": "records_count"
+#               }
+#             },
+#             "mc": {
+#               "avg": {
+#                 "field": "mediarecords_count"
+#               }
+#             }
+#           }
+#         }
+#       }
+#     })
 
-    for b in res["aggregations"]["dh"]["buckets"]:
-        es.index(index=target_index,doc_type="api",body={
-            "records_count": b["rc"]["value"],
-            "mediarecords_count": b["mc"]["value"] or 0,
-            "harvest_date": b["key_as_string"],
-            "recordset_id": rs
-        })
+#     for b in res["aggregations"]["dh"]["buckets"]:
+#         es.index(index=target_index,doc_type="api",body={
+#             "records_count": b["rc"]["value"],
+#             "mediarecords_count": b["mc"]["value"] or 0,
+#             "harvest_date": b["key_as_string"],
+#             "recordset_id": rs
+#         })
 
 # Copy only Digest and Search
-print "copy remaining indexes"
-resume_reindex(es,source_index,target_index,query={"query":{"terms":{"_type":["digest","search"]}}},target_client=es, chunk_size=10000)
+logger.info("copy remaining indexes")
+es.reindex(body={
+  "source": {
+    "index": source_index,
+    "type": ["digest","search"]
+  },
+  "dest": {
+    "index": target_index
+  }
+})
+#resume_reindex(es,source_index,target_index,query={"query":{"terms":{"_type":["digest","search"]}}},target_client=es, chunk_size=10000)

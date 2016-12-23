@@ -3,5 +3,6 @@ Description="Runs `stats-backup.py`"
 
 [Service]
 Type=oneshot
+WorkingDirectory=/var/lib/stats-backup
 Environment=LANG=en_US.UTF-8
 ExecStart=/usr/bin/python /root/idb-backend/idb/stats/stats-backup.py

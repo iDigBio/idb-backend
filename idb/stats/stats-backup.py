@@ -13,7 +13,7 @@ es = Elasticsearch([
         "c18node10.acis.ufl.edu:9200",
         "c18node12.acis.ufl.edu:9200",
         "c18node14.acis.ufl.edu:9200"
-    ], sniff_on_start=True, sniff_on_connection_fail=True)
+    ], sniff_on_start=False, sniff_on_connection_fail=False,timeout=30)
 
 incremental = datetime.datetime.now() - datetime.timedelta(1)
 if len(sys.argv) == 2 :
@@ -46,12 +46,12 @@ types = [
             }
         }
     }),
-    ("search", lambda r: (r["_source"]["recordset"], r["_source"]["date"]), {
+    ("search", lambda r: (r["_source"]["recordset_id"], r["_source"]["harvest_date"]), {
         "query": {
             "filtered": {
                 "filter": {
                     "range": {
-                        "date": {
+                        "harvest_date": {
                             "gte": incremental.isoformat()
                         }
                     }
@@ -68,8 +68,8 @@ with zipfile.ZipFile(path_prefix+".zip","a",zipfile.ZIP_DEFLATED,True) as z:
         q = {
             "index": "stats",
             "doc_type": t,
-            "size": 10000,
-            "scroll": "1m",
+            "size": 500,
+            "scroll": "5m",
             "query": q_body
         }
         print t

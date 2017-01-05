@@ -99,7 +99,9 @@ def boto3retried(retries=3):
             while True:
                 try:
                     return fn(*args, **kwargs)
-                except botocore.exceptions.ClientError:
+                except botocore.exceptions.ClientError as ce:
+                    if ce.response['Error']['Code'] and 400 <= int(ce.response['Error']['Code']) < 500:
+                        raise
                     logger.exception("Failed operation on storage, attempt %s/%s", attempt, retries)
                     attempt += 1
                     if attempt > retries:
@@ -194,7 +196,12 @@ def copy_from_fullsize(obj):
     bucket, etag, mime = obj
     k = getkey(obj)
     fk = getkey(obj, 'fullsize')
-    fk.load()
+    try:
+        fk.load()
+    except botocore.exceptions.ClientError as ce:
+        if ce.response['Error']['Code'] and 400 <= int(ce.response['Error']['Code']) < 500:
+            return Status.missing
+        raise
     if fk.e_tag != '"{0}"'.format(etag):
         return Status.etagmismatch
 

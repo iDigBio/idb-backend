@@ -120,7 +120,7 @@ def objfn(obj):
     """
     bucket, etag, mime = obj
     k = getkey(obj)
-    status = check_key(k, mime=mime)
+    status = check_key(k, mime=mime, etag=etag)
 
     if status is not Status.ok:
         if copy_from_fullsize(obj) is Status.ok:

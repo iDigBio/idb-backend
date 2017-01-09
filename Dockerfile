@@ -5,5 +5,6 @@ RUN set -ex && \
             gfortran libgdal-dev libpq-dev libgeos-c1  fonts-dejavu-core \
             libxml2 libxslt1-dev libav-tools libsystemd-dev --no-install-recommends && \
     rm -rf /var/lib/apt/lists/*
-COPY . /opt/idb-backend/
-RUN cd /opt/idb-backend && pip --no-cache-dir install -r /opt/idb-backend/requirements.txt
+WORKDIR /opt/idb-backend/
+COPY .
+RUN pip --no-cache-dir install -r /opt/idb-backend/requirements.txt

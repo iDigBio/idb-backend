@@ -44,7 +44,7 @@ setup(
         'gipc>=0.6.0, <0.7.0',
         'unicodecsv>=0.14.1, < 0.15.0',
         'shapely',
-        'celery',
+        'celery==3.1.23',
         'boto>=2.39.0, <3.0.0',
         'fiona',
         'python-magic>=0.4.11, <=0.5.0',

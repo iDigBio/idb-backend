@@ -337,7 +337,7 @@ class TestGrabAll(unittest.TestCase):
                       earliestepochorlowestseries
                       earliesteraorlowesterathem
                       earliestperiodorlowestsystem fieldnumber
-                      formation geoshape group highertaxon
+                      formation group highertaxon
                       individualcount infraspecificepithet
                       institutionid institutionname
                       latestageorhigheststage

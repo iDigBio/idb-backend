@@ -51,7 +51,7 @@ def getitems():
              FROM objects
              JOIN media_objects USING (etag)
              WHERE media_objects.modified > '2016-08-01'
-               AND derivatives = true
+               AND derivatives = false
     """
     return set(apidbpool.fetchall(sql, cursor_factory=cursor))
 

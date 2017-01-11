@@ -244,8 +244,8 @@ def fuzzy_wuzzy_string(s, rank="species", should=None):
                 }
             })
 
-    # if DEBUG:
-    #     print(json.dumps(q, indent=2))
+    if DEBUG:
+        print(json.dumps(q, indent=2))
 
     return run_query(q, s.lower(), log_score=False)
 
@@ -441,19 +441,28 @@ def test_main():
         #     "dwc:family": "Ceramoporidae",
         #     "dwc:scientificName": "Favositella epidermata"
         # },
-        {  # Data fail - scientificName is a subclass
-            "dwc:kingdom": "Animalia",
-            "dwc:phylum": "Mollusca",
-            "dwc:class": "Cephalopoda",
-            "dwc:scientificName": "Ammonoidea"
-        },
-        {  # Purposeful failure - backbone does not contain subclasses
-            "dwc:kingdom": "Animalia",
-            "dwc:phylum": "Mollusca",
-            "dwc:class": "Cephalopoda",
-            "dwc:scientificName": "Ammonoidea",
-            "dwc:taxonRank": "subclass"
-        },
+        # {  # Data fail - scientificName is a subclass
+        #     "dwc:kingdom": "Animalia",
+        #     "dwc:phylum": "Mollusca",
+        #     "dwc:class": "Cephalopoda",
+        #     "dwc:scientificName": "Ammonoidea"
+        # },
+        # {  # Purposeful failure - backbone does not contain subclasses
+        #     "dwc:kingdom": "Animalia",
+        #     "dwc:phylum": "Mollusca",
+        #     "dwc:class": "Cephalopoda",
+        #     "dwc:scientificName": "Ammonoidea",
+        #     "dwc:taxonRank": "subclass"
+        # },
+        {
+            "dwc:specificEpithet": "humilis",
+            "dwc:kingdom": "Plantae",
+            "dwc:genus": "Tortella",
+            "dwc:family": "Pottiaceae",
+            "dwc:phylum": "Bryophyta",
+            "dwc:class": "Bryopsida",
+            "dwc:scientificName": "Tortella humilis",
+        }
     ]
     for i, t in enumerate(tests):
         print(work((str(i), t)))

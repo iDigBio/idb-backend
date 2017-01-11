@@ -1,0 +1,24 @@
+[Unit]
+Description=iDigBio data api
+Requires=docker.service
+After=docker.service
+
+[Service]
+
+Restart=always
+Type=notify
+NotifyAccess=all
+
+Environment=IMAGE=idigbio/idb-backend:latest
+Environment=NAME=idigbio-data-api
+
+ExecStartPre=/usr/bin/docker pull ${IMAGE}
+ExecStart=/usr/bin/systemd-docker \
+    run --name ${NAME} --rm \
+    --network host --user=www-data \
+    -v /etc/idigbio/:/etc/idigbio/ \
+    ${IMAGE} \
+    idb -vv run-server --host=0.0.0.0 --port=19197
+
+[Install]
+WantedBy=multi-user.target

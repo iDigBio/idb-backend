@@ -78,6 +78,7 @@ def process_objects(objects):
     pool = Pool(POOLSIZE)
 
     def one(o):
+        logger.info("%s starting processing", o.etag)
         ci = get_keys(o)
         gr = generate_all(ci)
         return upload_all(gr)

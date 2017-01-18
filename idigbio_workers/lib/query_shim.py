@@ -1,7 +1,6 @@
 from __future__ import division, absolute_import, print_function
 import copy
 
-import traceback
 import logging
 logger = logging.getLogger()
 
@@ -166,9 +165,8 @@ def singleFilter(k, shimK):
                 return objectType(k, shimK)
             else:
                 raise QueryParseExcpetion("unable to get type")
-        except:
-            logger.error(traceback.format_exc())
-            logger.error(k + " " + repr(shimK))
+        except Exception:
+            logger.exception("Failure in singleFilter", k + " " + repr(shimK))
 
 def andFilter(shim):
     and_array = []

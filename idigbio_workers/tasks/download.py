@@ -2,7 +2,6 @@ from __future__ import division, absolute_import, print_function
 
 import os
 import sys
-import traceback
 import json
 import requests
 import tempfile
@@ -13,11 +12,14 @@ from ..lib.query_shim import queryFromShim
 from ..lib.mailer import send_mail
 
 from idb.helpers.storage import IDigBioStorage
+from idb.helpers.logging import getLogger
 
 #, getRecordsets
 
 from .. import app
 
+
+logger = getLogger('downloader')
 
 mail_text = """
 The download you requested from iDigBio is ready and can be retrieved from:
@@ -89,8 +91,8 @@ def downloader(self, params, email=None, ip=None, source=None):
     try:
         if email is not None:
             send_download_email(email, link, original_params, ip=ip, source=source)
-    except:
-        traceback.print_exc()
+    except Exception:
+        logger.exception("Failed building download")
     return link
 
 

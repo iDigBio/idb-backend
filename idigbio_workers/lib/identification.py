@@ -1,3 +1,4 @@
+from __future__ import division, absolute_import, print_function
 import uuid
 
 ROOT_NAMESPACE = "http://identifiers.idigbio.org/"

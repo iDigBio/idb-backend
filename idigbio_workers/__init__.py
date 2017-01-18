@@ -1,3 +1,4 @@
+from __future__ import division, absolute_import, print_function
 import os
 import sys
 from celery import Celery
@@ -8,7 +9,9 @@ app = Celery('tasks')
 env = os.getenv("ENV", "prod")
 app.config_from_object('idigbio_workers.config.' + env)
 
-from tasks.download import downloader, send_download_email  # noqa
+# this must be imported so it has a chance to register worker tasks.
+from idigbio_workers.tasks.download import downloader, send_download_email  # noqa
+
 
 @memoized()
 def get_redis_conn():

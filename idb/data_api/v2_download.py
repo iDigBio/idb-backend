@@ -17,7 +17,7 @@ this_version = Blueprint(__name__,__name__)
 expire_time_in_seconds = 23 * 60 * 60
 
 
-@this_version.route('/download', methods=['GET','POST','OPTIONS'])
+@this_version.route('/download', methods=['GET', 'POST', 'OPTIONS'])
 @crossdomain(origin="*")
 def download():
     redist = get_redis_conn()
@@ -50,7 +50,7 @@ def download():
             if isinstance(o[k],list):
                 o[k] = o[k][0]
 
-            if isinstance(o[k],str) or isinstance(o[k],unicode) and (o[k].startswith("{") or o[k].startswith("[")):
+            if isinstance(o[k], str) or isinstance(o[k], unicode) and (o[k].startswith("{") or o[k].startswith("[")):
                 params[k] = json.loads(o[k])
             else:
                 params[k] = o[k]
@@ -96,8 +96,8 @@ def download():
             "email": email
         })
         redist.set(r.id,h)
-        redist.expire(r.id,expire_time_in_seconds - 60)
-        redist.expire(h,expire_time_in_seconds)
+        redist.expire(r.id, expire_time_in_seconds - 60)
+        redist.expire(h, expire_time_in_seconds)
     elif r.ready() and email is not None:
         send_download_email(email, r.get(), params, ip=forward_ip, source=source)
 

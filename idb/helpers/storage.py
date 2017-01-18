@@ -61,15 +61,15 @@ class IDigBioStorage(object):
             the method will use the existing object instead of creating a new one.
         """
         if bucket is not None:
-            return bucket.get_key(key_name,validate=False)
+            return bucket.get_key(key_name, validate=False)
         else:
-            return self.get_bucket(bucket_name).get_key(key_name,validate=False)
+            return self.get_bucket(bucket_name).get_key(key_name, validate=False)
 
-    def get_link(self,key_name,bucket_name,secure=False):
+    def get_link(self, key_name, bucket_name, secure=False):
         if secure:
-            return "https://{0}/{1}/{2}".format(self.host,bucket_name,key_name)
+            return "https://{0}/{1}/{2}".format(self.host, bucket_name, key_name)
         else:
-            return "http://{0}/{1}/{2}".format(self.host,bucket_name,key_name)
+            return "http://{0}/{1}/{2}".format(self.host, bucket_name, key_name)
 
     MAX_CHUNK_SIZE = 1024 ** 3  # 1GiB
 

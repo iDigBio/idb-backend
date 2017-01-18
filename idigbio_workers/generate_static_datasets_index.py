@@ -65,7 +65,9 @@ def main():
             }
         }
     }
-    r = requests.post("http://search.idigbio.org/idigbio/records/_search",data=json.dumps(query),headers={"Content-Type":"application/json"})
+    r = requests.post("http://search.idigbio.org/idigbio/records/_search",
+                      data=json.dumps(query),
+                      headers={"Content-Type": "application/json"})
     r.raise_for_status()
     ro = r.json()
 

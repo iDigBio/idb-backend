@@ -35,9 +35,10 @@ def test_download_md5_validation(store, existingkey, tmpdir):
 
 #@pytest.mark.skip(reason="Actually writes to storage")
 def test_file_upload_download(store, bucketname, tmpdir):
-    k = store.upload_file('foobar', bucketname, __file__)
+    k = store.upload(store.get_key('foobar', bucketname), __file__, content_type="x-foo/bar")
     localmd5 = calcFileHash(__file__)
     assert k.md5 == localmd5
+
     k2 = store.get_key('foobar', bucketname)
     assert k2.exists()
 
@@ -45,6 +46,8 @@ def test_file_upload_download(store, bucketname, tmpdir):
     store.get_contents_to_filename(k2, str(localdownload), localmd5)
     assert localdownload.exists()
     assert localmd5 == calcFileHash(str(localdownload))
+    assert k2.content_type == 'x-foo/bar'
+
 
 
 #@pytest.mark.skip(reason="Actually writes to storage")
@@ -55,7 +58,7 @@ def test_largefile_upload(store, bucketname, tmpdir, monkeypatch):
     with testfile.open('ab') as f:
         f.truncate(64 * (1024 ** 2))
     md5 = calcFileHash(str(testfile))
-    k = store.upload_file(keyname, bucketname, str(testfile))
+    k = store.upload(store.get_key(keyname, bucketname), str(testfile))
     testfile.remove()
     store.get_contents_to_filename(k, str(testfile), md5=md5)
     k.delete()

@@ -535,10 +535,6 @@ class PostgresDB(object):
             } for x in usl
         ])
 
-private_buckets = {
-    "debugfile"
-}
-
 class MediaObject(object):
     """Helper that represents media objects from the db.
 
@@ -700,15 +696,7 @@ class MediaObject(object):
     def upload(self, media_store, fobj, force=False):
         k = self.get_key(media_store)
         if force or not k.exists():
-            if self.detected_mime:
-                k.set_metadata('Content-Type', self.detected_mime)
-            try:
-                fobj.seek(0)
-                k.set_contents_from_file(fobj, md5=k.get_md5_from_hexdigest(self.etag))
-            except AttributeError:
-                k.set_contents_from_string(fobj, md5=k.get_md5_from_hexdigest(self.etag))
-            if self.bucket not in private_buckets:
-                k.make_public()
+            media_store.upload(k, fobj, mime=self.detected_mime, md5=self.etag)
         return k
 
     def ensure_object(self, idbmodel):

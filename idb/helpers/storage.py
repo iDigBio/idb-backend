@@ -17,6 +17,11 @@ from idb.postgres_backend.db import MediaObject
 
 logger = idblogger.getChild('storage')
 
+private_buckets = {
+    "debugfile"
+}
+
+
 class IDigBioStorage(object):
     """
         Class to abstract out the iDigBio S3 storage.
@@ -73,29 +78,53 @@ class IDigBioStorage(object):
 
     MAX_CHUNK_SIZE = 1024 ** 3  # 1GiB
 
-    def upload_file(self, key_name, bucket_name, file_name):
-        k = self.get_key(key_name, bucket_name)
-        size = os.path.getsize(file_name)
-        if size > self.MAX_CHUNK_SIZE:
-            self._upload_multipart(k, file_name, size)
-        else:
-            self.retry_loop(lambda: k.set_contents_from_filename(file_name))
-        k.make_public()
-        return k
+    def _get_size(self, fobj):
+        loc = fobj.tell()
+        fobj.seek(0, os.SEEK_END)
+        size = fobj.tell()
+        fobj.seek(loc, os.SEEK_SET)
+        return size
 
-    def _upload_multipart(self, k, file_name, size):
+    def upload(self, key, fobj, content_type=None, public=None, md5=None, multipart='auto', size=None):
+        if public is None:
+            public = key.bucket not in private_buckets
+
+        if hasattr(fobj, 'fileno') or hasattr(fobj, 'read'):
+            pass
+        elif hasattr(fobj, 'open'):
+            fobj = fobj.open('rb')
+        elif isinstance(fobj, basestring):
+            fobj = open(fobj, 'rb')
+        elif not all(hasattr(fobj, a) for a in ('seek', 'tell', 'read')):
+            raise ValueError("Unknown fobj type:", fobj)
+        if size is None and multipart == 'auto':
+            size = self._get_size(fobj)
+        if content_type:
+            key.set_metadata('Content-Type', content_type)
+
+        if multipart == 'auto' and size > self.MAX_CHUNK_SIZE:
+            self._upload_multipart(key, fobj, size)
+        else:
+            if md5:
+                md5 = key.get_md5_from_hexdigest(md5)
+            self.retry_loop(lambda: key.set_contents_from_file(fobj, rewind=True, md5=md5))
+        if public:
+            self.retry_loop(key.make_public)
+        return key
+
+    def _upload_multipart(self, k, fobj, size):
         chunk_count = int(math.ceil(size / self.MAX_CHUNK_SIZE))
         logger.debug("Starting upload to %r in %d chunks", k, chunk_count)
         try:
             mp = k.bucket.initiate_multipart_upload(k.name)
 
             def onepart(i):
+                logger.debug("Uploading part %d", i)
                 offset = i * self.MAX_CHUNK_SIZE
                 remaining = size - offset
-                with open(file_name, 'rb') as fp:
-                    fp.seek(offset)
-                    mp.upload_part_from_file(
-                        fp=fp, part_num=i + 1, size=min([self.MAX_CHUNK_SIZE, remaining]))
+                fobj.seek(offset)
+                mp.upload_part_from_file(
+                    fp=fobj, part_num=i + 1, size=min([self.MAX_CHUNK_SIZE, remaining]))
 
             for i in range(chunk_count):
                 self.retry_loop(lambda: onepart(i))

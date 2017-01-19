@@ -6,6 +6,7 @@ import re
 import signal
 from collections import Counter
 from datetime import datetime
+from cStringIO import StringIO
 
 import requests
 import gevent.pool
@@ -356,7 +357,7 @@ class FetchItem(object):
                 logger.debug("NoUpload  %s etag %s, already present", self.url, mo.etag)
             else:
                 try:
-                    mo.upload(store, self.content, force=True)
+                    mo.upload(store, StringIO(self.content), force=True)
                     logger.debug("Uploaded  %s etag %s", self.url, mo.etag)
                 except (BotoServerError, BotoClientError) as e:
                     logger.exception("Failed uploading to storage: %s", self.url)

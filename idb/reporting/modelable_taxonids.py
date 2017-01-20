@@ -12,7 +12,7 @@ query = {"size": 0, "query": {"and": [{"exists": {"field": "geopoint"}},{"exists
     "field": "taxonid", "size": 200000, "min_doc_count": 20}, "aggs": {"cn": {"terms": {"field": "canonicalname"}}}}}}
 
 
-rsp = es.search(index="idigbio-2.10.0", doc_type="records", body=query)
+rsp = es.search(index="idigbio", doc_type="records", body=query)
 
 for k in rsp:
     if k not in ["aggregations"]:

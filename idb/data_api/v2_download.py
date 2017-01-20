@@ -5,7 +5,7 @@ import datetime
 
 from flask import Blueprint, jsonify, url_for, request
 
-from idigbio_workers import downloader, send_download_email, get_redis_conn
+from idigbio_workers import downloader, blocker, send_download_email, get_redis_conn
 
 from idb.helpers.cors import crossdomain
 from idb.helpers.etags import objectHasher
@@ -14,7 +14,7 @@ from .common import json_error, logger
 
 this_version = Blueprint(__name__,__name__)
 
-expire_time_in_seconds = 23 * 60 * 60
+expire_time = datetime.timedelta(hours=23)
 
 
 @this_version.route('/download', methods=['GET', 'POST', 'OPTIONS'])
@@ -60,46 +60,31 @@ def download():
 
     h = objectHasher("sha1", params, sort_arrays=True, sort_keys=True)
 
-    email = None
-    source = None
-    force = False
+    email = o.get('email')
+    if isinstance(email, list):
+        email = email[0]
+    source = o.get('source')
+    if isinstance(source, list):
+        source = source[0]
+    force = o.get('force', False)
     forward_ip = request.access_route[0]
 
-    if "email" in o:
-        if isinstance(o["email"], list):
-            email = o["email"][0]
-        else:
-            email = o["email"]
-
-    if "source" in o:
-        if isinstance(o["source"], list):
-            source = o["source"][0]
-        else:
-            source = o["source"]
-
-    if "force" in o:
-        force = True
-
-    dispatch = False
-    if redist.exists(h) and not force:
-        r = downloader.AsyncResult(redist.hget(h, "id"))
-        if r.ready() and email is not None:
-            send_download_email(email, r.get(), params, ip=forward_ip, source=source)
+    rid = redist.hget(h, "id")
+    if rid and not force:
+        r = downloader.AsyncResult(rid)
     else:
-        r = downloader.delay(params, email=email, source=source, ip=forward_ip)
-        dispatch = True
-
-    if dispatch:
+        r = downloader.delay(params)
         redist.hmset(h, {
             "query": json.dumps(params),
             "id": r.id,
-            "email": email
         })
-        redist.set(r.id,h)
-        redist.expire(r.id, expire_time_in_seconds - 60)
-        redist.expire(h, expire_time_in_seconds)
-    elif r.ready() and email is not None:
-        send_download_email(email, r.get(), params, ip=forward_ip, source=source)
+        redist.set(r.id, h)
+        redist.expire(r.id, expire_time.seconds - 60)
+        redist.expire(h, expire_time.seconds)
+
+    if email is not None:
+        c = blocker.s(r.id) | send_download_email.s(email, params, ip=forward_ip, source=source)
+        c.delay()
 
     dt = datetime.datetime.now() + datetime.timedelta(0, redist.ttl(h))
     if r.ready():

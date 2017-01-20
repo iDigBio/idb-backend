@@ -1,25 +1,26 @@
 from __future__ import division, absolute_import, print_function
 
+import datetime
 import os
-import sys
 import json
 import requests
-import tempfile
 import uuid
+
+from path import tempdir, Path
 
 from ..lib.download import generate_files, get_recordsets
 from ..lib.query_shim import queryFromShim
 from ..lib.mailer import send_mail
 
 from idb.helpers.storage import IDigBioStorage
-from idb.helpers.logging import getLogger
-
+from celery.utils.log import get_task_logger
+from celery.result import AsyncResult
 #, getRecordsets
 
 from .. import app
 
 
-logger = getLogger('downloader')
+logger = get_task_logger('downloader')
 
 mail_text = """
 The download you requested from iDigBio is ready and can be retrieved from:
@@ -39,7 +40,63 @@ The iDigBio Team
 
 s = requests.Session()
 
-def send_download_email(email, link, params, ip=None, source=None):
+
+
+def upload_download_file_to_ceph(filename):
+    s = IDigBioStorage()
+    keyname, bucket = os.path.basename(filename), "idigbio-downloads"
+    fkey = s.upload(s.get_key(keyname, bucket), filename, content_type='application/zip', public=True)
+    return "http://s.idigbio.org/idigbio-downloads/" + fkey.name
+
+
+def normalize_params(params):
+    for rename in [("rq", "record_query"), ("mq", "mediarecord_query")]:
+        if params[rename[0]] is not None:
+            if rename[1].endswith("query"):
+                params[rename[1]] = queryFromShim(params[rename[0]])["query"]
+            else:
+                params[rename[1]] = params[rename[0]]
+        else:
+            params[rename[1]] = params[rename[0]]
+        del params[rename[0]]
+    return params
+
+@app.task(bind=True)
+def downloader(self, params):
+    tid = self.request.id or str(uuid.uuid4())
+    logger.info("Kicking off downloader: %s", tid)
+    params = normalize_params(params)
+    # hid = objectHasher("sha1", params, sort_arrays=True, sort_keys=True)
+    # filename = hid + '-' + datetime.datetime.now().isoformat
+    filename = tid
+
+    with tempdir() as td:
+        filename = td / filename
+        tid = generate_files(filename=filename, **params)
+        logger.debug("Finished generating file, uploading to ceph, size: %s", Path(tid).getsize())
+        link = upload_download_file_to_ceph(tid)
+        logger.debug("Finished uploading to ceph")
+    return link
+
+@app.task(bind=True, ignore_result=True, max_retries=25)
+def blocker(self, rid, pollbase=1.25):
+    """Wait for an AsyncResult to be ready, then return its result.
+
+    This can be used to append tasks to a running one, block on the
+    running and chain after this.
+
+    """
+    ar = AsyncResult(rid)
+    if ar.ready():
+        return ar.result
+    else:
+        raise self.retry(kwargs={'pollbase': pollbase},
+                         countdown=pollbase ** self.request.retries)
+
+
+@app.task(ignore_result=True)
+def send_download_email(link, email, params, ip=None, source=None):
+    logger.info("Sending email to %s with link %s", email, link)
     if email is not None and not email.endswith("@acis.ufl.edu"):
         q, recordsets = get_recordsets(params)
         stats_post = {
@@ -56,44 +113,6 @@ def send_download_email(email, link, params, ip=None, source=None):
                data=json.dumps(stats_post), headers={'content-type': 'application/json'})
     send_mail("data@idigbio.org", [email], "iDigBio Download Ready",
               mail_text.format(link, json.dumps(params)))
-
-
-def upload_download_file_to_ceph(filename):
-    s = IDigBioStorage()
-    fkey = s.upload_file(os.path.basename(filename), "idigbio-downloads", filename)
-    fkey.set_metadata('Content-Type', 'application/zip')
-    fkey.make_public()
-    os.unlink(filename)
-    return "http://s.idigbio.org/idigbio-downloads/" + fkey.name
-
-
-@app.task(bind=True)
-def downloader(self, params, email=None, ip=None, source=None):
-    original_params = {}
-    original_params.update(params)
-    for rename in [("rq", "record_query"), ("mq", "mediarecord_query")]:
-        if params[rename[0]] is not None:
-            if rename[1].endswith("query"):
-                params[rename[1]] = queryFromShim(params[rename[0]])["query"]
-            else:
-                params[rename[1]] = params[rename[0]]
-        else:
-            params[rename[1]] = params[rename[0]]
-        del params[rename[0]]
-
-    if self.request.id is not None:
-        params["filename"] = self.request.id
-    else:
-        params["filename"] = str(uuid.uuid4())
-    params["filename"] = os.path.join(tempfile.gettempdir(), params["filename"])
-    tid = generate_files(**params)
-    link = upload_download_file_to_ceph(tid)
-    try:
-        if email is not None:
-            send_download_email(email, link, original_params, ip=ip, source=source)
-    except Exception:
-        logger.exception("Failed building download")
-    return link
 
 
 def main():

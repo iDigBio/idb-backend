@@ -31,6 +31,8 @@ es = Elasticsearch([
 #         search_cache = json.load(pp)
 # print "Search Cache: {0}".format(len(search_cache))
 
+taxon_data_fields = ["dwc:kingdom", "dwc:phylum", "dwc:class", "dwc:order", "dwc:family", "dwc:genus", "dwc:specificEpithet", "dwc:scientificName"]
+
 good_status = {"accepted", "synonym"}
 score_stats = Counter()
 def run_query(q, cache_string, log_score=True):
@@ -280,7 +282,7 @@ def work(t):
 
         should = {}
 
-        for k in ["dwc:kingdom", "dwc:phylum", "dwc:class", "dwc:order", "dwc:family", "dwc:genus", "dwc:specificEpithet", "dwc:scientificName"]:
+        for k in taxon_data_fields:
             if k in r:
                 should[k] = r[k]
 
@@ -371,16 +373,7 @@ def get_taxon_from_index():
                 }
             }
         },
-        "_source": [
-            "data.dwc:genus",
-            "data.dwc:specificEpithet",
-            "data.dwc:scientificName",
-            "data.dwc:taxonRank",
-            "data.dwc:kingdom",
-            "data.dwc:phylum",
-            "data.dwc:class",
-            "data.dwc:order",
-        ]
+        "_source": taxon_data_fields + ["data.dwc:taxonRank"]
     }
 
     for r in elasticsearch.helpers.scan(es, index="idigbio", query=body, size=1000, doc_type=t, scroll="10m"):
@@ -454,14 +447,23 @@ def test_main():
         #     "dwc:scientificName": "Ammonoidea",
         #     "dwc:taxonRank": "subclass"
         # },
+        # {
+        #     "dwc:specificEpithet": "humilis",
+        #     "dwc:kingdom": "Plantae",
+        #     "dwc:genus": "Tortella",
+        #     "dwc:family": "Pottiaceae",
+        #     "dwc:phylum": "Bryophyta",
+        #     "dwc:class": "Bryopsida",
+        #     "dwc:scientificName": "Tortella humilis",
+        # },
         {
-            "dwc:specificEpithet": "humilis",
+            "dwc:specificEpithet": "serrulata",
+            "dwc:order": "Brassicales",
             "dwc:kingdom": "Plantae",
-            "dwc:genus": "Tortella",
-            "dwc:family": "Pottiaceae",
-            "dwc:phylum": "Bryophyta",
-            "dwc:class": "Bryopsida",
-            "dwc:scientificName": "Tortella humilis",
+            "dwc:genus": "Peritoma",
+            "dwc:family": "Cleomaceae",
+            "dwc:class": "Magnoliopsida",
+            "dwc:scientificName": "Peritoma serrulata"
         }
     ]
     for i, t in enumerate(tests):

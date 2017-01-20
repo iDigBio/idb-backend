@@ -2,3 +2,5 @@
 idigbio*.json
 **/*.pyc
 etc/
+cover/
+*.egg-info/

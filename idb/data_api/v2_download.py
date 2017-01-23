@@ -69,7 +69,7 @@ def download():
     if isinstance(source, list):
         source = source[0]
     force = o.get('force', False)
-    forward_ip = request.access_route[0]
+    forward_ip = request.remote_addr
 
     query_hash = objectHasher("sha1", params, sort_arrays=True, sort_keys=True)
     rqhk = DOWNLOADER_TASK_PREFIX + query_hash  # redis query hash key
@@ -103,33 +103,33 @@ def status(tid):
     tid = str(tid)
     redist = get_redis_conn()
     redis_task_key = DOWNLOADER_TASK_PREFIX + tid
+    data = redist.hgetall(redis_task_key)
+    if len(data) == 0:
+        return json_error(404)
     try:
-        query, created, link, qhash = redist.hmget(redis_task_key, ("query", "created", "link", "hash"))
-        if query is None:
-            return json_error(404)
-
-        params = json.loads(query)
-        params["status_url"] = url_for(".status", tid=tid, _external=True)
-        params["expires"] = datetime.now() + timedelta(seconds=redist.ttl(tid))
-        params["created"] = created
-        if link:
-            params["task_status"] = "SUCCESS"
-            params["complete"] = True
-            params["download_url"] = link
+        data["query"] = json.loads(data["query"])
+        data["status_url"] = url_for(".status", tid=tid, _external=True)
+        data["expires"] = datetime.now() + timedelta(seconds=redist.ttl(tid))
+        if data.get('task_status'):
+            # we don't set task_status into redis until it is complete and we have everything
+            data["complete"] = True
         else:
             ar = downloader.AsyncResult(tid)
-            params["complete"] = ar.ready()
-            params["task_status"] = ar.state
+            data['task_status'] = ar.status
+            data["complete"] = ar.ready()
+            if ar.ready():
+                redist.hset(redis_task_key, "task_status", ar.status)
+                if ar.successful():
+                    data["download_url"] = ar.result
+                    redist.hset(redis_task_key, "download_url", ar.result)
+                elif ar.failed():
+                    data["error"] = str(ar.result)
+                    redist.hset(redis_task_key, "error", str(ar.result))
+                    rqhk = DOWNLOADER_TASK_PREFIX + data['hash']  # redis query hash key
+                    if redist.get(rqhk) == tid:
+                        redist.delete(rqhk)
 
-            if ar.successful():
-                params["download_url"] = ar.get()
-                redist.hset(redis_task_key, "link", params["download_url"])
-            elif ar.failed():
-                rqhk = DOWNLOADER_TASK_PREFIX + qhash  # redis query hash key
-                params["error"] = str(ar.info)
-                if redist.get(rqhk) == tid:
-                    redist.delete(rqhk)
-        return jsonify(params)
+        return jsonify(data)
 
     except Exception as e:
         logger.exception("Failed getting status of download %s", tid)

@@ -14,7 +14,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libxslt1-dev \
   && rm -rf /var/lib/apt/lists/*
 
-USER www-data
 COPY . /opt/idb-backend/
 WORKDIR /opt/idb-backend/
 RUN pip --no-cache-dir install -r /opt/idb-backend/requirements.txt
+USER www-data

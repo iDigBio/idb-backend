@@ -10,3 +10,4 @@ cover/
 *.egg-info/
 .cache/
 .dir-locals.el
+Dockerfile

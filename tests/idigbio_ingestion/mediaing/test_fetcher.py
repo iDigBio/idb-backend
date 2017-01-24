@@ -24,7 +24,7 @@ def test_continuous(mocker, caplog):
 
     assert fetcher.get_items.call_count == 2
     msg = "Starting subprocess for"
-    assert len([r for r in caplog.records() if r.msg.startswith(msg)]) == 3
+    assert len([r for r in caplog.records if r.msg.startswith(msg)]) == 3
 
 
 def test_once(mocker):

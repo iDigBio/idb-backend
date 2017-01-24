@@ -68,7 +68,7 @@ setup(
             'pytest-cov',
             'pytest-flask',
             'pytest-mock',
-            'pytest-capturelog'
+            'pytest-catchlog>=1.2.2,<2'
         ]
     },
     tests_require=['idb-backend[test]'],

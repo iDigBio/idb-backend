@@ -40,31 +40,14 @@ def run_query(q, cache_string, log_score=True):
 
     best_response = None
     for h in rsp["hits"]["hits"]:
-        # if DEBUG:
-        #     print(h)
         if h["_source"]["dwc:scientificName"].lower() == cache_string:
-            #search_cache[cache_string] = h["_source"]
-            if h["_source"]["dwc:taxonomicStatus"] == "accepted":
-                best_response = h
-                break
-            elif "synonym" in h["_source"]["dwc:taxonomicStatus"] and "dwc:acceptedNameUsageID" in h["_source"]:
-                best_response = h
-                break
+            best_response = h
+            break
         elif best_response is None:
-            #print (h["_score"], h["_source"]["dwc:taxonomicStatus"])
-            if h["_source"]["dwc:taxonomicStatus"] == "accepted":
-                best_response = h
-            elif "synonym" in h["_source"]["dwc:taxonomicStatus"] and "dwc:acceptedNameUsageID" in h["_source"]:
-                best_response = h
+            best_response = h
         else:
-            #print(h["_score"], h["_source"]["dwc:taxonomicStatus"], best_response["_score"], h["_score"] > best_response["_score"])
-            if h["_source"]["dwc:taxonomicStatus"] == "accepted":
-                if h["_score"] > best_response["_score"]:
-                    best_response = h
-            elif "synonym" in h["_source"]["dwc:taxonomicStatus"] and "dwc:acceptedNameUsageID" in h["_source"]:
-                if h["_score"] > best_response["_score"]:
-                    best_response = h
-            #print q, h
+            if h["_score"] > best_response["_score"]:
+                best_response = h
 
     #search_cache[cache_string] = None
     if best_response is not None:
@@ -72,7 +55,7 @@ def run_query(q, cache_string, log_score=True):
             score_stats[int(best_response["_score"]*10)] += 1
 
         # Reject low quality matches
-        if best_response["_score"] <= 1.0:
+        if best_response["_score"] <= 3.0:
             return None
 
         if DEBUG:
@@ -373,7 +356,7 @@ def get_taxon_from_index():
                 }
             }
         },
-        "_source": taxon_data_fields + ["data.dwc:taxonRank"]
+        "_source": ["data." + f for f in taxon_data_fields] + ["data.dwc:taxonRank"]
     }
 
     for r in elasticsearch.helpers.scan(es, index="idigbio", query=body, size=1000, doc_type=t, scroll="10m"):
@@ -382,7 +365,11 @@ def get_taxon_from_index():
         if etag not in etags:
             stats["precount"] += 1
             etags.add(etag)
-            yield (etag,r["_source"]["data"])
+            try:
+                yield (etag,r["_source"]["data"])
+            except KeyError as e:
+                print(r)
+                raise e
 
 def test_main():
     global DEBUG
@@ -456,14 +443,28 @@ def test_main():
         #     "dwc:class": "Bryopsida",
         #     "dwc:scientificName": "Tortella humilis",
         # },
+        # {
+        #     "dwc:specificEpithet": "serrulata",
+        #     "dwc:order": "Brassicales",
+        #     "dwc:kingdom": "Plantae",
+        #     "dwc:genus": "Peritoma",
+        #     "dwc:family": "Cleomaceae",
+        #     "dwc:class": "Magnoliopsida",
+        #     "dwc:scientificName": "Peritoma serrulata"
+        # },
+        # {
+        #     "dwc:specificEpithet": "papposa",
+        #     "dwc:kingdom": "Plantae",
+        #     "dwc:genus": "Pectis",
+        #     "dwc:family": "ASTERACEAE",
+        #     "dwc:scientificName": "Pectis papposa"
+        # },
         {
-            "dwc:specificEpithet": "serrulata",
-            "dwc:order": "Brassicales",
-            "dwc:kingdom": "Plantae",
-            "dwc:genus": "Peritoma",
-            "dwc:family": "Cleomaceae",
-            "dwc:class": "Magnoliopsida",
-            "dwc:scientificName": "Peritoma serrulata"
+            "dwc:specificEpithet": "acutangula",
+            "dwc:kingdom": "Animalia",
+            "dwc:genus": "Polydontes",
+            "dwc:class": "Gastropoda",
+            "dwc:family": "Camaenidae",
         }
     ]
     for i, t in enumerate(tests):

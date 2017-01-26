@@ -50,6 +50,7 @@ fields = {
         ["scientificname", "dwc:scientificName", "text", 1, None],
         ["commonname", "dwc:vernacularName", "text", 1, None],
         ["commonnames", "", "list", 1, None],
+        ["associatedsequences", "", "list", 1, None],
         ["continent", "dwc:continent", "text", 1, None],
         ["country", "dwc:country", "text", 1, None],
         ["stateprovince", "dwc:stateProvince", "text", 1, None],
@@ -810,6 +811,24 @@ def collect_common_names(t, d):
         return {}
 
 
+genbank_ids = re.compile("[a-zA-Z]{1,2}\-?_?\d{5,6}")("")
+
+def collect_genbank_sequences(t, d):
+    if t == "records":
+        seq = d.get("dwc:associatedSequences", "")
+
+        gbids = []
+
+        for gb in genbank_ids.findall(seq):
+            gbids.append(gb)
+
+        return {
+            "associatedsequences": gbids
+        }
+    else:
+        return {}
+
+
 def fixBOR(t, r):
     if filled("basisofrecord", r):
         if "preserved" in r["basisofrecord"]:
@@ -898,6 +917,7 @@ def grabAll(t, d):
     r.update(get_media_type(t, d))
     r.update(get_accessuri(t, d))
     r.update(collect_common_names(t,d))
+    r.update(collect_genbank_sequences(t,d))
     # Done with non-dependant fields.
 
     gs_sn_crossfill(t, r)

@@ -52,7 +52,8 @@ setup(
         'click>=6.3, <7.0',
         'atomicfile==1.0',
         'enum34>=1.1.6, <1.2.0',
-        'path.py>=10.0.0, <11'
+        'path.py>=10.0.0, <11',
+        'wsgi-request-logger>=0.4.6'
     ],
     extras_require={
         'journal': ['python-systemd>=230'],

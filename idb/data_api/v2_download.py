@@ -1,7 +1,8 @@
 from __future__ import division, absolute_import, print_function
 
 import json
-from datetime import datetime, timedelta
+import udatetime
+from datetime import timedelta
 
 
 from flask import Blueprint, jsonify, url_for, request, redirect
@@ -82,8 +83,9 @@ def download():
         redist.hmset(DOWNLOADER_TASK_PREFIX + tid, {
             "query": json.dumps(params),
             "hash": query_hash,
-            "created": datetime.now()
+            "created": udatetime.utcnow_to_string()
         })
+        redist.expire(DOWNLOADER_TASK_PREFIX + tid, timedelta(days=30))
         redist.set(rqhk, tid)
         redist.expire(rqhk, QUERY_VALID_TIME)
         logger.debug("Started task: %s", tid)
@@ -92,9 +94,7 @@ def download():
         c = blocker.s(tid) | send_download_email.s(email, params, ip=forward_ip, source=source)
         c.delay()
 
-    return redirect(url_for(".status", tid=tid, _external=True), code=302)
-
-
+    return redirect(url_for(".status", tid=tid, _external=True), code=303)
 
 
 @this_version.route('/download/<uuid:tid>', methods=['GET', 'OPTIONS'])
@@ -109,7 +109,12 @@ def status(tid):
     try:
         data["query"] = json.loads(data["query"])
         data["status_url"] = url_for(".status", tid=tid, _external=True)
-        data["expires"] = datetime.now() + timedelta(seconds=redist.ttl(tid))
+        ttl = redist.ttl(tid)
+        if ttl == -1:
+            ttl = timedelta(days=30)
+        else:
+            ttl = timedelta(seconds=ttl)
+        data["expires"] = udatetime.to_string(udatetime.utcnow() + ttl)
         if data.get('task_status'):
             # we don't set task_status into redis until it is complete and we have everything
             data["complete"] = True

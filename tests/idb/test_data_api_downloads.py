@@ -1,8 +1,12 @@
-from datetime import datetime, timedelta
+from datetime import timedelta
+
+import udatetime
+from rfc3339 import from_rfc3339_string
 
 import uuid
 import json
 
+import rfc3339
 import pytest
 from flask import url_for
 
@@ -55,7 +59,7 @@ def fakeresult(request, mocker):
 def setupredis(client, tid=None, task_status=None, download_url=None, error=None, link=True, hash="foobar"):
     tid = tid or str(uuid.uuid4())
     redisdata = {
-        'created': datetime.now(),
+        'created': udatetime.utcnow_to_string(),
         'query': json.dumps({
             "core_type":
             "records",
@@ -85,6 +89,8 @@ def test_status_complete_task(client, fakeredcli):
     assert resp.json['download_url'] == "http://example.com"
     assert resp.json['complete'] is True
     assert resp.json['task_status'] == 'SUCCESS'
+    assert from_rfc3339_string(resp.json['created'])
+    assert from_rfc3339_string(resp.json['expires'])
     assert 'error' not in resp.json
 
 
@@ -95,6 +101,8 @@ def test_status_pending_task(client, fakeredcli, fakeresult):
     assert resp.status_code == 200
     assert resp.json['task_status'] == "PENDING"
     assert resp.json['complete'] is False
+    assert from_rfc3339_string(resp.json['created'])
+    assert from_rfc3339_string(resp.json['expires'])
     assert 'download_url' not in resp.json
     assert 'error' not in resp.json
 
@@ -108,6 +116,8 @@ def test_status_pending_now_success(client, fakeredcli, fakeresult):
     assert resp.json['download_url'] == "http://foo/bar"
     assert resp.json['complete'] is True
     assert resp.json['task_status'] == 'SUCCESS'
+    assert from_rfc3339_string(resp.json['created'])
+    assert from_rfc3339_string(resp.json['expires'])
     assert 'error' not in resp.json
 
 
@@ -120,6 +130,8 @@ def test_status_pending_now_failure(client, fakeredcli, fakeresult):
     assert resp.json['error'] == "woot"
     assert resp.json['complete'] is True
     assert resp.json['task_status'] == 'FAILURE'
+    assert from_rfc3339_string(resp.json['created'])
+    assert from_rfc3339_string(resp.json['expires'])
     assert 'download_url' not in resp.json
     assert tid != fakeredcli.get(DOWNLOADER_TASK_PREFIX + resp.json['hash']), \
                   "Task wasn't unlinked from query hash in redis"
@@ -135,9 +147,10 @@ def test_status_pending_now_failure_already_unlinked(client, fakeredcli, fakeres
     assert resp.json['error'] == "woot"
     assert resp.json['complete'] is True
     assert resp.json['task_status'] == 'FAILURE'
+    assert from_rfc3339_string(resp.json['created'])
+    assert from_rfc3339_string(resp.json['expires'])
     assert 'download_url' not in resp.json
     assert "woot" == fakeredcli.get(DOWNLOADER_TASK_PREFIX + "foobar")
-
 
 
 def test_initialization_no_params(client):
@@ -147,7 +160,7 @@ def test_initialization_no_params(client):
 
 def test_initialization(client, fakeredcli, fakeresult):
     resp = client.get(url_for('idb.data_api.v2_download.download', rq={"genus": "acer"}))
-    assert resp.status_code == 302
+    assert resp.status_code == 303
     assert 'Location' in resp.headers
     tid = resp.headers['Location'].split('/')[-1]
 
@@ -162,7 +175,7 @@ def test_initialization(client, fakeredcli, fakeresult):
 def test_initialization_repeated_request(client, fakeredcli, fakeresult):
     "Two requests with the same query should create the same download task"
     resp = client.get(url_for('idb.data_api.v2_download.download', rq={"genus": "acer"}))
-    assert resp.status_code == 302
+    assert resp.status_code == 303
     assert 'Location' in resp.headers
     tid = resp.headers['Location'].split('/')[-1]
 
@@ -176,7 +189,7 @@ def test_initialization_repeated_request(client, fakeredcli, fakeresult):
     assert fakeredcli.get(DOWNLOADER_TASK_PREFIX + data['hash']) == tid
 
     resp = client.get(url_for('idb.data_api.v2_download.download', rq={"genus": "acer"}))
-    assert resp.status_code == 302
+    assert resp.status_code == 303
     assert 'Location' in resp.headers
     tid2 = resp.headers['Location'].split('/')[-1]
 
@@ -186,7 +199,7 @@ def test_initialization_repeated_request(client, fakeredcli, fakeresult):
 def test_initialization_failed_task(client, fakeredcli, fakeresult):
     "If a download task a has failed, a new POST should retry"
     resp = client.get(url_for('idb.data_api.v2_download.download', rq={"genus": "acer"}))
-    assert resp.status_code == 302
+    assert resp.status_code == 303
     assert 'Location' in resp.headers
     tid = resp.headers['Location'].split('/')[-1]
 
@@ -201,7 +214,7 @@ def test_initialization_failed_task(client, fakeredcli, fakeresult):
     fakeresult.status = "FAILURE"
 
     resp = client.get(url_for('idb.data_api.v2_download.download', rq={"genus": "acer"}))
-    assert resp.status_code == 302
+    assert resp.status_code == 303
     assert 'Location' in resp.headers
     tid2 = resp.headers['Location'].split('/')[-1]
 

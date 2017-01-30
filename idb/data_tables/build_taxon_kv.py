@@ -40,10 +40,7 @@ def run_query(q, cache_string, log_score=True):
 
     best_response = None
     for h in rsp["hits"]["hits"]:
-        if h["_source"]["dwc:scientificName"].lower() == cache_string:
-            best_response = h
-            break
-        elif best_response is None:
+        if best_response is None:
             best_response = h
         else:
             if h["_score"] > best_response["_score"]:
@@ -459,12 +456,19 @@ def test_main():
         #     "dwc:family": "ASTERACEAE",
         #     "dwc:scientificName": "Pectis papposa"
         # },
+        # {
+        #     "dwc:specificEpithet": "acutangula",
+        #     "dwc:kingdom": "Animalia",
+        #     "dwc:genus": "Polydontes",
+        #     "dwc:class": "Gastropoda",
+        #     "dwc:family": "Camaenidae",
+        # }
         {
-            "dwc:specificEpithet": "acutangula",
-            "dwc:kingdom": "Animalia",
-            "dwc:genus": "Polydontes",
-            "dwc:class": "Gastropoda",
-            "dwc:family": "Camaenidae",
+            "dwc:order": "Siluriformes",
+            "dwc:genus": "Ictalurus",
+            "dwc:class": "Actinopteri",
+            "dwc:family": "Ictaluridae",
+            "dwc:scientificName": "Ictalurus",
         }
     ]
     for i, t in enumerate(tests):

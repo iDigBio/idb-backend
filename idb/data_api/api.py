@@ -3,6 +3,7 @@ from __future__ import division, absolute_import, print_function
 from flask import Flask, jsonify, request, abort, url_for
 from flask_uuid import FlaskUUID
 
+from idb import __version__
 from idb.helpers.logging import idblogger
 from idb.helpers.cors import crossdomain
 from idb.postgres_backend import apidbpool
@@ -60,7 +61,6 @@ def index():
 
 @app.route('/version', methods=['GET'])
 def version():
-    from idb import __version__
     return __version__
 
 
@@ -68,5 +68,6 @@ def version():
 def healthz():
     return jsonify({
         "dbconn": idbmodel.fetchone("SELECT 'ok'")[0],
-        'remote_addr': request.remote_addr
+        'remote_addr': request.remote_addr,
+        'version': __version__
     })

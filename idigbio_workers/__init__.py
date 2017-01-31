@@ -1,6 +1,5 @@
 from __future__ import division, absolute_import, print_function
 import os
-import sys
 from celery import Celery
 from celery.result import AsyncResult
 
@@ -15,12 +14,17 @@ from idigbio_workers.tasks.download import downloader, blocker, send_download_em
 
 
 @memoized()
-def get_redis_conn():
-    import redis
+def get_redis_connection_params():
     from kombu.utils.url import _parse_url
     url = app.conf['broker_url']
     scheme, host, port, user, password, path, query = _parse_url(url)
-    return redis.StrictRedis(host=host, port=port, db=path)
+    return {'host': host, 'port': port, 'db': path}
+
+
+def get_redis_conn():
+    import redis
+    return redis.StrictRedis(**get_redis_connection_params())
+
 
 @app.task()
 def version():

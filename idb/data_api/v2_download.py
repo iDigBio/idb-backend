@@ -1,6 +1,7 @@
 from __future__ import division, absolute_import, print_function
 
 import json
+import gevent
 import udatetime
 from datetime import timedelta
 
@@ -17,14 +18,14 @@ from .common import json_error, logger
 this_version = Blueprint(__name__,__name__)
 
 QUERY_VALID_TIME = timedelta(hours=23)
-
+TASK_EXPIRE_TIME = timedelta(days=30)
 DOWNLOADER_TASK_PREFIX = "downloader:"
 
 
 @this_version.route('/download', methods=['GET', 'POST', 'OPTIONS'])
 @crossdomain(origin="*")
 def download():
-    redist = get_redis_conn()
+    rconn = get_redis_conn()
     params = {
         "core_type": "records",
         "core_source": "indexterms",
@@ -71,76 +72,91 @@ def download():
         source = source[0]
     force = o.get('force', False)
     forward_ip = request.remote_addr
-
     query_hash = objectHasher("sha1", params, sort_arrays=True, sort_keys=True)
     rqhk = DOWNLOADER_TASK_PREFIX + query_hash  # redis query hash key
-    tid = redist.get(rqhk)
-    ar = None
 
-    if force or not tid or downloader.AsyncResult(tid).failed():
-        ar = downloader.delay(params)
-        tid = ar.id
-        redist.hmset(DOWNLOADER_TASK_PREFIX + tid, {
+    tid = None
+    if not force:
+        tid = rconn.get(rqhk)
+        if tid:
+            tdata = get_task_status(tid)
+            if not tdata or tdata.get('task_status') in ('FAILURE', 'UNKNOWN'):
+                tid = None
+
+    if not tid:
+        tid = downloader.delay(params).id
+        rtkey = DOWNLOADER_TASK_PREFIX + tid
+        rconn.hmset(rtkey, {
             "query": json.dumps(params),
             "hash": query_hash,
             "created": udatetime.utcnow_to_string()
         })
-        redist.expire(DOWNLOADER_TASK_PREFIX + tid, timedelta(days=30))
-        redist.set(rqhk, tid)
-        redist.expire(rqhk, QUERY_VALID_TIME)
+        rconn.expire(rtkey, TASK_EXPIRE_TIME)
+        rconn.set(rqhk, tid)
+        rconn.expire(rqhk, QUERY_VALID_TIME)
         logger.debug("Started task: %s", tid)
 
     if email is not None:
         c = blocker.s(tid) | send_download_email.s(email, params, ip=forward_ip, source=source)
         c.delay()
 
-    return redirect(url_for(".status", tid=tid, _external=True), code=303)
+    return status(tid)
+
+
+def get_task_status(tid):
+    rconn = get_redis_conn()
+    rtkey = DOWNLOADER_TASK_PREFIX + tid
+    try:
+        tdata = rconn.hgetall(rtkey)
+        if len(tdata) == 0:
+            return None
+        tdata["query"] = json.loads(tdata["query"])
+        tdata["status_url"] = url_for(".status", tid=tid, _external=True)
+        ttl = rconn.ttl(rtkey)
+        if ttl != -1:
+            ttl = timedelta(seconds=ttl)
+            tdata["expires"] = udatetime.to_string(udatetime.utcnow() + ttl)
+        if tdata.get('task_status'):
+            # `task_status` isn't set in redis while pending, so if
+            # set then it is complete
+            tdata["complete"] = True
+        else:
+            ar = downloader.AsyncResult(tid)
+            tdata['task_status'] = ar.status
+            tdata["complete"] = ar.ready()
+            if ar.ready():
+                rconn.hset(rtkey, "task_status", ar.status)
+                if ar.successful():
+                    tdata["download_url"] = ar.result
+                    rconn.hset(rtkey, "download_url", ar.result)
+                elif ar.failed():
+                    tdata["error"] = str(ar.result)
+                    rconn.hset(rtkey, "error", str(ar.result))
+                    gevent.spawn(dissociate_query_hash, tid, tdata)
+    except Exception as e:
+        logger.exception("Failed getting status of download %s", tid)
+        tdata = {
+            "complete": False,
+            "task_status": "UNKNOWN",
+            "status_url": url_for(".status", tid=tid, _external=True),
+            "error": str(e)
+        }
+    return tdata
 
 
 @this_version.route('/download/<uuid:tid>', methods=['GET', 'OPTIONS'])
 @crossdomain(origin="*")
 def status(tid):
-    tid = str(tid)
-    redist = get_redis_conn()
-    redis_task_key = DOWNLOADER_TASK_PREFIX + tid
-    data = redist.hgetall(redis_task_key)
-    if len(data) == 0:
+    tdata = get_task_status(str(tid))
+    if tdata is None:
         return json_error(404)
-    try:
-        data["query"] = json.loads(data["query"])
-        data["status_url"] = url_for(".status", tid=tid, _external=True)
-        ttl = redist.ttl(tid)
-        if ttl == -1:
-            ttl = timedelta(days=30)
-        else:
-            ttl = timedelta(seconds=ttl)
-        data["expires"] = udatetime.to_string(udatetime.utcnow() + ttl)
-        if data.get('task_status'):
-            # we don't set task_status into redis until it is complete and we have everything
-            data["complete"] = True
-        else:
-            ar = downloader.AsyncResult(tid)
-            data['task_status'] = ar.status
-            data["complete"] = ar.ready()
-            if ar.ready():
-                redist.hset(redis_task_key, "task_status", ar.status)
-                if ar.successful():
-                    data["download_url"] = ar.result
-                    redist.hset(redis_task_key, "download_url", ar.result)
-                elif ar.failed():
-                    data["error"] = str(ar.result)
-                    redist.hset(redis_task_key, "error", str(ar.result))
-                    rqhk = DOWNLOADER_TASK_PREFIX + data['hash']  # redis query hash key
-                    if redist.get(rqhk) == tid:
-                        redist.delete(rqhk)
+    return jsonify(tdata)
 
-        return jsonify(data)
 
-    except Exception as e:
-        logger.exception("Failed getting status of download %s", tid)
-        return jsonify({
-            "complete": False,
-            "task_status": "UNKNOWN",
-            "status_url": url_for(".status", tid=tid, _external=True),
-            "error": str(e)
-        })
+def dissociate_query_hash(tid, task_data):
+    if not task_data.get('hash'):
+        return
+    rconn = get_redis_conn()
+    rqhk = DOWNLOADER_TASK_PREFIX + task_data['hash']  # redis query hash key
+    if rconn.get(rqhk) == tid:
+        rconn.delete(rqhk)

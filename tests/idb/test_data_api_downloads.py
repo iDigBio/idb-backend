@@ -1,12 +1,12 @@
 from datetime import timedelta
 
-import udatetime
-from rfc3339 import from_rfc3339_string
 
 import uuid
 import json
 
-import rfc3339
+import gevent
+import udatetime
+from rfc3339 import from_rfc3339_string
 import pytest
 from flask import url_for
 
@@ -58,6 +58,7 @@ def fakeresult(request, mocker):
 
 def setupredis(client, tid=None, task_status=None, download_url=None, error=None, link=True, hash="foobar"):
     tid = tid or str(uuid.uuid4())
+    rtkey = DOWNLOADER_TASK_PREFIX + tid
     redisdata = {
         'created': udatetime.utcnow_to_string(),
         'query': json.dumps({
@@ -74,11 +75,12 @@ def setupredis(client, tid=None, task_status=None, download_url=None, error=None
         redisdata['download_url'] = download_url
     if error:
         redisdata['error'] = error
-    client.hmset(DOWNLOADER_TASK_PREFIX + tid, redisdata)
-    client.expire(DOWNLOADER_TASK_PREFIX + tid, timedelta(hours=1))
+    client.hmset(rtkey, redisdata)
+    client.expire(rtkey, timedelta(hours=1))
     if link:
-        client.set(DOWNLOADER_TASK_PREFIX + redisdata['hash'], tid)
-        client.expire(DOWNLOADER_TASK_PREFIX + redisdata['hash'], timedelta(hours=1))
+        rqhk = DOWNLOADER_TASK_PREFIX + redisdata['hash']
+        client.set(rqhk, tid)
+        client.expire(rqhk, timedelta(hours=1))
     return tid
 
 
@@ -133,6 +135,7 @@ def test_status_pending_now_failure(client, fakeredcli, fakeresult):
     assert from_rfc3339_string(resp.json['created'])
     assert from_rfc3339_string(resp.json['expires'])
     assert 'download_url' not in resp.json
+    gevent.wait()
     assert tid != fakeredcli.get(DOWNLOADER_TASK_PREFIX + resp.json['hash']), \
                   "Task wasn't unlinked from query hash in redis"
 
@@ -160,10 +163,9 @@ def test_initialization_no_params(client):
 
 def test_initialization(client, fakeredcli, fakeresult):
     resp = client.get(url_for('idb.data_api.v2_download.download', rq={"genus": "acer"}))
-    assert resp.status_code == 303
-    assert 'Location' in resp.headers
-    tid = resp.headers['Location'].split('/')[-1]
-
+    assert resp.status_code == 200
+    assert 'status_url' in resp.json
+    tid = resp.json['status_url'].split('/')[-1]
     data = fakeredcli.hgetall(DOWNLOADER_TASK_PREFIX + tid)
     assert data
     assert len(data) != 0
@@ -175,10 +177,9 @@ def test_initialization(client, fakeredcli, fakeresult):
 def test_initialization_repeated_request(client, fakeredcli, fakeresult):
     "Two requests with the same query should create the same download task"
     resp = client.get(url_for('idb.data_api.v2_download.download', rq={"genus": "acer"}))
-    assert resp.status_code == 303
-    assert 'Location' in resp.headers
-    tid = resp.headers['Location'].split('/')[-1]
-
+    assert resp.status_code == 200
+    assert 'status_url' in resp.json
+    tid = resp.json['status_url'].split('/')[-1]
     data = fakeredcli.hgetall(DOWNLOADER_TASK_PREFIX + tid)
     assert data
     assert len(data) != 0
@@ -189,19 +190,27 @@ def test_initialization_repeated_request(client, fakeredcli, fakeresult):
     assert fakeredcli.get(DOWNLOADER_TASK_PREFIX + data['hash']) == tid
 
     resp = client.get(url_for('idb.data_api.v2_download.download', rq={"genus": "acer"}))
-    assert resp.status_code == 303
-    assert 'Location' in resp.headers
-    tid2 = resp.headers['Location'].split('/')[-1]
-
+    assert resp.status_code == 200
+    assert 'status_url' in resp.json
+    tid2 = resp.json['status_url'].split('/')[-1]
     assert tid == tid2
+
+    resp = client.get(url_for('idb.data_api.v2_download.download', rq={"genus": "acer"}, force=True))
+    assert resp.status_code == 200
+    assert 'status_url' in resp.json
+    tid3 = resp.json['status_url'].split('/')[-1]
+    assert tid != tid3
+
+
+
 
 
 def test_initialization_failed_task(client, fakeredcli, fakeresult):
     "If a download task a has failed, a new POST should retry"
     resp = client.get(url_for('idb.data_api.v2_download.download', rq={"genus": "acer"}))
-    assert resp.status_code == 303
-    assert 'Location' in resp.headers
-    tid = resp.headers['Location'].split('/')[-1]
+    assert resp.status_code == 200
+    assert 'status_url' in resp.json
+    tid = resp.json['status_url'].split('/')[-1]
 
     data = fakeredcli.hgetall(DOWNLOADER_TASK_PREFIX + tid)
     assert data
@@ -214,8 +223,8 @@ def test_initialization_failed_task(client, fakeredcli, fakeresult):
     fakeresult.status = "FAILURE"
 
     resp = client.get(url_for('idb.data_api.v2_download.download', rq={"genus": "acer"}))
-    assert resp.status_code == 303
-    assert 'Location' in resp.headers
-    tid2 = resp.headers['Location'].split('/')[-1]
+    assert resp.status_code == 200
+    assert 'status_url' in resp.json
+    tid2 = resp.json['status_url'].split('/')[-1]
 
     assert tid != tid2

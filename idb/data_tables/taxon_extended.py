@@ -10,8 +10,11 @@ def get_data():
         for l in tkvf:
             # There could be 2 or more elements of o, so we cant do a simple assignment
             o = json.loads(l)
-            k = o[0]
-            v = o[1]
+            data_etag = o[0]
+            result = o[1]
+            k = o[2][0]
+            v = o[2][1]
+            score = o[3]
 
             k_etag = objectHasher("sha256", k, sort_arrays=True)
             if k_etag not in keys:
@@ -27,7 +30,8 @@ def get_data():
         v = values[value_counts.most_common(1)[0][0]]
 
         if "dwc:scientificName" in v:
-            v["gbif:canonicalName"] = v["dwc:scientificName"]
+            # Canonical name is back in the backbone.
+            # v["gbif:canonicalName"] = v["dwc:scientificName"]
             del v["dwc:scientificName"]
 
         if "flag_taxon_match_failed" not in v:

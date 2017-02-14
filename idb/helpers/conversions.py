@@ -811,7 +811,7 @@ def collect_common_names(t, d):
         return {}
 
 
-genbank_ids = re.compile("[a-zA-Z]{1,2}\-?_?\d{5,6}")("")
+genbank_ids = re.compile("[a-zA-Z]{1,2}\-?_?\d{5,6}")
 
 def collect_genbank_sequences(t, d):
     if t == "records":
@@ -877,16 +877,21 @@ def fixBOR(t, r):
 def fix_taxon_rank(t, r):
     if filled("taxonrank", r):
         if r["taxonrank"] in taxon_rank.mapping:
-            r["taxonrank"] = taxon_rank.mapping[r["taxonrank"]]
-            if r["taxonrank"] is None:
+            if taxon_rank.mapping[r["taxonrank"]] is None:
+                r["taxonrank"] = None
                 r["flag_dwc_taxonrank_removed"] = True
                 r["flag_dwc_taxonrank_invalid"] = True
-            else:
+            elif r["taxonrank"] != taxon_rank.mapping[r["taxonrank"]]:
+                r["taxonrank"] = taxon_rank.mapping[r["taxonrank"]]
                 r["flag_dwc_taxonrank_replaced"] = True
+            else:
+                pass  # Taxon Rank is in the mapping as an identity.
         elif r["taxonrank"] not in taxon_rank.acceptable:
             r["taxonrank"] = None
             r["flag_dwc_taxonrank_removed"] = True
-            r["flag_dwc_taxonrank_invalid"] = True        
+            r["flag_dwc_taxonrank_invalid"] = True
+        else:
+            pass  # Taxon Rank is Acceptable, but not mapped
 
 # Step, count, ms, ms/count     action
 # rc 1000 354.179 0.354179      record corrector

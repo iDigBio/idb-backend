@@ -27,7 +27,7 @@ from .identification import identifiy_locality, identifiy_scientificname
 logger = logging.getLogger()
 
 indexName = get_indexname()
-es = get_connection()
+
 
 # 0: Current Year
 # 1: Query Text
@@ -118,6 +118,7 @@ def get_recordsets(params, generate=True):
             }
         }
 
+    es = get_connection()
     ro = es.search(index=indexName, doc_type=t, body=q)
     recsets = {}
     for b in ro["aggregations"]["recordsets"]["buckets"]:
@@ -142,6 +143,7 @@ def write_citation_files(dl_id, rq, mq, record_query, mediarecord_query):
 
 
 def count_query(t, query):
+    es = get_connection()
     return es.count(index=indexName, doc_type=t, body=query)["count"]
 
 
@@ -269,6 +271,7 @@ def make_file(t, query, raw=False, tabs=False, fields=None,
         if raw:
             exclude_from_fields = ["id", "coreid"]
 
+        es = get_connection()
         mapping = es.indices.get_mapping(index=indexName, doc_type=t)
         mapping_root = mapping.values()[0]["mappings"][t]["properties"]
         if raw:

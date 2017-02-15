@@ -25,6 +25,7 @@ setup(
     author='ACIS iDigBio team',
     author_email='idigbio@acis.ufl.edu',
     packages=find_packages(exclude=['tests*']),
+    setup_requires=['pytest-runner'],
     install_requires=[
         'psycopg2>=2.6',
         'redis>=2.9.1, <3.0.0',
@@ -70,7 +71,8 @@ setup(
             'pytest-cov',
             'pytest-flask',
             'pytest-mock',
-            'pytest-catchlog>=1.2.2,<2'
+            'pytest-catchlog>=1.2.2,<2',
+            'fakeredis'
         ]
     },
     tests_require=['idb-backend[test]'],

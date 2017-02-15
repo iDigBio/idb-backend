@@ -6,7 +6,29 @@ logger = logging.getLogger('idb.cfg')
 
 conf_paths = ["/etc/idigbio/", "~/", "."]
 
-config = {}
+config = {
+    "redis": {
+        "host": "localhost",
+        "port": 6379,
+        "db": 0
+    },
+    "postgres": {
+        "host": "localhost",
+        "user": "idigbio",
+        "password": "",
+        "db_prefix": "idb_"
+    },
+    "elasticsearch": {
+        "types": [
+            "publishers",
+            "recordsets",
+            "mediarecords",
+            "records"
+        ],
+        "indexname": "idigbio",
+        "servers": []
+    }
+}
 
 def update_environment(env):
     if not env:

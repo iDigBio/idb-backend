@@ -159,6 +159,7 @@ def get_source_value(source, val_field):
 
 
 def query_to_uniquevals(outf, t, body, val_field, tabs, val_func):
+    es = get_connection()
     cw = None
     if tabs:
         cw = csv.writer(outf, dialect=csv.excel_tab)
@@ -193,6 +194,7 @@ def query_to_uniquevals(outf, t, body, val_field, tabs, val_func):
 
 
 def query_to_csv(outf, t, body, header_fields, fields, id_field, raw, tabs, id_func):
+    es = get_connection()
     cw = None
     if tabs:
         cw = csv.writer(outf, dialect=csv.excel_tab)
@@ -570,7 +572,6 @@ def generate_dwca_files(core_type="records", core_source="indexterms",
 
 
 def main():
-    import datetime
     import uuid
 
     logger = logging.getLogger()
@@ -638,6 +639,7 @@ def main():
     #         except:
     #             print qt
     #             traceback.print_exc()
+
 
 if __name__ == '__main__':
     main()

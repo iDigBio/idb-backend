@@ -11,3 +11,4 @@ cover/
 .cache/
 .dir-locals.el
 Dockerfile
+.travis.yml

@@ -16,5 +16,5 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 COPY . /opt/idb-backend/
 WORKDIR /opt/idb-backend/
-RUN pip --no-cache-dir install .
+RUN pip --no-cache-dir install .[test]
 USER www-data

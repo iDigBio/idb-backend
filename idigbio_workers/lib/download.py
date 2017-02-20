@@ -18,13 +18,14 @@ from atomicfile import AtomicFile
 # idb imports
 from idb.helpers.conversions import index_field_to_longname
 from idb.indexing.indexer import get_connection, get_indexname
+from idb.helpers.logging import idblogger
 
 # local imports
 from .query_shim import queryFromShim
 from .meta_xml import make_meta, make_file_block
 from .identification import identifiy_locality, identifiy_scientificname
 
-logger = logging.getLogger()
+logger = idblogger.getChild('download')
 
 indexName = get_indexname()
 
@@ -262,7 +263,7 @@ def make_file(t, query, raw=False, tabs=False, fields=None,
     outfile_name = file_prefix + t + file_extension
     if raw:
         outfile_name = file_prefix + t + ".raw" + file_extension
-    logger.debug("Creating %r")
+    logger.debug("Creating %r", outfile_name)
 
     if t in ["records", "mediarecords"]:
         id_field = "id"

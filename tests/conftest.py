@@ -116,7 +116,7 @@ def testdb(logger):
 def testdbpool(request, testdb, logger):
     "A DB pool to the test database"
     from idb.postgres_backend.gevent_helpers import GeventedConnPool
-    logger.debug("Creating ConnPool: %r")
+    logger.debug("Creating ConnPool: %r", testdb)
     dbpool = GeventedConnPool(**testdb)
 
     def ro_setter(val):

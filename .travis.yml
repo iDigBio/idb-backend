@@ -7,27 +7,35 @@ services:
 addons:
   postgresql: "9.5"
 
-before_script:
+install:
 - docker build -t $BUILDING .
 - psql -U postgres -c 'create database test_idigbio;'
 - psql -U postgres -c "DROP SCHEMA public CASCADE;" test_idigbio
+- docker run --net host --name minio-test --rm -e "MINIO_ACCESS_KEY=${ACCESS_KEY}" -e "MINIO_SECRET_KEY=${SECRET_KEY=}"  minio/minio server /export
+
 script:
-- docker run --rm -it --net host $BUILDING
-  pytest --pguser=postgres --pgpass="" tests/idb tests/idigbio_workers
+- docker run --rm -it --net host
+  -e "IDB_STORAGE_ACCESS_KEY=${ACCESS_KEY}"
+  -e "IDB_STORAGE_SECRET_KEY=${SECRET_KEY}"
+  -e "IDB_STORAGE_HOST=localhost:9000"
+  $BUILDING
+  pytest --pguser=postgres --pgpass="" tests/idb
 
 after_success:
 - docker login --username="$DOCKER_USERNAME" --password="$DOCKER_PASSWORD"
-# - |
-#   if [ -n "$TRAVIS_TAG" ]; then
-#     docker tag $BUILDING $DOCKER_IMAGE:$TRAVIS_TAG;
-#     docker push $DOCKER_IMAGE:$TRAVIS_TAG;
-#   fi
-# - |
-#   if [ "$TRAVIS_PULL_REQUEST" = "false" ]; then
-#     docker tag $BUILDING $DOCKER_IMAGE:$TRAVIS_BRANCH;
-#     docker push $DOCKER_IMAGE:$TRAVIS_BRANCH;
-#   fi
+- |
+  if [ -n "$TRAVIS_TAG" ]; then
+    docker tag $BUILDING $DOCKER_IMAGE:$TRAVIS_TAG;
+    docker push $DOCKER_IMAGE:$TRAVIS_TAG;
+  fi
+- |
+  if [ "$TRAVIS_PULL_REQUEST" = "false" ]; then
+    docker tag $BUILDING $DOCKER_IMAGE:$TRAVIS_BRANCH;
+    docker push $DOCKER_IMAGE:$TRAVIS_BRANCH;
+  fi
 env:
   global:
   - DOCKER_IMAGE=idigbio/idb-backend
   - BUILDING=$DOCKER_IMAGE:$TRAVIS_COMMIT
+  - ACCESS_KEY="testAccessKey"
+  - SECRET_KEY="testSecretKey"

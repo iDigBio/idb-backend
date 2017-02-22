@@ -12,6 +12,7 @@ import boto
 import boto.s3.connection
 from boto.exception import BotoServerError, BotoClientError, S3DataError
 
+from idb import config
 from idb.helpers.logging import idblogger
 from idb.postgres_backend.db import MediaObject
 
@@ -33,29 +34,30 @@ class IDigBioStorage(object):
             environment variables.
     """
 
-    def __init__(self, host="s.idigbio.org", access_key=None, secret_key=None):
-        if access_key is None:
-            access_key = os.getenv("IDB_STORAGE_ACCESS_KEY")
+    def __init__(self, host=None, access_key=None, secret_key=None):
 
-        if secret_key is None:
-            secret_key = os.getenv("IDB_STORAGE_SECRET_KEY")
+        self.host = host = host or config.IDB_STORAGE_HOST
+        access_key = access_key or config.IDB_STORAGE_ACCESS_KEY
+        secret_key = secret_key or config.IDB_STORAGE_SECRET_KEY
+        assert self.host, "Must specify s3 host"
+        assert access_key, "Must specify s3 access_key"
+        assert secret_key, "Must specify s3 secret_key"
 
-        self.host = host
-
-        assert access_key is not None
-        assert secret_key is not None
-
+        port = None
+        if ':' in host:
+            host, port = host.split(':')
+            port = int(port)
         self.boto_conn = boto.connect_s3(
             aws_access_key_id=access_key,
             aws_secret_access_key=secret_key,
             host=host,
+            port=port,
             is_secure=False,
             calling_format=boto.s3.connection.OrdinaryCallingFormat(),
         )
 
     def get_bucket(self, bucket_name):
-        """
-            Return a boto.s3.Bucket object for the requested bucket.
+        """Return a boto.s3.Bucket object for the requested bucket.
         """
         return self.boto_conn.get_bucket(bucket_name, validate=False)
 
@@ -121,10 +123,9 @@ class IDigBioStorage(object):
             def onepart(i):
                 logger.debug("Uploading part %d", i)
                 offset = i * self.MAX_CHUNK_SIZE
-                remaining = size - offset
+                usize = min([self.MAX_CHUNK_SIZE, size - offset])
                 fobj.seek(offset)
-                mp.upload_part_from_file(
-                    fp=fobj, part_num=i + 1, size=min([self.MAX_CHUNK_SIZE, remaining]))
+                mp.upload_part_from_file(fp=fobj, part_num=i + 1, size=usize)
 
             for i in range(chunk_count):
                 self.retry_loop(lambda: onepart(i))
@@ -212,6 +213,6 @@ class IDigBioStorage(object):
 
     #     self.upload_file(h,"idigbio-{}-prod".format(typ),fname)
 
-    #     current_app.config["DB"]._cur.execute("INSERT INTO media (url,type,mime,last_status,last_check,owner) VALUES (SELECT %s,%s,%s,200,now(),%s WHERE NOT EXISTS (SELECT 1 FROM media WHERE url=%s))", (url,typ,detected_mime, config["env"]["IDB_UUID"],url))
+    #     current_app.config["DB"]._cur.execute("INSERT INTO media (url,type,mime,last_status,last_check,owner) VALUES (SELECT %s,%s,%s,200,now(),%s WHERE NOT EXISTS (SELECT 1 FROM media WHERE url=%s))", (url,typ,detected_mime, config.IDB_UUID", url))
     #     current_app.config["DB"]._cur.execute("INSERT INTO objects (bucket, etag, detected_mime) (SELECT %s, %s, %s WHERE NOT EXISTS (SELECT 1 FROM objects WHERE etag=%s))", (typ, h, detected_mime, h))
     #     current_app.config["DB"]._cur.execute("INSERT INTO media_objects (url, etag) VALUES (%s,%s)", (url,h))

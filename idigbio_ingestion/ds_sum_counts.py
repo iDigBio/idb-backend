@@ -67,15 +67,15 @@ def is_row_suspect(row):
         return "ALLNEW_RECORDS"
     if records_count == 0 and records_delete > 0:
         return "DELETED_ALL_RECORDS"
-    if records_count > 0:
-        if records_delete / records_count > 0.05:
-            return "DELETED_MANY_RECORDS"
-        if records_create / records_count > 0.4:
-            return "MANY_NEW_RECORDS"
     if records_delete > 0 and \
        0.9 < (records_create / records_delete) < 1.1 and \
        records_create / records_count > 0.1:
         return "RECORDS_CHURN"
+    if records_count > 0:
+        if records_delete / records_count > 0.2:
+            return "DELETED_MANY_RECORDS"
+        if records_create / records_count > 0.45:
+            return "MANY_NEW_RECORDS"
 
     if mediarecords_count > 0 and mediarecords_create == mediarecords_count and mediarecords_update == 0 and mediarecords_delete == 0:
         return "ALLNEW_MEDIA"

@@ -11,7 +11,7 @@ install:
 - docker build -t $BUILDING .
 - psql -U postgres -c 'create database test_idigbio;'
 - psql -U postgres -c "DROP SCHEMA public CASCADE;" test_idigbio
-- docker run --net host --name minio-test --rm -e "MINIO_ACCESS_KEY=${ACCESS_KEY}" -e "MINIO_SECRET_KEY=${SECRET_KEY=}"  minio/minio server /export
+- docker run -d --net host --name minio-test --rm -e "MINIO_ACCESS_KEY=${ACCESS_KEY}" -e "MINIO_SECRET_KEY=${SECRET_KEY=}"  minio/minio server /export
 
 script:
 - docker run --rm -it --net host

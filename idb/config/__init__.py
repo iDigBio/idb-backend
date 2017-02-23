@@ -44,6 +44,7 @@ def load_config_file(p):
         config.update(json_config)
         update_environment(json_config.get('env'))
 
+
 for p in conf_paths:
     fp = os.path.realpath(os.path.join(os.path.expanduser(p), "idigbio.json"))
     try:

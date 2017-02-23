@@ -1,11 +1,14 @@
 from __future__ import absolute_import
+
 from functools import wraps
 from flask import request, jsonify, current_app
 import os
 
 from .encryption import _encrypt
-from idb.config import config, logger
+from idb.helpers.logging import idblogger
+from idb import config
 
+logger = idblogger.getChild('authn')
 
 def check_auth(username, password):
     """This function is called to check if a username /
@@ -17,16 +20,16 @@ def check_auth(username, password):
         objects = "/v2/media" in request.url
         if corrections:
             sql = ("SELECT * FROM idb_api_keys WHERE user_uuid=%s and apikey=%s and corrections_allowed=true",
-                   (username, _encrypt(password,os.environ["IDB_CRYPT_KEY"])))
+                   (username, _encrypt(password, config.IDB_CRYPT_KEY)))
         elif annotations:
             sql = ("SELECT * FROM idb_api_keys WHERE user_uuid=%s and apikey=%s and annotations_allowed=true",
-                   (username, _encrypt(password,os.environ["IDB_CRYPT_KEY"])))
+                   (username, _encrypt(password, config.IDB_CRYPT_KEY)))
         elif objects:
             sql = ("SELECT * FROM idb_api_keys WHERE user_uuid=%s and apikey=%s and objects_allowed=true",
-                   (username, _encrypt(password,os.environ["IDB_CRYPT_KEY"])))
+                   (username, _encrypt(password, config.IDB_CRYPT_KEY)))
         else:
             sql = ("SELECT * FROM idb_api_keys WHERE user_uuid=%s and apikey=%s and records_allowed=true",
-                   (username, _encrypt(password,os.environ["IDB_CRYPT_KEY"])))
+                   (username, _encrypt(password, config.IDB_CRYPT_KEY)))
         r = current_app.config["DB"].fetchone(*sql)
         if r is not None:
             return True

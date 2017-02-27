@@ -2,11 +2,12 @@ from __future__ import division, absolute_import, print_function
 import os
 from celery import Celery
 from celery.result import AsyncResult
+from idb import config
 
 from idb.helpers.memoize import memoized
 
 app = Celery('tasks')
-env = os.getenv("ENV", "prod")
+env = config.ENV
 app.config_from_object('idigbio_workers.config.' + env)
 
 # this must be imported so it has a chance to register worker tasks.

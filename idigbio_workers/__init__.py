@@ -31,3 +31,13 @@ def get_redis_conn():
 def version():
     import idb
     return idb.__version__
+
+
+@app.task()
+def healthz():
+    import idb
+    return {
+        "version": idb.__version__,
+        "env": env,
+        "broker_url": app.conf['broker_url']
+    }

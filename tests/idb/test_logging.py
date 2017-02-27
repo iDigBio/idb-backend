@@ -10,7 +10,7 @@ def ecaplog(caplog):
     but is probably racy about this fixture being evaluated last.
 
     """
-    a = caplog.records()
+    a = caplog.records
     while len(a):
         a.pop()
     return caplog
@@ -20,8 +20,8 @@ def test_fntimed_basic(ecaplog):
     def foo(): pass
 
     foo()
-    assert len(ecaplog.records()) == 1
-    rec = ecaplog.records()[0]
+    assert len(ecaplog.records) == 1
+    rec = ecaplog.records[0]
     assert rec.levelname == 'DEBUG'
     assert rec.msg.endswith('s')
 
@@ -29,8 +29,8 @@ def test_fntimed_basic(ecaplog):
     def bar(): pass
 
     bar()
-    assert len(ecaplog.records()) == 2
-    rec = ecaplog.records()[-1]
+    assert len(ecaplog.records) == 2
+    rec = ecaplog.records[-1]
     assert rec.levelname == 'DEBUG'
     assert rec.msg.endswith('s')
 
@@ -45,8 +45,8 @@ def test_fntimed_speciallevel(ecaplog):
     @logging.fntimed(log=logging.idblogger.info)
     def foo(): pass
     foo()
-    assert len(ecaplog.records()) == 1
-    rec = ecaplog.records()[0]
+    assert len(ecaplog.records) == 1
+    rec = ecaplog.records[0]
     assert rec.levelname == 'INFO'
     assert rec.msg.endswith('s')
 
@@ -56,8 +56,8 @@ def test_fntimed_class(ecaplog):
         def bar(self): pass
 
     Foo().bar()
-    assert len(ecaplog.records()) == 1
-    rec = ecaplog.records()[0]
+    assert len(ecaplog.records) == 1
+    rec = ecaplog.records[0]
     assert rec.levelname == 'DEBUG'
     assert rec.msg.endswith('s')
 
@@ -69,8 +69,8 @@ def test_fnlogged_reraise(ecaplog):
     with pytest.raises(Exception):
         foo()
 
-    assert len(ecaplog.records()) == 1
-    rec = ecaplog.records()[0]
+    assert len(ecaplog.records) == 1
+    rec = ecaplog.records[0]
     assert rec.levelname == 'ERROR'
 
     @logging.fnlogged(reraise=False)
@@ -78,8 +78,8 @@ def test_fnlogged_reraise(ecaplog):
         raise Exception('woot')
     bar()
 
-    assert len(ecaplog.records()) == 2
-    rec = ecaplog.records()[1]
+    assert len(ecaplog.records) == 2
+    rec = ecaplog.records[1]
     assert rec.levelname == 'ERROR'
 
 
@@ -87,8 +87,8 @@ def test_fnlogged_timed(ecaplog):
     @logging.fnlogged(logger=logging.idblogger, time_level=WARNING)
     def foo(): pass
     foo()
-    assert len(ecaplog.records()) == 1
-    rec = ecaplog.records()[0]
+    assert len(ecaplog.records) == 1
+    rec = ecaplog.records[0]
     assert rec.levelname == 'WARNING'
     assert rec.msg.endswith('s')
 
@@ -99,4 +99,4 @@ def test_fnlogged_noop(ecaplog):
         raise Exception()
     with pytest.raises(Exception):
         foo()
-    assert len(ecaplog.records()) == 0
+    assert len(ecaplog.records) == 0

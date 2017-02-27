@@ -3,9 +3,13 @@ from __future__ import division, absolute_import, print_function
 from flask import Flask, jsonify, request, abort, url_for
 from flask_uuid import FlaskUUID
 
+from idb import __version__
+from idb.helpers.logging import idblogger
 from idb.helpers.cors import crossdomain
 from idb.postgres_backend import apidbpool
 from idb.data_api.common import idbmodel
+
+logger = idblogger.getChild("api")
 
 app = Flask(__name__)
 FlaskUUID(app)
@@ -57,10 +61,13 @@ def index():
 
 @app.route('/version', methods=['GET'])
 def version():
-    from idb import __version__
     return __version__
 
 
 @app.route('/healthz', methods=['GET'])
 def healthz():
-    return idbmodel.fetchone("SELECT 'ok'")[0]
+    return jsonify({
+        "dbconn": idbmodel.fetchone("SELECT 'ok'")[0],
+        'remote_addr': request.remote_addr,
+        'version': __version__
+    })

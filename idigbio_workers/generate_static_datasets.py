@@ -20,9 +20,8 @@ def upload_download_file_to_ceph(s, dsname):
         t = datetime.date.today().isoformat()
         keyname = "idigbio-" + t + ".zip"
         makelink = True
-    fkey = s.upload_file(keyname, "idigbio-static-downloads", dsname)
-
-    fkey.set_metadata('Content-Type', 'application/zip')
+    fkey = s.upload(s.get_key(keyname, "idigbio-static-downloads"),
+                    dsname, public=True, content_type='application/zip')
     os.unlink(dsname)
 
     if makelink:

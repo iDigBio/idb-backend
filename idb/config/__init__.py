@@ -6,7 +6,24 @@ logger = logging.getLogger('idb.cfg')
 
 conf_paths = ["/etc/idigbio/", "~/", "."]
 
-config = {}
+config = {
+    "postgres": {
+        "host": "localhost",
+        "user": "idigbio",
+        "password": "",
+        "db_prefix": "idb_"
+    },
+    "elasticsearch": {
+        "types": [
+            "publishers",
+            "recordsets",
+            "mediarecords",
+            "records"
+        ],
+        "indexname": "idigbio",
+        "servers": []
+    }
+}
 
 def update_environment(env):
     if not env:
@@ -22,6 +39,7 @@ def load_config_file(p):
         config.update(json_config)
         update_environment(json_config.get('env'))
 
+
 for p in conf_paths:
     fp = os.path.realpath(os.path.join(os.path.expanduser(p), "idigbio.json"))
     try:
@@ -34,6 +52,7 @@ ENV = os.environ.get('ENV', 'dev')
 IDB_UUID = os.environ.get('IDB_UUID')
 IDB_APIKEY = os.environ.get('IDB_APIKEY')
 IDB_DBPASS = os.environ.get('IDB_DBPASS')
+IDB_STORAGE_HOST = os.environ.get('IDB_STORAGE_HOST', 's.idigbio.org')
 IDB_STORAGE_ACCESS_KEY = os.environ.get('IDB_STORAGE_ACCESS_KEY')
 IDB_STORAGE_SECRET_KEY = os.environ.get('IDB_STORAGE_SECRET_KEY')
 IDB_CRYPT_KEY = os.environ.get('IDB_CRYPT_KEY')

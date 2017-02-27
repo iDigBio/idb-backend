@@ -58,11 +58,36 @@ The available extra components are:
  * `test`: the extra libs for testing
 
 
+### Docker Image
+
+The [idb-backend](https://hub.docker.com/r/idigbio/idb-backend/) image
+is built off of this repository.
+
+
 ## Running
 
 The main entry point is the `idb` command; you can run `idb --help` to
 see what subcommands are available. When invoking this script there is
 no need to set the `PYTHONPATH`.
+
+In any invocation an `idigbio.json` must be present in either `$PWD`,
+`$HOME`, or `/etc/idigbio`.
+
+### Data API
+
+This serves the `api.idigbio.org` interface
+
+    idb run-server
+
+### Celery worker
+
+This package can also be run as a [celery worker]; this is used by the
+data api that launches some tasks (most notably download building) via
+celery to a background worker.
+
+    celery worker --app=idigbio_workers -l WARNING
+
+[celery worker]: http://docs.celeryproject.org/en/latest/userguide/workers.html
 
 ## Testing
 

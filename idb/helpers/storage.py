@@ -12,10 +12,16 @@ import boto
 import boto.s3.connection
 from boto.exception import BotoServerError, BotoClientError, S3DataError
 
+from idb import config
 from idb.helpers.logging import idblogger
 from idb.postgres_backend.db import MediaObject
 
 logger = idblogger.getChild('storage')
+
+private_buckets = {
+    "debugfile"
+}
+
 
 class IDigBioStorage(object):
     """
@@ -28,29 +34,30 @@ class IDigBioStorage(object):
             environment variables.
     """
 
-    def __init__(self, host="s.idigbio.org", access_key=None, secret_key=None):
-        if access_key is None:
-            access_key = os.getenv("IDB_STORAGE_ACCESS_KEY")
+    def __init__(self, host=None, access_key=None, secret_key=None):
 
-        if secret_key is None:
-            secret_key = os.getenv("IDB_STORAGE_SECRET_KEY")
+        self.host = host = host or config.IDB_STORAGE_HOST
+        access_key = access_key or config.IDB_STORAGE_ACCESS_KEY
+        secret_key = secret_key or config.IDB_STORAGE_SECRET_KEY
+        assert self.host, "Must specify s3 host"
+        assert access_key, "Must specify s3 access_key"
+        assert secret_key, "Must specify s3 secret_key"
 
-        self.host = host
-
-        assert access_key is not None
-        assert secret_key is not None
-
+        port = None
+        if ':' in host:
+            host, port = host.split(':')
+            port = int(port)
         self.boto_conn = boto.connect_s3(
             aws_access_key_id=access_key,
             aws_secret_access_key=secret_key,
             host=host,
+            port=port,
             is_secure=False,
             calling_format=boto.s3.connection.OrdinaryCallingFormat(),
         )
 
     def get_bucket(self, bucket_name):
-        """
-            Return a boto.s3.Bucket object for the requested bucket.
+        """Return a boto.s3.Bucket object for the requested bucket.
         """
         return self.boto_conn.get_bucket(bucket_name, validate=False)
 
@@ -61,41 +68,64 @@ class IDigBioStorage(object):
             the method will use the existing object instead of creating a new one.
         """
         if bucket is not None:
-            return bucket.get_key(key_name,validate=False)
+            return bucket.get_key(key_name, validate=False)
         else:
-            return self.get_bucket(bucket_name).get_key(key_name,validate=False)
+            return self.get_bucket(bucket_name).get_key(key_name, validate=False)
 
-    def get_link(self,key_name,bucket_name,secure=False):
+    def get_link(self, key_name, bucket_name, secure=False):
         if secure:
-            return "https://{0}/{1}/{2}".format(self.host,bucket_name,key_name)
+            return "https://{0}/{1}/{2}".format(self.host, bucket_name, key_name)
         else:
-            return "http://{0}/{1}/{2}".format(self.host,bucket_name,key_name)
+            return "http://{0}/{1}/{2}".format(self.host, bucket_name, key_name)
 
     MAX_CHUNK_SIZE = 1024 ** 3  # 1GiB
 
-    def upload_file(self, key_name, bucket_name, file_name):
-        k = self.get_key(key_name, bucket_name)
-        size = os.path.getsize(file_name)
-        if size > self.MAX_CHUNK_SIZE:
-            self._upload_multipart(k, file_name, size)
-        else:
-            self.retry_loop(lambda: k.set_contents_from_filename(file_name))
-        k.make_public()
-        return k
+    def _get_size(self, fobj):
+        loc = fobj.tell()
+        fobj.seek(0, os.SEEK_END)
+        size = fobj.tell()
+        fobj.seek(loc, os.SEEK_SET)
+        return size
 
-    def _upload_multipart(self, k, file_name, size):
+    def upload(self, key, fobj, content_type=None, public=None, md5=None, multipart='auto', size=None):
+        if public is None:
+            public = key.bucket not in private_buckets
+
+        if hasattr(fobj, 'fileno') or hasattr(fobj, 'read'):
+            pass
+        elif hasattr(fobj, 'open'):
+            fobj = fobj.open('rb')
+        elif isinstance(fobj, basestring):
+            fobj = open(fobj, 'rb')
+        elif not all(hasattr(fobj, a) for a in ('seek', 'tell', 'read')):
+            raise ValueError("Unknown fobj type:", fobj)
+        if size is None and multipart == 'auto':
+            size = self._get_size(fobj)
+        if content_type:
+            key.set_metadata('Content-Type', content_type)
+
+        if multipart == 'auto' and size > self.MAX_CHUNK_SIZE:
+            self._upload_multipart(key, fobj, size)
+        else:
+            if md5:
+                md5 = key.get_md5_from_hexdigest(md5)
+            self.retry_loop(lambda: key.set_contents_from_file(fobj, rewind=True, md5=md5))
+        if public:
+            self.retry_loop(key.make_public)
+        return key
+
+    def _upload_multipart(self, k, fobj, size):
         chunk_count = int(math.ceil(size / self.MAX_CHUNK_SIZE))
         logger.debug("Starting upload to %r in %d chunks", k, chunk_count)
         try:
             mp = k.bucket.initiate_multipart_upload(k.name)
 
             def onepart(i):
+                logger.debug("Uploading part %d", i)
                 offset = i * self.MAX_CHUNK_SIZE
-                remaining = size - offset
-                with open(file_name, 'rb') as fp:
-                    fp.seek(offset)
-                    mp.upload_part_from_file(
-                        fp=fp, part_num=i + 1, size=min([self.MAX_CHUNK_SIZE, remaining]))
+                usize = min([self.MAX_CHUNK_SIZE, size - offset])
+                fobj.seek(offset)
+                mp.upload_part_from_file(fp=fobj, part_num=i + 1, size=usize)
 
             for i in range(chunk_count):
                 self.retry_loop(lambda: onepart(i))
@@ -183,6 +213,6 @@ class IDigBioStorage(object):
 
     #     self.upload_file(h,"idigbio-{}-prod".format(typ),fname)
 
-    #     current_app.config["DB"]._cur.execute("INSERT INTO media (url,type,mime,last_status,last_check,owner) VALUES (SELECT %s,%s,%s,200,now(),%s WHERE NOT EXISTS (SELECT 1 FROM media WHERE url=%s))", (url,typ,detected_mime, config["env"]["IDB_UUID"],url))
+    #     current_app.config["DB"]._cur.execute("INSERT INTO media (url,type,mime,last_status,last_check,owner) VALUES (SELECT %s,%s,%s,200,now(),%s WHERE NOT EXISTS (SELECT 1 FROM media WHERE url=%s))", (url,typ,detected_mime, config.IDB_UUID", url))
     #     current_app.config["DB"]._cur.execute("INSERT INTO objects (bucket, etag, detected_mime) (SELECT %s, %s, %s WHERE NOT EXISTS (SELECT 1 FROM objects WHERE etag=%s))", (typ, h, detected_mime, h))
     #     current_app.config["DB"]._cur.execute("INSERT INTO media_objects (url, etag) VALUES (%s,%s)", (url,h))

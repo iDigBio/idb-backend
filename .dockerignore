@@ -1,6 +1,14 @@
 .git
+.gitignore
+
 idigbio*.json
+
 **/*.pyc
 etc/
 cover/
+.coverage
 *.egg-info/
+.cache/
+.dir-locals.el
+Dockerfile
+.travis.yml

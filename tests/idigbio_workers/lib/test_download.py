@@ -13,11 +13,12 @@ def test_generate_files(tmpdir, form):
     rq = {"genus": "acer", "stateprovince": "florida"}
     record_query = queryFromShim(rq, "records")["query"]
     mediarecord_query = None
+    filename = str(tmpdir / str(uuid.uuid4()))
     filename = generate_files(core_type="records",
                               core_source="indexterms",
                               form=form,
                               record_query=record_query, mediarecord_query=mediarecord_query,
-                              filename=str(tmpdir / uuid.uuid4()))
+                              filename=filename)
     assert filename.startswith(str(tmpdir))
     if form.startswith('dwca'):
         ext = form.split('-')[1]
@@ -33,11 +34,12 @@ def test_generate_files_no_results(tmpdir, form):
     rq = {"genus": "f9f90044-2604-4294-9d8c-3c827cc46330", "stateprovince": "florida"}
     record_query = queryFromShim(rq, "records")["query"]
     mediarecord_query = None
+    filename = str(tmpdir / str(uuid.uuid4()))
     filename = generate_files(core_type="records",
                               core_source="indexterms",
                               form=form,
                               record_query=record_query, mediarecord_query=mediarecord_query,
-                              filename=str(tmpdir / uuid.uuid4()))
+                              filename=filename)
     assert filename.startswith(str(tmpdir))
     if form.startswith('dwca'):
         ext = form.split('-')[1]

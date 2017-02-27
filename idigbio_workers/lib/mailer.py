@@ -1,3 +1,4 @@
+from __future__ import division, absolute_import, print_function
 import os.path
 import smtplib
 from email.MIMEMultipart import MIMEMultipart

@@ -19,6 +19,9 @@ from py.path import local
 def pytest_addoption(parser):
     parser.addoption("--gmp", action="store_true", default=True,
                      help="Run gevent.monkey.patch_all()")
+    parser.addoption("--pguser", action="store", default="test")
+    parser.addoption("--pgpass", action="store", default="test")
+
 
 
 @pytest.fixture(scope="session", autouse=True)
@@ -93,14 +96,14 @@ def testdatapath():
 
 
 @pytest.fixture(scope="session")
-def testdb(logger):
+def testdb(request, logger):
     "Provide the connection spec for a local test db; ensure it works"
     from idb.postgres_backend import DEFAULT_OPTS
     spec = DEFAULT_OPTS.copy()
     spec['dbname'] = 'test_idigbio'
     spec['host'] = 'localhost'
-    spec['user'] = 'test'
-    spec['password'] = 'test'
+    spec['user'] = request.config.getoption("--pguser")
+    spec['password'] = request.config.getoption("--pgpass")
     logger.info("Verifying testdb %r", spec)
     try:
         with psycopg2.connect(**spec) as conn:
@@ -116,7 +119,7 @@ def testdb(logger):
 def testdbpool(request, testdb, logger):
     "A DB pool to the test database"
     from idb.postgres_backend.gevent_helpers import GeventedConnPool
-    logger.debug("Creating ConnPool: %r")
+    logger.debug("Creating ConnPool: %r", testdb)
     dbpool = GeventedConnPool(**testdb)
 
     def ro_setter(val):

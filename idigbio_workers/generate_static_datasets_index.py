@@ -1,3 +1,4 @@
+from __future__ import division, absolute_import, print_function
 import os
 import sys
 import uuid
@@ -9,7 +10,6 @@ import json
 import re
 from cStringIO import StringIO
 
-sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(__file__)))))
 
 from idb.helpers.storage import IDigBioStorage
 
@@ -65,7 +65,9 @@ def main():
             }
         }
     }
-    r = requests.post("http://search.idigbio.org/idigbio/records/_search",data=json.dumps(query),headers={"Content-Type":"application/json"})
+    r = requests.post("http://search.idigbio.org/idigbio/records/_search",
+                      data=json.dumps(query),
+                      headers={"Content-Type": "application/json"})
     r.raise_for_status()
     ro = r.json()
 
@@ -89,7 +91,7 @@ def main():
             else:
                 cc = "MULTIPLE"
         else:
-            # print rs_b
+            # print(rs_b)
             ic = "MULTIPLE"
             cc = "MULTIPLE"
         recordsets[rsid] = {

@@ -24,4 +24,3 @@ def test_version(client):
 def test_healthz(client, testdbpool):
     r = client.get(url_for('healthz'))
     assert r.status_code == 200
-    assert r.data == "ok"

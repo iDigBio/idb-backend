@@ -1,11 +1,14 @@
 from __future__ import division, absolute_import, print_function
 
 import json
-import datetime
+import gevent
+import udatetime
+from datetime import timedelta
 
-from flask import Blueprint, jsonify, url_for, request
 
-from idigbio_workers import downloader, send_download_email, get_redis_conn
+from flask import Blueprint, jsonify, url_for, request, redirect
+
+from idigbio_workers import downloader, blocker, send_download_email, get_redis_conn
 
 from idb.helpers.cors import crossdomain
 from idb.helpers.etags import objectHasher
@@ -14,13 +17,15 @@ from .common import json_error, logger
 
 this_version = Blueprint(__name__,__name__)
 
-expire_time_in_seconds = 23 * 60 * 60
+QUERY_VALID_TIME = timedelta(hours=23)
+TASK_EXPIRE_TIME = timedelta(days=30)
+DOWNLOADER_TASK_PREFIX = "downloader:"
 
 
-@this_version.route('/download', methods=['GET','POST','OPTIONS'])
+@this_version.route('/download', methods=['GET', 'POST', 'OPTIONS'])
 @crossdomain(origin="*")
 def download():
-    redist = get_redis_conn()
+    rconn = get_redis_conn()
     params = {
         "core_type": "records",
         "core_source": "indexterms",
@@ -47,117 +52,111 @@ def download():
 
     for k in params.keys():
         if k in o:
-            if isinstance(o[k],list):
+            if isinstance(o[k], list):
                 o[k] = o[k][0]
 
-            if isinstance(o[k],str) or isinstance(o[k],unicode) and (o[k].startswith("{") or o[k].startswith("[")):
-                params[k] = json.loads(o[k])
-            else:
-                params[k] = o[k]
+            if isinstance(o[k], basestring):
+                try:
+                    params[k] = json.loads(o[k])
+                except ValueError:
+                    params[k] = o[k]
 
     if params["rq"] is None and params["mq"] is None:
         return json_error(400, "Please supply at least one query paramter (rq,mq)")
 
-    h = objectHasher("sha1", params, sort_arrays=True, sort_keys=True)
+    email = o.get('email')
+    if isinstance(email, list):
+        email = email[0]
+    source = o.get('source')
+    if isinstance(source, list):
+        source = source[0]
+    force = o.get('force', False)
+    forward_ip = request.remote_addr
+    query_hash = objectHasher("sha1", params, sort_arrays=True, sort_keys=True)
+    rqhk = DOWNLOADER_TASK_PREFIX + query_hash  # redis query hash key
 
-    email = None
-    source = None
-    force = False
-    forward_ip = request.access_route[0]
+    tid = None
+    if not force:
+        tid = rconn.get(rqhk)
+        if tid:
+            tdata = get_task_status(tid)
+            if not tdata or tdata.get('task_status') in ('FAILURE', 'UNKNOWN'):
+                tid = None
 
-    if "email" in o:
-        if isinstance(o["email"], list):
-            email = o["email"][0]
-        else:
-            email = o["email"]
-
-    if "source" in o:
-        if isinstance(o["source"], list):
-            source = o["source"][0]
-        else:
-            source = o["source"]
-
-    if "force" in o:
-        force = True
-
-    dispatch = False
-    if redist.exists(h) and not force:
-        r = downloader.AsyncResult(redist.hget(h, "id"))
-        if r.ready() and email is not None:
-            send_download_email(email, r.get(), params, ip=forward_ip, source=source)
-    else:
-        r = downloader.delay(params, email=email, source=source, ip=forward_ip)
-        dispatch = True
-
-    if dispatch:
-        redist.hmset(h, {
+    if not tid:
+        tid = downloader.delay(params).id
+        rtkey = DOWNLOADER_TASK_PREFIX + tid
+        rconn.hmset(rtkey, {
             "query": json.dumps(params),
-            "id": r.id,
-            "email": email
+            "hash": query_hash,
+            "created": udatetime.utcnow_to_string()
         })
-        redist.set(r.id,h)
-        redist.expire(r.id,expire_time_in_seconds - 60)
-        redist.expire(h,expire_time_in_seconds)
-    elif r.ready() and email is not None:
-        send_download_email(email, r.get(), params, ip=forward_ip, source=source)
+        rconn.expire(rtkey, TASK_EXPIRE_TIME)
+        rconn.set(rqhk, tid)
+        rconn.expire(rqhk, QUERY_VALID_TIME)
+        logger.debug("Started task: %s", tid)
 
-    dt = datetime.datetime.now() + datetime.timedelta(0, redist.ttl(h))
-    if r.ready():
-        params.update({
-            "complete": True,
-            "task_status": r.state,
-            "status_url": url_for(".status", u=r.id, _external=True, _scheme='https'),
-            "expires": dt.isoformat(),
-            "download_url": r.get()
-        })
-    else:
-        params.update({
-            "complete": False,
-            "task_status": r.state,
-            "status_url": url_for(".status", u=r.id, _external=True, _scheme='https'),
-            "expires": dt.isoformat()
-        })
+    if email is not None:
+        c = blocker.s(tid) | send_download_email.s(email, params, ip=forward_ip, source=source)
+        c.delay()
 
-    return jsonify(params)
+    return status(tid)
 
 
-@this_version.route('/download/<uuid:u>', methods=['GET', 'OPTIONS'])
-@crossdomain(origin="*")
-def status(u):
-    u = str(u)
-    redist = get_redis_conn()
+def get_task_status(tid):
+    rconn = get_redis_conn()
+    rtkey = DOWNLOADER_TASK_PREFIX + tid
     try:
-        r = downloader.AsyncResult(u)
-        h = redist.get(u)
-        if h is not None:
-            params_string = redist.hget(h,"query")
-            params = json.loads(params_string)
-            dt = datetime.datetime.now() + datetime.timedelta(0, redist.ttl(h))
-            if r.ready():
-                params.update({
-                    "complete": True,
-                    "task_status": r.state,
-                    "status_url": url_for(".status", u=r.id, _external=True, _scheme='https'),
-                    "expires": dt.isoformat(),
-                    "download_url": r.get()
-                })
-            else:
-                params.update({
-                    "complete": False,
-                    "task_status": r.state,
-                    "status_url": url_for(".status", u=r.id, _external=True, _scheme='https'),
-                    "expires": dt.isoformat()
-                })
-
-            return jsonify(params)
+        tdata = rconn.hgetall(rtkey)
+        if len(tdata) == 0:
+            return None
+        tdata["query"] = json.loads(tdata["query"])
+        tdata["status_url"] = url_for(".status", tid=tid, _external=True)
+        ttl = rconn.ttl(rtkey)
+        if ttl != -1:
+            ttl = timedelta(seconds=ttl)
+            tdata["expires"] = udatetime.to_string(udatetime.utcnow() + ttl)
+        if tdata.get('task_status'):
+            # `task_status` isn't set in redis while pending, so if
+            # set then it is complete
+            tdata["complete"] = True
         else:
-            return json_error(404)
-    except Exception:
-        logger.exception("Failed getting status of download %s", u)
-        params.update({
+            ar = downloader.AsyncResult(tid)
+            tdata['task_status'] = ar.status
+            tdata["complete"] = ar.ready()
+            if ar.ready():
+                rconn.hset(rtkey, "task_status", ar.status)
+                if ar.successful():
+                    tdata["download_url"] = ar.result
+                    rconn.hset(rtkey, "download_url", ar.result)
+                elif ar.failed():
+                    tdata["error"] = str(ar.result)
+                    rconn.hset(rtkey, "error", str(ar.result))
+                    gevent.spawn(dissociate_query_hash, tid, tdata)
+    except Exception as e:
+        logger.exception("Failed getting status of download %s", tid)
+        tdata = {
             "complete": False,
-            "task_status": r.state,
-            "status_url": url_for(".status", u=r.id, _external=True, _scheme='https'),
-            "expires": dt.isoformat()
-        })
-        return jsonify(params)
+            "task_status": "UNKNOWN",
+            "status_url": url_for(".status", tid=tid, _external=True),
+            "error": str(e)
+        }
+    return tdata
+
+
+@this_version.route('/download/<uuid:tid>', methods=['GET', 'OPTIONS'])
+@crossdomain(origin="*")
+def status(tid):
+    tdata = get_task_status(str(tid))
+    if tdata is None:
+        return json_error(404)
+    return jsonify(tdata)
+
+
+def dissociate_query_hash(tid, task_data):
+    if not task_data.get('hash'):
+        return
+    rconn = get_redis_conn()
+    rqhk = DOWNLOADER_TASK_PREFIX + task_data['hash']  # redis query hash key
+    if rconn.get(rqhk) == tid:
+        rconn.delete(rqhk)

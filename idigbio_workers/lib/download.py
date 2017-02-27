@@ -18,16 +18,17 @@ from atomicfile import AtomicFile
 # idb imports
 from idb.helpers.conversions import index_field_to_longname
 from idb.indexing.indexer import get_connection, get_indexname
+from idb.helpers.logging import idblogger
 
 # local imports
 from .query_shim import queryFromShim
 from .meta_xml import make_meta, make_file_block
 from .identification import identifiy_locality, identifiy_scientificname
 
-logger = logging.getLogger()
+logger = idblogger.getChild('download')
 
 indexName = get_indexname()
-es = get_connection()
+
 
 # 0: Current Year
 # 1: Query Text
@@ -118,6 +119,7 @@ def get_recordsets(params, generate=True):
             }
         }
 
+    es = get_connection()
     ro = es.search(index=indexName, doc_type=t, body=q)
     recsets = {}
     for b in ro["aggregations"]["recordsets"]["buckets"]:
@@ -142,6 +144,7 @@ def write_citation_files(dl_id, rq, mq, record_query, mediarecord_query):
 
 
 def count_query(t, query):
+    es = get_connection()
     return es.count(index=indexName, doc_type=t, body=query)["count"]
 
 
@@ -157,6 +160,7 @@ def get_source_value(source, val_field):
 
 
 def query_to_uniquevals(outf, t, body, val_field, tabs, val_func):
+    es = get_connection()
     cw = None
     if tabs:
         cw = csv.writer(outf, dialect=csv.excel_tab)
@@ -191,6 +195,7 @@ def query_to_uniquevals(outf, t, body, val_field, tabs, val_func):
 
 
 def query_to_csv(outf, t, body, header_fields, fields, id_field, raw, tabs, id_func):
+    es = get_connection()
     cw = None
     if tabs:
         cw = csv.writer(outf, dialect=csv.excel_tab)
@@ -258,7 +263,7 @@ def make_file(t, query, raw=False, tabs=False, fields=None,
     outfile_name = file_prefix + t + file_extension
     if raw:
         outfile_name = file_prefix + t + ".raw" + file_extension
-    logger.debug("Creating %r")
+    logger.debug("Creating %r", outfile_name)
 
     if t in ["records", "mediarecords"]:
         id_field = "id"
@@ -269,6 +274,7 @@ def make_file(t, query, raw=False, tabs=False, fields=None,
         if raw:
             exclude_from_fields = ["id", "coreid"]
 
+        es = get_connection()
         mapping = es.indices.get_mapping(index=indexName, doc_type=t)
         mapping_root = mapping.values()[0]["mappings"][t]["properties"]
         if raw:
@@ -567,7 +573,6 @@ def generate_dwca_files(core_type="records", core_source="indexterms",
 
 
 def main():
-    import datetime
     import uuid
 
     logger = logging.getLogger()
@@ -635,6 +640,7 @@ def main():
     #         except:
     #             print qt
     #             traceback.print_exc()
+
 
 if __name__ == '__main__':
     main()

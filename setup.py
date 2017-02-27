@@ -25,13 +25,15 @@ setup(
     author='ACIS iDigBio team',
     author_email='idigbio@acis.ufl.edu',
     packages=find_packages(exclude=['tests*']),
+    setup_requires=['pytest-runner'],
     install_requires=[
         'psycopg2>=2.6',
         'redis>=2.9.1, <3.0.0',
         'python-dateutil>=2.2, <3.0',
+        'udatetime',
         'elasticsearch>=2.3, <3',
         'pyproj>=1.9.3',
-        'pytz>=2016.4',
+        'pytz>=2016.10',
         'requests>=2.4.0',
         'pycrypto',
         'flask>=0.11.0, <1.0.0',
@@ -44,14 +46,16 @@ setup(
         'gipc>=0.6.0, <0.7.0',
         'unicodecsv>=0.14.1, < 0.15.0',
         'shapely',
-        'celery==3.1.23',
+        'celery[redis]>=4.0, <5.0',
         'boto>=2.39.0, <3.0.0',
         'fiona',
         'python-magic>=0.4.11, <=0.5.0',
         'feedparser>=5.2.0',
         'click>=6.3, <7.0',
         'atomicfile==1.0',
-        'enum34>=1.1.6, <1.2.0'
+        'enum34>=1.1.6, <1.2.0',
+        'path.py>=10.0.0, <11',
+        'wsgi-request-logger>=0.4.6'
     ],
     extras_require={
         'journal': ['python-systemd>=230'],
@@ -67,7 +71,8 @@ setup(
             'pytest-cov',
             'pytest-flask',
             'pytest-mock',
-            'pytest-capturelog'
+            'pytest-catchlog>=1.2.2,<2',
+            'fakeredis'
         ]
     },
     tests_require=['idb-backend[test]'],

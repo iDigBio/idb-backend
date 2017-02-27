@@ -1,10 +1,12 @@
-BROKER_URL = 'redis://idb-redis-celery.acis.ufl.edu:6379/0'
-CELERY_RESULT_BACKEND = 'redis://idb-redis-celery.acis.ufl.edu:6379/0'
+broker_url = 'redis://idb-redis10-prod.acis.ufl.edu:6379/1'
+broker_transport_options = {
+    'fanout_prefix': True,
+    'fanout_patterns': True,
+    'visibility_timeout': 43200
+}
+result_backend = broker_url
 
-CELERYD_CONCURRENCY = 4
-CELERY_TASK_SERIALIZER = 'json'
-CELERY_RESULT_SERIALIZER = 'json'
-CELERY_ACCEPT_CONTENT = ['json']
-CELERY_TIMEZONE = 'America/New_York'
-CELERY_ENABLE_UTC = True
-CELERY_DISABLE_RATE_LIMITS = True
+worker_concurrency = 4
+worker_prefetch_multiplier = 1
+timezone = 'America/New_York'
+worker_disable_rate_limits = True

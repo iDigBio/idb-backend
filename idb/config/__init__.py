@@ -7,11 +7,6 @@ logger = logging.getLogger('idb.cfg')
 conf_paths = ["/etc/idigbio/", "~/", "."]
 
 config = {
-    "redis": {
-        "host": "localhost",
-        "port": 6379,
-        "db": 0
-    },
     "postgres": {
         "host": "localhost",
         "user": "idigbio",

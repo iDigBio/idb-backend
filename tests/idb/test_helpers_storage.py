@@ -63,13 +63,14 @@ def test_file_upload_download(store, bucketname, tmpdir):
 
 #@pytest.mark.skip(reason="Actually writes to storage")
 def test_largefile_upload(store, bucketname, tmpdir, monkeypatch):
-    monkeypatch.setattr(store, 'MAX_CHUNK_SIZE', 4 * (1024 ** 2))
+    monkeypatch.setattr(store, 'MAX_CHUNK_SIZE', 16 * (1024 ** 2))
     keyname = 'largefile'
     testfile = tmpdir / "testfile"
     with testfile.open('ab') as f:
-        f.truncate(14 * (1024 ** 2) + 34923)
+        f.truncate(22 * (1024 ** 2) + 34923)
     md5 = calcFileHash(str(testfile))
     k = store.upload(store.get_key(keyname, bucketname), str(testfile), public=False)
     testfile.remove()
     store.get_contents_to_filename(k, str(testfile), md5=md5)
     k.delete()
+    assert calcFileHash(str(testfile)) == md5

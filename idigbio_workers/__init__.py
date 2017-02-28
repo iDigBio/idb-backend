@@ -1,14 +1,14 @@
 from __future__ import division, absolute_import, print_function
 import os
+import socket
 from celery import Celery
-from celery.result import AsyncResult
-from idb import config
+from celery.result import AsyncResult  # noqa
+from idb import config, __version__
 
 from idb.helpers.memoize import memoized
 
 app = Celery('tasks')
-env = config.ENV
-app.config_from_object('idigbio_workers.config.' + env)
+app.config_from_object('idigbio_workers.config.' + config.ENV)
 
 # this must be imported so it has a chance to register worker tasks.
 from idigbio_workers.tasks.download import downloader, blocker, send_download_email  # noqa
@@ -29,15 +29,14 @@ def get_redis_conn():
 
 @app.task()
 def version():
-    import idb
-    return idb.__version__
+    return __version__
 
 
 @app.task()
 def healthz():
-    import idb
     return {
-        "version": idb.__version__,
-        "env": env,
-        "broker_url": app.conf['broker_url']
+        "version": __version__,
+        "env": config.ENV,
+        "broker_url": app.conf.broker_url,
+        "node": os.environ.get("NODENAME", socket.gethostname())
     }

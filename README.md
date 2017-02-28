@@ -1,6 +1,6 @@
 # idb-backend
 
-This is the collection of code that makes up the iDigBio server side.
+iDigBio server and backend code for data ingestion and data API.
 
 ## Installation
 

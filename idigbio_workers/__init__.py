@@ -7,8 +7,10 @@ from idb import config, __version__
 
 from idb.helpers.memoize import memoized
 
+env = config.ENV
+
 app = Celery('tasks')
-app.config_from_object('idigbio_workers.config.' + config.ENV)
+app.config_from_object('idigbio_workers.config.' + env)
 
 # this must be imported so it has a chance to register worker tasks.
 from idigbio_workers.tasks.download import downloader, blocker, send_download_email  # noqa
@@ -32,11 +34,11 @@ def version():
     return __version__
 
 
-@app.task()
-def healthz():
+@app.task(bind=True)
+def healthz(self):
     return {
         "version": __version__,
-        "env": config.ENV,
+        "env": env,
         "broker_url": app.conf.broker_url,
-        "node": os.environ.get("NODENAME", socket.gethostname())
+        "node": self.request.hostname or os.environ.get("NODENAME") or socket.gethostname()
     }

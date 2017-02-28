@@ -6,8 +6,10 @@ from email.MIMEBase import MIMEBase
 from email.MIMEText import MIMEText
 from email.Utils import COMMASPACE, formatdate
 from email import Encoders
-import traceback
 
+from idb.helpers.logging import idblogger
+
+logger = idblogger.getChild("mailer")
 
 def send_mail(send_from, send_to, subject, text, files=[]):
     smtp = smtplib.SMTP("smtp.ufl.edu")
@@ -31,6 +33,6 @@ def send_mail(send_from, send_to, subject, text, files=[]):
 
     try:
         smtp.sendmail(send_from, send_to, msg.as_string())
-    except:
-        traceback.print_exc()
+    except Exception:
+        logger.exception("Failed sending email to %s", send_to)
     smtp.close()

@@ -96,8 +96,11 @@ def blocker(self, rid, pollbase=1.25):
 
 @app.task(ignore_result=True)
 def send_download_email(link, email, params, ip=None, source=None):
+    if email is None:
+        logger.warn("send email called with no email")
+        return
     logger.info("Sending email to %s with link %s", email, link)
-    if email is not None and not email.endswith("@acis.ufl.edu"):
+    if not email.endswith("@acis.ufl.edu"):
         q, recordsets = get_recordsets(params)
         stats_post = {
             "type": "download",

@@ -67,6 +67,20 @@ def test_lookup_uuid_missing(client):
 
 
 @pytest.mark.readonly
+def test_render_svg(client, mock):
+    mock.patch.object(MediaObject, "fromuuid",
+                      return_value=MediaObject(
+                          url=u'http://collections.nmnh.si.edu/media/index.php?irn=7002478',
+                          mime=u'application/pdf',
+                          owner='872733a2-67a3-4c54-aa76-862735a5f334'))
+    assert MediaObject.fromuuid("foobar")
+    url = url_for('idb.data_api.v2_media.lookup_uuid', u="872733a2-67a3-4c54-aa76-862735a5f334", deriv="thumbnail")
+    r = client.get(url)
+    assert r.status_code == 200
+    assert r.content_type == "image/svg+xml"
+
+
+@pytest.mark.readonly
 def test_lookup_fileref(client, testmedia_result):
     tmr = testmedia_result
     url = url_for('idb.data_api.v2_media.lookup_ref', filereference=tmr['filereference'], format="json")

@@ -98,6 +98,17 @@ def collect_stats(collect_datetime, es=None):
     es = es or get_connection()
     date_min = (collect_datetime - timedelta(1)).date()
     date_max = collect_datetime.date()
+
+    # Trap duplicate runs and abort.
+    c = es.count(index="stats", doc_type="search", body={"query": {
+        "term": {
+            "harvest_date": date_max.isoformat()
+        }
+    }})
+    if c["count"] != 0:
+        logger.warn("Duplicate run detected, aborting")
+        return
+
     logger.info("Collecting stats for %s to %s", date_min, date_max)
 
     recordset_stats = defaultdict(new_stats_dict)

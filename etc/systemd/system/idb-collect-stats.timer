@@ -1,9 +1,9 @@
 [Unit]
-Description="hourly timer for idb collect-stats"
+Description="daily timer for idb collect-stats"
 
 [Timer]
 OnBootSec=5min
-OnUnitInactiveSec=1h
+OnUnitInactiveSec=24h
 RandomizedDelaySec=1m
 
 [Install]

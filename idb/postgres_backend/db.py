@@ -696,7 +696,7 @@ class MediaObject(object):
     def upload(self, media_store, fobj, force=False):
         k = self.get_key(media_store)
         if force or not k.exists():
-            media_store.upload(k, fobj, mime=self.detected_mime, md5=self.etag)
+            media_store.upload(k, fobj, content_type=self.detected_mime, md5=self.etag)
         return k
 
     def ensure_object(self, idbmodel):

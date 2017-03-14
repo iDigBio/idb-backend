@@ -33,6 +33,12 @@ In Ubuntu 16.04:
     apt-get install libxml2 libxslt1-dev ffmpeg fonts-dejavu-core
 
 
+Additional dependencies that may be needed to install the pip package or to use the libraries on Ubuntu 14.04:
+
+    apt-get install libsystemd-journal-dev libsystemd-daemon-dev libsystemd-login-dev libgeos-dev
+
+
+
 ### Package installation
 
 This package itself needs to be installed to generate the CLI

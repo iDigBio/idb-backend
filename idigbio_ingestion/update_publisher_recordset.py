@@ -363,8 +363,11 @@ def harvest_all_file():
 def harvest_file(r, db):
     logger.info("Harvest File %s '%s' @ '%s'", r["id"], r["name"], r["file_link"])
     fname = "{0}.file".format(r["id"])
+
+    if not download_file(r["file_link"], fname):
+        logger.error("failed Harvest file %s '%s' @ '%s'", r["id"], r["name"], r["file_link"])
+        return
     try:
-        download_file(r["file_link"], fname)
         etag = upload_recordset(r["uuid"], fname, db)
         assert etag
         sql = ("""UPDATE recordsets

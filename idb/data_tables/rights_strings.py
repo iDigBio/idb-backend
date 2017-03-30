@@ -38,6 +38,7 @@ acceptable_licenses_trans = {
     "https://creativecommons.org/licenses/by-nc/3.0": "CC3 BY-NC",
     "https://creativecommons.org/licenses/by/3.0": "CC3 BY",
     "https://creativecommons.org/publicdomain/zero/1.0": "CC0",
+    "Creative Commons Attribution Australia 3.0": "CC4 BY",
     "cc-by-nc-sa": "CC4 BY-NC-SA",
     "cc-by-nc-nd": "CC4 BY-NC-ND",
     "cc-by-sa": "CC4 BY-SA",
@@ -79,6 +80,7 @@ acceptable_licenses_trans = {
     "This work is licensed under a Creative Commons CCZero 1.0 License. http://creativecommons.org/publicdomain/zero/1.0/": "CC0",
     "This work is licensed under a Creative Commons CCZero 1.0 License http://creativecommons.org/publicdomain/zero/1.0/legalcode.": "CC0",
     "This work is licensed under a Creative Commons CCZero 1.0 License http://creativecommons.org/publicdomain/zero/1.0/legalcode": "CC0",
+    "This work is licensed under a Creative Commons CCZero License/Waiver.": "CC0",
     "Tall Timbers data is governed by the Creative Commons Attribution 3.0 license (http://creativecommons.org/licenses/by/3.0/legalcode). Any use of data or images must be attributed to Tall Timbers Research Station and Land Conservancy.": "CC3 BY",
     "http://creativecommons.org/licenses/by/4.0/deed.en_US and http://biodiversity.ku.edu/research/university-kansas-biodiversity-institute-data-publication-and-use-norms": "CC4 BY",
 

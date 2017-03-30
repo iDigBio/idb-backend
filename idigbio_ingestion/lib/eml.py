@@ -70,6 +70,7 @@ def parseEml(id, emlText):
             logger.debug('Matched "' + rights_text + '" in ' + id + ' to "' + acceptable_licenses_trans[rights_text] + '"')
             collection["data_rights"] = acceptable_licenses_trans[rights_text]
     else:
+        logger.debug('No rights text found in intellectualRights, using "No license, assume Public Domain" for ' + id)
         collection["data_rights"] = "No license, assume Public Domain"
 
     collection["contacts"] = []

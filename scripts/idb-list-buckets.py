@@ -15,5 +15,3 @@ conn = s3connection()
 
 for bucket in conn.buckets.all():
     print(bucket.name)
-
-print ("Oh, yeah!")

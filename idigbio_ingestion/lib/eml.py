@@ -19,7 +19,7 @@ def parseEml(id, emlText):
     # Future... consider replace with:
     #     collection["logo_url"] = eml.find('resourceLogoUrl').txt
     rlu = getElement(eml.root.getroot(),".//resourceLogoUrl")
-    if rlu != None:
+    if rlu is not None:
         collection["logo_url"] = rlu.text
     
     collection["collection_name"] = eml("dataset > title").text()
@@ -40,9 +40,9 @@ def parseEml(id, emlText):
     collection["collection_description"] = collection_description_blob
     
     iwa = getElement(eml.root.getroot(),"additionalMetadata/metadata/symbiota/collection/onlineUrl")
-    if iwa != None:
+    if iwa is not None:
         collection["institution_web_address"] = iwa.text
-    elif eml("dataset distribution online url").text() != None:
+    elif eml("dataset distribution online url").text() is not None:
         collection["institution_web_address"] = eml("dataset distribution online url").text()
 
     rights_text = None
@@ -53,14 +53,20 @@ def parseEml(id, emlText):
         rights_text = rights.text
         #logger.debug('Found license in citetitle: {0}'.format(rights_text))
     else:
-        rights = getElement(eml.root.getroot(),"dataset/intellectualRights")
-        if rights is not None:
-            rights_para = rights.find("para")
-            if rights_para is not None:
-                rights_text = rights_para.text
-            elif rights.text is not None:
-                if rights.text.strip() != "":
-                    rights_text = rights.text.strip()
+        # Similar to ROM example, ALA license is in a sub-item, but worse.
+        # The next line may return empty string if selector not found. Reset to None in that case.
+        rights_text = eml.children('dataset > intellectualRights > Section:last-child > para').text()
+        logger.debug("String of eml.children in intellectualRights/Section/last-child/para: '{0}'".format(rights_text))
+        if len(rights_text) == 0:
+            rights_text = None
+            rights = getElement(eml.root.getroot(),"dataset/intellectualRights")
+            if rights is not None:
+                rights_para = rights.find("para")
+                if rights_para is not None:
+                    rights_text = rights_para.text
+                elif rights.text is not None:
+                    if rights.text.strip() != "":
+                        rights_text = rights.text.strip()
 
     if rights_text is not None:
         if rights_text not in acceptable_licenses_trans:

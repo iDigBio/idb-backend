@@ -373,24 +373,31 @@ def test_main():
         #     "dwc:family": "Ictaluridae",
         #     "dwc:scientificName": "Ictalurus",
         # },
+        # {
+        #     "dwc:specificEpithet": "redacta",
+        #     "dwc:kingdom": "Plantae",
+        #     "dwc:order": "Rosales",
+        #     "dwc:scientificNameAuthorship": "J. H. Ross",
+        #     "dwc:genus": "Acacia",
+        #     "dwc:family": "Fabaceae",
+        #     "dwc:class": "Dicotyledonae",
+        #     "dwc:scientificName": "Acacia redacta",
+        # },
+        # {
+        #     "dwc:specificEpithet": "redacta",
+        #     "dwc:kingdom": "Plantae",
+        #     "dwc:scientificNameAuthorship": "J.H. Ross",
+        #     "dwc:genus": "Acacia",
+        #     "dwc:family": "Fabaceae",
+        #     "dwc:scientificName": "Acacia redacta J.H. Ross",
+        # },
         {
-            "dwc:specificEpithet": "redacta",
+            "dwc:specificEpithet": "laurocerasi",
             "dwc:kingdom": "Plantae",
-            "dwc:order": "Rosales",
-            "dwc:scientificNameAuthorship": "J. H. Ross",
-            "dwc:genus": "Acacia",
-            "dwc:family": "Fabaceae",
-            "dwc:class": "Dicotyledonae",
-            "dwc:scientificName": "Acacia redacta",
+            "dwc:genus": "Bacidia",
+            "dwc:family": "Ramalinaceae",
+            "dwc:scientificName": "Bacidia laurocerasi"
         },
-        {
-            "dwc:specificEpithet": "redacta",
-            "dwc:kingdom": "Plantae",
-            "dwc:scientificNameAuthorship": "J.H. Ross",
-            "dwc:genus": "Acacia",
-            "dwc:family": "Fabaceae",
-            "dwc:scientificName": "Acacia redacta J.H. Ross",
-        }
     ]
     for i, t in enumerate(tests):
         print(work((str(i), t)))

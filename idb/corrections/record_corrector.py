@@ -7,6 +7,7 @@ import traceback
 
 from idb.helpers.etags import objectHasher
 
+protected_kingdoms = ["animalia", "plantae", "fungi", "chromista", "protista", "protozoa"]
 
 class RecordCorrector(object):
     corrections = None
@@ -88,6 +89,18 @@ class RecordCorrector(object):
             etag = get_etag(t)
             if etag in self.corrections:
                 # Correct the record.
+
+                # If a correction would have replaced one of the protected kingdom values,
+                # apply a flag instead.
+                if (
+                    "dwc:kingdom" in self.corrections[etag] and
+                    "dwc:kingdom" in corrected_dict and
+                    corrected_dict["dwc:kingdom"].lower() != self.corrections[etag]["dwc:kingdom"] and
+                    corrected_dict["dwc:kingdom"].lower() in protected_kingdoms
+                ):
+                        corrected_dict["flag_dwc_kingdom_suspect"] = True
+                        continue
+
                 for k in self.corrections[etag].keys():
                     if k == "dwc:scientificname":
                         continue

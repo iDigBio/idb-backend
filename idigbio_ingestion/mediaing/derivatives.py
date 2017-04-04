@@ -48,7 +48,7 @@ class BadImageError(Exception):
         self.inner = inner
 
 
-def main(buckets, procs=4):
+def main(buckets, procs=2):
     if not buckets:
         buckets = ('images', 'sounds')
     objects = objects_for_buckets(buckets)

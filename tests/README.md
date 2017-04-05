@@ -50,3 +50,24 @@ tests/idigbio_workers/lib/test_download.py ........
 
 ====================================================================================== 117 passed, 82 skipped in 97.20 seconds ======================================================================================
 ```
+
+
+To run a smaller subset of tests: 
+
+```
+$ pytest tests/idigbio_ingestion
+================================================================================================ test session starts ================================================================================================
+platform linux2 -- Python 2.7.6, pytest-3.0.7, py-1.4.32, pluggy-0.4.0
+rootdir: /home/dstoner/git/idb-backend, inifile: setup.cfg
+plugins: mock-1.5.0, flask-0.10.0, cov-2.4.0, catchlog-1.2.2, celery-4.0.2
+collected 17 items 
+
+tests/idigbio_ingestion/mediaing/test_derivatives.py ...........
+tests/idigbio_ingestion/mediaing/test_fetcher.py .....
+tests/idigbio_ingestion/mediaing/test_mediaing.py .
+
+============================================================================================= 17 passed in 1.92 seconds =============================================================================================
+
+```
+
+More on pytest at https://docs.pytest.org/en/latest/usage.html

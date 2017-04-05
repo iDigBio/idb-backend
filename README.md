@@ -13,7 +13,7 @@ The following library packages will need to be installed to run the api:
 In Ubuntu 14.04:
 
     apt-get install python2.7-dev libgeos-c1 libblas-dev liblapack-dev \
-      libatlas-base-dev gfortran libgdal-dev
+      libatlas-base-dev gfortran libgdal-dev libfreetype6-dev
 
 In Ubuntu 16.04:
 

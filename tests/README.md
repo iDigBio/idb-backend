@@ -1,22 +1,22 @@
 ## tests
 
-The current convention for idb-backend seems to be that tests will live
-in a directory structure that mimics the codebase.
+The current convention for idb-backend is that tests will live
+in a separate directory tree but will mimic the codebase structure.
 
 For example...
 
 
 The code:
 
-  idb-backend/idigbio_ingestion/mediaing/derivatives.py  
+```idb-backend/idigbio_ingestion/mediaing/derivatives.py```
 
 
 The tests:
 
-  idb-backend/tests/idigbio_ingestion/mediaing/test_derivatives.py
+```idb-backend/tests/idigbio_ingestion/mediaing/test_derivatives.py```
 
 
-Run with typical pytest execution:
+Run the project tests with typical pytest execution:
 
 
 ```

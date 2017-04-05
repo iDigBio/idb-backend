@@ -13,7 +13,7 @@ The following library packages will need to be installed to run the api:
 In Ubuntu 14.04:
 
     apt-get install python2.7-dev libgeos-c1 libblas-dev liblapack-dev \
-      libatlas-base-dev gfortran libgdal-dev libfreetype6-dev
+      libatlas-base-dev gfortran libgdal-dev
 
 In Ubuntu 16.04:
 
@@ -35,7 +35,7 @@ In Ubuntu 16.04:
 
 Additional dependencies that may be needed to install the pip package or to use the libraries on Ubuntu 14.04:
 
-    apt-get install libsystemd-journal-dev libsystemd-daemon-dev libsystemd-login-dev libgeos-dev
+    apt-get install libsystemd-journal-dev libsystemd-daemon-dev libsystemd-login-dev libgeos-dev libfreetype6-dev
 
 
 

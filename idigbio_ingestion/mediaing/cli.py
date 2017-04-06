@@ -55,7 +55,7 @@ def mediaing_updatedb(mediaing_params, daily):
 @cli.command(help="Generate derivatives in the specified buckets."
              " Buckets currently can be {'images', 'sounds'}."
              " Defaults to both.")
-@click.option('--procs', default=1,
+@click.option('--procs', default=2,
               help="How many processes should simultaneously work on derivatives")
 @click.argument('bucket', nargs=-1)
 @fnlogged

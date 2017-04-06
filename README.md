@@ -35,7 +35,7 @@ In Ubuntu 16.04:
 
 Additional dependencies that may be needed to install the pip package or to use the libraries on Ubuntu 14.04:
 
-    apt-get install libsystemd-journal-dev libsystemd-daemon-dev libsystemd-login-dev libgeos-dev
+    apt-get install libsystemd-journal-dev libsystemd-daemon-dev libsystemd-login-dev libgeos-dev libfreetype6-dev
 
 
 

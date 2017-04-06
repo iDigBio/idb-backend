@@ -703,7 +703,7 @@ def get_media_type(t, d):
         form = d.get("dcterms:format") or d.get("dc:format") or d.get("ac:bestQualityFormat")
         mtyp = None
         if form:
-            form = form.strip()
+            form = form.strip().lower()
             mtyp = get_default_bucket(form)
 
         return {

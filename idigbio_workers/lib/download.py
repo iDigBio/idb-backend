@@ -100,7 +100,7 @@ def get_recordsets(params, generate=True):
                 "recordsets": {
                     "terms": {
                         "field": "recordset",
-                        "size": 1000
+                        "size": 10000
                     }
                 }
             }
@@ -113,7 +113,7 @@ def get_recordsets(params, generate=True):
                 "recordsets": {
                     "terms": {
                         "field": "recordset",
-                        "size": 1000
+                        "size": 10000
                     }
                 }
             }

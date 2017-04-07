@@ -46,8 +46,8 @@ def objectHasher(hash_type, data, sort_arrays=False, sort_keys=True):
         for i in data:
             sa.append(objectHasher(hash_type,
                                    i,
-                                   sort_arrays=False,
-                                   sort_keys=True))
+                                   sort_arrays=sort_arrays,
+                                   sort_keys=sort_keys))
         if sort_arrays:
             sa.sort()
         s = "".join(sa)
@@ -64,8 +64,8 @@ def objectHasher(hash_type, data, sort_arrays=False, sort_keys=True):
         for k in ks:
             s += k + objectHasher(hash_type,
                                   data[k],
-                                  sort_arrays=False,
-                                  sort_keys=True)
+                                  sort_arrays=sort_arrays,
+                                  sort_keys=sort_keys)
     elif data is None:
         pass
     else:

@@ -104,7 +104,7 @@ def send_download_email(link, email, params, ip=None, source=None):
         q, recordsets = get_recordsets(params)
         stats_post = {
             "type": "download",
-            "query": q,
+            "query": params["rq"] or q,
             "results": recordsets,
             "recordtype": "records"
         }

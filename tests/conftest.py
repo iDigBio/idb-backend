@@ -55,6 +55,7 @@ def testenv(logger):
 
 @pytest.fixture()
 def pngpath():
+    "path to a test .png file"
     p = local(__file__).dirpath('data/idigbio_logo.png')
     assert p.exists()
     return p
@@ -62,6 +63,7 @@ def pngpath():
 
 @pytest.fixture()
 def jpgpath():
+    "path to a test .pjg file"
     p = local(__file__).dirpath('data/idigbio_logo.jpg')
     assert p.exists()
     return p
@@ -69,6 +71,7 @@ def jpgpath():
 
 @pytest.fixture()
 def zippath():
+    "path to a test .zip file"
     p = local(__file__).dirpath('data/test.zip')
     assert p.exists()
     return p
@@ -76,6 +79,7 @@ def zippath():
 
 @pytest.fixture()
 def mp3path():
+    "path to a test .mp3 file"
     p = local(__file__).dirpath('data/whip-poor-will.mp3')
     assert p.exists()
     return p
@@ -83,6 +87,10 @@ def mp3path():
 
 @pytest.fixture()
 def emlpathdir():
+<<<<<<< HEAD
+=======
+    "path to directory of .eml metadata files"
+>>>>>>> 5120313... add new fixture.  add docstrings for some existing fixtures.
     p = local(__file__).dirpath('data/eml/')
     assert p.exists()
     return p
@@ -100,6 +108,7 @@ def testdatapath():
     p = local(__file__).dirpath('data/testdata.sql')
     assert p.exists()
     return p
+
 
 
 @pytest.fixture(scope="session")

@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<eml:eml xmlns:eml="eml://ecoinformatics.org/eml-2.1.1" xmlns:dc="http://purl.org/dc/terms/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="eml://ecoinformatics.org/eml-2.1.1 http://rs.gbif.org/schema/eml-gbif-profile/1.0.1/eml.xsd" packageId="313f3ea4-cd04-444f-83b4-7a481fb203c6" system="http://symbiota.org" scope="system" xml:lang="eng">
+  <dataset>
+    <alternateIdentifier>http://greatlakesinvasives.org/portal/collections/misc/collprofiles.php?collid=21</alternateIdentifier>
+    <title xml:lang="eng">University of Wisconsin-Madison Zoological Museum - Fish</title>
+    <creator id="e4cf3c3e-9fba-4393-9df3-b2495603eb33">
+      <organizationName>Aquatic Invasives</organizationName>
+      <electronicMailAddress>egbot@asu.edu</electronicMailAddress>
+      <onlineUrl>http://greatlakesinvasives.org/portal/index.php</onlineUrl>
+    </creator>
+    <metadataProvider>
+      <organizationName>Aquatic Invasives</organizationName>
+      <electronicMailAddress>egbot@asu.edu</electronicMailAddress>
+      <onlineUrl>http://greatlakesinvasives.org/portal/index.php</onlineUrl>
+    </metadataProvider>
+    <pubDate>2016-10-26</pubDate>
+    <language>eng</language>
+    <abstract>
+      <para>The University of Wisconsin-Madison Zoological Museum was established to be a center for research and educational support for the University of Wisconsin-Madison. It was likewise charged with acting as a depository for biological specimens and knowledge deriving from activities of State of Wisconsin agencies. It is dedicated to the preservation, study, and understanding of the vertebrate and aquatic fauna of Wisconsin, the Midwest, and other parts of the world. The Museum acquires, processes, accessions, and houses documented specimens resulting from field and laboratory research and the work of contributing agencies. The collections provide a library of primary information basic to studies of animal and human ecology, systematics and genetics, and morphology.</para>
+    </abstract>
+    <contact>
+      <individualName>Laura A. Halverson Monahan, Curator</individualName>
+      <organizationName>University of Wisconsin-Madison Zoological Museum - Fish</organizationName>
+      <phone/>
+      <electronicMailAddress>lahalverson@wisc.edu</electronicMailAddress>
+      <onlineUrl>http://zoology.wisc.edu/uwzm/</onlineUrl>
+    </contact>
+    <associatedParty>
+      <individualName>Aaron</individualName>
+      <role>CONTENT_PROVIDER</role>
+    </associatedParty>
+    <associatedParty>
+      <organizationName>University of Wisconsin-Madison Zoological Museum - Fish</organizationName>
+      <individualName>Laura A. Halverson Monahan, Curator</individualName>
+      <positionName>Collection Manager</positionName>
+      <role>CONTENT_PROVIDER</role>
+      <electronicMailAddress>lahalverson@wisc.edu</electronicMailAddress>
+      <phone/>
+    </associatedParty>
+    <intellectualRights>
+      <para>To the extent possible under law, the publisher has waived all rights to these data and has dedicated them to the<ulink url="https://creativecommons.org/publicdomain/zero/1.0/legalcode"><citetitle>CC0 1.0 (Public-domain)</citetitle></ulink>Users can copy, modify, distribute and perform the work, even for commercial purposes, all without asking permission.</para>
+    </intellectualRights>
+  </dataset>
+  <additionalMetadata>
+    <metadata>
+      <symbiota>
+        <dateStamp>2016-10-26T09:00:30-07:00</dateStamp>
+        <citation identifier="10c9ca12-a9b5-43b2-9531-0b073f82068f">Aquatic Invasives - 10c9ca12-a9b5-43b2-9531-0b073f82068f</citation>
+        <physical>
+          <characterEncoding>UTF-8</characterEncoding>
+          <dataFormat>
+            <externallyDefinedFormat>
+              <formatName>Darwin Core Archive</formatName>
+            </externallyDefinedFormat>
+          </dataFormat>
+        </physical>
+        <collection identifier="77b17efc-5fd5-4319-bf9e-39dcd2a5c6aa" id="21">
+          <alternateIdentifier>http://greatlakesinvasives.org/portal/collections/misc/collprofiles.php?collid=21</alternateIdentifier>
+          <parentCollectionIdentifier>UWZM</parentCollectionIdentifier>
+          <collectionIdentifier>F</collectionIdentifier>
+          <collectionName>University of Wisconsin-Madison Zoological Museum - Fish</collectionName>
+          <resourceLogoUrl>http://greatlakesinvasives.org/portal/images/collicons/badger2.jpg</resourceLogoUrl>
+          <onlineUrl>http://zoology.wisc.edu/uwzm/</onlineUrl>
+          <intellectualRights>http://creativecommons.org/publicdomain/zero/1.0/</intellectualRights>
+          <abstract>
+            <para>The University of Wisconsin-Madison Zoological Museum was established to be a center for research and educational support for the University of Wisconsin-Madison. It was likewise charged with acting as a depository for biological specimens and knowledge deriving from activities of State of Wisconsin agencies. It is dedicated to the preservation, study, and understanding of the vertebrate and aquatic fauna of Wisconsin, the Midwest, and other parts of the world. The Museum acquires, processes, accessions, and houses documented specimens resulting from field and laboratory research and the work of contributing agencies. The collections provide a library of primary information basic to studies of animal and human ecology, systematics and genetics, and morphology.</para>
+          </abstract>
+        </collection>
+      </symbiota>
+    </metadata>
+  </additionalMetadata>
+</eml:eml>

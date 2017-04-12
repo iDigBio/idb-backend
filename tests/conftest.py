@@ -87,10 +87,7 @@ def mp3path():
 
 @pytest.fixture()
 def emlpathdir():
-<<<<<<< HEAD
-=======
     "path to directory of .eml metadata files"
->>>>>>> 5120313... add new fixture.  add docstrings for some existing fixtures.
     p = local(__file__).dirpath('data/eml/')
     assert p.exists()
     return p

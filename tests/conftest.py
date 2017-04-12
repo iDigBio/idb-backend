@@ -82,6 +82,13 @@ def mp3path():
 
 
 @pytest.fixture()
+def emlpathdir():
+    p = local(__file__).dirpath('data/eml/')
+    assert p.exists()
+    return p
+
+
+@pytest.fixture()
 def schemapath():
     p = local(__file__).dirpath('data/schema.sql')
     assert p.exists()

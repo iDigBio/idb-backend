@@ -9,7 +9,13 @@ def getElement(root,name):
     return root.find(name)
 
 def parseEml(id, emlText):
+    "Returns a dictionary of the supplied emlText"
+
+    # dump the full eml/xml for debugging
+    #logger.debug(emlText)
+
     eml = pq(emlText)
+
     ### The eml().txt() function returns an empty string instead of None if the location does not exist in the eml
     ### (if there is "no text node" according to release notes https://pypi.python.org/pypi/pyquery)
 
@@ -46,8 +52,12 @@ def parseEml(id, emlText):
         collection["institution_web_address"] = eml("dataset distribution online url").text()
 
     rights_text = None
+
+
     # ROM license text para includes additional sub-items ulink and citetitle which breaks .find traversal,
     # so look for that item first.
+
+    #logger.debug(eml.children('dataset > intellectualRights'.text()
     rights = getElement(eml.root.getroot(),"dataset/intellectualRights/para/ulink/citetitle")
     if rights is not None:
         rights_text = rights.text
@@ -55,7 +65,9 @@ def parseEml(id, emlText):
     else:
         # Similar to ROM example, ALA license is in a sub-item, but worse.
         # The next line may return empty string if selector not found. Reset to None in that case.
-        rights_text = eml.children('dataset > intellectualRights > Section:last-child > para').text()
+        #rights_text = eml.children('dataset > intellectualRights > Section:last-child > para').text()
+        #rights_text = eml.children('dataset > intellectualRights > Section:last-child > para').text()
+        rights_text = eml.children('dataset > intellectualRights > Section > para').text()
         logger.debug("String of eml.children in intellectualRights/Section/last-child/para: '{0}'".format(rights_text))
         if len(rights_text) == 0:
             rights_text = None
@@ -65,6 +77,7 @@ def parseEml(id, emlText):
                 if rights_para is not None:
                     rights_text = rights_para.text
                 elif rights.text is not None:
+                    logger.debug("XXXXXXXX" + rights.text)
                     if rights.text.strip() != "":
                         rights_text = rights.text.strip()
 

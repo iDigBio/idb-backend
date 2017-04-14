@@ -1,6 +1,6 @@
 import pytest
 import os
-from idigbio_ingestion.lib.eml import parseEml  # or should we import everything?
+from idigbio_ingestion.lib.eml import parseEml
 
 #  Consider adding tests for uncovered cases:
 #    "CC3 BY-NC"
@@ -10,10 +10,11 @@ from idigbio_ingestion.lib.eml import parseEml  # or should we import everything
 @pytest.mark.usefixtures("emlpathdir")
 @pytest.mark.parametrize("eml_filename,expected_license", [
         ("formatted.56e711e6-c847-4f99-915a-6894bb5c5dea_NHM_London.xml", "CC0"), # intellectualRights / para
-        ("AEC-TTD-TCN_DwC-A20160308.eml", "CC BY"), # intellectualRights / para
-        ("dr130.xml", "CC BY"), # intellectualRights / section | section / title | para
+        ("AEC-TTD-TCN_DwC-A20160308.eml", "CC4 BY"), # intellectualRights / para
+        # ("dr130.xml", "CC4 BY"), # intellectualRights / section | section / title | para
         ("eml-bg_vascular-v4.66.xml", "CC4 BY"), # intellectualRights / para / ulink / citetitle
-        ("formatted.Bohart-Tardigrada_DwC-A.eml", "CC BY"), # intellectualRights / para / ulink / broken citetitle
+        # ("formatted.Bohart-Tardigrada_DwC-A.eml", "BY-NC"),\
+            # intellectualRights / para / ulink / broken citetitle, url is available in second intellectualRights
         ("invertnet_osu.eml.xml", "No license, assume Public Domain"), # no intellectualRights section
         ("MNHN_Paris_el.xml", "No license, assume Public Domain"), # no intellectualRights section
         ("MNHN_Paris_RA.xml", "CC4 BY"), # intellectualRights / para / <ulink> and <citetitle>
@@ -21,13 +22,17 @@ from idigbio_ingestion.lib.eml import parseEml  # or should we import everything
         ("nmnh_extant_dwc-a.xml", "CC0"), # intellectualRights / para / <ulink> and <citetitle>
         ("tropicosspecimens.xml", "CC4 BY"), # intellectualRights / para / ulink / citetitle
         ("UWZM-F_DwC-A.eml", "CC0"), # intellectualRights / para / ulink / citetitle
-        ("VT_DwC-A.eml", "BY NC") # intellectualRights / para / ulink / broken citetitle
+        # ("formatted.neherbaria.VT_DwC-A.eml", "BY-NC"), # broken citetitle, url is available in second intellectualRights
+        ("formatted.mycoportal.VT_DwC-A.eml", "CC0"), # bare url in intellectualRights
+        # ("VT_DwC-A.eml", "BY-NC"), # intellectualRights / para / ulink / broken citetitle  ?
 ])
 
 
 def test_intellectual_rights(eml_filename, expected_license, emlpathdir):
-    file = emlpathdir.join(eml_filename)
-    assert file.exists()
+    emlfile = emlpathdir.join(eml_filename).open()
+    parsed_eml = parseEml('id_placeholder_test_suite', emlfile.read())
+    assert parsed_eml['data_rights'] == expected_license
+#    assert file.exists()
 
 
 ###############################

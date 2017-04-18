@@ -24,6 +24,7 @@ from idigbio_ingestion.lib.eml import parseEml
         ("VT_DwC-A.eml", "CC3 BY-NC"), # intellectualRights / para / ulink / broken citetitle  ?
         ("rom_birdsnonpass.xml", "CC4 BY-NC"),
         ("vertnet_sui_verts.xml", "CC0"), # cc zero and vertnet norms
+        #("usgs_pwrc_northamerican_bees", "No license, assume Public Domain"), # this is an html file that should not parse, currently raising an untrapped Exception
 ])
 
 

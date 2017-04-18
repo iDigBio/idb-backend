@@ -1,0 +1,162 @@
+<eml:eml xmlns:eml="eml://ecoinformatics.org/eml-2.1.1"
+         xmlns:dc="http://purl.org/dc/terms/"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="eml://ecoinformatics.org/eml-2.1.1 http://rs.gbif.org/schema/eml-gbif-profile/1.1/eml.xsd"
+         packageId="136560fa-9eb9-492f-866e-5bd110c52f74/v16.10" system="http://gbif.org" scope="system"
+         xml:lang="eng">
+
+<dataset>
+  <alternateIdentifier>136560fa-9eb9-492f-866e-5bd110c52f74</alternateIdentifier>
+  <alternateIdentifier>http://gbif.rom.on.ca/ipt/resource?r=birdsnonpass</alternateIdentifier>
+  <title xml:lang="eng">Ornithology Collection Non Passeriformes - Royal Ontario Museum</title>
+      <creator>
+    <individualName>
+        <givenName>Bradley</givenName>
+      <surName>Millen</surName>
+    </individualName>
+    <organizationName>Royal Ontario Museum</organizationName>
+    <positionName>Database Technician</positionName>
+    <address>
+        <deliveryPoint>100 Queen&apos;s Park</deliveryPoint>
+        <city>Toronto</city>
+        <administrativeArea>Ontario</administrativeArea>
+        <postalCode>M5S 2C6</postalCode>
+        <country>CA</country>
+    </address>
+    <phone>1-416-586-5768</phone>
+    <electronicMailAddress>bradm@rom.on.ca</electronicMailAddress>
+      </creator>
+      <metadataProvider>
+    <individualName>
+        <givenName>Bradley</givenName>
+      <surName>Millen</surName>
+    </individualName>
+    <organizationName>Royal Ontario Museum</organizationName>
+    <positionName>Database Technician</positionName>
+    <address>
+        <deliveryPoint>100 Queen&apos;s Park</deliveryPoint>
+        <city>Toronto</city>
+        <administrativeArea>Ontario</administrativeArea>
+        <postalCode>M5S 2C6</postalCode>
+        <country>CA</country>
+    </address>
+    <phone>1-416-586-5768</phone>
+    <electronicMailAddress>bradm@rom.on.ca</electronicMailAddress>
+      </metadataProvider>
+      <associatedParty>
+    <individualName>
+        <givenName>Santiago</givenName>
+      <surName>Claramunt</surName>
+    </individualName>
+    <organizationName>Royal Ontario Museum</organizationName>
+    <positionName>Associate Curator</positionName>
+    <address>
+        <deliveryPoint>100 Queen&apos;s Park</deliveryPoint>
+        <city>Toronto</city>
+        <administrativeArea>Ontario</administrativeArea>
+        <postalCode>M5S 2C6</postalCode>
+        <country>CA</country>
+    </address>
+    <phone>1-416-586-5520</phone>
+    <electronicMailAddress>sclaramunt@rom.on.ca</electronicMailAddress>
+    <onlineUrl>https://sites.google.com/site/sclaramuntuy/home</onlineUrl>
+    <role>curator</role>
+      </associatedParty>
+  <pubDate>
+      2017-03-13
+  </pubDate>
+  <language>eng</language>
+  <abstract>
+    <para>The collection is extremely strong in diversity of island species throughout the world. Also the collection contains significant historical collections of importance: James Henry Fleming, James A. Munro, Hoyes Lloyd, part of the Haverschmidt collection from the Guyanas, R. G. Lanning, H.B. Haugh collection of birds eggs from Southern Ontario. The Fleming collection, once considered the most comprehensive private collection of birds in North America, contains many unique collections from Africa, Europe, India, China, and Island Archipelagos of the world. Representative collections of the magnificent Birds of Paradise (Passeriformes; Paradisaeidae) and Bower Birds (Passeriformes; Ptilonorhynchidae) (from the Fleming Collection) has been described as within the top 10 in world by researchers. Sub-collections of the J.H. Fleming, J.A. Munro collections are considered historically significant to the Ornithological community. Other significant collections are The New World Sparrows (Passeriformes: Emberizidae); the North American Wood Warblers (Passeriformes: Parulidae); Shorebirds, Gulls and Auks (Charadriiformes) and the Chicken-like birds (Galliformes) of North America, New World Vireos and Allies (Passeriformes: Vireonidae). The study skin collection contains one of the largest collections in the world of extinct birds including 132 Passenger Pigeon specimens (skins) and New Zealand Huias famed for their sexually dimorphic bills. 1 specimen of the extinct Labrador Duck (1 of 54 mounted skins in world). 1 specimen of the extinct Great Auk (1 of 78 mounted skins in world), miscellaneous skeletal parts of Great Auk specimens, 14 specimens of the extinct Carolina Parakeet and many other species. The skin collection contains historically significant holdings of the highly endangered Hawaiian Honeycreepers (Passeriformes: Fringillidae Drepanididae) from the Fleming collection, 1840s through to 1913, and the famous Darwin’s finches. The frozen tissue collection contains the largest collection of blood and DNA from endangered kiwi populations in New Zealand, as well as bone shavings and DNA from the 14 extinct species of giant moas. Extensive series of New World Owls. Extensive series of New World Flycatchers. Large series of New World Sparrows.</para>
+  </abstract>
+      <keywordSet>
+            <keyword>Occurrence; ROM; Royal Ontario Museum; Non-Passeriformes; Worldwide; North America; preserved specimens</keyword>
+        <keywordThesaurus>GBIF Dataset Type Vocabulary: http://rs.gbif.org/vocabulary/gbif/dataset_type.xml</keywordThesaurus>
+      </keywordSet>
+      <keywordSet>
+            <keyword>Specimen</keyword>
+        <keywordThesaurus>GBIF Dataset Subtype Vocabulary: http://rs.gbif.org/vocabulary/gbif/dataset_subtype.xml</keywordThesaurus>
+      </keywordSet>
+  <intellectualRights>
+    <para>This work is licensed under a <ulink url="http://creativecommons.org/licenses/by-nc/4.0/legalcode"><citetitle>Creative Commons Attribution Non Commercial (CC-BY-NC) 4.0 License</citetitle></ulink>.</para>
+  </intellectualRights>
+  <coverage>
+      <geographicCoverage>
+          <geographicDescription>Specimens represent all continents and oceans.</geographicDescription>
+        <boundingCoordinates>
+          <westBoundingCoordinate>-180</westBoundingCoordinate>
+          <eastBoundingCoordinate>180</eastBoundingCoordinate>
+          <northBoundingCoordinate>90</northBoundingCoordinate>
+          <southBoundingCoordinate>-90</southBoundingCoordinate>
+        </boundingCoordinates>
+      </geographicCoverage>
+  </coverage>
+  <maintenance>
+    <description>
+      <para></para>
+    </description>
+    <maintenanceUpdateFrequency>unkown</maintenanceUpdateFrequency>
+  </maintenance>
+
+      <contact>
+    <individualName>
+        <givenName>Mark</givenName>
+      <surName>Peck</surName>
+    </individualName>
+    <organizationName>Royal Ontario Museum</organizationName>
+    <positionName>Collections Technician</positionName>
+    <address>
+        <deliveryPoint>100 Queen&apos;s Park</deliveryPoint>
+        <city>Toronto</city>
+        <administrativeArea>Ontario</administrativeArea>
+        <postalCode>M5S 2C6</postalCode>
+        <country>CA</country>
+    </address>
+    <phone>1-416-586-5523</phone>
+    <electronicMailAddress>markp@rom.on.ca</electronicMailAddress>
+    <onlineUrl>http://www.rom.on.ca/en/collections-research/rom-staff/mark-peck</onlineUrl>
+      </contact>
+      <contact>
+    <individualName>
+        <givenName>Santiago</givenName>
+      <surName>Claramunt</surName>
+    </individualName>
+    <organizationName>Royal Ontario Museum</organizationName>
+    <positionName>Associate Curator</positionName>
+    <address>
+        <deliveryPoint>100 Queen&apos;s Park</deliveryPoint>
+        <city>Toronto</city>
+        <administrativeArea>Ontario</administrativeArea>
+        <postalCode>M5S 2C6</postalCode>
+        <country>CA</country>
+    </address>
+    <phone>1-416-586-5520</phone>
+    <electronicMailAddress>sclaramunt@rom.on.ca</electronicMailAddress>
+    <onlineUrl>https://sites.google.com/site/sclaramuntuy/home</onlineUrl>
+      </contact>
+  <methods>
+        <methodStep>
+          <description>
+            <para></para>
+          </description>
+        </methodStep>
+  </methods>
+</dataset>
+  <additionalMetadata>
+    <metadata>
+      <gbif>
+          <dateStamp>2014-03-10T12:41:03.685-04:00</dateStamp>
+          <hierarchyLevel>dataset</hierarchyLevel>
+          <resourceLogoUrl>http://gbif.rom.on.ca:8180/ipt/logo.do?r=birdsnonpass</resourceLogoUrl>
+              <collection>
+                  <parentCollectionIdentifier>Royal Ontario Museum (urn:lsid:biocol.org:col:34778)</parentCollectionIdentifier>
+                  <collectionIdentifier>http://grbio.org/cool/4sz4-8rxx (urn:lsid:biocol.org:col:34954)</collectionIdentifier>
+                <collectionName>Ornithology</collectionName>
+              </collection>
+                <specimenPreservationMethod>dried</specimenPreservationMethod>
+              <livingTimePeriod>1800 to present</livingTimePeriod>
+          <dc:replaces>136560fa-9eb9-492f-866e-5bd110c52f74/v16.1.xml</dc:replaces>
+      </gbif>
+    </metadata>
+  </additionalMetadata>
+</eml:eml>

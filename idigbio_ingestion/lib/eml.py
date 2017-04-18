@@ -14,7 +14,14 @@ def parseEml(id, emlText):
     # dump the full eml/xml for debugging
     #logger.debug(emlText)
 
-    eml = pq(emlText)
+
+    # If the target eml document is not XML, the eml object will not be created due to XMLSyntaxError or other
+    # pyquery exception.  This is known to occur when a link to eml results in a 404 error page containing HTML.
+    # For example:  http://xbiod.osu.edu/ipt/eml.do?r=osum-fish
+    # It is possible we could trap this ahead of time by checking the raw emlText for key xml features
+    # or HTML document features.
+
+    eml = pq(emlText, parser='xml')
 
     ### The eml().txt() function returns an empty string instead of None if the location does not exist in the eml
     ### (if there is "no text node" according to release notes https://pypi.python.org/pypi/pyquery)
@@ -31,7 +38,6 @@ def parseEml(id, emlText):
     collection["collection_name"] = eml("dataset > title").text()
 
     # Go until we find the first non-zero-length string (should be a collection description),
-    # in order of most specific selector to avoid duplicates.
     collection_description_blob = ""
     for possible_collection_description in [
         'dataset > abstract > para', 
@@ -53,33 +59,37 @@ def parseEml(id, emlText):
 
     rights_text = None
 
-
-    # ROM license text para includes additional sub-items ulink and citetitle which breaks .find traversal,
-    # so look for that item first.
-
-    #logger.debug(eml.children('dataset > intellectualRights'.text()
-    rights = getElement(eml.root.getroot(),"dataset/intellectualRights/para/ulink/citetitle")
+    # Look for places where the intellectualRights are located, starting at "deeper" potential node locations first.
+    rights = getElement(eml.root.getroot(),"additionalMetadata/metadata/symbiota/collection/intellectualRights")
     if rights is not None:
         rights_text = rights.text
-        #logger.debug('Found license in citetitle: {0}'.format(rights_text))
+        #logger.debug('Found license in additionalMetadata: {0}'.format(rights_text))
     else:
-        # Similar to ROM example, ALA license is in a sub-item, but worse.
-        # The next line may return empty string if selector not found. Reset to None in that case.
-        #rights_text = eml.children('dataset > intellectualRights > Section:last-child > para').text()
-        #rights_text = eml.children('dataset > intellectualRights > Section:last-child > para').text()
-        rights_text = eml.children('dataset > intellectualRights > Section > para').text()
-        logger.debug("String of eml.children in intellectualRights/Section/last-child/para: '{0}'".format(rights_text))
-        if len(rights_text) == 0:
-            rights_text = None
-            rights = getElement(eml.root.getroot(),"dataset/intellectualRights")
-            if rights is not None:
-                rights_para = rights.find("para")
-                if rights_para is not None:
-                    rights_text = rights_para.text
-                elif rights.text is not None:
-                    logger.debug("XXXXXXXX" + rights.text)
-                    if rights.text.strip() != "":
-                        rights_text = rights.text.strip()
+        #logger.debug('***nothing in additionalMetadata***')
+        rights_text = eml.children('dataset > intellectualRights > para > ulink > citetitle').text()
+        if len(rights_text) > 0 or rights_text is None:
+            #logger.debug('Found license in citetitle: {0}'.format(rights_text))
+            pass
+        else:
+            #logger.debug('***nothing in citetitle***')
+
+            # ALA example
+            rights_text = eml.find('dataset > intellectualRights > section:last-child > para').text()
+
+            if len(rights_text) == 0:
+                rights_text = None
+                rights = getElement(eml.root.getroot(),"dataset/intellectualRights")
+                #logger.debug('Found license in intellectualRights: {0}'.format(rights_text))
+                if rights is not None:
+                    rights_para = rights.find("para")
+                    if rights_para is not None:
+                        rights_text = rights_para.text
+                        #logger.debug('Found license in para: {0}'.format(rights_text.encode('utf-8')))
+                    elif rights.text is not None:
+                        #logger.debug("XXXXXXXX " + rights.text)
+                        if rights.text.strip() != "":
+                            rights_text = rights.text.strip()
+                            #logger.debug('Rights text leftover: {0}'.format(rights_text))
 
     if rights_text is not None:
         if rights_text not in acceptable_licenses_trans:

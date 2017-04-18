@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8"?><eml:eml xmlns:d="eml://ecoinformatics.org/dataset-2.1.0" xmlns:dc="http://purl.org/dc/terms/" xmlns:eml="eml://ecoinformatics.org/eml-2.1.1" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="eml://ecoinformatics.org/eml-2.1.1 http://rs.gbif.org/schema/eml-gbif-profile/dev/eml.xsd" system="ALA-Registry" scope="system" xml:lang="en" packageId="75f1cd39-a881-3585-ac3c-406242dcc8f2/v8">
+  <dataset>
+    <alternateIdentifier>75f1cd39-a881-3585-ac3c-406242dcc8f2</alternateIdentifier>
+    <alternateIdentifier>ala.org.au:dr367</alternateIdentifier>
+    <title xmlns:lang="en">Waite Insect and Nematode Collection</title>
+    <creator>
+      <organizationName>University of Adelaide</organizationName>
+      <onlineUrl>http://www.adelaide.edu.au/</onlineUrl>
+    </creator>
+    <metadataProvider>
+      <organizationName>University of Adelaide</organizationName>
+      <onlineUrl>http://www.adelaide.edu.au/</onlineUrl>
+    </metadataProvider>
+    <associatedParty>
+      <organizationName>Atlas of Living Australia</organizationName>
+      <address>
+        <deliveryPoint>CSIRO Ecosystems Services</deliveryPoint>
+        <city>Canberra</city>
+        <administrativeArea>ACT</administrativeArea>
+        <postalCode>2605</postalCode>
+        <country>Australia</country>
+      </address>
+      <electronicMailAddress>info@ala.org.au</electronicMailAddress>
+      <role>distributor</role>
+    </associatedParty>
+    <associatedParty>
+      <organizationName>Waite Insect and Nematode Collection</organizationName>
+      <address>
+        <deliveryPoint>2b Hartley Grove</deliveryPoint>
+        <city>Adelaide</city>
+        <administrativeArea>South Australia</administrativeArea>
+        <postalCode>5064</postalCode>
+        <country>Australia</country>
+      </address>
+      <onlineUrl>http://www.sciences.adelaide.edu.au/research/winc/</onlineUrl>
+      <role>originator</role>
+    </associatedParty>
+    <pubDate>2012-05-14</pubDate>
+    <language>English</language>
+    <abstract>
+      <para>The Waite Insect and Nematode Collection (WINC) was formed in early 2001 by the merger of Adelaide University's Duncan Swan Insect Collection (WARI), the Waite Institute Nematode Collection (WINC), and the South Australian Research and Development Institute (SARDI) insect collection, and is housed at the Waite Campus of Adelaide University.</para>
+    </abstract>
+    <intellectualRights>
+      <section>
+        <title>Citation</title>
+        <para>Waite Insect &amp; Nematode Collection</para>
+      </section>
+      <section>
+        <title>License</title>
+        <para>Creative Commons Attribution-ShareAlike Australia 2.5</para>
+      </section>
+    </intellectualRights>
+    <distribution>
+      <online>
+        <url function="information">http://collections.ala.org.au/public/show/dr367</url>
+      </online>
+    </distribution>
+    <contact>
+      <organizationName>Atlas of Living Australia</organizationName>
+      <address>
+        <deliveryPoint>CSIRO Ecosystems Services</deliveryPoint>
+        <city>Canberra</city>
+        <administrativeArea>ACT</administrativeArea>
+        <postalCode>2605</postalCode>
+        <country>Australia</country>
+      </address>
+      <electronicMailAddress>info@ala.org.au</electronicMailAddress>
+    </contact>
+  </dataset>
+  <additionalMetadata>
+    <metadata>
+      <gbif>
+        <dateStamp>2012-05-14T05:07:40</dateStamp>
+        <hierarchyLevel>dataset</hierarchyLevel>
+      </gbif>
+    </metadata>
+  </additionalMetadata>
+</eml:eml>

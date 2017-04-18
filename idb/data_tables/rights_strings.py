@@ -40,7 +40,7 @@ acceptable_licenses_trans = {
     "https://creativecommons.org/publicdomain/zero/1.0": "CC0",
     "Attribution": "CC4 BY",
     "Attribution-NonCommercial": "CC4 BY-NC",
-    "Creative Commons Attribution Australia 3.0": "CC4 BY",
+    "Creative Commons Attribution Australia 3.0": "CC3 BY",
     "Creative Commons Attribution-ShareAlike Australia 2.5": "CC4 BY-SA",
     "Creative Commons Attribution International 3.0": "CC3 BY",
     "cc-by-nc-sa": "CC4 BY-NC-SA",

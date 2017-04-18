@@ -6,7 +6,7 @@ from idigbio_ingestion.lib.eml import parseEml
 @pytest.mark.parametrize("eml_filename,expected_license", [
         ("formatted.56e711e6-c847-4f99-915a-6894bb5c5dea_NHM_London.xml", "CC0"), # intellectualRights / para
         ("AEC-TTD-TCN_DwC-A20160308.eml", "CC4 BY"), # intellectualRights / para
-        ("dr130.xml", "CC4 BY"), # intellectualRights / section | section / title | para
+        ("dr130.xml", "CC3 BY"), # intellectualRights / section | section / title | para
         ("dr367.xml", "CC4 BY-SA"),
         ("dr90.xml", "CC3 BY"),
         ("eml-bg_vascular-v4.66.xml", "CC4 BY"), # intellectualRights / para / ulink / citetitle

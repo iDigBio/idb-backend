@@ -18,7 +18,7 @@ def analyze_and_save_eml(ident, url):
             return [ident, url, result]
         except:
             # Comment the next line to parse exceptions around for further analysis
-            os.unlink(intext)
+            os.unlink(ident)
             return [ident, url, "EXCEPTION"]
     else:
         return [ident, url, 'ERROR']

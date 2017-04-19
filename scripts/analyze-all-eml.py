@@ -17,10 +17,9 @@ def analyze_and_save_eml(ident, url):
             os.unlink(ident)
             return [ident, url, result]
         except:
-            # Let's keep the parse exceptions around for further analysis
-            # os.unlink(intext)
+            # Comment the next line to parse exceptions around for further analysis
+            os.unlink(intext)
             return [ident, url, "EXCEPTION"]
-        #return [ident, url, parseEml(ident, intext)["data_rights"]]
     else:
         return [ident, url, 'ERROR']
 

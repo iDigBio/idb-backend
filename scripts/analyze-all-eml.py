@@ -43,7 +43,7 @@ if __name__ == '__main__':
     outfilename = 'analyze-all-eml.output'
 
     with open(outfilename, 'w') as outfile:
-        sorted_status_keys = sorted(statuses.keys())
+        sorted_status_keys = sorted(statuses.keys(), key=int)
         for status in sorted_status_keys:
             outfile.write("{0},'{1}','{2}'\n".format(status, statuses[status][0], statuses[status][1]))
         print ("Sorted output file: ", outfilename)

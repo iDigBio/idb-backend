@@ -28,7 +28,9 @@ def analyze_and_save_eml(ident, url):
 
 if __name__ == '__main__':
     statuses = {}
-    abort_one = True
+
+    abort_one = False
+
     with PostgresDB() as db:
         rows = db.fetchall("SELECT id,eml_link FROM recordsets where ingest=true")
 
@@ -37,8 +39,7 @@ if __name__ == '__main__':
             statuses[results[0]] = [results[1],results[2]]
             print ('{0} {1}'.format(results[0], statuses[results[0]]))
             if abort_one:
-                #break
-                pass
+                break
 
     outfilename = 'analyze-all-eml.output'
 

@@ -253,7 +253,7 @@ def _do_rss(rsscontents, r, db, recordsets, existing_recordsets):
                 """,
                 (rsid, pub_uuid, rs_name, recordids, eml_link, file_link, ingest, date, recordid, date))
             db.execute(*sql)
-            logger.info("Create Recordset for recordid:%s '%s'", recordid, name)
+            logger.info("Create Recordset for recordid:%s '%s'", recordid, rs_name)
         else:
             sql = ("""UPDATE recordsets
                       SET publisher_uuid=%(publisher_uuid)s,

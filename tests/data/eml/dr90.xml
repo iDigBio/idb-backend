@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?><eml:eml xmlns:d="eml://ecoinformatics.org/dataset-2.1.0" xmlns:dc="http://purl.org/dc/terms/" xmlns:eml="eml://ecoinformatics.org/eml-2.1.1" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="eml://ecoinformatics.org/eml-2.1.1 http://rs.gbif.org/schema/eml-gbif-profile/dev/eml.xsd" system="ALA-Registry" scope="system" xml:lang="en" packageId="ad9a2e02-27ce-3550-af4f-54e66fea27cc/v7">
+  <dataset>
+    <alternateIdentifier>ad9a2e02-27ce-3550-af4f-54e66fea27cc</alternateIdentifier>
+    <alternateIdentifier>ala.org.au:dr90</alternateIdentifier>
+    <title xmlns:lang="en">Australian Antarctic Division Herbarium</title>
+    <creator>
+      <organizationName>Australian Antarctic Data Centre</organizationName>
+      <onlineUrl>http://data.aad.gov.au</onlineUrl>
+    </creator>
+    <metadataProvider>
+      <organizationName>Australian Antarctic Data Centre</organizationName>
+      <onlineUrl>http://data.aad.gov.au</onlineUrl>
+    </metadataProvider>
+    <associatedParty>
+      <organizationName>Atlas of Living Australia</organizationName>
+      <address>
+        <deliveryPoint>CSIRO Ecosystems Services</deliveryPoint>
+        <city>Canberra</city>
+        <administrativeArea>ACT</administrativeArea>
+        <postalCode>2605</postalCode>
+        <country>Australia</country>
+      </address>
+      <electronicMailAddress>info@ala.org.au</electronicMailAddress>
+      <role>distributor</role>
+    </associatedParty>
+    <pubDate>2017-03-16</pubDate>
+    <language>English</language>
+    <abstract>
+      <para>The Australian Antarctic Division Herbarium (ADT) is a database detailing collection records of plants collected from the Antarctic, subantarctic islands and other areas around the world.</para>
+    </abstract>
+    <intellectualRights>
+      <section>
+        <title>Rights</title>
+        <para>Data are freely available through GBIF, OBIS, SCAR-MarBIN and through the AADC web site. If substantial parts of the database is used for other data or information products, please acknowledge the source.</para>
+      </section>
+      <section>
+        <title>Citation</title>
+        <para>Contact Dave Watts for details on citation details.</para>
+      </section>
+      <section>
+        <title>License</title>
+        <para>Creative Commons Attribution International 3.0</para>
+      </section>
+    </intellectualRights>
+    <distribution>
+      <online>
+        <url function="information">http://collections.ala.org.au/public/show/dr90</url>
+      </online>
+    </distribution>
+    <contact>
+      <individualName>
+        <givenName>Dave</givenName>
+        <surName>Connell</surName>
+      </individualName>
+      <positionName>Data Manager</positionName>
+      <electronicMailAddress>Dave.Connell@aad.gov.au</electronicMailAddress>
+    </contact>
+  </dataset>
+  <additionalMetadata>
+    <metadata>
+      <gbif>
+        <dateStamp>2017-03-16T12:13:04</dateStamp>
+        <hierarchyLevel>dataset</hierarchyLevel>
+      </gbif>
+    </metadata>
+  </additionalMetadata>
+</eml:eml>

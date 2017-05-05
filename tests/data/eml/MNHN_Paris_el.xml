@@ -1,0 +1,102 @@
+<eml:eml xmlns:eml="eml://ecoinformatics.org/eml-2.1.1"
+         xmlns:dc="http://purl.org/dc/terms/"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="eml://ecoinformatics.org/eml-2.1.1 http://rs.gbif.org/schema/eml-gbif-profile/1.1/eml.xsd"
+         packageId="33e3780b-d539-4e5e-b82f-1662b5941a9e/v76.7" system="http://gbif.org" scope="system"
+         xml:lang="eng">
+
+<dataset>
+  <alternateIdentifier>33e3780b-d539-4e5e-b82f-1662b5941a9e</alternateIdentifier>
+  <alternateIdentifier>http://collections.mnhn.fr/ipt/resource?r=mnhn-el</alternateIdentifier>
+  <title xml:lang="eng">The Lepidoptera collection (EL) of the Muséum national d&apos;Histoire naturelle (MNHN - Paris)</title>
+      <creator>
+    <individualName>
+      <surName>MNHN</surName>
+    </individualName>
+    <organizationName>MNHN</organizationName>
+    <positionName>Provider</positionName>
+      </creator>
+      <metadataProvider>
+    <individualName>
+        <givenName>Simon</givenName>
+      <surName>Chagnoux</surName>
+    </individualName>
+    <electronicMailAddress>gbifprovider@mnhn.fr</electronicMailAddress>
+      </metadataProvider>
+      <associatedParty>
+    <individualName>
+        <givenName>Joël</givenName>
+      <surName>Minet</surName>
+    </individualName>
+    <role>contentProvider</role>
+      </associatedParty>
+      <associatedParty>
+    <individualName>
+        <givenName>Jérôme</givenName>
+      <surName>Barbut</surName>
+    </individualName>
+    <role>contentProvider</role>
+      </associatedParty>
+  <pubDate>
+      2017-04-05
+  </pubDate>
+  <language>fre</language>
+  <abstract>
+    <para>This dataset is the databased part of the Lepidoptera from the entomological collections of the Muséum National d&apos;Histoire Naturelle (Paris).
+				
+				At the Muséum National d’Histoire Naturelle, the Lepidoptera collection gathers over 3 million specimens: ca. 1 million Rhopalocera (butterflies) and over 2 million Heterocera (moths). Essentially, these are pinned (dried) imagos but the collections also hold caterpillars (“blown” larvae or material preserved in alcohol), as well as a set of over 95.000 “genitalia” preparations. Amongst these collections, one can mention some particularly important ones: Mrs Fournier de Horrack, composed of precious exotical Rhopalocera, the type collection (ca. 11.000 Heterocera type specimens + numerous Rhopalocera), the rich Malagasy Heterocera collection (P. Viette’s achievement, essentially), and the Erebidae-Arctiinae collection (which includes ca. 30.000 neotropical specimens, most of them offered by H. de Toulgoët), the Psychidae collection (re-organized by J. Bourgogne), the Saturniidae collection (C. Lemaire and P.-C. Rougeot) and the Sesiidae collection (F. Le Cerf, notably). The Malagasy Heterocera and Saturniidae collections are the most important of their kinds worldwide (both qualitatively and quantitatively). Other collections are particularly precious, especially those associating imagos and early stages.</para>
+  </abstract>
+      <keywordSet>
+            <keyword>Occurrence</keyword>
+        <keywordThesaurus>GBIF Dataset Type Vocabulary: http://rs.gbif.org/vocabulary/gbif/dataset_type.xml</keywordThesaurus>
+      </keywordSet>
+      <keywordSet>
+            <keyword>Specimen</keyword>
+        <keywordThesaurus>GBIF Dataset Subtype Vocabulary: http://rs.gbif.org/vocabulary/gbif/dataset_subtype.xml</keywordThesaurus>
+      </keywordSet>
+      <keywordSet>
+            <keyword>Lepidoptera</keyword>
+            <keyword>Rhopalocera</keyword>
+            <keyword>Heterocera</keyword>
+            <keyword>Saturniidae</keyword>
+            <keyword>Phychidae</keyword>
+            <keyword>Erebidae</keyword>
+            <keyword>Arctiinae</keyword>
+            <keyword>Entomology</keyword>
+            <keyword>Insecta</keyword>
+            <keyword>Arthropods</keyword>
+            <keyword>Zoology</keyword>
+            <keyword>Taxonomy</keyword>
+            <keyword>Specimens</keyword>
+            <keyword>Collections</keyword>
+            <keyword>Types</keyword>
+            <keyword>Butterfly</keyword>
+            <keyword>Moth</keyword>
+        <keywordThesaurus>No keyword thesaurus designated</keywordThesaurus>
+      </keywordSet>
+  <maintenance>
+    <description>
+      <para></para>
+    </description>
+    <maintenanceUpdateFrequency>unkown</maintenanceUpdateFrequency>
+  </maintenance>
+
+      <contact>
+    <individualName>
+        <givenName>Laurent</givenName>
+      <surName>Albenga</surName>
+    </individualName>
+    <organizationName>MNHN</organizationName>
+    <positionName>Correspondant</positionName>
+      </contact>
+</dataset>
+  <additionalMetadata>
+    <metadata>
+      <gbif>
+          <dateStamp>2014-06-27T03:16:20.088+02:00</dateStamp>
+          <hierarchyLevel>dataset</hierarchyLevel>
+          <dc:replaces>33e3780b-d539-4e5e-b82f-1662b5941a9e/v76.7.xml</dc:replaces>
+      </gbif>
+    </metadata>
+  </additionalMetadata>
+</eml:eml>

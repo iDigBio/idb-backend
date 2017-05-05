@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<eml:eml packageId="725781a1-d6e4-4ad0-8a92-1e0a997596d5" system="http://sourceforge.net/projects/arthropodeasy/" xmlns:eml="eml://ecoinformatics.org/eml-2.1.1" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="eml://ecoinformatics.org/eml-2.1.1 eml.xsd">
+<dataset>
+<title>Plants, herbivores, and parasitoids: A model system for the study of tri-trophic associations project</title>
+<creator>
+	<organizationName>Arthropod Easy Capture (American Museum of Natural History)</organizationName>
+</creator>
+<pubDate>20160308</pubDate>
+<language>eng</language>
+<intellectualRights>
+	<para>Attribution</para>
+</intellectualRights>
+<distribution>
+	<online>
+		<url>http://research.amnh.org/pbi/locality/</url>
+	</online>
+</distribution>
+<contact>
+	<individualName> 
+		<givenName>Christine</givenName>
+		<surName>Johnson</surName>
+	</individualName>
+	<electronicMailAddress>cjohnson@amnh.org</electronicMailAddress>
+</contact>
+<publisher>
+	<organizationName>Arthropod Easy Capture</organizationName>
+</publisher>
+</dataset>
+<additionalMetadata>
+<metadata>
+	<abstract>
+		<para>This Thematic Collection Network (TCN) dataset is the product of the Tri-Trophic Thematic Collection Network Collaborative Research project: Plants, Herbivores, and Parasitoids: A Model System for the study of Tri-Trophic Associations. It consists of the Hemipteran records recorded in the Arthropod Easy Capture database at the American Museum of Natural History. This project was funded by the National Science Foundation EF#1115081, EF#1115103, EF#1115080, EF#1115144, EF#1115191, EF#1115104, EF#1115115 (2011-2016).</para>
+	</abstract>
+</metadata>
+</additionalMetadata>
+<additionalMetadata>
+<metadata>
+	<formattedCitation>Tri-Trophic Thematic Collection Network, 2014 (and updates). Version: 08 Mar 2016. http://tcn.amnh.org/. National Science Foundation grant(s) EF#1115081, EF#1115103, EF#1115080, EF#1115144, EF#1115191, EF#1115104, EF#1115115</formattedCitation>
+</metadata>
+</additionalMetadata>
+</eml:eml>

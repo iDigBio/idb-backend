@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="UTF-8"?><eml:eml xmlns:d="eml://ecoinformatics.org/dataset-2.1.0" xmlns:dc="http://purl.org/dc/terms/" xmlns:eml="eml://ecoinformatics.org/eml-2.1.1" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="eml://ecoinformatics.org/eml-2.1.1 http://rs.gbif.org/schema/eml-gbif-profile/dev/eml.xsd" system="ALA-Registry" scope="system" xml:lang="en" packageId="884ace29-6d60-3ae6-97bf-a3e2fe3c1e7c/v28">
+  <dataset>
+    <alternateIdentifier>884ace29-6d60-3ae6-97bf-a3e2fe3c1e7c</alternateIdentifier>
+    <alternateIdentifier>ala.org.au:dr130</alternateIdentifier>
+    <title xmlns:lang="en">Australian National Insect Collection</title>
+    <creator>
+      <organizationName>Australian National Insect Collection, CSIRO</organizationName>
+      <address>
+        <deliveryPoint>Clunies Ross Street</deliveryPoint>
+        <city>Canberra</city>
+        <administrativeArea>ACT</administrativeArea>
+        <postalCode>2601</postalCode>
+        <country>Australia</country>
+      </address>
+      <onlineUrl>http://www.csiro.au/places/ANIC</onlineUrl>
+    </creator>
+    <metadataProvider>
+      <organizationName>Australian National Insect Collection, CSIRO</organizationName>
+      <address>
+        <deliveryPoint>Clunies Ross Street</deliveryPoint>
+        <city>Canberra</city>
+        <administrativeArea>ACT</administrativeArea>
+        <postalCode>2601</postalCode>
+        <country>Australia</country>
+      </address>
+      <onlineUrl>http://www.csiro.au/places/ANIC</onlineUrl>
+    </metadataProvider>
+    <associatedParty>
+      <organizationName>Atlas of Living Australia</organizationName>
+      <address>
+        <deliveryPoint>CSIRO Ecosystems Services</deliveryPoint>
+        <city>Canberra</city>
+        <administrativeArea>ACT</administrativeArea>
+        <postalCode>2605</postalCode>
+        <country>Australia</country>
+      </address>
+      <electronicMailAddress>info@ala.org.au</electronicMailAddress>
+      <role>distributor</role>
+    </associatedParty>
+    <associatedParty>
+      <organizationName>Australian National Insect Collection</organizationName>
+      <address>
+        <deliveryPoint>Clunies Ross Street</deliveryPoint>
+        <city>Canberra</city>
+        <administrativeArea>ACT</administrativeArea>
+        <postalCode>2601</postalCode>
+        <country>Australia</country>
+      </address>
+      <onlineUrl>http://www.csiro.au/places/ANIC</onlineUrl>
+      <role>originator</role>
+    </associatedParty>
+    <pubDate>2014-11-25</pubDate>
+    <language>English</language>
+    <abstract>
+      <para>The Australian National Insect Collection is recognized both nationally and internationally as a major research collection. It is the world's largest collection of Australian insects and related groups such as mites, spiders, nematodes and centipedes housing over 12 million specimens.</para>
+    </abstract>
+    <intellectualRights>
+      <section>
+        <title>Rights</title>
+        <para>Source of data should be cited where possible.</para>
+      </section>
+      <section>
+        <title>Citation</title>
+        <para>Australian National Insect Collection</para>
+      </section>
+      <section>
+        <title>License</title>
+        <para>Creative Commons Attribution Australia 3.0</para>
+      </section>
+    </intellectualRights>
+    <distribution>
+      <online>
+        <url function="information">http://collections.ala.org.au/public/show/dr130</url>
+      </online>
+    </distribution>
+    <contact>
+      <individualName>
+        <givenName>Nicole</givenName>
+        <surName>Fisher</surName>
+      </individualName>
+      <positionName>ANIC Manager</positionName>
+      <phone>(02) 6246 4261</phone>
+      <electronicMailAddress>Nicole.Fisher@csiro.au</electronicMailAddress>
+    </contact>
+  </dataset>
+  <additionalMetadata>
+    <metadata>
+      <gbif>
+        <dateStamp>2014-11-25T02:09:29</dateStamp>
+        <hierarchyLevel>dataset</hierarchyLevel>
+        <resourceLogoUrl>http://collections.ala.org.au/data/dataResource/CSIRO_Grad_RGB_lr.jpg</resourceLogoUrl>
+      </gbif>
+    </metadata>
+  </additionalMetadata>
+</eml:eml>

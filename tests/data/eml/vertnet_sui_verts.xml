@@ -1,0 +1,187 @@
+<eml:eml xmlns:eml="eml://ecoinformatics.org/eml-2.1.1"
+         xmlns:dc="http://purl.org/dc/terms/"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="eml://ecoinformatics.org/eml-2.1.1 http://rs.gbif.org/schema/eml-gbif-profile/1.0.2/eml.xsd"
+         packageId="04169fce-7d4f-41f7-9dff-245960f5b59e/v6" system="http://gbif.org" scope="system"
+         xml:lang="eng">
+
+<dataset>
+  <alternateIdentifier>04169fce-7d4f-41f7-9dff-245960f5b59e</alternateIdentifier>
+  <alternateIdentifier>http://ipt.vertnet.org:8080/ipt/resource.do?r=sui_verts</alternateIdentifier>
+  <title xml:lang="eng">SUI Vertebrate Collection</title>
+<creator>
+    <individualName>
+        <givenName>Cindy</givenName>
+      <surName>Opitz</surName>
+    </individualName>
+    <organizationName>University of Iowa Museum of Natural History</organizationName>
+    <positionName>Collections Manager</positionName>
+    <address>
+        <deliveryPoint>11 Macbride Hall</deliveryPoint>
+        <city>Iowa City</city>
+        <administrativeArea>IA</administrativeArea>
+        <postalCode>52242</postalCode>
+        <country>US</country>
+    </address>
+    <phone>+01 319-335-0481</phone>
+    <electronicMailAddress>cindy-opitz@uiowa.edu</electronicMailAddress>
+    <onlineUrl>http://mnh.uiowa.edu</onlineUrl>
+</creator>
+<metadataProvider>
+    <individualName>
+        <givenName>Cindy</givenName>
+      <surName>Opitz</surName>
+    </individualName>
+    <organizationName>University of Iowa Museum of Natural History</organizationName>
+    <positionName>Collections Manager</positionName>
+    <address>
+        <deliveryPoint>11 Macbride Hall</deliveryPoint>
+        <city>Iowa City</city>
+        <administrativeArea>IA</administrativeArea>
+        <postalCode>52242</postalCode>
+        <country>US</country>
+    </address>
+    <phone>+01 319-335-0481</phone>
+    <electronicMailAddress>cindy-opitz@uiowa.edu</electronicMailAddress>
+    <onlineUrl>http://mnh.uiowa.edu</onlineUrl>
+</metadataProvider>
+    <associatedParty>
+    <individualName>
+        <givenName>Laura</givenName>
+      <surName>Russell</surName>
+    </individualName>
+    <organizationName>VertNet</organizationName>
+    <positionName>VertNet Programmer</positionName>
+    <electronicMailAddress>larussell@vertnet.org</electronicMailAddress>
+    <onlineUrl>http://www.vertnet.org</onlineUrl>
+    <role>programmer</role>
+    </associatedParty>
+    <associatedParty>
+    <individualName>
+        <givenName>Dave</givenName>
+      <surName>Bloom</surName>
+    </individualName>
+    <organizationName>VertNet</organizationName>
+    <positionName>VertNet Coordinator</positionName>
+    <electronicMailAddress>dbloom@vertnet.org</electronicMailAddress>
+    <onlineUrl>http://www.vertnet.org</onlineUrl>
+    <role>programmer</role>
+    </associatedParty>
+    <associatedParty>
+    <individualName>
+        <givenName>John</givenName>
+      <surName>Wieczorek</surName>
+    </individualName>
+    <organizationName>Museum of Vertebrate Zoology at UC Berkeley​</organizationName>
+    <positionName>Information Architect</positionName>
+    <electronicMailAddress>tuco@berkeley.edu</electronicMailAddress>
+    <role>programmer</role>
+    </associatedParty>
+    <associatedParty>
+    <individualName>
+        <givenName>Trina</givenName>
+      <surName>Roberts</surName>
+    </individualName>
+    <organizationName>Pentacrest Museums: University of Iowa Museum of Natural History and Old Capitol Museum</organizationName>
+    <positionName>Director</positionName>
+    <address>
+        <deliveryPoint>10 Macbride Hall</deliveryPoint>
+        <city>Iowa City</city>
+        <administrativeArea>Iowa</administrativeArea>
+        <postalCode>52242</postalCode>
+        <country>US</country>
+    </address>
+    <phone>+01 319-335-1313</phone>
+    <electronicMailAddress>trina-roberts@uiowa.edu</electronicMailAddress>
+    <onlineUrl>http://research.uiowa.edu/pentacrest-museums</onlineUrl>
+    <role>curator</role>
+    </associatedParty>
+<pubDate>
+      	2016-11-15
+</pubDate>
+<language>eng</language>
+<abstract>
+  <para>Ornithology: More than 31,000 birds (study skins or mounted), eggs, and nests.  In 2015-2017 we are reorganizing and rehousing the entire collection under a National Science Foundation CSBR grant.
+Mammalogy: More than 5,000 study skins, skulls, skeletons, fluid-preserved specimens, and mounted specimens.  Our collection includes specimens collected by John Bowles which were transferred from Central College.
+Other vertebrates: A small number of reptiles, fish, and amphibians.</para>
+</abstract>
+      <keywordSet>
+            <keyword>Occurrence</keyword>
+        <keywordThesaurus>GBIF Dataset Type Vocabulary: http://rs.gbif.org/vocabulary/gbif/dataset_type.xml</keywordThesaurus>
+      </keywordSet>
+      <keywordSet>
+            <keyword>Specimen</keyword>
+        <keywordThesaurus>GBIF Dataset Subtype Vocabulary: http://rs.gbif.org/vocabulary/gbif/dataset_subtype.xml</keywordThesaurus>
+      </keywordSet>
+  <intellectualRights>
+    <para>http://creativecommons.org/publicdomain/zero/1.0/ and http://vertnet.org/resources/norms.html</para>
+  </intellectualRights>
+  <distribution scope="document">
+    <online>
+      <url function="information">http://mnh.uiowa.edu/collections-and-research</url>
+    </online>
+  </distribution>
+  <coverage>
+      <geographicCoverage>
+          <geographicDescription>Ornithology and mammal collections global in coverage, with nearly complete series of North American birds, and including birds from Laysan Island, Caribbean, Central and South America, Europe, Asia, and Australia. Mammals primarily from North American Midwest, plus South America, Africa, Asia, and Australia. Small collection of fish and herps from locations scattered across the globe.</geographicDescription>
+        <boundingCoordinates>
+          <westBoundingCoordinate>-180</westBoundingCoordinate>
+          <eastBoundingCoordinate>180</eastBoundingCoordinate>
+          <northBoundingCoordinate>90</northBoundingCoordinate>
+          <southBoundingCoordinate>-90</southBoundingCoordinate>
+        </boundingCoordinates>
+      </geographicCoverage>
+          <taxonomicCoverage>
+              <taxonomicClassification>
+                  <taxonRankName>class</taxonRankName>
+                <taxonRankValue>Aves</taxonRankValue>
+                  <commonName>Birds</commonName>
+              </taxonomicClassification>
+              <taxonomicClassification>
+                  <taxonRankName>class</taxonRankName>
+                <taxonRankValue>Mammalia</taxonRankValue>
+                  <commonName>Mammals</commonName>
+              </taxonomicClassification>
+              <taxonomicClassification>
+                  <taxonRankName>class</taxonRankName>
+                <taxonRankValue>Amphibia</taxonRankValue>
+                  <commonName>Amphibians</commonName>
+              </taxonomicClassification>
+              <taxonomicClassification>
+                  <taxonRankName>class</taxonRankName>
+                <taxonRankValue>Reptilia</taxonRankValue>
+                  <commonName>Reptiles</commonName>
+              </taxonomicClassification>
+          </taxonomicCoverage>
+  </coverage>
+  <contact>
+    <individualName>
+        <givenName>Cindy</givenName>
+      <surName>Opitz</surName>
+    </individualName>
+    <organizationName>University of Iowa Museum of Natural History</organizationName>
+    <positionName>Collections Manager</positionName>
+    <address>
+        <deliveryPoint>11 Macbride Hall</deliveryPoint>
+        <city>Iowa City</city>
+        <administrativeArea>IA</administrativeArea>
+        <postalCode>52242</postalCode>
+        <country>US</country>
+    </address>
+    <phone>+01 319-335-0481</phone>
+    <electronicMailAddress>cindy-opitz@uiowa.edu</electronicMailAddress>
+    <onlineUrl>http://mnh.uiowa.edu</onlineUrl>
+  </contact>
+</dataset>
+  <additionalMetadata>
+    <metadata>
+      <gbif>
+          <dateStamp>2015-12-10T12:27:50.371-06:00</dateStamp>
+          <hierarchyLevel>dataset</hierarchyLevel>
+            <citation>The University of Iowa, Museum of Natural History Vertebrate Collection (SUI)</citation>
+              <livingTimePeriod>c. 1860 to present</livingTimePeriod>
+          <dc:replaces>04169fce-7d4f-41f7-9dff-245960f5b59e/v5.xml</dc:replaces>
+      </gbif>
+    </metadata>
+  </additionalMetadata>
+</eml:eml>

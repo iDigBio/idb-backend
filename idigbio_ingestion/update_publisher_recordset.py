@@ -210,8 +210,10 @@ def _do_rss(rsscontents, r, db, recordsets, existing_recordsets):
 
         if "published_parsed" in e and e["published_parsed"] is not None:
             date = struct_to_datetime(e["published_parsed"])
+            logger.debug('pub_date struct via published_parsed: {0}'.format(date.isoformat()))
         elif "published" in e and e["published"] is not None:
             date = dateutil.parser.parse(e["published"])
+            logger.debug('pub_date via dateutil: {0}'.format(date.isoformat()))
 
         # Pick a time distinctly before now() to avoid data races
         fifteen_minutes_ago = datetime.datetime.now() - datetime.timedelta(minutes=15)
@@ -251,7 +253,7 @@ def _do_rss(rsscontents, r, db, recordsets, existing_recordsets):
                 """,
                 (rsid, pub_uuid, rs_name, recordids, eml_link, file_link, ingest, date, recordid, date))
             db.execute(*sql)
-            logger.info("Create Recordset for recordid:%s '%s'", recordid, name)
+            logger.info("Create Recordset for recordid:%s '%s'", recordid, rs_name)
         else:
             sql = ("""UPDATE recordsets
                       SET publisher_uuid=%(publisher_uuid)s,

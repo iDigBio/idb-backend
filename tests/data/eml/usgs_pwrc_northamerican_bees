@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta http-equiv="X-UA-Compatible" content="IE=9"/>
+        <meta charset="utf-8"/>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+        <meta name="geo.placename" content="United States">
+        <meta name="publisher" content="USGS - U.S. Geological Survey">
+        <title>Biodiversity Information Serving Our Nation (BISON) Integrated Publishing Toolkit (IPT)</title>
+
+        <script type="text/javascript">
+		window.onload=function() {
+		function countdown() {
+		if ( typeof countdown.counter == 'undefined' ) {
+			countdown.counter = 10; // initial count
+			}
+		if(countdown.counter > 0) {
+			document.getElementById('count').innerHTML = countdown.counter--;
+			setTimeout(countdown, 1000);
+			}
+		else {
+			location.href = 'https://bison.usgs.gov/ipt';
+			}
+		}
+		countdown();
+		};
+		</script>
+    </head>
+
+    <body>
+        <noscript>
+        <br/><br/>
+        <div style="background-color: red; text-align: center; color: white;">
+            <br/> 
+            <b>This page uses Javascript.<br/>Your browser either
+                doesn't support Javascript or you have it turned off.<br/> To
+                see this page as it is meant to appear please use a Javascript
+                enabled browser.</b>
+            <br/><br/>
+        </div><br/><br/>
+        </noscript>
+
+        <!-- BEGIN Page Content -->
+	<div id='contentWrapper'>
+		<div id="contentDisplay">
+			<center><h2>The URL for the USGS IPT application has changed to <a href="https://bison.usgs.gov/ipt" target="_blank">https://bison.usgs.gov/ipt</a>.</h2>
+            <h2>You will be redirected there in <span class="countdown"><span id="count"></span></span> seconds.</h2>
+            <h2>Please update your bookmarks.</h2></center>
+		</div>
+	</div>
+        <!-- END Page Content -->
+        
+    </body>
+</html>

@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<eml:eml xmlns:eml="eml://ecoinformatics.org/eml-2.1.1" xmlns:dc="http://purl.org/dc/terms/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="eml://ecoinformatics.org/eml-2.1.1 http://rs.gbif.org/schema/eml-gbif-profile/1.0.1/eml.xsd" packageId="1494727e-3ca0-4a1e-b66e-14733b9bf25a" system="http://symbiota.org" scope="system" xml:lang="eng">
+  <dataset>
+    <alternateIdentifier>http://portal.neherbaria.org/portal/collections/misc/collprofiles.php?collid=9</alternateIdentifier>
+    <title xml:lang="eng">University of Vermont, Pringle Herbarium, New England vascular plants</title>
+    <creator>
+      <organizationName>CNH portal</organizationName>
+      <electronicMailAddress>patrick.sweeney@yale.edu</electronicMailAddress>
+      <onlineUrl>http://portal.neherbaria.org/portal/index.php</onlineUrl>
+    </creator>
+    <metadataProvider>
+      <organizationName>CNH portal</organizationName>
+      <electronicMailAddress>patrick.sweeney@yale.edu</electronicMailAddress>
+      <onlineUrl>http://portal.neherbaria.org/portal/index.php</onlineUrl>
+    </metadataProvider>
+    <pubDate>2016-10-28</pubDate>
+    <language>eng</language>
+    <abstract>
+      <para>The Pringle Herbarium (VT) contains 300,000 specimens, including vascular plants, bryophytes, lichens, algae and fungi. Of these, this portal will contain all of our New England vascular plant specimens, expected to number about 81,000. Other digitization projects cover type specimens, non-New England vascular plant specimens, North American bryophytes and lichens, macroalgae and macrofungi. These images and data are available through various portals. The herbarium does not maintain its own online database.These images and data are available through various portals. The herbarium does not maintain its own online database.</para>
+    </abstract>
+    <contact>
+      <individualName>Dorothy J. Allard</individualName>
+      <organizationName>University of Vermont, Pringle Herbarium, New England vascular plants</organizationName>
+      <phone/>
+      <electronicMailAddress>djallard@uvm.edu</electronicMailAddress>
+      <onlineUrl>http://www.uvm.edu/~plantbio/pringle/</onlineUrl>
+    </contact>
+    <associatedParty>
+      <individualName>Dorothy</individualName>
+      <role>CONTENT_PROVIDER</role>
+    </associatedParty>
+    <associatedParty>
+      <organizationName>University of Vermont, Pringle Herbarium, New England vascular plants</organizationName>
+      <individualName>Dorothy J. Allard</individualName>
+      <positionName>Collection Manager</positionName>
+      <role>CONTENT_PROVIDER</role>
+      <electronicMailAddress>djallard@uvm.edu</electronicMailAddress>
+      <phone/>
+      <address>
+        <deliveryPoint/>
+        <city>Burlington</city>
+        <administrativeArea>Vermont</administrativeArea>
+        <postalCode>05405</postalCode>
+        <country>United States of America</country>
+      </address>
+    </associatedParty>
+    <intellectualRights>
+      <para>To the extent possible under law, the publisher has waived all rights to these data and has dedicated them to the<ulink url="http://creativecommons.org/licenses/by-nc/3.0/"><citetitle/></ulink></para>
+    </intellectualRights>
+  </dataset>
+  <additionalMetadata>
+    <metadata>
+      <symbiota>
+        <dateStamp>2016-10-28T11:56:49-07:00</dateStamp>
+        <citation identifier="f16134f5-e151-438b-aed1-96b7dbd329f6">CNH portal - f16134f5-e151-438b-aed1-96b7dbd329f6</citation>
+        <physical>
+          <characterEncoding>UTF-8</characterEncoding>
+          <dataFormat>
+            <externallyDefinedFormat>
+              <formatName>Darwin Core Archive</formatName>
+            </externallyDefinedFormat>
+          </dataFormat>
+        </physical>
+        <collection identifier="42847516-5afe-4ca1-9f2d-6ae9e468eb9f" id="9">
+          <alternateIdentifier>http://portal.neherbaria.org/portal/collections/misc/collprofiles.php?collid=9</alternateIdentifier>
+          <parentCollectionIdentifier>VT</parentCollectionIdentifier>
+          <collectionIdentifier/>
+          <collectionName>University of Vermont, Pringle Herbarium, New England vascular plants</collectionName>
+          <resourceLogoUrl>http://portal.neherbaria.org/portal/images/collicons/VT_logo_60.gif</resourceLogoUrl>
+          <onlineUrl>http://www.uvm.edu/~plantbio/pringle/</onlineUrl>
+          <intellectualRights>http://creativecommons.org/licenses/by-nc/3.0/</intellectualRights>
+          <additionalInfo>University of Vermont</additionalInfo>
+          <abstract>
+            <para>The Pringle Herbarium (VT) contains 300,000 specimens, including vascular plants, bryophytes, lichens, algae and fungi. Of these, this portal will contain all of our New England vascular plant specimens, expected to number about 81,000. Other digitization projects cover type specimens, non-New England vascular plant specimens, North American bryophytes and lichens, macroalgae and macrofungi. These images and data are available through various portals. The herbarium does not maintain its own online database.These images and data are available through various portals. The herbarium does not maintain its own online database.</para>
+          </abstract>
+        </collection>
+      </symbiota>
+    </metadata>
+  </additionalMetadata>
+</eml:eml>

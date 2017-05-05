@@ -1,0 +1,126 @@
+<eml:eml xmlns:eml="eml://ecoinformatics.org/eml-2.1.1"
+         xmlns:dc="http://purl.org/dc/terms/"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="eml://ecoinformatics.org/eml-2.1.1 http://rs.gbif.org/schema/eml-gbif-profile/1.1/eml.xsd"
+         packageId="217b0d4f-c87e-4063-b6c5-78277e40e866/v55.6" system="http://gbif.org" scope="system"
+         xml:lang="eng">
+
+<dataset>
+  <alternateIdentifier>217b0d4f-c87e-4063-b6c5-78277e40e866</alternateIdentifier>
+  <alternateIdentifier>http://collections.mnhn.fr/ipt/resource?r=mnhn-ra</alternateIdentifier>
+  <title xml:lang="eng">The reptiles and amphibians collection (RA) of the Muséum national d&apos;Histoire Naturelle (MNHN - Paris)</title>
+      <creator>
+    <individualName>
+      <surName>MNHN</surName>
+    </individualName>
+    <organizationName>MNHN</organizationName>
+    <positionName>Provider</positionName>
+      </creator>
+      <metadataProvider>
+    <individualName>
+        <givenName>Simon</givenName>
+      <surName>Chagnoux</surName>
+    </individualName>
+    <organizationName>MNHN</organizationName>
+    <electronicMailAddress>gbifprovider@mnhn.fr</electronicMailAddress>
+      </metadataProvider>
+      <associatedParty>
+    <individualName>
+        <givenName>Roge</givenName>
+      <surName>Bour</surName>
+    </individualName>
+    <role>contentProvider</role>
+      </associatedParty>
+      <associatedParty>
+    <individualName>
+        <givenName>Alain</givenName>
+      <surName>Dubois</surName>
+    </individualName>
+    <role>contentProvider</role>
+      </associatedParty>
+      <associatedParty>
+    <individualName>
+        <givenName>Ivan</givenName>
+      <surName>Ineich</surName>
+    </individualName>
+    <role>contentProvider</role>
+      </associatedParty>
+      <associatedParty>
+    <individualName>
+        <givenName>Annemarie</givenName>
+      <surName>Ohler</surName>
+    </individualName>
+    <role>contentProvider</role>
+      </associatedParty>
+      <associatedParty>
+    <individualName>
+        <givenName>Laure</givenName>
+      <surName>Pierre</surName>
+    </individualName>
+    <role>contentProvider</role>
+      </associatedParty>
+      <associatedParty>
+    <individualName>
+        <givenName>Jérôme</givenName>
+      <surName>Courtois</surName>
+    </individualName>
+    <role>contentProvider</role>
+      </associatedParty>
+  <pubDate>
+      2017-04-07
+  </pubDate>
+  <language>fre</language>
+  <abstract>
+    <para>The collection of Reptiles and Amphibians of the Muséum National d&apos;Histoire Naturelle started in the early 19th century and has handwritten catalogues that date from 1864. The records in the Reptile and Amphiphibian database were transcribed from these catalogues. Most entries have not yet been checked for errors or verified against the collections. Thus there is a great heterogeneity in taxonomy and in geographical information. Beside the individual labelling system, the collection uses numbers to store specimens according to their specific name. This allows attaching to this number various historical names and the valid one. Locality names are written usually in French transliteration. Our curators and collection managers can help users concerning these issues.
+Search results will give only part of the information available on the database. They help the researchers to learn about the holdings of the collection and the gross geographical origin. More detailed information can be obtained by writing to the curators. The results should not be used as primary data without check back to the specimens. The issue of the database is to prepare loan requests or visits to the collection. For any request contact: http://colhelper.mnhn.fr/</para>
+  </abstract>
+      <keywordSet>
+            <keyword>Occurrence</keyword>
+        <keywordThesaurus>GBIF Dataset Type Vocabulary: http://rs.gbif.org/vocabulary/gbif/dataset_type.xml</keywordThesaurus>
+      </keywordSet>
+      <keywordSet>
+            <keyword>Specimen</keyword>
+        <keywordThesaurus>GBIF Dataset Subtype Vocabulary: http://rs.gbif.org/vocabulary/gbif/dataset_subtype.xml</keywordThesaurus>
+      </keywordSet>
+      <keywordSet>
+            <keyword>Reptiles</keyword>
+            <keyword>Reptilia</keyword>
+            <keyword>Amphibians</keyword>
+            <keyword>Amphibia</keyword>
+            <keyword>Vertebrates</keyword>
+            <keyword>Zoology</keyword>
+            <keyword>Taxonomy</keyword>
+            <keyword>Specimens</keyword>
+            <keyword>Collections</keyword>
+            <keyword>Types</keyword>
+        <keywordThesaurus>No keyword thesaurus designated</keywordThesaurus>
+      </keywordSet>
+  <intellectualRights>
+    <para>This work is licensed under a <ulink url="http://creativecommons.org/licenses/by/4.0/legalcode"><citetitle>Creative Commons Attribution (CC-BY) 4.0 License</citetitle></ulink>.</para>
+  </intellectualRights>
+  <maintenance>
+    <description>
+      <para></para>
+    </description>
+    <maintenanceUpdateFrequency>unkown</maintenanceUpdateFrequency>
+  </maintenance>
+
+      <contact>
+    <individualName>
+        <givenName>Laure</givenName>
+      <surName>Pierre</surName>
+    </individualName>
+    <organizationName>MNHN</organizationName>
+    <positionName>Correspondant</positionName>
+      </contact>
+</dataset>
+  <additionalMetadata>
+    <metadata>
+      <gbif>
+          <dateStamp>2014-06-27T03:16:20.088+02:00</dateStamp>
+          <hierarchyLevel>dataset</hierarchyLevel>
+          <dc:replaces>217b0d4f-c87e-4063-b6c5-78277e40e866/v55.6.xml</dc:replaces>
+      </gbif>
+    </metadata>
+  </additionalMetadata>
+</eml:eml>

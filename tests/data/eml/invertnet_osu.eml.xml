@@ -1,0 +1,26 @@
+<eml:eml xmlns:eml="eml://ecoinformatics.org/eml-2.1.1" xmlns:md="eml://ecoinformatics.org/methods-2.1.1" xmlns:proj="eml://ecoinformatics.org/project-2.1.1" xmlns:d="eml://ecoinformatics.org/dataset-2.1.1" xmlns:res="eml://ecoinformatics.org/resource-2.1.1" xmlns:dc="http://purl.org/dc/terms/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="eml://ecoinformatics.org/eml-2.1.1 http://rs.gbif.org/schema/eml-gbif-profile/1.0.1/eml.xsd" xml:lang="eng">
+	<dataset>
+		<alternateIdentifier>http://biocol.org/urn:lsid:biocol.org:col:34094</alternateIdentifier>
+		<title xml:lang="eng">Ohio State University Digitized Collection</title>
+		<creator>
+			<individualName>
+				<givenName>Marymegan</givenName>
+				<surName>Daly</surName>
+			</individualName>
+			<electronicMailAddress>daly.66@osu.edu</electronicMailAddress>
+		</creator>
+		<metadataProvider>
+			<individualName>
+				<givenName>Marymegan</givenName>
+				<surName>Daly</surName>
+			</individualName>
+			<electronicMailAddress>daly.66@osu.edu</electronicMailAddress>
+		</metadataProvider>
+		<language>eng</language>
+		<abstract>
+			<para>
+				
+			</para>
+		</abstract>
+	</dataset>
+</eml:eml>

@@ -70,4 +70,22 @@ tests/idigbio_ingestion/mediaing/test_mediaing.py .
 
 ```
 
+To run an individual test matching a test name:
+
+```
+$ pytest -v -k test_pngpath_is_usable
+======================================================================= test session starts ========================================================================
+platform linux2 -- Python 2.7.6, pytest-3.0.7, py-1.4.32, pluggy-0.4.0 -- /home/dstoner/git/Envs/idb-backend/bin/python
+cachedir: ../.cache
+rootdir: /home/dstoner/git/idb-backend, inifile: setup.cfg
+plugins: mock-1.5.0, flask-0.10.0, cov-2.4.0, catchlog-1.2.2, celery-4.0.2
+collected 206 items 
+
+test_data_exists.py::test_pngpath_is_usable PASSED
+
+======================================================================= 205 tests deselected =======================================================================
+============================================================= 1 passed, 205 deselected in 0.33 seconds =============================================================
+
+```
+
 More on pytest at https://docs.pytest.org/en/latest/usage.html

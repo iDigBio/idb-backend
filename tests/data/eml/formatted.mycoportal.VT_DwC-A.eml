@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<eml:eml xmlns:eml="eml://ecoinformatics.org/eml-2.1.1" xmlns:dc="http://purl.org/dc/terms/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="eml://ecoinformatics.org/eml-2.1.1 http://rs.gbif.org/schema/eml-gbif-profile/1.0.1/eml.xsd" packageId="481af26f-aa90-4603-8f31-3102157f7a24" system="http://symbiota.org" scope="system" xml:lang="eng">
+  <dataset>
+    <alternateIdentifier>http://mycoportal.org/portal/collections/misc/collprofiles.php?collid=40</alternateIdentifier>
+    <title xml:lang="eng">University of Vermont, Pringle Herbarium, Macrofungi</title>
+    <creator>
+      <organizationName>MyCoPortal</organizationName>
+      <electronicMailAddress>help@mycoportal.org</electronicMailAddress>
+      <onlineUrl>http://mycoportal.org/portal/index.php</onlineUrl>
+    </creator>
+    <metadataProvider>
+      <organizationName>MyCoPortal</organizationName>
+      <electronicMailAddress>help@mycoportal.org</electronicMailAddress>
+      <onlineUrl>http://mycoportal.org/portal/index.php</onlineUrl>
+    </metadataProvider>
+    <pubDate>2016-07-15</pubDate>
+    <language>eng</language>
+    <abstract>
+      <para>The Pringle Herbarium (VT) contains 300,000 specimens, including vascular plants, bryophytes, lichens, algae and fungi. Of these, this portal contains about 2000 fungi specimens, including all of our specimens of macrofungi. Other digitization projects cover type specimens, vascular plant specimens, North American bryophytes and lichens, and macroalgae. These images and data are available through various portals. The herbarium does not maintain its own online database.</para>
+    </abstract>
+    <contact>
+      <individualName>Dorothy Allard, Virtual Herbarium Coordinator</individualName>
+      <organizationName>University of Vermont, Pringle Herbarium, Macrofungi</organizationName>
+      <phone/>
+      <electronicMailAddress>djallard@uvm.edu</electronicMailAddress>
+      <onlineUrl>http://www.uvm.edu/~plantbio/pringle/</onlineUrl>
+    </contact>
+    <associatedParty>
+      <individualName>Dorothy</individualName>
+      <role>CONTENT_PROVIDER</role>
+    </associatedParty>
+    <associatedParty>
+      <organizationName>University of Vermont, Pringle Herbarium, Macrofungi</organizationName>
+      <individualName>Dorothy Allard, Virtual Herbarium Coordinator</individualName>
+      <positionName>Collection Manager</positionName>
+      <role>CONTENT_PROVIDER</role>
+      <electronicMailAddress>djallard@uvm.edu</electronicMailAddress>
+      <phone/>
+    </associatedParty>
+    <intellectualRights>
+      <para>http://creativecommons.org/publicdomain/zero/1.0/</para>
+    </intellectualRights>
+  </dataset>
+  <additionalMetadata>
+    <metadata>
+      <symbiota>
+        <dateStamp>2016-07-15T07:20:30-07:00</dateStamp>
+        <citation identifier="18782737-c50f-4281-945f-27e107c0fe27">MyCoPortal - 18782737-c50f-4281-945f-27e107c0fe27</citation>
+        <physical>
+          <characterEncoding>UTF-8</characterEncoding>
+          <dataFormat>
+            <externallyDefinedFormat>
+              <formatName>Darwin Core Archive</formatName>
+            </externallyDefinedFormat>
+          </dataFormat>
+        </physical>
+        <collection identifier="4171da63-cd34-4f53-a494-16d502507003" id="40">
+          <alternateIdentifier>http://mycoportal.org/portal/collections/misc/collprofiles.php?collid=40</alternateIdentifier>
+          <parentCollectionIdentifier>VT</parentCollectionIdentifier>
+          <collectionIdentifier/>
+          <collectionName>University of Vermont, Pringle Herbarium, Macrofungi</collectionName>
+          <resourceLogoUrl>http://mycoportal.org/portal/images/collicons/vt.jpg</resourceLogoUrl>
+          <onlineUrl>http://www.uvm.edu/~plantbio/pringle/</onlineUrl>
+          <intellectualRights>http://creativecommons.org/publicdomain/zero/1.0/</intellectualRights>
+          <additionalInfo>University of Vermont</additionalInfo>
+          <abstract>
+            <para>The Pringle Herbarium (VT) contains 300,000 specimens, including vascular plants, bryophytes, lichens, algae and fungi. Of these, this portal contains about 2000 fungi specimens, including all of our specimens of macrofungi. Other digitization projects cover type specimens, vascular plant specimens, North American bryophytes and lichens, and macroalgae. These images and data are available through various portals. The herbarium does not maintain its own online database.</para>
+          </abstract>
+        </collection>
+      </symbiota>
+    </metadata>
+  </additionalMetadata>
+</eml:eml>

@@ -376,62 +376,67 @@ def process_file(fname, mime, rsid, existing_etags, existing_ids, ingest=False, 
     t = datetime.datetime.now()
     filehash = calcFileHash(fname)
     db = PostgresDB()
-
-    if mime == "application/zip":
-        dwcaobj = Dwca(fname, skipeml=True, logname="idb")
-        for dwcrf in dwcaobj.extensions:
-            rlogger.debug("Processing %r", dwcrf.name)
-            counts[dwcrf.name] = process_subfile(
-                dwcrf, rsid, existing_etags, existing_ids, ingest=ingest, db=db)
-            dwcrf.close()
-        rlogger.debug("processing core %r", dwcaobj.core.name)
-        counts[dwcaobj.core.name] = process_subfile(
-            dwcaobj.core, rsid, existing_etags, existing_ids, ingest=ingest, db=db)
-        dwcaobj.core.close()
-        dwcaobj.close()
-    elif mime == "text/plain":
-        commas = False
-        with open(fname, "rb") as testf:
-            commas = "," in testf.readline()
-
-        if commas:
-            csvrf = DelimitedFile(fname, logname="idigbio")
-            counts[fname] = process_subfile(
-                csvrf, rsid, existing_etags, existing_ids, ingest=ingest, db=db)
-        else:
-            tsvrf = DelimitedFile(
-                fname, delimiter="\t", fieldenc=None, logname="idigbio")
-            counts[fname] = process_subfile(
-                tsvrf, rsid, existing_etags, existing_ids, ingest=ingest, db=db)
-
     commited = False
-    if ingest:
-        commit_ok = commit_force
 
-        type_commits = []
-        for k in counts:
-            if k not in ingestion_types:
-                continue
-            if (
-                counts[k]["create"]/float(counts[k]["processed_line_count"]) >= 0.5 and
-                counts[k]["delete"]/float(counts[k]["processed_line_count"]) >= 0.5
-            ):
-                type_commits.append(True)
+    try:
+        if mime == "application/zip":
+            dwcaobj = Dwca(fname, skipeml=True, logname="idb")
+            for dwcrf in dwcaobj.extensions:
+                rlogger.debug("Processing %r", dwcrf.name)
+                counts[dwcrf.name] = process_subfile(
+                    dwcrf, rsid, existing_etags, existing_ids, ingest=ingest, db=db)
+                dwcrf.close()
+            rlogger.debug("processing core %r", dwcaobj.core.name)
+            counts[dwcaobj.core.name] = process_subfile(
+                dwcaobj.core, rsid, existing_etags, existing_ids, ingest=ingest, db=db)
+            dwcaobj.core.close()
+            dwcaobj.close()
+        elif mime == "text/plain":
+            commas = False
+            with open(fname, "rb") as testf:
+                commas = "," in testf.readline()
+
+            if commas:
+                csvrf = DelimitedFile(fname, logname="idigbio")
+                counts[fname] = process_subfile(
+                    csvrf, rsid, existing_etags, existing_ids, ingest=ingest, db=db)
             else:
-                type_commits.append(False)
+                tsvrf = DelimitedFile(
+                    fname, delimiter="\t", fieldenc=None, logname="idigbio")
+                counts[fname] = process_subfile(
+                    tsvrf, rsid, existing_etags, existing_ids, ingest=ingest, db=db)
 
-        commit_ok = all(type_commits)
+        if ingest:
+            commit_ok = commit_force
 
-        if commit_ok:
-            rlogger.info("Ready to Commit")
-            db.commit()
-            commited = True
+            type_commits = []
+            for k in counts:
+                if k not in ingestion_types:
+                    continue
+                if (
+                    counts[k]["create"]/float(counts[k]["processed_line_count"]) >= 0.5 and
+                    counts[k]["delete"]/float(counts[k]["processed_line_count"]) >= 0.5
+                ):
+                    type_commits.append(True)
+                else:
+                    type_commits.append(False)
+
+            commit_ok = all(type_commits)
+
+            if commit_ok:
+                rlogger.info("Ready to Commit")
+                db.commit()
+                commited = True
+            else:
+                rlogger.error("Rollback")
+                db.rollback()
         else:
-            rlogger.error("Rollback")
             db.rollback()
-    else:
+        db.close()
+    except Exception:
+        logger.exception("Unhandled Exception when processing {0}".format(fname))
         db.rollback()
-    db.close()
+        db.close()
 
     # Clear after processing an archive
     unconsumed_extensions.clear()

@@ -169,6 +169,11 @@ class DelimitedFile(object):
                     self.name, self.lineCount, self.lineLength, len(lineArr)))
                 self.logger.debug(lineArr)
                 self.logger.info(traceback.format_exc())
+            except Exception as e:
+                self.logger.warn("OtherException {3}: {0} Line {1} ({2})".format(
+                    self.name, self.lineCount, self.lineLength, str(e)))
+                self.logger.info(traceback.format_exc())
+                raise
         return lineDict
 
     def readlines(self, sizehint=None):

@@ -199,6 +199,8 @@ class ElasticSearchIndexer(object):
                 "sort": [],
                 "aggs": {}
             })
+        if r['hits']['total'] == 0:
+            return None
         if r['hits']['total'] != 1:
             logger.error("Didn't find expected single result for %r", uuid)
         else:

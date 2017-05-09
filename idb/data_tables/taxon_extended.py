@@ -2,10 +2,18 @@ import json
 from collections import Counter
 from idb.helpers.etags import objectHasher
 
+failure_dict = {"flag_taxon_match_failed": True}
+
 def get_data():
 
     keys = {}
     values = {}
+
+    stats = Counter()
+
+    with open("quartiles.json", "r") as qf:
+        quartiles = json.load(qf)
+
     with open("taxon_kv.txt") as tkvf:
         for l in tkvf:
             # There could be 2 or more elements of o, so we cant do a simple assignment
@@ -15,6 +23,18 @@ def get_data():
             k = o[2][0]
             v = o[2][1]
             score = o[3]
+            hits = o[4]
+
+            # Reject scores below the first quartile
+            if score < quartiles[0]:
+                result = "nomatch"
+                v = failure_dict
+
+            stats["count"] += 1
+            if result == "match":
+                stats["matched"] += hits
+            elif result == "nomatch":
+                stats["failed"] += hits
 
             k_etag = objectHasher("sha256", k, sort_arrays=True)
             if k_etag not in keys:
@@ -24,7 +44,10 @@ def get_data():
             if v_etag not in values:
                 values[v_etag] = v
 
-            keys[k_etag][1][v_etag] += 1
+            keys[k_etag][1][v_etag] += score
+
+            if stats["count"] % 10000 == 0:
+                print(stats.most_common())
 
     for k_etag, (k, value_counts) in keys.items():
         v = values[value_counts.most_common(1)[0][0]]

@@ -1,4 +1,4 @@
-[[# -*- coding: utf-8
+# -*- coding: utf-8
 
 iso_two_to_three = {
     "AF": "AFG",

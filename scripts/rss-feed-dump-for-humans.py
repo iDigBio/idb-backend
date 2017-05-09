@@ -1,3 +1,4 @@
+from __future__ import print_function
 import feedparser
 from pyquery import PyQuery as pq
 import argparse
@@ -6,6 +7,10 @@ argparser = argparse.ArgumentParser(description='Script to quickly dump dataset 
 argparser.add_argument("-f", "--feed", required=True, help="The filename or URL of the RSS feed to parse.")
 args = argparser.parse_args()
 feed_to_parse = args.feed
+
+if not feed_to_parse.startswith('http'):
+    print ()
+    print ("* non-HTTP feed supplied, assuming local file. *")
 
 feed = feedparser.parse(feed_to_parse)
 
@@ -48,15 +53,15 @@ def get_eml_link(entry):
 
 hr = "=============================================================================================="
 
-print 
-print hr
-print feed_to_parse
+print () 
+print (hr)
+print (feed_to_parse)
 if "title" in feed['feed']:
-    print feed['feed']['title']
+    print (feed['feed']['title'])
 else:
-    print "Feed has no TITLE"
+    print ("Feed has no TITLE.")
 
-print hr
+print (hr)
 for entry in feed.entries:
     entry_title = ""
     entry_pubDate = ""
@@ -73,10 +78,10 @@ for entry in feed.entries:
     # However, the id is embedded in the middle of the id url so human can pluck it out if needed.
 
 
-    print "title:        ", get_title(entry)
-    print "published:    ", get_pubDate(entry)
-    print "id:           ", get_id(entry)
-    print "dataset link: ", get_dataset_link(entry)
-    print "eml link:     ", get_eml_link(entry)
-    print hr
+    print ("title:        ", get_title(entry))
+    print ("published:    ", get_pubDate(entry))
+    print ("id:           ", get_id(entry))
+    print ("dataset link: ", get_dataset_link(entry))
+    print ("eml link:     ", get_eml_link(entry))
+    print (hr)
 

@@ -19,7 +19,7 @@ import idb.data_tables.taxon_rank as taxon_rank
 
 DEBUG = False
 
-CUTOFF = 3.0
+# CUTOFF = 3.0
 
 es = Elasticsearch([
     "c18node2.acis.ufl.edu",
@@ -30,6 +30,8 @@ es = Elasticsearch([
 ], sniff_on_start=False, sniff_on_connection_fail=False, retry_on_timeout=True, max_retries=10, timeout=3)
 
 last_run = {}
+
+etags = Counter()
 
 # search_cache = {}
 # if os.path.exists("search_cache.json"):
@@ -55,11 +57,12 @@ def run_query(q, cache_string, log_score=True):
     #search_cache[cache_string] = None
     if best_response is not None:
         if log_score:
-            score_stats[int(best_response["_score"]*10)] += 1
+            score_stats[round(best_response["_score"], 1)] += 1
 
         # Reject low quality matches
-        if best_response["_score"] <= CUTOFF:
-            return (None, best_response["_score"])
+        # Disable fixed cutoff here, moving to loader script and using first quartile
+        # if best_response["_score"] <= CUTOFF:
+        #     return (None, best_response["_score"])
 
         if DEBUG:
             print(best_response, "synonym" in best_response["_source"]["dwc:taxonomicStatus"])
@@ -215,21 +218,19 @@ def work(t):
             match, score = fuzzy_wuzzy_string_new(r["dwc:genus"], rank="genus", should=should)
         else:
             print r
-            return (etag, "failout", (None, None), -1)
+            return (etag, "failout", (None, None), -1, etags[etag])
 
         if match is not None:
-            return (etag, "match", (rt, match), score)
+            return (etag, "match", (rt, match), score, etags[etag])
         else:
-            return (etag, "nomatch", (rt, {"flag_taxon_match_failed": True}), score)
+            return (etag, "nomatch", (rt, {"flag_taxon_match_failed": True}), score, etags[etag])
     except KeyboardInterrupt:
         raise KeyboardInterrupt
     except:
         traceback.print_exc()
-        return (etag, "exception", (None, None), -1)
+        return (etag, "exception", (None, None), -1, etags[etag])
 
 def get_taxon_from_index():
-    etags = set()
-
     t = "records"
 
     body = {
@@ -263,13 +264,13 @@ def get_taxon_from_index():
         etag = objectHasher("sha256", r["_source"]["data"], sort_arrays=True)
         stats["count"] += 1
         if etag not in etags:
-            stats["precount"] += 1
-            etags.add(etag)
+            stats["precount"] += 1            
             try:
                 yield (etag,r["_source"]["data"])
             except KeyError as e:
                 print(r)
                 raise e
+        etags[etag] += 1
 
 def test_main():
     global DEBUG
@@ -391,13 +392,23 @@ def test_main():
         #     "dwc:family": "Fabaceae",
         #     "dwc:scientificName": "Acacia redacta J.H. Ross",
         # },
+        # {
+        #     "dwc:specificEpithet": "laurocerasi",
+        #     "dwc:kingdom": "Plantae",
+        #     "dwc:genus": "Bacidia",
+        #     "dwc:family": "Ramalinaceae",
+        #     "dwc:scientificName": "Bacidia laurocerasi"
+        # },
         {
-            "dwc:specificEpithet": "laurocerasi",
-            "dwc:kingdom": "Plantae",
-            "dwc:genus": "Bacidia",
-            "dwc:family": "Ramalinaceae",
-            "dwc:scientificName": "Bacidia laurocerasi"
-        },
+            "dwc:specificEpithet": "cataphractus",
+            "dwc:kingdom": "Animalia",
+            "dwc:order": "Scorpaeniformes",
+            "dwc:genus": "Peristethus",
+            "dwc:phylum": "Chordata",
+            "dwc:class": "Actinopteri",
+            "dwc:family": "Triglidae",
+            "dwc:scientificName": "Peristethus cataphractus",
+        }
     ]
     for i, t in enumerate(tests):
         print(work((str(i), t)))
@@ -442,11 +453,15 @@ def show_plot():
     indexes = np.arange(len(labels))
 
     plt.plot(indexes, values)
-    plt.axvline(x=CUTOFF*10, linewidth=1, color="red")
+    #plt.axvline(x=CUTOFF*10, linewidth=1, color="red")
     for q in quartiles:
         plt.axvline(x=q, linewidth=1, color="green")
     plt.savefig("plot")
     plt.clf()
+
+    with open("quartiles.json", "w") as qf:
+        json.dump(quartiles, qf)
+
     print(quartiles, quartiles[2] - quartiles[0])
 
 def main():
@@ -470,7 +485,16 @@ def main():
 
     print("Working")
     with open("taxon_kv.txt", "wb") as outf:
-        for r in result_collector(p.imap_unordered(work,get_taxon_from_index())):
+        print("Building Name List")
+        names = []
+        count = 0
+        for t in get_taxon_from_index():
+            names.append(t)
+            count += 1
+            if count % 10000 == 0:
+                print(count)
+        print("Resolving Names")
+        for r in result_collector(p.imap_unordered(work,names)):
             if r[2][0] is not None:
                 outf.write(json.dumps(list(r)) + "\n")
 

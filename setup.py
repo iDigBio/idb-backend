@@ -27,6 +27,7 @@ setup(
     packages=find_packages(exclude=['tests*']),
     setup_requires=['pytest-runner'],
     install_requires=[
+        'idigbio>=0.8.2',
         'psycopg2>=2.6',
         'redis>=2.9.1, <3.0.0',
         'python-dateutil>=2.2, <3.0',

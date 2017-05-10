@@ -38,14 +38,18 @@ DATA INGESTION STATUS REPORT
 '''
 
 buff = buff + datetime.date.today().strftime("%B %d, %Y") + "\n\n"
+buff = buff + hr + "\n"
 
 api = idigbio.json()
 record_count = locale.format("%d", api.count_records(), grouping=True)
 media_record_count = locale.format("%d", api.count_media(), grouping=True)
-#recordset_count = locale.format("%d", api.count_recordsets(), grouping=True)
+recordset_count = locale.format("%d", api.count_recordsets(), grouping=True)
 
-buff = buff + 'Record Count: ' + record_count + "\n"
-buff = buff + 'Media Record Count: ' + str(media_record_count) + "\n\n"
+buff = buff + 'COUNTS\n\n'
+buff = buff + 'Recordsets: ' + str(recordset_count) + "\n"
+buff = buff + 'Records: ' + record_count + "\n"
+buff = buff + 'Media Records: ' + str(media_record_count) + "\n\n"
+
 
 buff = buff + hr
 

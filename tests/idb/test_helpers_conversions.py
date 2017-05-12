@@ -236,9 +236,10 @@ class TestRelationsGrabber(unittest.TestCase):
                 ]
             }
         }
+        # FIXME: Commenting out temporarily disabled features
         self.assertEqual({
-            "hasImage": True,
-            "hasMedia": True,
+            # "hasImage": True,
+            # "hasMedia": True,
             "mediarecords": [
                 'ae175cc6-82f4-456b-910c-34da322e768d',
                 'd0ca23cd-d4eb-43b5-aaba-cb75f8aef9e3'
@@ -246,7 +247,7 @@ class TestRelationsGrabber(unittest.TestCase):
             "recordset": '0072bf11-a354-4998-8730-c0cb4cfc9517',
         }, conversions.relationsGrabber("records", r))
         self.assertEqual({
-            'hasSpecimen': True,
+            # 'hasSpecimen': True,
             'records': [
                 '0000012b-9bb8-42f4-ad3b-c958cb22ae45'
             ],
@@ -376,16 +377,17 @@ class TestGrabAll(unittest.TestCase):
         self.assertEqual(output['country'], 'u.s. virgin islands')
         self.assertEqual(output['datecollected'], datetime.datetime(1987, 8, 21, tzinfo=pytz.utc))
         self.assertEqual(output['datemodified'], datetime.datetime(2015, 1, 17, 8, 35, 59, 395000, tzinfo=pytz.utc))
-        self.assertGreaterEqual(output['dqs'], 0.0)
-        self.assertLessEqual(output['dqs'], 1.0)
+        # FIXME: Commenting out temporarily disabled features
+        # self.assertGreaterEqual(output['dqs'], 0.0)
+        # self.assertLessEqual(output['dqs'], 1.0)
         self.assertEqual(output['etag'], 'cb7d64ec3aef36fa4dec6a028b818e331a67aacc')
         self.assertEqual(output['eventdate'], '1987-08-21')
         self.assertEqual(output['family'], 'myrtaceae')
         self.assertEqual(output['flags'], ['geopoint_datum_missing'])
         self.assertEqual(output['genus'], 'eugenia')
         self.assertEqual(output['geopoint'], (-64.7131, 18.348))
-        self.assertEqual(output['hasImage'], True)
-        self.assertEqual(output['hasMedia'], True)
+        # self.assertEqual(output['hasImage'], True)
+        # self.assertEqual(output['hasMedia'], True)
 
 
 class TestGetfield(unittest.TestCase):

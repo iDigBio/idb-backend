@@ -276,14 +276,13 @@ def getfield(f, d, t="text", return_field=False):
         f = fl
     if f in d and d[f] is not None:
         if t == "list":
-            return [x.lower().strip() for x in d[f]]
+            v = [x.lower().strip() for x in d[f]]
         else:
             if isinstance(d[f], str) or isinstance(d[f], unicode):
                 v = d[f].lower().strip()
-                fld = f
             else:
                 v = d[f]
-                fld = f
+        fld = f
 
     if return_field:
         return (v, fld)

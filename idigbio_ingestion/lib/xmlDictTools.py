@@ -22,13 +22,18 @@ def xml2d(e):
         for key in dict(e.attrib):
             kids["#" + key] = e.attrib[key]
         for k, g in groupby(e, lambda x: x.tag):
-            g = [ _xml2d(x) for x in g ]
-            if len(g) == 1:
-                g = g[0]
-            if k.startswith(defns):
-                kids[k.replace(defns,"")]=  g
+            if isinstance(k,str):
+                g = [_xml2d(x) for x in g]
+                if len(g) == 1:
+                    g = g[0]
+
+                if k.startswith(defns):
+                    kids[k.replace(defns,"")] = g
+                else:
+                    kids[k] = g
             else:
-                kids[k]=  g
+                #print(k, g)
+                pass
         if not kids:
             if e.text:
                 return e.text.strip()
@@ -40,7 +45,7 @@ def xml2d(e):
     if tag.startswith(defns):
         tag = tag.replace(defns,"")
 
-    return { tag : _xml2d(e), '!namespaces': e.nsmap }
+    return {tag: _xml2d(e), '!namespaces': e.nsmap}
 
 
 def d2xml(d):
@@ -103,10 +108,14 @@ def d2xml(d):
 
 if __name__=="__main__":
 
-    X = """<T uri="boo"><a n="1"/><a n="2"/><b n="3"><c x="y"/></b><d>Test</d></T>"""
-    print X
-    Y = xml2d(etree.XML(X))
-    print Y
-    Z = etree.tostring (d2xml(Y) )
-    print Z
-    assert X == Z
+    # X = """<T uri="boo"><a n="1"/><a n="2"/><b n="3"><c x="y"/></b><d>Test</d></T>"""
+    # print X
+    # Y = xml2d(etree.XML(X))
+    # print Y
+    # Z = etree.tostring (d2xml(Y) )
+    # print Z
+    # assert X == Z
+
+    from StringIO import StringIO
+    x = etree.parse(StringIO("<test><a>A</a><!-- test --><b>B</b></test>"))
+    xml2d(x.getroot())

@@ -169,6 +169,10 @@ class DelimitedFile(object):
                     self.name, self.lineCount, self.lineLength, len(lineArr)))
                 self.logger.debug(lineArr)
                 self.logger.info(traceback.format_exc())
+            except csv.Error:
+                # This catches NUL Byte errors and adds a bit of danger
+                self.logger.error('csv ERROR at line {0}, possibly a NUL Byte or encoding mismatch'.format(self.lineCount))
+                self.logger.debug(traceback.format_exc())
             except StopIteration:
                 self.logger.debug("Finished File (StopIteration reached)")
                 raise

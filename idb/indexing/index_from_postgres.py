@@ -27,7 +27,7 @@ from idb.postgres_backend.db import tombstone_etag
 import elasticsearch.helpers
 
 logger = idblogger.getChild('indexing')
-configure(logger=logger, strerr_level=logging.INFO)
+configure(logger=logger, stderr_level=logging.INFO)
 
 last_afters = {}
 

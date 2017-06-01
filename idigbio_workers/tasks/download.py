@@ -78,7 +78,7 @@ def downloader(self, params):
         logger.debug("Finished uploading to ceph")
     return link
 
-@app.task(bind=True, ignore_result=True, max_retries=25)
+@app.task(bind=True, ignore_result=True, max_retries=None)
 def blocker(self, rid, pollbase=1.25):
     """Wait for an AsyncResult to be ready, then return its result.
 

@@ -11,7 +11,7 @@ from idb.helpers.storage import IDigBioStorage
 #from idb.lib.data.export.eml import eml_from_recordset
 
 def runQuery(query):
-    return get_connection().search(index=get_indexname(), doc_type="record,mediarecords", body=query)
+    return get_connection().search(index=get_indexname(), doc_type="records,mediarecords", body=query)
 
 def upload_download_file_to_ceph(s, dsname):
     keyname = dsname
@@ -59,12 +59,14 @@ def main():
     # }
     # ro = runQuery(rsquery)
     # if ro is not None:
+    #     print(len(ro["aggregations"]["recordset_counts"]["buckets"]))
     #     for b in ro["aggregations"]["recordset_counts"]["buckets"]:
     #         #print(b["key"], b["doc_count"], b["doc_count"] * 7 / 10000)
     #         static_queries.append(({
     #             "recordset": b["key"]
     #         },b["key"]))
 
+    # print(len(static_queries))
     # count = 0
     # for q in reversed(static_queries):
     #     print(count, q)

@@ -98,7 +98,8 @@ class PostgresDB(object):
             parent,
             recordids,
             siblings,
-            latest.id as vid
+            latest.id as vid,
+            annotation_count
     """
 
     __columns_master_query_data = __columns_master_query + \
@@ -543,6 +544,13 @@ class PostgresDB(object):
                 "sibling": sorted(x)[1]
             } for x in usl
         ])
+
+    @classmethod
+    def get_master_query(cls, data=True):
+        if data:
+            return cls.__item_master_query_data
+        else:
+            return cls.__item_master_query
 
 class MediaObject(object):
     """Helper that represents media objects from the db.

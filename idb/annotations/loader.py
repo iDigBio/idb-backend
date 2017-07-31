@@ -25,7 +25,7 @@ class AnnotationsLoader(object):
         self.commit()
 
     def add_corrections_iter(self, corr_iter):
-        def _format(self, ci):
+        def _format(ci):
             for v, approved in ci:
                 yield (v["hasTarget"]["@id"].split(":")[-1], json.dumps(v).lower(), v["annotatedBy"]["name"], approved)
 

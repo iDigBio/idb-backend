@@ -12,6 +12,8 @@ from idigbio_ingestion.lib.dwca import Dwca
 import elasticsearch.helpers
 from elasticsearch import Elasticsearch
 
+index = "taxonnames-20170619"
+
 es = Elasticsearch([
     "c18node2.acis.ufl.edu",
     "c18node6.acis.ufl.edu",
@@ -23,7 +25,7 @@ es = Elasticsearch([
 def bulk_formater(tups):
     for t, i in tups:
         meta = {
-            "_index": "taxonnames",
+            "_index": index,
             "_type": t,
             "_id": "gbif_" + i["dwc:taxonID"],
             "_source": i,

@@ -131,7 +131,12 @@ def type_yield_modified(ei, rc, typ, yield_record=False):
             GROUP BY uuids_id
         ) as ids
         ON ids.uuids_id=uuids.id
-            LEFT JOIN LATERAL (
+        LEFT JOIN LATERAL (
+            SELECT count(*) AS annotation_count
+            FROM annotations
+            WHERE uuids_id = uuids.id
+        ) AS ac ON TRUE
+        LEFT JOIN LATERAL (
             SELECT subject, json_object_agg(rel,array_agg) as siblings
             FROM (
                 SELECT subject, rel, array_agg(object)

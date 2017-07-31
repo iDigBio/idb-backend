@@ -53,8 +53,8 @@ class PostgresDB(object):
 
     __join_uuids_siblings = """
         LEFT JOIN LATERAL (
-             SELECT json_object_agg(rel,array_agg) as siblings
-             FROM (
+            SELECT json_object_agg(rel,array_agg) as siblings
+            FROM (
                 SELECT type as rel, array_agg(r2)
                 FROM (
                     SELECT r1,r2 FROM uuids_siblings
@@ -68,6 +68,14 @@ class PostgresDB(object):
         ) as sibs ON true
     """
 
+    __join_annotation_count = """
+        LEFT JOIN LATERAL (
+            SELECT count(*) AS annotation_count
+            FROM annotations
+            WHERE uuids_id = uuids.id
+        ) AS ac ON TRUE
+    """
+
     __join_uuids_data = """
         LEFT JOIN data
         ON data_etag = etag
@@ -77,7 +85,8 @@ class PostgresDB(object):
     """ + \
         __join_uuids_etags_latest_version + \
         __join_uuids_identifiers + \
-        __join_uuids_siblings
+        __join_uuids_siblings + \
+        __join_annotation_count
 
     __columns_master_query = """ SELECT
             uuids.id as uuid,

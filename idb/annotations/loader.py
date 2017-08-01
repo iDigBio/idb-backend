@@ -17,7 +17,7 @@ class AnnotationsLoader(object):
 
     def commit(self):
         self.cursor.executemany(
-            "INSERT INTO annotations (uuids_id,source_id,v,source,approved) VALUES (%s,%s,%s,%s)",
+            "INSERT INTO annotations (uuids_id,source_id,v,source,approved) VALUES (%s,%s,%s,%s,%s)",
             self.corrections)
         self.conn.commit()
 
@@ -30,7 +30,7 @@ class AnnotationsLoader(object):
                 yield (v["hasTarget"]["@id"].split(":")[-1], v["@id"].split(":")[-1], json.dumps(v).lower(), v["annotatedBy"]["name"], approved)
 
         self.cursor.executemany(
-            "INSERT INTO annotations (uuids_id,source_id,v,source,approved) VALUES (%s,%s,%s,%s)",
+            "INSERT INTO annotations (uuids_id,source_id,v,source,approved) VALUES (%s,%s,%s,%s,%s)",
             _format(corr_iter)
         )
         self.conn.commit()

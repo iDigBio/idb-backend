@@ -17,7 +17,7 @@ class AnnotationsLoader(object):
 
     def commit(self):
         self.cursor.executemany(
-            "INSERT INTO annotations (uuids_id,v,source,approved) VALUES (%s,%s,%s,%s)",
+            "INSERT INTO annotations (uuids_id,source_id,v,source,approved) VALUES (%s,%s,%s,%s)",
             self.corrections)
         self.conn.commit()
 
@@ -27,16 +27,16 @@ class AnnotationsLoader(object):
     def add_corrections_iter(self, corr_iter):
         def _format(ci):
             for v, approved in ci:
-                yield (v["hasTarget"]["@id"].split(":")[-1], json.dumps(v).lower(), v["annotatedBy"]["name"], approved)
+                yield (v["hasTarget"]["@id"].split(":")[-1], v["@id"].split(":")[-1], json.dumps(v).lower(), v["annotatedBy"]["name"], approved)
 
         self.cursor.executemany(
-            "INSERT INTO annotations (uuids_id,v,source,approved) VALUES (%s,%s,%s,%s)",
+            "INSERT INTO annotations (uuids_id,source_id,v,source,approved) VALUES (%s,%s,%s,%s)",
             _format(corr_iter)
         )
         self.conn.commit()
 
     def add_corrections(self, v, approved=False):
-        self.corrections.append((v["hasTarget"]["@id"].split(":")[-1], json.dumps(v).lower(), v["annotatedBy"]["name"], approved))
+        self.corrections.append((v["hasTarget"]["@id"].split(":")[-1], v["@id"].split(":")[-1], json.dumps(v).lower(), v["annotatedBy"]["name"], approved))
 
     def clear_source(self, source):
         self.cursor.execute(

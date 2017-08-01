@@ -34,6 +34,7 @@ class AnnotationApplicator(object):
             with conn.cursor() as cur:
                 cur.execute(""" CREATE TABLE IF NOT EXISTS annotations (
                         id bigserial PRIMARY KEY,
+                        source_id uuid NOT NULL,
                         uuids_id uuid NOT NULL REFERENCES uuids(id),
                         v jsonb NOT NULL,
                         approved boolean NOT NULL DEFAULT false,

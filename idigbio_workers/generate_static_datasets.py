@@ -25,6 +25,8 @@ def upload_download_file_to_ceph(s, dsname):
     os.unlink(dsname)
 
     if makelink:
+        import socket
+        socket.settimeout(300)
         fkey.copy("idigbio-static-downloads", dsname, preserve_acl=True)
 
     return "http://s.idigbio.org/idigbio-static-downloads/" + keyname
@@ -42,6 +44,7 @@ def main():
     # static_queries = [
     #     ({},"idigbio"),
     #     ({"hasImage": True},"idigbio-images"),
+    #     ({"geopoint":{"type":"exists"},"taxonid":{"type":"exists"}},"idigbio-geotaxon")
     # ]
     # rsquery = {
     #     "query": {
@@ -77,6 +80,8 @@ def main():
     #     # # e = upload_eml_file_to_ceph(s,q[1],rseml)
     #     print(q[1], u)
     #     count += 1
+    file_name = generate_files(record_query=queryFromShim({"geopoint":{"type":"exists"},"taxonid":{"type":"exists"}})["query"], form="dwca-csv", filename="idigbio-geotaxon")
+    u = upload_download_file_to_ceph(s, file_name)
     file_name = generate_files(record_query=queryFromShim({})["query"], form="dwca-csv", filename="idigbio")
     u = upload_download_file_to_ceph(s, file_name)
 

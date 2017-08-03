@@ -1,17 +1,20 @@
-import json
+import jsonlines
 
 from annotations.loader import AnnotationsLoader
 
 def main():
     with AnnotationsLoader() as loader:
-        with open("/home/godfoder/Downloads/annotations.json", "rb") as jf:
-            annotation_list = json.load(jf)
-
+        with jsonlines.open("/home/godfoder/Downloads/annotations.jsonl", mode="r") as jf:
             def tuplify(al):
+                count = 0
                 for a in al:
+                    count += 1
                     yield (a, True)
 
-            loader.add_corrections_iter(tuplify(annotation_list))
+                    if count % 10000 == 0:
+                        print(count)
+
+            loader.add_corrections_iter(tuplify(jf))
 
 
 if __name__ == '__main__':

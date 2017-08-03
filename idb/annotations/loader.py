@@ -17,7 +17,14 @@ class AnnotationsLoader(object):
 
     def commit(self):
         self.cursor.executemany(
-            "INSERT INTO annotations (uuids_id,source_id,v,source,approved) VALUES (%s,%s,%s,%s,%s)",
+            """INSERT INTO annotations
+                (uuids_id,source_id,v,source,approved,updated_at)
+                VALUES (%s,%s,%s,%s,%s,%s)
+                ON CONFLICT (source_id)
+                DO UPDATE SET
+                    v = %s,
+                    updated_at = %s
+            """,
             self.corrections)
         self.conn.commit()
 
@@ -27,16 +34,23 @@ class AnnotationsLoader(object):
     def add_corrections_iter(self, corr_iter):
         def _format(ci):
             for v, approved in ci:
-                yield (v["hasTarget"]["@id"].split(":")[-1], v["@id"].split(":")[-1], json.dumps(v).lower(), v["annotatedBy"]["name"], approved)
+                yield (v["hasTarget"]["@id"].split(":")[-1], v["@id"].split(":")[-1], json.dumps(v).lower(), v["annotatedBy"]["name"], approved, v["annotatedAt"], json.dumps(v).lower(), v["annotatedAt"])
 
         self.cursor.executemany(
-            "INSERT INTO annotations (uuids_id,source_id,v,source,approved) VALUES (%s,%s,%s,%s,%s)",
+            """INSERT INTO annotations
+                (uuids_id,source_id,v,source,approved,updated_at)
+                VALUES (%s,%s,%s,%s,%s,%s)
+                ON CONFLICT (source_id)
+                DO UPDATE SET
+                    v = %s,
+                    updated_at = %s
+            """,
             _format(corr_iter)
         )
         self.conn.commit()
 
     def add_corrections(self, v, approved=False):
-        self.corrections.append((v["hasTarget"]["@id"].split(":")[-1], v["@id"].split(":")[-1], json.dumps(v).lower(), v["annotatedBy"]["name"], approved))
+        self.corrections.append((v["hasTarget"]["@id"].split(":")[-1], v["@id"].split(":")[-1], json.dumps(v).lower(), v["annotatedBy"]["name"], approved, v["annotatedAt"], json.dumps(v).lower(), v["annotatedAt"]))
 
     def clear_source(self, source):
         self.cursor.execute(

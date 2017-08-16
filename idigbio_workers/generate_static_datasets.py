@@ -22,11 +22,11 @@ def upload_download_file_to_ceph(s, dsname):
         makelink = True
     fkey = s.upload(s.get_key(keyname, "idigbio-static-downloads"),
                     dsname, public=True, content_type='application/zip')
-    os.unlink(dsname)
+    #os.unlink(dsname)
 
     if makelink:
         import socket
-        socket.settimeout(300)
+        socket.setdefaulttimeout(300)
         fkey.copy("idigbio-static-downloads", dsname, preserve_acl=True)
 
     return "http://s.idigbio.org/idigbio-static-downloads/" + keyname

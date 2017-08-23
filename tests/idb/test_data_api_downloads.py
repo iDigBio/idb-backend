@@ -6,7 +6,7 @@ import json
 
 import gevent
 import udatetime
-from rfc3339 import from_rfc3339_string
+from udatetime.rfc3339 import from_rfc3339_string
 import pytest
 from flask import url_for
 

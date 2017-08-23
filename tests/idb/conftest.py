@@ -9,9 +9,7 @@ def app(testdbpool, testdata, logger):
         import idb
         import idb.helpers
         import idb.helpers.logging
-        import logging
         from idb.data_api import api
-        idb.helpers.logging.configure(stderr_level=logging.DEBUG)
         reload(api)
     except ImportError:
         print ("Failed import, %r %r" % (os.getcwd(), sys.path))

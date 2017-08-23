@@ -126,6 +126,7 @@ class IDigBioStorage(object):
                 usize = min([self.MAX_CHUNK_SIZE, size - offset])
                 fobj.seek(offset)
                 mp.upload_part_from_file(fp=fobj, part_num=i + 1, size=usize)
+                logger.debug("Done part %d", i)
 
             for i in range(chunk_count):
                 self.retry_loop(lambda: onepart(i))

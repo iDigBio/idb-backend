@@ -16,6 +16,10 @@ class RecordCorrector(object):
     def __init__(self, reload=True):
         if reload:
             self.reload()
+        else:
+            self.corrections = {}
+            self.keytups = set()
+
 
     def reload(self):
         sql = "select k::json,v::json,source from corrections"

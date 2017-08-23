@@ -16,6 +16,9 @@ from idb.helpers.logging import fnlogged
 @click.option('--index/--no-index',
               default=True,
               help="Enable/disable posting to elasticsearch, Default: enabled")
+@click.option('--corrections/--no-corrections',
+              default=True,
+              help="Enable/disable the record corrector, Default: enabled")
 @click.option('--types', '-t',
               # TODO: this should porbably be `idb.helpers.conversions.fields.keys()`
               type=click.Choice([
@@ -24,7 +27,7 @@ from idb.helpers.logging import fnlogged
 @click.option('--indexname')
 @click.pass_context
 @fnlogged
-def cli(ctx, index, types, indexname):
+def cli(ctx, index, corrections, types, indexname):
     from idb.helpers.logging import idblogger
     logger = idblogger.getChild('indexing')
     from idb import config
@@ -55,7 +58,7 @@ def cli(ctx, index, types, indexname):
     # function
     ctx.obj = {
         'ei': lambda: ElasticSearchIndexer(indexname, types, serverlist=serverlist),
-        'rc': lambda: RecordCorrector(),
+        'rc': lambda: RecordCorrector(reload=corrections),
         'no_index': lambda: not index
     }
 

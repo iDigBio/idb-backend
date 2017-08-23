@@ -19,6 +19,10 @@ import idb.data_tables.taxon_rank as taxon_rank
 
 DEBUG = False
 
+class TaxonRankError(Exception):
+    pass
+
+
 # CUTOFF = 3.0
 
 es = Elasticsearch([
@@ -39,7 +43,7 @@ etags = Counter()
 #         search_cache = json.load(pp)
 # print "Search Cache: {0}".format(len(search_cache)),
 
-taxon_data_fields = ["dwc:kingdom", "dwc:phylum", "dwc:class", "dwc:order", "dwc:family", "dwc:genus", "dwc:specificEpithet", "dwc:infraSpecificEpithet", "dwc:scientificName", "dwc:scientificNameAuthorship"]
+taxon_data_fields = ["dwc:kingdom", "dwc:phylum", "dwc:class", "dwc:order", "dwc:family", "dwc:genus", "dwc:specificEpithet", "dwc:infraSpecificEpithet", "dwc:scientificName", "dwc:scientificNameAuthorship", "dwc:verbatimTaxonRank"]
 
 good_status = {"accepted", "synonym"}
 score_stats = Counter()
@@ -180,6 +184,11 @@ def work(t):
 
         should = {}
 
+        if "dwc:verbatimTaxonRank" in r:
+            if "dwc:taxonRank" not in r:
+                r["dwc:taxonRank"] = r["dwc:verbatimTaxonRank"]
+            del r["dwc:verbatimTaxonRank"]
+
         for k in taxon_data_fields:
             if k in r:
                 should[k] = r[k]
@@ -192,6 +201,7 @@ def work(t):
             match, score = fuzzy_wuzzy_string_new(r["dwc:genus"] + " " + r["dwc:specificEpithet"], rank="species", should=should)
         elif "dwc:scientificName" in r:
             rank = None
+
             if "dwc:taxonRank" in r:
                 cand_rank = r["dwc:taxonRank"].lower()
                 if cand_rank in taxon_rank.acceptable:
@@ -202,8 +212,19 @@ def work(t):
                     print "unkown rank:", cand_rank
 
             if rank is None:
-                if len(r["dwc:scientificName"].split()) == 1:
+                if r["dwc:scientificName"].endswith(" sp.") or r["dwc:scientificName"].endswith(" sp"):
                     rank = "genus"
+                elif len(r["dwc:scientificName"].split()) == 1:
+                    for k in taxon_data_fields:
+                        if k == "dwc:scientificName":
+                            continue
+
+                        if r["dwc:scientificName"] == r.get(k,None):
+                            rank = k.split(":")[1].lower()
+                            break
+                    else:
+                        raise TaxonRankError("Failed to find rank for monomial")
+
                 else:
                     rank = "species"
 
@@ -399,19 +420,56 @@ def test_main():
         #     "dwc:family": "Ramalinaceae",
         #     "dwc:scientificName": "Bacidia laurocerasi"
         # },
+        # {
+        #     "dwc:specificEpithet": "cataphractus",
+        #     "dwc:kingdom": "Animalia",
+        #     "dwc:order": "Scorpaeniformes",
+        #     "dwc:genus": "Peristethus",
+        #     "dwc:phylum": "Chordata",
+        #     "dwc:class": "Actinopteri",
+        #     "dwc:family": "Triglidae",
+        #     "dwc:scientificName": "Peristethus cataphractus",
+        # },
         {
-            "dwc:specificEpithet": "cataphractus",
             "dwc:kingdom": "Animalia",
-            "dwc:order": "Scorpaeniformes",
-            "dwc:genus": "Peristethus",
-            "dwc:phylum": "Chordata",
-            "dwc:class": "Actinopteri",
-            "dwc:family": "Triglidae",
-            "dwc:scientificName": "Peristethus cataphractus",
-        }
+            "dwc:phylum": "Mollusca",
+            "dwc:taxonRank": "subclass",
+            "dwc:class": "Cephalopoda",
+            "dwc:scientificName": "Ammonoidea"
+        },
+        {
+            "dwc:verbatimTaxonRank": "genus",
+            "dwc:scientificName": "Ammonoidea",
+        },
+        {
+            "dwc:kingdom": "Animalia",
+            "dwc:order": "Ammonoidea",
+            "dwc:phylum": "Mollusca",
+            "dwc:class": "Cephalopoda",
+            "dwc:scientificName": "Ammonoidea",
+        },
+        # {
+        #     "dwc:order": "Perciformes",
+        #     "dwc:kingdom": "Animalia",
+        #     "dwc:genus": "Caranx",
+        #     "dwc:family": "Carangidae",
+        #     "dwc:phylum": "Chordata",
+        #     "dwc:taxonRank": "genus",
+        #     "dwc:class": "Actinopterygii",
+        #     "dwc:scientificName": "Caranx sp.",
+        # },
+        # {
+        #     "dwc:kingdom": "Animalia",
+        #     "dwc:order": "Perciformes",
+        #     "dwc:genus": "Caranx",
+        #     "dwc:phylum": "Chordata",
+        #     "dwc:class": "Actinopterygii",
+        #     "dwc:family": "Carangidae",
+        #     "dwc:scientificName": "Caranx sp."
+        # }
     ]
     for i, t in enumerate(tests):
-        print(work((str(i), t)))
+        print(json.dumps(work((str(i), t)), indent=2))
 
 
 import numpy as np

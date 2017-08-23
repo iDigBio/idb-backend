@@ -75,7 +75,7 @@ setup(
             'pytest-mock',
             'pytest-catchlog>=1.2.2,<2',
             'fakeredis',
-            "rfc3339",
+            'rfc3339',
         ]
     },
     tests_require=['idb-backend[test]'],

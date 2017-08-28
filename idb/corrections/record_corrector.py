@@ -66,10 +66,7 @@ class RecordCorrector(object):
         if self.corrections is None:
             self.reload()
 
-        corrected_dict = copy.deepcopy(d)
-        corrected_keys = set()
-
-        cd_keys = {k.lower(): k for k in corrected_dict.keys()}
+        cd_keys = {k.lower(): k for k in d.keys()}
 
         correction_list = []
 
@@ -82,17 +79,19 @@ class RecordCorrector(object):
                     d[f] = d[f].lower()
                 elif f_real in d:
                     d[f] = d[f_real].lower()
-                elif f in corrected_dict:
-                    d[f] = corrected_dict[f].lower()
-                elif f_real in corrected_dict:
-                    d[f] = corrected_dict[f_real].lower()
+                elif f in d:
+                    d[f] = d[f].lower()
+                elif f_real in d:
+                    d[f] = d[f_real].lower()
                 else:
                     break
             else:  # if we got to the end of the for without breaking
                 etag = objectHasher("sha256", d)
+                cd = {}
+                cd.update(d)
                 if etag in self.corrections:
-                    d.update(self.corrections[etag][0])
-                    correction_list.append((d, self.corrections[etag][1]))
+                    cd.update(self.corrections[etag][0])
+                    correction_list.append((cd, self.corrections[etag][1], t))
 
         return correction_list
 

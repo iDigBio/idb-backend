@@ -2,6 +2,7 @@
 Description="Daily timer for idb api-stats"
 
 [Timer]
+OnBootSec=5min
 OnCalendar=*-*-* 02:00:00
 
 

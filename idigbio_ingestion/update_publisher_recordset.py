@@ -319,7 +319,9 @@ def harvest_eml(r, db):
         etag = calcFileHash(fname)
         u = r["uuid"]
         if u is None:
+            logger.debug("No uuid, using get_uuid on recordids")
             u, _, _ = db.get_uuid(r["recordids"])
+        logger.debug("Using recordset UUID: {0}".format(u))
         desc = {}
         with open(fname,"rb") as inf:
             desc = parseEml(r["recordids"][0], inf.read())

@@ -38,7 +38,7 @@ class Pool(object):
 
     def __init__(self, size=None):
         if size is None:
-            size = multiprocessing.cpu_count()
+            size = max(1,multiprocessing.cpu_count()-1)
         self.gpool = gevent.pool.Pool(size)
 
     def imap_unordered(self, func, *iterables, **kwargs):

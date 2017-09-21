@@ -348,7 +348,7 @@ class PostgresDB(object):
             else:
                 sql = (self.__item_master_query_data + """
                     WHERE deleted=false and type=%s
-                    ORDER BY uuid""", (t,))
+                """, (t,))
         else:
             if limit is not None:
                 sql = (self.__item_master_query + """
@@ -358,7 +358,7 @@ class PostgresDB(object):
             else:
                 sql = (self.__item_master_query + """
                     WHERE deleted=false and type=%s
-                    ORDER BY uuid""", (t,))
+                """, (t,))
         logger.info(self.mogrify(*sql))
         return self._pool.fetchiter(*sql)
 
@@ -380,7 +380,6 @@ class PostgresDB(object):
             else:
                 sql = (self.__item_master_query_data + """
                     WHERE deleted=false and type=%s and parent=%s
-                    ORDER BY uuid
                 """, (t, u))
         else:
             if limit is not None:
@@ -392,7 +391,6 @@ class PostgresDB(object):
             else:
                 sql = (self.__item_master_query + """
                     WHERE deleted=false and type=%s and parent=%s
-                    ORDER BY uuid
                 """, (t, u))
         return self._pool.fetchiter(*sql, named=True, cursor_factory=cursor_factory)
 

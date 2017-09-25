@@ -131,6 +131,7 @@ fields = {
         ["taxonrank", "dwc:taxonRank", "text", 1, None],
         # ["nameaccordingtoid", "dwc:nameAccordingToID", "text", 1, None],
         # ["nameaccordingto", "dwc:nameAccordingTo", "text", 1, None],
+        ["datasetid", "dwc:datasetID", "text", 1, None],
     ],
     "mediarecords": [
         ["uuid", "idigbio:uuid", "text", 0, None],

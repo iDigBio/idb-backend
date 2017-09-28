@@ -874,6 +874,8 @@ def fixBOR(t, r):
         #             r["flag_dwc_basisofrecord_replaced"] = True
         #             r["basisofrecord"] = "fossilspecimen"
         #             break
+    else:
+        r["flag_dwc_basisofrecord_invalid"] = True
 
 def fix_taxon_rank(t, r):
     if filled("taxonrank", r):

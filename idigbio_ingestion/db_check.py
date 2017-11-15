@@ -113,7 +113,7 @@ def get_db_dicts(rsid):
     for t in ["record", "mediarecord"]:
         id_uuid[t + "s"] = {}
         uuid_etag[t + "s"] = {}
-        for c in PostgresDB().get_children_list(rsid, t, limit=None, cursor_factory=NamedTupleCursor):
+        for c in PostgresDB().get_children_list_for_ingest(rsid, t, cursor_factory=NamedTupleCursor):
             u = c.uuid
             e = c.etag
             uuid_etag[t + "s"][u] = e

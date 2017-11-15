@@ -113,6 +113,28 @@ class PostgresDB(object):
         __item_master_query_from + \
         __join_uuids_data
 
+    __columns_ingest_query = """ SELECT
+            uuids.id as uuid,
+            type,
+            deleted,
+            data_etag as etag,
+            version,
+            modified,
+            parent,
+            recordids,
+            siblings,
+            latest.id as vid
+    """
+
+    __item_query_for_ingest_from = """FROM uuids
+    """ + \
+        __join_uuids_etags_latest_version + \
+        __join_uuids_identifiers + \
+        __join_uuids_siblings
+
+    __item_query_for_ingest = __columns_ingest_query + __item_query_for_ingest_from
+
+
     _upsert_uuid_query = """INSERT INTO uuids (id,type,parent)
         SELECT %(uuid)s, %(type)s, %(parent)s WHERE NOT EXISTS (
             SELECT 1 FROM uuids WHERE id=%(uuid)s
@@ -391,6 +413,13 @@ class PostgresDB(object):
             else:
                 sql = (self.__item_master_query + """
                     WHERE deleted=false and type=%s and parent=%s
+                """, (t, u))
+        return self._pool.fetchiter(*sql, named=True, cursor_factory=cursor_factory)
+
+    def get_children_list_for_ingest(self, u, t, cursor_factory=DictCursor):
+        sql = None
+        sql = (self.__item_query_for_ingest + """
+                  WHERE deleted=false and type=%s and parent=%s
                 """, (t, u))
         return self._pool.fetchiter(*sql, named=True, cursor_factory=cursor_factory)
 

@@ -230,7 +230,7 @@ def process_subfile(rf, rsid, rs_uuid_etag, rs_id_uuid, ingest=False, db=None):
                             matched = True
                     else:
                         if existing_ids[i] != u:
-                            raise RecordException("Cross record ID violation")
+                            raise RecordException("Cross record ID violation, ID {0}, UUID {1}".format(existing_ids[i], u))
 
             deleted = False
             if u is None:

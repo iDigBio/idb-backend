@@ -80,10 +80,17 @@ def main():
     #     # # e = upload_eml_file_to_ceph(s,q[1],rseml)
     #     print(q[1], u)
     #     count += 1
-    file_name = generate_files(record_query=queryFromShim({"geopoint":{"type":"exists"},"taxonid":{"type":"exists"}})["query"], form="dwca-csv", filename="idigbio-geotaxon")
+
+
+
+    file_name = generate_files(record_query=queryFromShim({"geopoint":{"type":"exists"},"taxonomicstatus":"accepted","taxonid":{"type":"exists"},"flags":"gbif_taxon_corrected","kingdom":"plantae","geopoint":{"type":"geo_bounding_box","top_left":{"lat":89,"lon":-179},"bottom_right":{"lat":-89,"lon":-33}}})["query"], form="dwca-csv", filename="idigbio-plantae-w")
     u = upload_download_file_to_ceph(s, file_name)
-    file_name = generate_files(record_query=queryFromShim({})["query"], form="dwca-csv", filename="idigbio")
-    u = upload_download_file_to_ceph(s, file_name)
+    # file_name = generate_files(record_query=queryFromShim({"geopoint":{"type":"exists"},"taxonomicstatus":"accepted","taxonid":{"type":"exists"},"flags":"gbif_taxon_corrected","kingdom":"plantae","geopoint":{"type":"geo_bounding_box","top_left":{"lat":89,"lon":-179},"bottom_right":{"lat":12,"lon":-47}}})["query"], form="dwca-csv", filename="idigbio-plantae-na")
+    # u = upload_download_file_to_ceph(s, file_name)
+    # file_name = generate_files(record_query=queryFromShim({"geopoint":{"type":"exists"},"taxonomicstatus":"accepted","taxonid":{"type":"exists"},"flags":"gbif_taxon_corrected",})["query"], form="dwca-csv", filename="idigbio-geotaxon")
+    # u = upload_download_file_to_ceph(s, file_name)
+    # file_name = generate_files(record_query=queryFromShim({})["query"], form="dwca-csv", filename="idigbio")
+    # u = upload_download_file_to_ceph(s, file_name)
 
 if __name__ == '__main__':
     main()

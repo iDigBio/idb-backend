@@ -82,6 +82,9 @@ configure(logger=logger, stderr_level=logging.INFO)
 
 
 def check_uuid(uuid):
+    """
+    Check to see if a string is a valid uuid representation.
+    """
     try:
         uuid_obj = UUID(uuid)
         return True

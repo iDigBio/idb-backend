@@ -139,20 +139,22 @@ configure(logger=logger, stderr_level=logging.INFO)
 def main():
 #     import json
 #     import os
-#     import argparse
+    import argparse
 #     from idb.corrections.record_corrector import RecordCorrector
-#     from idb.config import config
-#     from idb.indexing.indexer import ElasticSearchIndexer
+    from idb.config import config
 
-#     parser = argparse.ArgumentParser(
-#         description='Delete records and recordset by specifying the recordset uuid')
+    parser = argparse.ArgumentParser(
+        description='Delete records and recordset by specifying the recordset uuid')
 
-#     parser.add_argument('-u', '--uuid', dest='uuid_to_delete', nargs='+',
-#                         type=str, default=[])
-#     parser.add_argument('--uuid-file', dest='uuid_file',
-#                         type=str, default=None)
+    parser.add_argument('-u', '--uuid', dest='uuid_to_delete', nargs='+',
+                        type=str, default=[])
+    parser.add_argument('--uuid-file', dest='uuid_file',
+                        type=str, default=None)
 
-#     args = parser.parse_args()
+    args = parser.parse_args()
+    print ("Hello world")
+    print (format(args))
+
 
 #         if args.continuous:
 #             continuous_incremental(ei, rc)
@@ -160,3 +162,9 @@ def main():
 #             incremental(ei, rc, no_index=args.no_index)
 #         else:
 #            parser.print_help()
+
+
+if __name__ == "__main__":
+    main()
+
+

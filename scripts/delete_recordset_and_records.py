@@ -89,10 +89,10 @@ def check_uuid(uuid):
         uuid_obj = UUID(uuid)
         return True
     except:
-        print ("'{0}' does not appear to be a UUID.".format(uuid))
+        logger.error("'{0}' does not appear to be a UUID.".format(uuid))
         return False
 
-def delete_recordset(uuid):
+def delete_recordset(uuid, db):
     """
     Deletes a recordset and all child records by marking them deleted in the database
     with the tombstone flag.
@@ -100,17 +100,56 @@ def delete_recordset(uuid):
 
     logger.info("Deleting records and recordset from recordset uuid '{0}'".format(uuid))
 
-    pass
+    # * Five Steps to delete a recordset and records *
 
-#     sql = "SELECT id,type FROM uuids WHERE deleted=true"
-#     deleted_record_count = 
-#
+    # 1. set ingest = false on the recordset
+    sql = """
+          UPDATE recordsets SET ingest = false WHERE ingest = true AND uuid = '%s';
+    """ % uuid
+    db.execute(sql, uuid)
 
-#        sql = "SELECT * FROM idigbio_uuids_data WHERE uuid=%s and type=%s"
 
-#             sql = "SELECT * FROM idigbio_uuids_data WHERE uuid=%s and type=%s"
+    # 2. tombstone the records
+    sql = """
+          INSERT INTO uuids_data (uuids_id,data_etag,version)
+          SELECT uuids_id,'%s' AS
+          data_etag,version+1 AS version FROM uuids LEFT JOIN LATERAL ( SELECT *
+          FROM uuids_data WHERE uuids.id=uuids_data.uuids_id ORDER BY MODIFIED
+          DESC LIMIT 1) AS latest ON latest.uuids_id=uuids.id WHERE parent = '%s'
+          and data_etag != '%s';
+    """ % (tombstone_etag, uuid, tombstone_etag)
+    tombstone_count = db.execute(sql, uuid)
 
-#     logger.info("Deleted %s records from %s", deleted_record_count, uuid)
+
+    # 3. mark the records deleted
+    sql = """
+          UPDATE uuids SET deleted=true WHERE parent = '%s' AND deleted=false;
+    """ % uuid
+    deleted_count = db.execute(sql,uuid)
+
+
+    # 4. tombstone the recordset
+    sql = """
+          INSERT INTO uuids_data (uuids_id,data_etag,version)
+          SELECT uuids_id,'%s' AS
+          data_etag,version+1 AS version FROM uuids LEFT JOIN LATERAL ( SELECT *
+          FROM uuids_data WHERE uuids.id=uuids_data.uuids_id ORDER BY MODIFIED
+          DESC LIMIT 1) AS latest ON latest.uuids_id=uuids.id WHERE uuids.id= '%s'
+          and data_etag != '%s';
+    """ % (tombstone_etag, uuid, tombstone_etag)
+    db.execute(sql,uuid)
+
+
+    # 5. mark the recordset deleted
+    sql = """
+          UPDATE uuids SET deleted=true WHERE id= '%s' and deleted=false;
+    """ % uuid
+    db.execute(sql,uuid)
+
+    db.commit()
+    logger.info("Tombstoned {0} records from '{1}'.".format(tombstone_count, uuid))
+    logger.info("Marked {0} records as deleted from '{1}'.".format(deleted_count, uuid))
+
 
 
 def main():
@@ -129,20 +168,20 @@ def main():
 
     args = parser.parse_args()
 
+    db = PostgresDB()
+
     if args.uuid_file:
         # read each line in uuid_file as a uuid
-        print ("Reading uuid_file '{0}'".format(args.uuid_file))
+        logger.info("Reading uuid_file '{0}'".format(args.uuid_file))
         with open(args.uuid_file) as f:               
             for uuid_string in f:
                 uuid = uuid_string.strip()
-                print ("Delete recordset and child records for uuid '{0}'".format(uuid))
                 if check_uuid(uuid):
-                    delete_recordset(uuid)
+                    delete_recordset(uuid, db)
     else:
         # delete a single uuid
-        print ("Delete recordset and child records for uuid '{0}'".format(args.uuid_to_delete))
         if check_uuid(args.uuid_to_delete):
-            delete_recordset(args.uuid_to_delete)
+            delete_recordset(args.uuid_to_delete, db)
 
 
 if __name__ == "__main__":

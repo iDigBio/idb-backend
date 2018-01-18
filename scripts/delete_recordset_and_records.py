@@ -115,9 +115,11 @@ def main():
     parser = argparse.ArgumentParser(
         description='Delete records and recordset by specifying the recordset uuid')
 
-    parser.add_argument('-u', '--uuid', dest='uuid_to_delete',
+    parse_group = parser.add_mutually_exclusive_group(required=True)
+
+    parse_group.add_argument('-u', '--uuid', dest='uuid_to_delete',
                         type=str, default=None)
-    parser.add_argument('--uuid-file', dest='uuid_file',
+    parse_group.add_argument('--uuid-file', dest='uuid_file',
                         type=str, default=None)
 
     args = parser.parse_args()

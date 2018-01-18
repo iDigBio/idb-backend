@@ -89,79 +89,48 @@ configure(logger=logger, stderr_level=logging.INFO)
 
 #        sql = "SELECT * FROM idigbio_uuids_data WHERE uuid=%s and type=%s"
 
-
-
-
-
-# def uuidsIter(uuid_l, ei, rc, typ, yield_record=False, children=False):
-#     for rid in uuid_l:
-#         if children:
-#             logger.debug("Selecting children of %s.", rid)
-#             sql = "SELECT * FROM idigbio_uuids_data WHERE parent=%s and type=%s"
-#         else:
 #             sql = "SELECT * FROM idigbio_uuids_data WHERE uuid=%s and type=%s"
-#         params = (rid.strip(), typ[:-1])
-#         results = apidbpool.fetchall(sql, params, cursor_factory=DictCursor)
-#         for rec in results:
-#             if yield_record:
-#                 yield rec
-#             else:
-#                 yield index_record(ei, rc, typ, rec, do_index=False)
 
 
-# def delete(ei, rc, no_index=False):
-#     logger.info("Running deletes")
+def delete_recordset(uuid):
+    """
+    Deletes a recordset and all child records by marking them deleted in the database
+    with the tombstone flag.
+    """
+    logger.info("Deleting records and recordset from recordset uuid '{0}'".format(uuid))
 
-#     logger.info("Deleting records and recordset from recordset uuid %s", uuid_to_delete)
+    pass
 
-#     count = 0
 #     sql = "SELECT id,type FROM uuids WHERE deleted=true"
-#     results = apidbpool.fetchiter(sql, named=True, cursor_factory=DictCursor)
-#     for r in results:
-#         count += 1
-#         if not no_index:
-#             ei.es.delete(**{
-#                 "index": ei.indexName,
-#                 "doc_type": r["type"] + 's',
-#                 "id": r["id"]
-#             })
+#     deleted_record_count = 
+#
 
-#         if count % 10000 == 0:
-#             logger.info("%s", count)
-
-#     logger.info("%s", count)
-#     try:
-#         ei.optimize()
-#     except:
-#         pass
+#     logger.info("Deleted %s records from %s", deleted_record_count, uuid)
 
 
 def main():
-#     import json
-#     import os
     import argparse
-#     from idb.corrections.record_corrector import RecordCorrector
     from idb.config import config
 
     parser = argparse.ArgumentParser(
         description='Delete records and recordset by specifying the recordset uuid')
 
-    parser.add_argument('-u', '--uuid', dest='uuid_to_delete', nargs='+',
-                        type=str, default=[])
+    parser.add_argument('-u', '--uuid', dest='uuid_to_delete',
+                        type=str, default=None)
     parser.add_argument('--uuid-file', dest='uuid_file',
                         type=str, default=None)
 
     args = parser.parse_args()
-    print ("Hello world")
-    print (format(args))
 
-
-#         if args.continuous:
-#             continuous_incremental(ei, rc)
-#         elif args.incremental:
-#             incremental(ei, rc, no_index=args.no_index)
-#         else:
-#            parser.print_help()
+    if args.uuid_file:
+        # read each line in uuid_file as a uuid
+        print ("uuid_file = '{0}'".format(args.uuid_file))
+        with open(args.uuid_file) as f:               
+            for uuid in f:
+                delete_recordset(uuid)
+    else:
+        # delete a single uuid
+        delete_recordset(args.uuid_to_delete)
 
 
 if __name__ == "__main__":

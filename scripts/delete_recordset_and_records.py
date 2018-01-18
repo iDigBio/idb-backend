@@ -1,14 +1,9 @@
 from __future__ import division, absolute_import
 from __future__ import print_function
 
-# import itertools
-# import functools
-# import datetime
-# import time
-# import gc
-# import math
-# import signal
 import logging
+
+from uuid import UUID
 
 from idb.helpers.logging import idblogger, configure
 
@@ -86,17 +81,20 @@ configure(logger=logger, stderr_level=logging.INFO)
     #     """
 
 
-
-#        sql = "SELECT * FROM idigbio_uuids_data WHERE uuid=%s and type=%s"
-
-#             sql = "SELECT * FROM idigbio_uuids_data WHERE uuid=%s and type=%s"
-
+def check_uuid(uuid):
+    try:
+        uuid_obj = UUID(uuid)
+        return True
+    except:
+        print ("'{0}' does not appear to be a UUID.".format(uuid))
+        return False
 
 def delete_recordset(uuid):
     """
     Deletes a recordset and all child records by marking them deleted in the database
     with the tombstone flag.
     """
+
     logger.info("Deleting records and recordset from recordset uuid '{0}'".format(uuid))
 
     pass
@@ -104,6 +102,10 @@ def delete_recordset(uuid):
 #     sql = "SELECT id,type FROM uuids WHERE deleted=true"
 #     deleted_record_count = 
 #
+
+#        sql = "SELECT * FROM idigbio_uuids_data WHERE uuid=%s and type=%s"
+
+#             sql = "SELECT * FROM idigbio_uuids_data WHERE uuid=%s and type=%s"
 
 #     logger.info("Deleted %s records from %s", deleted_record_count, uuid)
 
@@ -126,13 +128,18 @@ def main():
 
     if args.uuid_file:
         # read each line in uuid_file as a uuid
-        print ("uuid_file = '{0}'".format(args.uuid_file))
+        print ("Reading uuid_file '{0}'".format(args.uuid_file))
         with open(args.uuid_file) as f:               
-            for uuid in f:
-                delete_recordset(uuid)
+            for uuid_string in f:
+                uuid = uuid_string.strip()
+                print ("Delete recordset and child records for uuid '{0}'".format(uuid))
+                if check_uuid(uuid):
+                    delete_recordset(uuid)
     else:
         # delete a single uuid
-        delete_recordset(args.uuid_to_delete)
+        print ("Delete recordset and child records for uuid '{0}'".format(args.uuid_to_delete))
+        if check_uuid(args.uuid_to_delete):
+            delete_recordset(args.uuid_to_delete)
 
 
 if __name__ == "__main__":

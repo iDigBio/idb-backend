@@ -15,72 +15,6 @@ logger = idblogger.getChild('ingestion')
 configure(logger=logger, stderr_level=logging.INFO)
 
 
-
-    # # Note, a subtle distinction: The below query will index every
-    # # _version_ of every record modified since the date it is thus
-    # # imperative that the records are process in ascending modified
-    # # order.  in practice, this is unlikely to index more than one
-    # # record in a single run, but it is possible.
-    # sql = """SELECT
-    #         uuids.id as uuid,
-    #         type,
-    #         deleted,
-    #         data_etag as etag,
-    #         version,
-    #         modified,
-    #         parent,
-    #         recordids,
-    #         siblings,
-    #         uuids_data.id as vid,
-    #         data
-    #     FROM uuids_data
-    #     LEFT JOIN uuids
-    #     ON uuids.id = uuids_data.uuids_id
-    #     LEFT JOIN data
-    #     ON data.etag = uuids_data.data_etag
-    #     LEFT JOIN LATERAL (
-    #         SELECT uuids_id, array_agg(identifier) as recordids
-    #         FROM uuids_identifier
-    #         WHERE uuids_id=uuids.id
-    #         GROUP BY uuids_id
-    #     ) as ids
-    #     ON ids.uuids_id=uuids.id
-    #     LEFT JOIN LATERAL (
-    #         SELECT count(*) AS annotation_count
-    #         FROM annotations
-    #         WHERE uuids_id = uuids.id
-    #     ) AS ac ON TRUE
-    #     LEFT JOIN LATERAL (
-    #         SELECT subject, json_object_agg(rel,array_agg) as siblings
-    #         FROM (
-    #             SELECT subject, rel, array_agg(object)
-    #             FROM (
-    #                 SELECT
-    #                     r1 as subject,
-    #                     type as rel,
-    #                     r2 as object
-    #                 FROM (
-    #                     SELECT r1,r2
-    #                     FROM uuids_siblings
-    #                     UNION
-    #                     SELECT r2,r1
-    #                     FROM uuids_siblings
-    #                 ) as rel_union
-    #                 JOIN uuids
-    #                 ON r2=id
-    #                 WHERE uuids.deleted = false
-    #             ) as rel_table
-    #             WHERE subject=uuids.id
-    #             GROUP BY subject, rel
-    #         ) as rels
-    #         GROUP BY subject
-    #     ) as sibs
-    #     ON sibs.subject=uuids.id
-    #     WHERE type=%s and modified>%s
-    #     ORDER BY modified ASC;
-    #     """
-
-
 def check_uuid(uuid):
     """
     Check to see if a string is a valid uuid representation.
@@ -179,7 +113,7 @@ def main():
                 if check_uuid(uuid):
                     delete_recordset(uuid, db)
     else:
-        # delete a single uuid
+        # operate on a single uuid
         if check_uuid(args.uuid_to_delete):
             delete_recordset(args.uuid_to_delete, db)
 

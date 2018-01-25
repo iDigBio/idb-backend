@@ -93,6 +93,8 @@ class RecordCorrector(object):
 
                 # If a correction would have replaced one of the protected kingdom values,
                 # apply a flag instead.
+                print(t, self.corrections[etag])
+
                 if (
                     "dwc:kingdom" in self.corrections[etag] and
                     "dwc:kingdom" in corrected_dict and

@@ -31,7 +31,7 @@ es = Elasticsearch([
     "c18node10.acis.ufl.edu",
     "c18node12.acis.ufl.edu",
     "c18node14.acis.ufl.edu"
-], sniff_on_start=False, sniff_on_connection_fail=False, retry_on_timeout=True, max_retries=10, timeout=3)
+], sniff_on_start=False, sniff_on_connection_fail=False, retry_on_timeout=True, max_retries=10, timeout=30)
 
 last_run = {}
 
@@ -193,7 +193,7 @@ def work(t):
             if k in r:
                 should[k] = r[k]
 
-        if "dwc:genus" in r and "dwc:specificEpithet" in r:
+        if "dwc:genus" in r and "dwc:specificEpithet" in r and r["dwc:specificEpithet"] not in ["sp.", "sp"]:
             rt = {
                 "dwc:genus": r["dwc:genus"],
                 "dwc:specificEpithet": r["dwc:specificEpithet"]
@@ -214,6 +214,7 @@ def work(t):
             if rank is None:
                 if r["dwc:scientificName"].endswith(" sp.") or r["dwc:scientificName"].endswith(" sp"):
                     rank = "genus"
+                    r["dwc:scientificName"] = r["dwc:scientificName"].split(" ")[0]
                 elif len(r["dwc:scientificName"].split()) == 1:
                     for k in taxon_data_fields:
                         if k == "dwc:scientificName":
@@ -430,24 +431,24 @@ def test_main():
         #     "dwc:family": "Triglidae",
         #     "dwc:scientificName": "Peristethus cataphractus",
         # },
-        {
-            "dwc:kingdom": "Animalia",
-            "dwc:phylum": "Mollusca",
-            "dwc:taxonRank": "subclass",
-            "dwc:class": "Cephalopoda",
-            "dwc:scientificName": "Ammonoidea"
-        },
-        {
-            "dwc:verbatimTaxonRank": "genus",
-            "dwc:scientificName": "Ammonoidea",
-        },
-        {
-            "dwc:kingdom": "Animalia",
-            "dwc:order": "Ammonoidea",
-            "dwc:phylum": "Mollusca",
-            "dwc:class": "Cephalopoda",
-            "dwc:scientificName": "Ammonoidea",
-        },
+        # {
+        #     "dwc:kingdom": "Animalia",
+        #     "dwc:phylum": "Mollusca",
+        #     "dwc:taxonRank": "subclass",
+        #     "dwc:class": "Cephalopoda",
+        #     "dwc:scientificName": "Ammonoidea"
+        # },
+        # {
+        #     "dwc:verbatimTaxonRank": "genus",
+        #     "dwc:scientificName": "Ammonoidea",
+        # },
+        # {
+        #     "dwc:kingdom": "Animalia",
+        #     "dwc:order": "Ammonoidea",
+        #     "dwc:phylum": "Mollusca",
+        #     "dwc:class": "Cephalopoda",
+        #     "dwc:scientificName": "Ammonoidea",
+        # },
         # {
         #     "dwc:order": "Perciformes",
         #     "dwc:kingdom": "Animalia",
@@ -467,6 +468,26 @@ def test_main():
         #     "dwc:family": "Carangidae",
         #     "dwc:scientificName": "Caranx sp."
         # }
+        # {
+        #     "dwc:specificEpithet": "capensis",
+        #     "dwc:order": "Gadiformes",
+        #     "dwc:scientificNameAuthorship": "(Kaup, 1858)",
+        #     "dwc:kingdom": "Animalia",
+        #     "dwc:genus": "Gaidropsarus",
+        #     "dwc:family": "Lotidae",
+        #     "dwc:phylum": "Chordata",
+        #     "dwc:class": "Actinopterygii",
+        #     "dwc:scientificName": "Gaidropsarus capensis"
+        # },
+        {
+            "dwc:kingdom": "Animalia",
+            "dwc:order": "Orthida",
+            "dwc:genus": "Acosarina",
+            "dwc:family": "Schizophoriidae",
+            "dwc:phylum": "Brachiopoda",
+            "dwc:class": "Rhynchonellata",
+            "dwc:scientificName": "Acosarina"
+        }
     ]
     for i, t in enumerate(tests):
         print(json.dumps(work((str(i), t)), indent=2))
@@ -543,14 +564,22 @@ def main():
 
     print("Working")
     with open("taxon_kv.txt", "wb") as outf:
-        print("Building Name List")
-        names = []
-        count = 0
-        for t in get_taxon_from_index():
-            names.append(t)
-            count += 1
-            if count % 10000 == 0:
-                print(count)
+        if os.path.exists("name_cache.json"):
+            print("Loading Cached Names")
+            with open("name_cache.json", "r") as nc:
+                names = json.load(nc)
+        else:
+            print("Building Name List")
+            names = []
+            count = 0
+            for t in get_taxon_from_index():
+                names.append(t)
+                count += 1
+                if count % 10000 == 0:
+                    print(count)
+            print("Saving Name Cache")
+            with open("name_cache.json", "w") as nc:
+                json.dump(names, nc)
         print("Resolving Names")
         for r in result_collector(p.imap_unordered(work,names)):
             if r[2][0] is not None:

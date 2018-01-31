@@ -91,14 +91,26 @@ class Dwca(object):
         if "extension" in self.archdict:
             if isinstance(self.archdict["extension"],list):
                 for x in self.archdict["extension"]:
-                    extfile = archiveFile(self.archive,x["files"]["location"])
-                    try:
-                        self.extensions.append(
-                            DwcaRecordFile(x,
-                                           self.path + "/" + extfile,
-                                           logname=self.logger.name))
-                    except:
-                        pass
+                    if isinstance(x["files"]["location"], list):
+                        for loc in x["files"]["location"]:
+                            extfile = archiveFile(self.archive,loc)
+                            print(extfile)
+                            try:
+                                self.extensions.append(
+                                    DwcaRecordFile(x,
+                                                   self.path + "/" + extfile,
+                                                   logname=self.logger.name))
+                            except:
+                                traceback.print_exc()
+                    else:
+                        extfile = archiveFile(self.archive,x["files"]["location"])
+                        try:
+                            self.extensions.append(
+                                DwcaRecordFile(x,
+                                               self.path + "/" + extfile,
+                                               logname=self.logger.name))
+                        except:
+                            pass
             else:
                 extfile = archiveFile(self.archive,self.archdict["extension"]["files"]["location"])
                 self.extensions.append(
@@ -121,7 +133,15 @@ class DwcaRecordFile(DelimitedFile):
         """
 
         # Avoid Setting attributes on self that conflict with attributes in DelimitedFile to enforce namespace separation
-        self.name = filedict['files']['location']
+        if isinstance(filedict["files"]["location"], list):
+            for l in filedict["files"]["location"]:
+                if fh.endswith(l):
+                    self.name = l
+                    break
+            else:
+                raise Exception("Name not found.")
+        else:
+            self.name = filedict['files']['location']
 
         if logname:
             logbase = getLogger(logname)
@@ -148,11 +168,11 @@ class DwcaRecordFile(DelimitedFile):
             fields[int(idfld['#index'])] = idtag
 
         rowtype = filedict["#rowType"]
-        encoding = filedict["#encoding"]
+        encoding = filedict.get("#encoding", "UTF-8")
         linesplit = filedict["#linesTerminatedBy"].decode('string_escape')
         fieldsplit = filedict["#fieldsTerminatedBy"].decode('string_escape')
         fieldenc = filedict["#fieldsEnclosedBy"].decode('string_escape')
-        ignoreheader = int(filedict["#ignoreHeaderLines"])
+        ignoreheader = int(filedict.get("#ignoreHeaderLines","0"))
 
         self.defaults = {}
         if "field" not in filedict:

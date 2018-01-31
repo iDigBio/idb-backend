@@ -2,6 +2,7 @@ from __future__ import division, absolute_import
 from __future__ import print_function
 
 import click
+import json
 
 from idb.clibase import cli
 from idb.helpers.logging import fnlogged
@@ -34,7 +35,15 @@ def db_check(rsid):
 def db_check_file(file):
     # rsid = u'{0}'.format(rsid)
     from idigbio_ingestion.db_check import process_file
-    process_file(file, "application/zip", "00000000-0000-0000-0000-000000000000", {}, {}, False, False)
+    print(json.dumps(process_file(
+        file,
+        "application/zip",
+        "00000000-0000-0000-0000-000000000000",
+        {"records":{},"mediarecords":{}},
+        {"records":{},"mediarecords":{}},
+        False,
+        False
+    ), indent=2))
 
 
 @cli.command(name="db-check-all", help="Run db-check against all datasets")

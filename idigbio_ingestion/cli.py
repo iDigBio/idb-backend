@@ -26,6 +26,17 @@ def db_check(rsid):
     main(rsid, )
 
 
+@cli.command(name="db-check-file",
+             help="Check a dataset, by filename, against the database "
+             "and report what will be ingested")
+@click.argument("file", type=click.Path())
+@fnlogged
+def db_check_file(file):
+    # rsid = u'{0}'.format(rsid)
+    from idigbio_ingestion.db_check import process_file
+    process_file(file, "application/zip", "00000000-0000-0000-0000-000000000000", {}, {}, False, False)
+
+
 @cli.command(name="db-check-all", help="Run db-check against all datasets")
 @click.option("--since",
               help="Only check recordsets harvested since the given date; e.g. YYYY-MM-DD")

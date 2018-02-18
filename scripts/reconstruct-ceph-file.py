@@ -1,12 +1,12 @@
 import sys
 from idb.helpers.logging import getLogger, configure_app_log
 from idb.helpers.storage import IDigBioStorage
-from subprocess import check_output
+from subprocess import check_output, CalledProcessError
 import hashlib
 import json
 
-logger = getLogger("restore")
-store = IDigBioStorage()
+logger = getLogger("reconstruct")
+#store = IDigBioStorage()
 
 TMP_DIR = "/tmp/{0}".format(sys.argv[0])
 
@@ -22,13 +22,13 @@ def get_file_parts(ceph_bucket, ceph_name):
                          shell=True
                     )
     except Exception as e:
-        print("Unable to retrieve info for {0} {1}".format(ceph_bucket, ceph_name))
+        logger.error("Unable to retrieve info for {0} {1}".format(ceph_bucket, ceph_name))
         raise
 
     try:
         stat_obj = json.loads(r)
     except:
-        print("Unable to parse JSON from {0}".format(r[0:50]))
+        logger.error("Unable to parse JSON from {0}".format(r[0:50]))
         raise
 
     return stat_obj
@@ -39,22 +39,54 @@ def stat_obj_to_file_names(stat_obj):
     # an in-order list of file name substrings that should be unique
     # to look for on disk by assembling the metadata
     files = []
+
+
     for o in stat_obj["manifest"]["objs"][1::2]: #objs is a list that alternates byte and dict
+        # This chunk is only present for file parts > 1, first part has no ns
+        if o["loc"]["key"]["ns"]:
+            ns = "\u{0}".format(o["loc"]["key"]["ns"])
+        else:
+            ns = ""
+
         files.append(''.join((
                              o["loc"]["bucket"]["marker"],
-                             "\u\u",
-                             o["loc"]["key"]["ns"],
+                             "\u",
+                             ns,
                              o["loc"]["key"]["name"].replace("_", "\u", 99),
-                             "__"
+                             "__" # characters on end serve to terminate the pattern since many ceph objects have the same name prefix eg foo and (2) foo.jpg in different buckets
                             ))
                     )
     # FIXME: need to fix the first part, should not include the ns key
     return files
 
-def find_files(files):
-    # Using the index of all files on all servers, return a nested list of
-    # server names for each file
-    return [ [] ]
+def find_files(patterns):
+    # Using the index of all files on all servers, return a list of dicts with
+    # information about that file is on disk(s)
+    files = []
+
+    for f in patterns:
+        try:
+            r = check_output(("ls /storage/data/ceph_files/*.txt "
+                              "| parallel --no-notice -j+1 grep -F "
+                              "'{0}'".format(f.replace('\\', '\\\\\\\\')),
+                              # file has double from find's output, parallel command needs double
+                              "; exit 0"
+                             ), shell=True)
+        except CalledProcessError as e:
+            pass # grep returns non-zero, ignore it
+
+        copies = []
+        for l in r:
+            cols = l.split()
+            copies.append({
+                "server" : cols[0][:-1],
+                "size" : cols[7],
+                "path" : cols[11]
+            })
+
+        files.append(copies)
+
+    return files
 
 def retrieve_files_from_server(files, servers):
     return False
@@ -80,7 +112,9 @@ if __name__ == '__main__':
 
     stat_obj = get_file_parts(ceph_bucket, ceph_name)
     #print(stat_obj)
-    files = stat_obj_to_file_names(stat_obj)
-    print(files)
+    patterns = stat_obj_to_file_names(stat_obj)
+    print(patterns)
+    files_sources = find_files(patterns)
+    print(file_sources)
 
     rebuild_from_files(ceph_name, output_dir, files, stat_obj)

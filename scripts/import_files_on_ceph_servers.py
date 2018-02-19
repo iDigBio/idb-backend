@@ -23,9 +23,14 @@ from idb.postgres_backend.db import PostgresDB
 #
 #alter table ceph_server_files owner to idigbio
 #
-#create unique index index_ceph_on_filename_with_pattern_ops
+#create index index_ceph_on_filename_with_pattern_ops
 #on ceph_server_files (filename text_pattern_ops);
+#CREATE UNIQUE INDEX index_ceph_fullname
+#ON ceph_server_files (fullname);
 
+
+# Wrong index, unique on file name means we only get one copy, should be unique 
+# on fullname and non-unique on filename w/ text pattern
 
 def file_list_iter(fn):
     with open(fn, 'r') as f:

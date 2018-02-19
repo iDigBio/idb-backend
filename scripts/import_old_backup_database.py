@@ -36,6 +36,8 @@ ceph_objects (
  rest_last_failure timestamp without time zone
 );
 ALTER TABLE ceph_objects OWNER TO idigbio;
+CREATE UNIQUE INDEX IF NOT EXISTS ceph_objects_bucket_name 
+ ON ceph_objects (ceph_name, ceph_bucket); 
 """
 
 def csv_iter(fn):
@@ -54,6 +56,7 @@ def csv_iter(fn):
             d["tsm_date"] = d["tsm_date"] if d["tsm_date"] else None
             d["ceph_bytes"] = d["ceph_bytes"] if d["ceph_bytes"] else None
             d["tsm_bytes"] = d["tsm_bytes"] if d["tsm_bytes"] else None
+            d["sent_bytes"] = d["sent_bytes"] if d["sent_bytes"] else None
 
             yield d
 

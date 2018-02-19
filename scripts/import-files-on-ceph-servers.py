@@ -4,6 +4,15 @@ from idb.helpers.logging import getLogger, configure_app_log
 logger = getLogger("restore")
 from idb.postgres_backend.db import PostgresDB
 
+# When Ceph chewed up a bunch of objects (ticket #2605), we figured out how to
+# rebuild them by searching for the file parts on disk. We generated lists of
+# files on all ceph nodes with:
+#  find /srv/ceph -ls > <text file>
+# which we then import below into a postgres table in idb-api-beta for rapid
+# look ups and searching.
+
+
+# Table was created manually with below:
 #\connect idb_api_beta
 #CREATE TABLE ceph_server_files (
 #    server VARCHAR(16) NOT NULL,
@@ -29,8 +38,6 @@ from idb.postgres_backend.db import PostgresDB
 #ON ceph_server_files (fullname);
 
 
-# Wrong index, unique on file name means we only get one copy, should be unique 
-# on fullname and non-unique on filename w/ text pattern
 
 def file_list_iter(fn):
     with open(fn, 'r') as f:

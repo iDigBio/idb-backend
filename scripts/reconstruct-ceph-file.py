@@ -6,6 +6,8 @@ import hashlib
 import json
 
 logger = getLogger("reconstruct")
+
+from idb.postgres_backend.db import PostgresDB
 #store = IDigBioStorage()
 
 TMP_DIR = "/tmp/{0}".format(sys.argv[0])
@@ -63,28 +65,23 @@ def find_files(patterns):
     # Using the index of all files on all servers, return a list of dicts with
     # information about that file is on disk(s)
     files = []
+    q = """SELECT
+            server, fullname, unk3
+           FROM ceph_server_files
+           WHERE
+            filename LIKE %s
+        """
 
-    for f in patterns:
-        try:
-            r = check_output(("ls /storage/data/ceph_files/*.txt "
-                              "| parallel --no-notice -j+1 grep -F "
-                              "'{0}'".format(f.replace('\\', '\\\\\\\\')),
-                              # file has double from find's output, parallel command needs double
-                              "; exit 0"
-                             ), shell=True)
-        except CalledProcessError as e:
-            pass # grep returns non-zero, ignore it
+    with PostgresDB() as db:
+        for pattern in patterns:
+            # When in doubt, add more backslashes!
+            rows = db.fetchall(q, ("{0}%".format(pattern.replace('\\','\\\\')),))
 
-        copies = []
-        for l in r:
-            cols = l.split()
-            copies.append({
-                "server" : cols[0][:-1],
-                "size" : cols[7],
-                "path" : cols[11]
-            })
+            copies = []
+            for c in rows:
+                copies.append(c)
 
-        files.append(copies)
+            files.append(copies)
 
     return files
 
@@ -115,6 +112,6 @@ if __name__ == '__main__':
     patterns = stat_obj_to_file_names(stat_obj)
     print(patterns)
     files_sources = find_files(patterns)
-    print(file_sources)
+    print(files_sources)
 
-    rebuild_from_files(ceph_name, output_dir, files, stat_obj)
+#    rebuild_from_files(ceph_name, output_dir, files, stat_obj)

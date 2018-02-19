@@ -52,10 +52,10 @@ if __name__ == '__main__':
         for l in file_list_iter(fn):
             db.execute(q, l)
             c += 1
-            if (c % 1000) == 0:
+            if (c % 100000) == 0:
                 db.commit()
                 c = 1
-                break
+#                break
 
         db.commit()
 

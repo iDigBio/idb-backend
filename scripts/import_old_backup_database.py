@@ -94,7 +94,11 @@ if __name__ == '__main__':
         c = 0
         for l in csv_iter(fn):
             #print(l)
-            db.execute(q, l)
+            try:
+                db.execute(q, l)
+            except:
+                print(l)
+                raise
             c += 1
             if (c % 100000) == 0:
                 db.commit()

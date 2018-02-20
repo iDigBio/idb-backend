@@ -12,6 +12,19 @@ from idb.postgres_backend.db import PostgresDB
 
 TMP_DIR = "/tmp/{0}".format(sys.argv[0])
 
+# data structure of parts_obj, in order by part to be assembled
+# [
+#  { "pattern": "foo",
+#    "copies": [
+#                { "server": "c15node1",
+#                  "fullpath": "/.../...pattern...",
+#                  "filename": "...pattern...",
+#                  "size": 123,
+#                }, ...
+#              ]
+#    "localpath": "/tmp/fullname"
+#  }, ...
+# ]
 
 def get_file_parts(ceph_bucket, ceph_name):
     # run this on idb-rgw1
@@ -36,11 +49,11 @@ def get_file_parts(ceph_bucket, ceph_name):
     return stat_obj
 
 
-def stat_obj_to_file_names(stat_obj):
+def stat_obj_to_parts_obj(stat_obj):
     # iterate over the file parts list in a stats object and return
     # an in-order list of file name substrings that should be unique
     # to look for on disk by assembling the metadata
-    files = []
+    parts_obj = []
 
 
     for o in stat_obj["manifest"]["objs"][1::2]: #objs is a list that alternates byte and dict
@@ -50,40 +63,40 @@ def stat_obj_to_file_names(stat_obj):
         else:
             ns = ""
 
-        files.append(''.join((
+        parts_obj.append({"pattern":
+                             ''.join((
                              o["loc"]["bucket"]["marker"],
                              "\u",
                              ns,
                              o["loc"]["key"]["name"].replace("_", "\u", 99),
                              "__" # characters on end serve to terminate the pattern since many ceph objects have the same name prefix eg foo and (2) foo.jpg in different buckets
                             ))
-                    )
-    # FIXME: need to fix the first part, should not include the ns key
-    return files
+                          }
+                         )
+    return parts_obj
 
-def find_files(patterns):
+def find_files_on_servers(parts_obj):
     # Using the index of all files on all servers, return a list of dicts with
     # information about that file is on disk(s)
-    files = []
     q = """SELECT
-            server, fullname, unk3
+            server, fullname, filename, size
            FROM ceph_server_files
            WHERE
             filename LIKE %s
         """
 
     with PostgresDB() as db:
-        for pattern in patterns:
+        for i, part in enumerate(parts_obj):
             # When in doubt, add more backslashes!
-            rows = db.fetchall(q, ("{0}%".format(pattern.replace('\\','\\\\')),))
+            rows = db.fetchall(q, ("{0}%".format(part["pattern"].replace('\\','\\\\')),))
 
-            copies = []
-            for c in rows:
-                copies.append(c)
+#            copies = []
+#            for c in rows:
+#                copies.append(c)
 
-            files.append(copies)
+            parts_obj[i]["copies"] = rows
 
-    return files
+    return parts_obj
 
 def retrieve_files_from_server(files, servers):
     return False
@@ -109,9 +122,9 @@ if __name__ == '__main__':
 
     stat_obj = get_file_parts(ceph_bucket, ceph_name)
     #print(stat_obj)
-    patterns = stat_obj_to_file_names(stat_obj)
-    print(patterns)
-    files_sources = find_files(patterns)
-    print(files_sources)
+    parts_obj = stat_obj_to_parts_obj(stat_obj)
+    print(parts_obj)
+    parts_obj = find_files_on_servers(parts_obj)
+    print(parts_obj)
 
 #    rebuild_from_files(ceph_name, output_dir, files, stat_obj)

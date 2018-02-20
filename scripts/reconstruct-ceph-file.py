@@ -1,16 +1,20 @@
 import sys
+import os
+import shutil
+import json
+import paramiko
 from idb.helpers.logging import getLogger, configure_app_log
 from idb.helpers.storage import IDigBioStorage
 from subprocess import check_output, CalledProcessError
 import hashlib
-import json
+
 
 logger = getLogger("reconstruct")
 
 from idb.postgres_backend.db import PostgresDB
 #store = IDigBioStorage()
 
-TMP_DIR = "/tmp/{0}".format(sys.argv[0])
+TMP_DIR = "/tmp/{0}".format(os.path.basename(sys.argv[0]))
 
 # data structure of parts_obj, in order by part to be assembled
 # [
@@ -25,6 +29,30 @@ TMP_DIR = "/tmp/{0}".format(sys.argv[0])
 #    "localpath": "/tmp/fullname"
 #  }, ...
 # ]
+
+
+def get_file_from_server(server, remote_fn, local_fn):
+    try:
+        ssh = paramiko.SSHClient()
+        ssh.load_host_keys(os.path.expanduser(os.path.join("~", ".ssh", "known_hosts")))
+        privatekeyfile = os.path.expanduser(os.path.join("~", ".ssh", "id_rsa"))
+        myid = paramiko.RSAKey.from_private_key_file(privatekeyfile)
+        ssh.connect(server, username="root", pkey=myid)
+        sftp = ssh.open_sftp()
+        sftp.get(remote_fn, local_fn)
+    except:
+        raise
+    finally:
+        try:
+            sftp.close()
+        except:
+            pass
+        try:
+            ssh.close()
+        except:
+            pass
+
+    return os.path.exists(local_fn)
 
 def get_file_parts(ceph_bucket, ceph_name):
     # run this on idb-rgw1
@@ -75,41 +103,70 @@ def stat_obj_to_parts_obj(stat_obj):
                          )
     return parts_obj
 
-def find_files_on_servers(parts_obj):
+def find_parts_on_servers(parts_obj):
     # Using the index of all files on all servers, return a list of dicts with
     # information about that file is on disk(s)
+    cols = ["server", "fullname", "filename", "unk3"]
     q = """SELECT
-            server, fullname, filename, size
-           FROM ceph_server_files
+            {}
+           FROM ceph_server_files_old
            WHERE
             filename LIKE %s
-        """
-
+        """.format(','.join(cols))
+# FIXME: change unk3 to size when change to real table
     with PostgresDB() as db:
         for i, part in enumerate(parts_obj):
             # When in doubt, add more backslashes!
             rows = db.fetchall(q, ("{0}%".format(part["pattern"].replace('\\','\\\\')),))
 
-#            copies = []
-#            for c in rows:
-#                copies.append(c)
-
-            parts_obj[i]["copies"] = rows
+            copies = []
+            for c in rows:
+                copies.append(dict(zip(cols, c)))
+            parts_obj[i]["copies"] = copies
 
     return parts_obj
 
-def retrieve_files_from_server(files, servers):
-    return False
+def get_file_parts_from_servers(parts_obj):
+    # download one of the parts
+    if not os.path.exists(TMP_DIR):
+        os.mkdirs(TMP_DIR)
 
+    for i, part in enumerate(parts_obj):
+        c = part["copies"][0] # examine re-trying additional copies
+        local_fn = os.path.join(TMP_DIR, c["filename"])
+        if get_file_from_server(c["server"],
+                                 c["fullname"],
+                                 local_fn):
+            parts_obj[i]["localpath"] = local_fn
 
-def rebuild_from_files(ceph_name, outputdir, files, stat_obj):
-    # Do the rebuild and verification of a file from its parts
-    if retrieve_files_from_server:
-        # concatenate files
-        # check md5sum
-        # move to output dir
-        return True
-    return False
+    return parts_obj
+
+#def rebuild_from_files(ceph_name, outputdir, files, stat_obj):
+#    # Do the rebuild and verification of a file from its parts
+#    if retrieve_files_from_server:
+#        # concatenate files
+#        # check md5sum
+#        # move to output dir
+#        return True
+#    return False
+
+def verify_file(fn, md5):
+    return True
+
+def reconstruct_file(parts_obj, stats_obj, output_dir):
+    # Concatenate all the parts and verify them, move to output dir
+    # and clean up parts in tmp dir
+
+    dest_dir = os.path.join(output_dir, stats_obj[""])
+    if not os.path.exists(dest_dir):
+        os.makedirs(dest_dir)
+    dest_file = os.path.join(dest_dir, stats_obj[""])
+
+    with open(dest_file):
+        for part in parts_obj:
+            pass
+
+    return verify_file(dest_file, stats_obj["etag"])
 
 if __name__ == '__main__':
     if len(sys.argv) == 4:
@@ -123,8 +180,19 @@ if __name__ == '__main__':
     stat_obj = get_file_parts(ceph_bucket, ceph_name)
     #print(stat_obj)
     parts_obj = stat_obj_to_parts_obj(stat_obj)
-    print(parts_obj)
-    parts_obj = find_files_on_servers(parts_obj)
-    print(parts_obj)
+    #print(parts_obj)
+
+    parts_obj = find_parts_on_servers(parts_obj)
+    #print(parts_obj)
+
+    parts_obj = get_file_parts_from_servers(parts_obj)
+    print(parts_obj[0])
+#        reconstruct_file(parts_obj)
+
+
+#    print(get_file_from_server("c15node1",
+#                               "/root/nbird",
+#                               os.path.join(TMP_DIR, "asdf")))
+
 
 #    rebuild_from_files(ceph_name, output_dir, files, stat_obj)

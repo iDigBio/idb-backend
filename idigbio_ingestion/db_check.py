@@ -477,6 +477,17 @@ def metadataToSummaryJSON(rsid, metadata, writeFile=True, doStats=True):
         "commited": metadata["commited"],
     }
 
+    logger.debug("filemd5 = {0}".format(metadata["filemd5"]))
+
+    if metadata["filemd5"] is None:
+        summary["datafile_ok"] = False
+#        return summary
+        if writeFile:
+            with AtomicFile(rsid + ".summary.json", "wb") as jf:
+                json.dump(summary, jf, indent=2)
+        return summary
+    
+
     csv_line_count = 0
     no_recordid_count = 0
     duplicate_record_count = 0
@@ -519,7 +530,41 @@ def main(rsid, ingest=False):
         rlogger = getrslogger(rsid)
         rlogger.info("Starting db_check ingest: %r", ingest)
         t = datetime.datetime.now()
-        name, mime = get_file(rsid)
+        try:
+            name, mime = get_file(rsid)
+        except:
+            rlogger.debug("Exception in get_file")
+            metadata = {
+                "name": rsid,
+                "filemd5": None,
+                "recordset_id": rsid,
+                "counts": {
+                    "create": 0,
+                    "update": 0,
+                    "delete": 0,
+                    "to_undelete": 0,
+                    "ingestions": 0,
+                    "assertions": 0,
+                    "resurrections": 0,
+                    "deleted": 0,
+                    "processed_line_count": 0,
+                    "total_line_count": 0,
+                    "type": 0,
+                    "no_recordid_count": 0,
+                    "duplicate_record_count": 0,
+                    "duplicate_id_count": 0,
+                    "record_exceptions": 0,
+                    "exceptions": 1,
+                    "dberrors": 0,
+                    "processing_time": ""
+                    },
+                "processing_start_datetime": "",
+                "total_processing_time": "",
+                "commited": False,
+                }
+            metadataToSummaryJSON(rsid, metadata)
+            rlogger.info("Finished db_check in %0.3fs", (datetime.datetime.now() - t).total_seconds())
+            return rsid
 
         if os.path.exists(rsid + "_uuids.json") and os.path.exists(rsid + "_ids.json"):
             with open(rsid + "_uuids.json", "rb") as uuidf:
@@ -539,6 +584,7 @@ def main(rsid, ingest=False):
             commit_force = True
 
         metadata = process_file(name, mime, rsid, db_u_d, db_i_d, ingest=ingest, commit_force=commit_force)
+        rlogger.debug(metadata)
         metadataToSummaryJSON(rsid, metadata)
         rlogger.info("Finished db_check in %0.3fs", (datetime.datetime.now() - t).total_seconds())
         return rsid

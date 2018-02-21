@@ -60,6 +60,9 @@ def is_row_suspect(row):
     mediarecords_update = row.get('mediarecords_update', 0)
     mediarecords_delete = row.get('mediarecords_delete', 0)
 
+    if not row.get('datafile_ok'):
+        return "DATAFILE_NOT_OK"
+
     if records_count == 0 and mediarecords_count == 0:
         return "NO_RECORDS"
 
@@ -96,6 +99,7 @@ def is_row_suspect(row):
 
 def main(base, sum_filename, susp_filename):
     summary_data = read_all_files(base)
+
     summary_data = sorted(summary_data, key=lambda r: r['filename'])
     logger.info("Read in %d *.summary.json files", len(summary_data))
     suspect_rows = []

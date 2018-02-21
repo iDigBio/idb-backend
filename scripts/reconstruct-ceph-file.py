@@ -141,15 +141,6 @@ def get_file_parts_from_servers(parts_obj):
 
     return parts_obj
 
-#def rebuild_from_files(ceph_name, outputdir, files, stat_obj):
-#    # Do the rebuild and verification of a file from its parts
-#    if retrieve_files_from_server:
-#        # concatenate files
-#        # check md5sum
-#        # move to output dir
-#        return True
-#    return False
-
 def verify_file(fn, size, md5):
     if os.stat(fn).st_size == size:
         with open(fn, "rb") as f:
@@ -178,7 +169,12 @@ def reconstruct_file(parts_obj, stats_obj, output_dir):
             with open(part["localpath"], "rb") as src:
                 shutil.copyfileobj(src, dest)
 
-    return verify_file(dest_file, stats_obj["size"], stats_obj["etag"])
+    if verify_file(dest_file, stats_obj["size"], stats_obj["etag"]):
+        for part in parts_obj:
+            os.unlink(part["localpath"])
+        return True
+    else:
+        return False
 
 if __name__ == '__main__':
     if len(sys.argv) == 4:

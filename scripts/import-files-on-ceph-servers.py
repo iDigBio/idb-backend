@@ -22,7 +22,7 @@ from idb.postgres_backend.db import PostgresDB
 #    unk2 INTEGER,
 #    owner_name VARCHAR(16),
 #    group_name VARCHAR(16),
-#    unk3 INTEGER,
+#    size BIGINT,
 #    day INTEGER,
 #    month VARCHAR(3),
 #    year_time VARCHAR(8),
@@ -34,6 +34,8 @@ from idb.postgres_backend.db import PostgresDB
 #
 #create index index_ceph_on_filename_with_pattern_ops
 #on ceph_server_files (filename text_pattern_ops);
+
+# Do I need a unique index?
 #CREATE UNIQUE INDEX index_ceph_fullname
 #ON ceph_server_files (fullname);
 
@@ -56,7 +58,7 @@ if __name__ == '__main__':
     with PostgresDB() as db:
         q = """INSERT INTO ceph_server_files
                (server, line, unk, perms, unk2, owner_name, group_name, 
-                unk3, month, day, year_time, fullname, filename)
+                size, month, day, year_time, fullname, filename)
                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                ON CONFLICT DO NOTHING
             """

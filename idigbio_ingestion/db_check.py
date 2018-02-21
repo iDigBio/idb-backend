@@ -477,11 +477,8 @@ def metadataToSummaryJSON(rsid, metadata, writeFile=True, doStats=True):
         "commited": metadata["commited"],
     }
 
-    logger.debug("filemd5 = {0}".format(metadata["filemd5"]))
-
     if metadata["filemd5"] is None:
         summary["datafile_ok"] = False
-#        return summary
         if writeFile:
             with AtomicFile(rsid + ".summary.json", "wb") as jf:
                 json.dump(summary, jf, indent=2)
@@ -534,6 +531,7 @@ def main(rsid, ingest=False):
             name, mime = get_file(rsid)
         except:
             rlogger.debug("Exception in get_file")
+            # construct a dummy metadata record with no filemd5 so we can later write a summary file.
             metadata = {
                 "name": rsid,
                 "filemd5": None,
@@ -584,7 +582,6 @@ def main(rsid, ingest=False):
             commit_force = True
 
         metadata = process_file(name, mime, rsid, db_u_d, db_i_d, ingest=ingest, commit_force=commit_force)
-        rlogger.debug(metadata)
         metadataToSummaryJSON(rsid, metadata)
         rlogger.info("Finished db_check in %0.3fs", (datetime.datetime.now() - t).total_seconds())
         return rsid

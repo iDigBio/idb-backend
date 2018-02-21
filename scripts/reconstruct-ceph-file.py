@@ -150,23 +150,35 @@ def get_file_parts_from_servers(parts_obj):
 #        return True
 #    return False
 
-def verify_file(fn, md5):
-    return True
+def verify_file(fn, size, md5):
+    if os.stat(fn).st_size == size:
+        with open(fn, "rb") as f:
+            f_md5 = hashlib.md5()
+            for chunk in iter(lambda: f.read(4096), b""):
+                f_md5.update(chunk)
+        #print(f_md5.hexdigest())
+        return f_md5.hexdigest() == md5
+    else:
+        #print(os.stat(fn).st_size + " " + size)
+        return False
 
 def reconstruct_file(parts_obj, stats_obj, output_dir):
     # Concatenate all the parts and verify them, move to output dir
     # and clean up parts in tmp dir
 
-    dest_dir = os.path.join(output_dir, stats_obj[""])
+    # use the bucket name from the first object
+    dest_dir = os.path.join(output_dir,
+                  stats_obj["manifest"]["objs"][1]["loc"]["bucket"]["name"])
     if not os.path.exists(dest_dir):
         os.makedirs(dest_dir)
-    dest_file = os.path.join(dest_dir, stats_obj[""])
+    dest_file = os.path.join(dest_dir, stats_obj["name"])
 
-    with open(dest_file):
+    with open(dest_file, "wb") as dest:
         for part in parts_obj:
-            pass
+            with open(part["localpath"], "rb") as src:
+                shutil.copyfileobj(src, dest)
 
-    return verify_file(dest_file, stats_obj["etag"])
+    return verify_file(dest_file, stats_obj["size"], stats_obj["etag"])
 
 if __name__ == '__main__':
     if len(sys.argv) == 4:
@@ -186,8 +198,10 @@ if __name__ == '__main__':
     #print(parts_obj)
 
     parts_obj = get_file_parts_from_servers(parts_obj)
-    print(parts_obj[0])
-#        reconstruct_file(parts_obj)
+    #print(parts_obj[0])
+
+    r = reconstruct_file(parts_obj, stat_obj, output_dir)
+    print(r)
 
 
 #    print(get_file_from_server("c15node1",

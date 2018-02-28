@@ -6,10 +6,12 @@ import sys
 import argparse
 
 from idb.postgres_backend import apidbpool
-#from idb.helpers.logging import idblogger
+from idb.helpers.logging import getLogger, configure_app_log
 from idb.helpers.storage import IDigBioStorage
 
 TMP_DIR = os.path.join("/tmp", os.path.basename(sys.argv[0]))
+
+logger = getLogger("verify-ceph-files")
 
 
 def get_stat_object(bucket, name):
@@ -17,6 +19,7 @@ def get_stat_object(bucket, name):
     """
     storage = IDigBioStorage()
     stat_obj = storage.get_key(name, bucket)
+    print(stat_obj.md5)
     # HERE!
     return stat_obj
 
@@ -51,7 +54,9 @@ def verify_all_objects_worker(row_obj):
     """Wrapper to do all work in verify_all_objects.
     """
     stat_obj = get_stat_object(row_obj["ceph_bucket"], row_obj["ceph_name"])
-    print(stat_obj)
+    print(dir(stat_obj))
+    print(stat_obj.compute_md5())
+    print(stat_obj.etag)
     return True
 
 def verify_all_objects(row_objs):
@@ -64,6 +69,9 @@ def verify_all_objects(row_objs):
     return retval
 
 if __name__ == '__main__':
+
+    configure_app_log(2, logfile="./verify.log", journal='auto')
+
     argparser = argparse.ArgumentParser(
                 description="Verify objects in ceph, track verification in database")
     argparser.add_argument("-b", "--bucket", required=False,
@@ -80,6 +88,8 @@ if __name__ == '__main__':
                        help="Verify only this one name")
     argparser.add_argument("-r", "--reverify", required=False,
                        help="Reverify objects that already have been verified")
+    argparser.add_argument("-t", "--test", required=False,
+                       help="Don't update database with results, just print to stdout")
     argparser.add_argument("-p", "--processes", required=False, default=1,
                        help="How many processing to use verifying objects, default 1")
     args = argparser.parse_args()

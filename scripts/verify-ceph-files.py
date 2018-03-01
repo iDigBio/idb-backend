@@ -35,7 +35,7 @@ def get_row_objs_from_db(args):
     """Get a list of objects to verify from the database based on user's
     passed arguments.
     """
-    cols = ["ceph_bucket", "ceph_name", "ceph_date", "ceph_bytes",
+    cols = ["ceph_bucket", "ceph_name", "ceph_date", "ceph_bytes", "ceph_etag",
             "ver_status", "ver_last_success", "ver_last_failure"]
 
     wheres = []
@@ -74,18 +74,18 @@ def verify_object(row_obj, key_obj):
             os.makedirs(TMP_DIR)
         fn = os.path.join(TMP_DIR, key_obj.name)
 
-        logger.debug("Fetching file {0}".format(key_obj.name))
+        logger.debug("Fetching file {0}:{1}".format(key_obj.bucket.name, key_obj.name))
         storage.get_contents_to_filename(key_obj, fn)
         md5 = calc_md5(fn)
         size = os.stat(fn).st_size
     except (HTTPException, socket_error) as ex:
         # Timeout can be controlled by /etc/boto.cfg - see http://boto.cloudhackers.com/en/latest/boto_config_tut.html
-        logger.error("Socket timeout when getting {0}, file is probably corrupt in ceph".format(key_obj.name))
+        logger.error("Socket timeout when getting {0}:{1}, file is probably corrupt in ceph".format(key_obj.bucket.name, key_obj.name))
         if os.path.exists(fn):
             os.unlink(fn)
         return False
     except:
-        logger.error("Exception while attempting to get file {0}".format(key_obj.name))
+        logger.error("Exception while attempting to get file {0}:{1}".format(key_obj.bucket.name, key_obj.name))
         raise
 
     # The db may have partial information so we need to support it being
@@ -93,17 +93,33 @@ def verify_object(row_obj, key_obj):
     # wrong with file, maintain a return value if anything fails.
     retval = True
 
+    if not size == key_obj.size:
+        logger.error("File size {0} does not match ceph size {1} for {2}:{3}".format(
+                     size, key_obj.size, key_obj.bucket.name, key_obj.name))
+        retval = False
+
+    if row_obj["ceph_bytes"] and (not size == row_obj["ceph_bytes"]):
+        logger.error("File size {0} does not match db size {1} for {2}:{3}".format(
+                     size, db_obj["ceph_bytes"], key_obj.bucket.name, key_obj.name))
+        retval = False
+
     if not md5 == key_obj.etag[1:-1]: # etag is wraped in ""
-        logger.error("File md5 {0} does not match ceph etag {1}".format(md5, key_obj.etag[1:-1]))
+        logger.error("File md5 {0} does not match ceph etag {1} for {2}:{3}".format(
+                     md5, key_obj.etag[1:-1], key_obj.bucket.name, key_obj.name))
+        retval = False
+
+    if row_obj["ceph_etag"] and (not md5 == row_obj["ceph_etag"]):
+        logger.error("File md5 {0} does not match db etag {1} for {2}:{3}".format(
+                     md5, row_obj["ceph_etag"], key_obj.bucket.name, key_obj.name))
         retval = False
 
     #print(key_obj.__dict__)
     os.unlink(fn)
 
     if retval:
-        logger.debug("Object {0}:{1} verified".format(key_obj.bucket, key_obj.name))
+        logger.debug("Object {0}:{1} verified".format(key_obj.bucket.name, key_obj.name))
     else:
-        logger.warn("Object {0}:{1} failed verification".format(key_obj.bucket, key_obj.name))
+        logger.warn("Object {0}:{1} failed verification".format(key_obj.bucket.name, key_obj.name))
     return retval
 
 def update_db_metadata(row_obj, key_obj, verify_status=False):
@@ -128,7 +144,7 @@ def verify_all_objects(row_objs):
     """
     retval = True
     for row_obj in row_objs:
-        retval = retval and verify_all_objects_worker(row_obj)
+        retval = verify_all_objects_worker(row_obj) and retval 
     return retval
 
 if __name__ == '__main__':

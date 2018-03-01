@@ -6,6 +6,10 @@ import sys
 import argparse
 import hashlib
 
+from httplib import HTTPException
+from socket import error as socket_error
+
+
 from idb.postgres_backend import apidbpool
 from idb.helpers.logging import getLogger, configure_app_log
 from idb.helpers.storage import IDigBioStorage
@@ -63,6 +67,7 @@ def calc_md5(fn):
 
 def verify_object(row_obj, key_obj):
     """Download an object and check it against the expected metadata."""
+
     global TMP_DIR
     try:
         if not os.path.exists(TMP_DIR):
@@ -72,20 +77,34 @@ def verify_object(row_obj, key_obj):
         logger.debug("Fetching file {0}".format(key_obj.name))
         storage.get_contents_to_filename(key_obj, fn)
         md5 = calc_md5(fn)
-
-        # The db may have partial information so we need to support it being
-        # empty, but if it exists, it should match. Build an array of failed
-        # check tags similar to what we do for iDigBio data quality.
-
-        # HERE!
-
-        print(key_obj.__dict__)
-        #os.unlink(fn)
-        return ()
+        size = os.stat(fn).st_size
+    except (HTTPException, socket_error) as ex:
+        # Timeout can be controlled by /etc/boto.cfg - see http://boto.cloudhackers.com/en/latest/boto_config_tut.html
+        logger.error("Socket timeout when getting {0}, file is probably corrupt in ceph".format(key_obj.name))
+        if os.path.exists(fn):
+            os.unlink(fn)
+        return False
     except:
         logger.error("Exception while attempting to get file {0}".format(key_obj.name))
         raise
-        return False
+
+    # The db may have partial information so we need to support it being
+    # empty, but if it exists, it should match. Use logging to say what's
+    # wrong with file, maintain a return value if anything fails.
+    retval = True
+
+    if not md5 == key_obj.etag[1:-1]: # etag is wraped in ""
+        logger.error("File md5 {0} does not match ceph etag {1}".format(md5, key_obj.etag[1:-1]))
+        retval = False
+
+    #print(key_obj.__dict__)
+    os.unlink(fn)
+
+    if retval:
+        logger.debug("Object {0}:{1} verified".format(key_obj.bucket, key_obj.name))
+    else:
+        logger.warn("Object {0}:{1} failed verification".format(key_obj.bucket, key_obj.name))
+    return retval
 
 def update_db_metadata(row_obj, key_obj, verify_status=False):
     """Some db records are incomplete due to the original db being used
@@ -139,8 +158,10 @@ if __name__ == '__main__':
     args = vars(argparser.parse_args()) # convert namespace to dict
     #print(args)
 
+    #print(iDigBioStorage.boto.config)
+
     row_objs = get_row_objs_from_db(args)
-    print(row_objs)
+    #print(row_objs)
 
     print(verify_all_objects(row_objs))
 

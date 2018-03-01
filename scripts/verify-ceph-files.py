@@ -142,10 +142,14 @@ def verify_all_objects(row_objs):
     """Loop over all the objects to verify from the database. Possibly
     multithreaded.
     """
-    retval = True
+    fail = 0
+    succeed = 0
     for row_obj in row_objs:
-        retval = verify_all_objects_worker(row_obj) and retval 
-    return retval
+        if verify_all_objects_worker(row_obj):
+            succeed += 1
+        else:
+            fail += 1
+    return (fail, succeed)
 
 if __name__ == '__main__':
 
@@ -179,6 +183,8 @@ if __name__ == '__main__':
     row_objs = get_row_objs_from_db(args)
     #print(row_objs)
 
-    print(verify_all_objects(row_objs))
+    fail, succeed = verify_all_objects(row_objs)
+    logger.info("Checked {0} objects, {1} failed, {2} succeeded".format(
+                 len(row_objs), fail, succeed))
 
     apidbpool.closeall()

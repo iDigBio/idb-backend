@@ -5,6 +5,9 @@ import os
 import sys
 import argparse
 import hashlib
+#import time
+
+import datetime
 
 from httplib import HTTPException
 from socket import error as socket_error
@@ -32,16 +35,19 @@ def get_key_object(bucket, name):
     return key
 
 def get_row_objs_from_db(args):
-    """Get a list of objects to verify from the database based on user's
-    passed arguments.
+    """Get a list of objects to verify from the database.
+
+    Uses the user's arguments to build the query for which objects
+    to verify.
     """
     cols = ["ceph_bucket", "ceph_name", "ceph_date", "ceph_bytes", "ceph_etag",
             "ver_status", "ver_last_success", "ver_last_failure"]
 
     wheres = []
     wheres.append("length(ceph_name)>=10")
-    wheres.append("ceph_bytes IS NOT NULL") # for initial testing
+    #wheres.append("ceph_bytes IS NOT NULL") # for initial testing
     wheres.append("ver_status IS NULL") # replace w/ argument soon
+    #wheres.append("ceph_date IS NULL") # for testing date updates
 
     if args["name"]:
         wheres.append("ceph_name=%(name)s")
@@ -59,6 +65,7 @@ def get_row_objs_from_db(args):
     return row_objs
 
 def calc_md5(fn):
+    """Calculate the md5 hash of a file on disk."""
     with open(fn, "rb") as f:
         f_md5 = hashlib.md5()
         for chunk in iter(lambda: f.read(4096), b""):
@@ -113,7 +120,6 @@ def verify_object(row_obj, key_obj):
                      md5, row_obj["ceph_etag"], key_obj.bucket.name, key_obj.name))
         retval = False
 
-    #print(key_obj.__dict__)
     os.unlink(fn)
 
     if retval:
@@ -122,21 +128,60 @@ def verify_object(row_obj, key_obj):
         logger.warn("Object {0}:{1} failed verification".format(key_obj.bucket.name, key_obj.name))
     return retval
 
-def update_db_metadata(row_obj, key_obj, verify_status=False):
+def update_db(row_obj, key_obj, verified):
     """Some db records are incomplete due to the original db being used
     for backups and not a full accounting of object properties, backfill
     any missing information into the database. Verify status is the result of this check.
     """
-    return True
+    global test
+
+    if test:
+        logger.debug("Skipping metadata update for {0}:{1}".format(
+                     key_obj.bucket.name, key_obj.name))
+        return True
+    else:
+        logger.debug("Updating database record for {0}:{1}".format(
+                     key_obj.bucket.name, key_obj.name))
+        cols = []
+        vals = {"ceph_name": row_obj["ceph_name"],
+                "ceph_bucket": row_obj["ceph_bucket"]}
+
+        cols.append("ver_status=%(status)s")
+        vals["status"] = "verified" if verified else "failed"
+
+        if verified:
+            cols.append("ver_last_success=%(timestamp)s")
+        else:
+            cols.append("ver_last_failure=%(timestamp)s")
+        vals["timestamp"] = '{:%Y-%m-%d %H:%M:%S}'.format(datetime.datetime.now())
+
+        # Even if the obj does not verify, update the db with what's in ceph
+        if not row_obj["ceph_date"]:
+            cols.append("ceph_date=%(last_modified)s")
+            vals["last_modified"] = key_obj.last_modified
+
+        if not row_obj["ceph_bytes"]:
+            cols.append("ceph_bytes=%(size)s")
+            vals["size"] = key_obj.size
+
+        if not row_obj["ceph_etag"]:
+            cols.append("ceph_etag=%(etag)s")
+            vals["etag"] = key_obj.etag[1:-1]
+
+        return apidbpool.execute("""UPDATE ceph_objects
+                             SET {0}
+                             WHERE
+                             ceph_name=%(ceph_name)s 
+                             AND ceph_bucket=%(ceph_bucket)s""".format(
+                             ",".join(cols)),
+                          vals)
 
 def verify_all_objects_worker(row_obj):
     """Wrapper to do all work in verify_all_objects.
     """
     key_obj = get_key_object(row_obj["ceph_bucket"], row_obj["ceph_name"])
-    if verify_object(row_obj, key_obj):
-        return update_db_metadata(row_obj, key_obj) # add test argument
-    else:
-        return False
+    verified = verify_object(row_obj, key_obj)
+    return update_db(row_obj, key_obj, verified) and verified
 
 def verify_all_objects(row_objs):
     """Loop over all the objects to verify from the database. Possibly
@@ -171,12 +216,18 @@ if __name__ == '__main__':
                        help="Verify only this one name")
 #    argparser.add_argument("-r", "--reverify", required=False,
 #                       help="Reverify objects that already have been verified")
-#    argparser.add_argument("-t", "--test", required=False,
-#                       help="Don't update database with results, just print to stdout")
+    argparser.add_argument("-t", "--test", required=False,
+                       help="Don't update database with results, just print to stdout")
 #    argparser.add_argument("-p", "--processes", required=False, default=1,
 #                       help="How many processing to use verifying objects, default 1")
     args = vars(argparser.parse_args()) # convert namespace to dict
     #print(args)
+
+    # Make test global
+    if args["test"]:
+        test = True
+    else:
+        test = False
 
     #print(iDigBioStorage.boto.config)
 

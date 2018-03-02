@@ -49,8 +49,12 @@ def get_row_objs_from_db(args):
     wheres.append("ver_status IS NULL") # replace w/ argument soon
     #wheres.append("ceph_date IS NULL") # for testing date updates
 
+    if args["start"]:
+        wheres.append("ceph_date>=%(start)s")
+    if args["end"]:
+        wheres.append("ceph_date<=%(end)s")
     if args["name"]:
-        wheres.append("ceph_name=%(name)s")
+        wheres.append("ceph_name like %(name)s")
     if args["bucket"]:
         wheres.append("ceph_bucket=%(bucket)s")
 
@@ -107,7 +111,7 @@ def verify_object(row_obj, key_obj):
 
     if row_obj["ceph_bytes"] and (not size == row_obj["ceph_bytes"]):
         logger.error("File size {0} does not match db size {1} for {2}:{3}".format(
-                     size, db_obj["ceph_bytes"], key_obj.bucket.name, key_obj.name))
+                     size, row_obj["ceph_bytes"], key_obj.bucket.name, key_obj.name))
         retval = False
 
     if not md5 == key_obj.etag[1:-1]: # etag is wraped in ""
@@ -206,10 +210,10 @@ if __name__ == '__main__':
                        help="Bucket name eg 'idigbio-images-prod'")
 #    argparser.add_argument("-e", "--etag", required=False,
 #                       help="Verify only this one etag")
-#    argparser.add_argument("-s", "--start", required=False,
-#                       help="Start date for when ceph object was created eg '2010-02-23'")
-#    argparser.add_argument("-d", "--end", required=False,
-#                       help="End date for when ceph object was created eg '2018-01-01'")
+    argparser.add_argument("-s", "--start", required=False,
+                       help="Start date for when ceph object was created eg '2010-02-23'")
+    argparser.add_argument("-d", "--end", required=False,
+                       help="End date for when ceph object was created eg '2018-01-01'")
     argparser.add_argument("-c", "--count", required=False, default=10,
                        help="How many to verify, default 10")
     argparser.add_argument("-n", "--name", required=False,

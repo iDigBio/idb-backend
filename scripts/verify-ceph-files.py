@@ -168,7 +168,8 @@ def update_db(row_obj, key_obj, verified):
             cols.append("ceph_bytes=%(size)s")
             vals["size"] = key_obj.size
 
-        if not row_obj["ceph_etag"]:
+        # Seems like if object does not transfer fully, etag is not set?
+        if verified and not row_obj["ceph_etag"]:
             cols.append("ceph_etag=%(etag)s")
             vals["etag"] = key_obj.etag[1:-1]
 

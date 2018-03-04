@@ -16,6 +16,7 @@ from socket import error as socket_error
 from idb.postgres_backend import apidbpool
 from idb.helpers.logging import getLogger, configure_app_log
 from idb.helpers.storage import IDigBioStorage
+from boto.exception import S3ResponseError
 
 TMP_DIR = os.path.join("/tmp", os.path.basename(sys.argv[0]))
 
@@ -77,7 +78,16 @@ def calc_md5(fn):
         return f_md5.hexdigest()
 
 def verify_object(row_obj, key_obj):
-    """Download an object and check it against the expected metadata."""
+    """Download an object and check it against the expected metadata.
+
+    Return is a string status of result of checking the file:
+
+    verified - Object downloads and all available data matches
+    timeout - Download times out, probably due to file being truncated
+    nosuchkey - Object does not exist, 404 error when downloading
+    invalid - Some of the metadata does not match
+    failed - No longer used, when this function was boolean this was False
+    """
 
     global TMP_DIR
     try:
@@ -89,12 +99,18 @@ def verify_object(row_obj, key_obj):
         storage.get_contents_to_filename(key_obj, fn)
         md5 = calc_md5(fn)
         size = os.stat(fn).st_size
+    except (S3ResponseError) as ex:
+        if "NoSuchKey" in str(ex):
+            logger.error("No such key when getting {0}:{1}".format(key_obj.bucket.name, key_obj.name))
+            return "nosuchkey"
+        else:
+            raise
     except (HTTPException, socket_error) as ex:
         # Timeout can be controlled by /etc/boto.cfg - see http://boto.cloudhackers.com/en/latest/boto_config_tut.html
         logger.error("Socket timeout when getting {0}:{1}, file is probably corrupt in ceph".format(key_obj.bucket.name, key_obj.name))
         if os.path.exists(fn):
             os.unlink(fn)
-        return False
+        return "timeout"
     except:
         logger.error("Exception while attempting to get file {0}:{1}".format(key_obj.bucket.name, key_obj.name))
         raise
@@ -102,37 +118,37 @@ def verify_object(row_obj, key_obj):
     # The db may have partial information so we need to support it being
     # empty, but if it exists, it should match. Use logging to say what's
     # wrong with file, maintain a return value if anything fails.
-    retval = True
+    retval = "verified"
 
     if not size == key_obj.size:
         logger.error("File size {0} does not match ceph size {1} for {2}:{3}".format(
                      size, key_obj.size, key_obj.bucket.name, key_obj.name))
-        retval = False
+        retval = "invalid"
 
     if row_obj["ceph_bytes"] and (not size == row_obj["ceph_bytes"]):
         logger.error("File size {0} does not match db size {1} for {2}:{3}".format(
                      size, row_obj["ceph_bytes"], key_obj.bucket.name, key_obj.name))
-        retval = False
+        retval = "invalid"
 
     if not md5 == key_obj.etag[1:-1]: # etag is wraped in ""
         logger.error("File md5 {0} does not match ceph etag {1} for {2}:{3}".format(
                      md5, key_obj.etag[1:-1], key_obj.bucket.name, key_obj.name))
-        retval = False
+        retval = "invalid"
 
     if row_obj["ceph_etag"] and (not md5 == row_obj["ceph_etag"]):
         logger.error("File md5 {0} does not match db etag {1} for {2}:{3}".format(
                      md5, row_obj["ceph_etag"], key_obj.bucket.name, key_obj.name))
-        retval = False
+        retval = "invalid"
 
     os.unlink(fn)
 
-    if retval:
+    if retval == "verified":
         logger.debug("Object {0}:{1} verified".format(key_obj.bucket.name, key_obj.name))
     else:
         logger.warn("Object {0}:{1} failed verification".format(key_obj.bucket.name, key_obj.name))
     return retval
 
-def update_db(row_obj, key_obj, verified):
+def update_db(row_obj, key_obj, status):
     """Some db records are incomplete due to the original db being used
     for backups and not a full accounting of object properties, backfill
     any missing information into the database. Verify status is the result of this check.
@@ -151,9 +167,9 @@ def update_db(row_obj, key_obj, verified):
                 "ceph_bucket": row_obj["ceph_bucket"]}
 
         cols.append("ver_status=%(status)s")
-        vals["status"] = "verified" if verified else "failed"
+        vals["status"] = status
 
-        if verified:
+        if status == "verified":
             cols.append("ver_last_success=%(timestamp)s")
         else:
             cols.append("ver_last_failure=%(timestamp)s")
@@ -169,7 +185,7 @@ def update_db(row_obj, key_obj, verified):
             vals["size"] = key_obj.size
 
         # Seems like if object does not transfer fully, etag is not set?
-        if verified and not row_obj["ceph_etag"]:
+        if (status == "verified") and not row_obj["ceph_etag"]:
             cols.append("ceph_etag=%(etag)s")
             vals["etag"] = key_obj.etag[1:-1]
 
@@ -185,8 +201,8 @@ def verify_all_objects_worker(row_obj):
     """Wrapper to do all work in verify_all_objects.
     """
     key_obj = get_key_object(row_obj["ceph_bucket"], row_obj["ceph_name"])
-    verified = verify_object(row_obj, key_obj)
-    return update_db(row_obj, key_obj, verified) and verified
+    status = verify_object(row_obj, key_obj)
+    return update_db(row_obj, key_obj, status) and (status == "verified")
 
 def verify_all_objects(row_objs):
     """Loop over all the objects to verify from the database. Possibly

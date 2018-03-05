@@ -5,7 +5,7 @@ import os
 import sys
 import argparse
 import hashlib
-#import time
+import traceback
 
 import datetime
 
@@ -104,16 +104,22 @@ def verify_object(row_obj, key_obj):
             logger.error("No such key when getting {0}:{1}".format(key_obj.bucket.name, key_obj.name))
             return "nosuchkey"
         else:
-            raise
+            logger.error("Exception while attempting to get file {0}:{1} {2}".format(key_obj.bucket.name, key_obj.name, traceback.format_exc()))
+#            raise
+            return "S3ResponseError"
     except (HTTPException, socket_error) as ex:
         # Timeout can be controlled by /etc/boto.cfg - see http://boto.cloudhackers.com/en/latest/boto_config_tut.html
         logger.error("Socket timeout when getting {0}:{1}, file is probably corrupt in ceph".format(key_obj.bucket.name, key_obj.name))
         if os.path.exists(fn):
             os.unlink(fn)
         return "timeout"
-    except:
-        logger.error("Exception while attempting to get file {0}:{1}".format(key_obj.bucket.name, key_obj.name))
-        raise
+    except Exception as ex:
+        if "503 Service Unavailable" in str(ex):
+            logger.error("Service unavailable getting {0}:{1}".format(key_object.bucket.name, key_object.name))
+            return "503Error"
+        else:
+            logger.error("Exception while attempting to get file {0}:{1} {2}".format(key_obj.bucket.name, key_obj.name, traceback.format_exc()))
+            raise
 
     # The db may have partial information so we need to support it being
     # empty, but if it exists, it should match. Use logging to say what's

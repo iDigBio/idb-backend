@@ -47,7 +47,6 @@ def get_row_objs_from_db(args):
     wheres = []
     wheres.append("length(ceph_name)>=10")
     #wheres.append("ceph_bytes IS NOT NULL") # for initial testing
-    wheres.append("ver_status IS NULL") # replace w/ argument soon
     #wheres.append("ceph_date IS NULL") # for testing date updates
 
     if args["start"]:
@@ -58,6 +57,10 @@ def get_row_objs_from_db(args):
         wheres.append("ceph_name like %(name)s")
     if args["bucket"]:
         wheres.append("ceph_bucket=%(bucket)s")
+    if args["reverify"]:
+        wheres.append("ver_status=%(reverify)s")
+    else:
+        wheres.append("ver_status IS NULL")
 
     rows = apidbpool.fetchall("""SELECT {0} FROM ceph_objects WHERE
                                   {1}
@@ -115,7 +118,7 @@ def verify_object(row_obj, key_obj):
         return "timeout"
     except Exception as ex:
         if "503 Service Unavailable" in str(ex):
-            logger.error("Service unavailable getting {0}:{1}".format(key_object.bucket.name, key_object.name))
+            logger.error("Service unavailable getting {0}:{1}".format(key_obj.bucket.name, key_obj.name))
             return "503Error"
         else:
             logger.error("Exception while attempting to get file {0}:{1} {2}".format(key_obj.bucket.name, key_obj.name, traceback.format_exc()))
@@ -241,8 +244,8 @@ if __name__ == '__main__':
                        help="How many to verify, default 10")
     argparser.add_argument("-n", "--name", required=False,
                        help="Verify only this one name")
-#    argparser.add_argument("-r", "--reverify", required=False,
-#                       help="Reverify objects that already have been verified")
+    argparser.add_argument("-r", "--reverify", required=False,
+                       help="Reverify objects that have the specified status")
     argparser.add_argument("-t", "--test", required=False,
                        help="Don't update database with results, just print to stdout")
 #    argparser.add_argument("-p", "--processes", required=False, default=1,

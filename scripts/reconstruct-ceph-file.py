@@ -2,21 +2,22 @@ import sys
 import os
 import shutil
 import json
+import traceback
+import argparse
 import paramiko
 from idb.helpers.logging import getLogger, configure_app_log
 from idb.helpers.storage import IDigBioStorage
+import idb.config
 from subprocess import check_output, CalledProcessError
 import hashlib
+from logging import ERROR
 
-
-logger = getLogger("reconstruct")
-
+import idb.postgres_backend as pg_backend
 from idb.postgres_backend.db import PostgresDB
-#store = IDigBioStorage()
 
 TMP_DIR = "/tmp/{0}".format(os.path.basename(sys.argv[0]))
 
-# data structure of parts_obj, in order by part to be assembled
+# data structure of parts_obj, stored in order by part to be assembled
 # [
 #  { "pattern": "foo",
 #    "copies": [
@@ -106,15 +107,15 @@ def stat_obj_to_parts_obj(stat_obj):
 def find_parts_on_servers(parts_obj):
     # Using the index of all files on all servers, return a list of dicts with
     # information about that file is on disk(s)
-    cols = ["server", "fullname", "filename", "unk3"]
+    cols = ["server", "fullname", "filename", "size"]
     q = """SELECT
             {}
-           FROM ceph_server_files_old
+           FROM ceph_server_files
            WHERE
             filename LIKE %s
         """.format(','.join(cols))
-# FIXME: change unk3 to size when change to real table
     with PostgresDB() as db:
+        print(db.__dict__)
         for i, part in enumerate(parts_obj):
             # When in doubt, add more backslashes!
             rows = db.fetchall(q, ("{0}%".format(part["pattern"].replace('\\','\\\\')),))
@@ -176,33 +177,44 @@ def reconstruct_file(parts_obj, stats_obj, output_dir):
     else:
         return False
 
+
+def do_a_file(ceph_bucket, ceph_name, output_dir):
+    try:
+        stat_obj = get_file_parts(ceph_bucket, ceph_name)
+        #print(stat_obj)
+        parts_obj = stat_obj_to_parts_obj(stat_obj)
+        #print(parts_obj)
+        parts_obj = find_parts_on_servers(parts_obj)
+        #print(parts_obj)
+        parts_obj = get_file_parts_from_servers(parts_obj)
+        #print(parts_obj[0])
+        return reconstruct_file(parts_obj, stat_obj, output_dir)
+    except Exception as e:
+        logger.error("Exception while reconstructing {0}/{1} {2}".format(
+                     ceph_bucket, ceph_name, traceback.format_exc()))
+        raise
+        return False
+
 if __name__ == '__main__':
-    if len(sys.argv) == 4:
-        ceph_bucket = sys.argv[1]
-        ceph_name = sys.argv[2]
-        output_dir = sys.argv[3]
-    else:
-        print("Usage: {0} <bucket> <file name> <output dir>".format(sys.argv[0]))
-        exit(64)
 
-    stat_obj = get_file_parts(ceph_bucket, ceph_name)
-    #print(stat_obj)
-    parts_obj = stat_obj_to_parts_obj(stat_obj)
-    #print(parts_obj)
+    configure_app_log(2, logfile="./reconstruct.log", journal="auto")
+    getLogger('paramiko').setLevel(ERROR)
+    logger = getLogger("reconstruct")
+    logger.error("Hello!")
 
-    parts_obj = find_parts_on_servers(parts_obj)
-    #print(parts_obj)
+    argparser = argparse.ArgumentParser(
+                    description="Reconstruct a ceph object from files on disk")
+    argparser.add_argument("-b", "--bucket", required=True,
+                   help="Bucket name eg 'idigbio-images-prod'")
+    argparser.add_argument("-n", "--name", required=True,
+                       help="Verify only this one name")
+    argparser.add_argument("-o", "--outdir", required=True,
+                       help="Root dierectory to write subpath bucket/name to")
+    args = argparser.parse_args()
 
-    parts_obj = get_file_parts_from_servers(parts_obj)
-    #print(parts_obj[0])
+    ceph_bucket = args.bucket
+    ceph_name = args.name
+    output_dir = args.outdir
 
-    r = reconstruct_file(parts_obj, stat_obj, output_dir)
-    print(r)
+    do_a_file(ceph_bucket, ceph_name, output_dir)
 
-
-#    print(get_file_from_server("c15node1",
-#                               "/root/nbird",
-#                               os.path.join(TMP_DIR, "asdf")))
-
-
-#    rebuild_from_files(ceph_name, output_dir, files, stat_obj)

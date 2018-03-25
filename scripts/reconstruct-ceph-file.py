@@ -119,6 +119,8 @@ def get_file_parts(ceph_bucket, ceph_name):
     # radosgw-admin object stat --object=c895d988bc4dfcb2d9f7f4cb4bf1d430 --bucket=idigbio-images-prod
     # and return the parsed JSON as a stat object
     try:
+        logger.debug("Contacting idb-rgw1 for details on {0}/{1}".format(
+                     ceph_bucket, ceph_name))
         r = check_output( ("/usr/bin/ssh "
                           "root@idb-rgw1 radosgw-admin object stat --bucket={0} "
                            "--object={1}".format(ceph_bucket, ceph_name)),
@@ -142,7 +144,6 @@ def stat_obj_to_parts_obj(stat_obj):
     # an in-order list of file name substrings that should be unique
     # to look for on disk by assembling the metadata
     parts_obj = []
-
 
     for o in stat_obj["manifest"]["objs"][1::2]: #objs is a list that alternates byte and dict
         # This chunk is only present for file parts > 1, first part has no ns
@@ -238,8 +239,11 @@ def reconstruct_file(parts_obj, stats_obj, output_dir):
     if verify_file(dest_file, stats_obj["size"], stats_obj["etag"]):
         for part in parts_obj:
             os.unlink(part["localpath"])
+        logger.info("Sucessfully reconstructed {0}".format(dest_file))
         return True
     else:
+        os.rename(dest_file, "INVALID-{0}".format(dest_file))
+        logger.info("Failed to reconstruct, file invalid {0}".format(dest_file))
         return False
 
 
@@ -258,8 +262,8 @@ def do_a_file(ceph_bucket, ceph_name, output_dir):
         #print(parts_obj[0])
         return reconstruct_file(parts_obj, stat_obj, output_dir)
     except Exception as e:
-        logger.error("Exception while reconstructing {0}/{1} {2}".format(
-                     ceph_bucket, ceph_name, traceback.format_exc()))
+        logger.error("Exception while reconstructing {0}/{1}".format(
+                     ceph_bucket, ceph_name))
         raise
         return False
 
@@ -297,11 +301,16 @@ def update_db(ceph_bucket, ceph_name, status):
 
 def worker(r):
     global outdir
-    if do_a_file(r["ceph_bucket"],  r["ceph_name"], outdir):
-        status = "reconstructed"
-    else:
-        status = "broken"
-    return update_db(r["ceph_bucket"], r["ceph_name"], status)
+
+    try:
+        if do_a_file(r["ceph_bucket"],  r["ceph_name"], outdir):
+            status = "reconstructed"
+        else:
+            status = "broken"
+        return update_db(r["ceph_bucket"], r["ceph_name"], status)
+    except:
+        logger.error("Exception in worker on {0}/{1} {2}".format(
+                     r["ceph_bucket"], r["ceph_name"], traceback.format_exc()))
 
 
 if __name__ == '__main__':
@@ -343,7 +352,9 @@ if __name__ == '__main__':
     rows = get_row_objs_from_db(args)
     p = pool.Pool(int(args["processes"]))
     results = p.imap_unordered(worker, rows)
+    # if there are no results, this will be TypeError but not sure how to get around laziness of imap
+    results_sum = sum(results)
 
     logger.info("Completed reconstruction, {0} of {1} objects successful".format(
-                len(rows), sum(results)))
+                results_sum, len(rows)))
 

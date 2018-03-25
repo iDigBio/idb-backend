@@ -1,3 +1,7 @@
+import gevent
+from gevent import monkey, pool
+monkey.patch_all()
+
 import sys
 import os
 import shutil
@@ -78,6 +82,8 @@ def get_row_objs_from_db(args):
     row_objs = []
     for row in rows:
         row_objs.append(dict(zip(cols, row)))
+    logger.info("Found {0} objects to work on".format(len(row_objs)))
+
     return row_objs
 
 
@@ -239,7 +245,7 @@ def reconstruct_file(parts_obj, stats_obj, output_dir):
 
 def do_a_file(ceph_bucket, ceph_name, output_dir):
     logger.info("Starting reconstruction of {0}/{1}".format(ceph_bucket, ceph_name))
-    return True
+#    return True
 
     try:
         stat_obj = get_file_parts(ceph_bucket, ceph_name)
@@ -263,6 +269,7 @@ def update_db(ceph_bucket, ceph_name, status):
     if test:
         logger.debug("Skipping database udpate for {0}/{1}".format(
                      ceph_bucket, ceph_name))
+        return True
     else:
         logger.debug("Updating database for {0}/{1}".format(
                      ceph_bucket, ceph_name))
@@ -279,19 +286,22 @@ def update_db(ceph_bucket, ceph_name, status):
             cols.append("rest_last_failure=%(timestamp)s")
         vals["timestamp"] = '{:%Y-%m-%d %H:%M:%S}'.format(datetime.datetime.now())
 
-        apidbpool.execute("""UPDATE ceph_objects
+        r = apidbpool.execute("""UPDATE ceph_objects
             SET {0}
             WHERE
             ceph_name=%(ceph_name)s
             AND ceph_bucket=%(ceph_bucket)s
         """.format(",".join(cols)), vals)
+        return r > 0
 
-def worker(ceph_bucket, ceph_name, outdir):
-        if do_a_file(ceph_bucket,  ceph_name, outdir):
-            status = "reconstructed"
-        else:
-            status = "broken"
-        update_db(r["ceph_bucket"], r["ceph_name"], status)
+
+def worker(r):
+    global outdir
+    if do_a_file(r["ceph_bucket"],  r["ceph_name"], outdir):
+        status = "reconstructed"
+    else:
+        status = "broken"
+    return update_db(r["ceph_bucket"], r["ceph_name"], status)
 
 
 if __name__ == '__main__':
@@ -299,6 +309,7 @@ if __name__ == '__main__':
     configure_app_log(2, logfile="./reconstruct.log", journal="auto")
     getLogger('paramiko').setLevel(ERROR)
     logger = getLogger("reconstruct")
+    logger.info("Begining reconstruction of objects")
 
     argparser = argparse.ArgumentParser(
                     description="Reconstruct a ceph object from files on disk")
@@ -323,13 +334,16 @@ if __name__ == '__main__':
     argparser.add_argument("-p", "--processes", required=False, default=1,
                        help="How many processing to use reconstructing objects, default 1")
 
+    args = vars(argparser.parse_args()) # convert namespace to dict for easier use in queries
 
-
-    args = vars(argparser.parse_args()) # convert namespace to dict
-
+    # globals for pool workers to avoid having to pack them into list
     test = True if args["test"] else False
-
+    outdir = args["outdir"]
 
     rows = get_row_objs_from_db(args)
-    for r in rows:
-        worker(r["ceph_bucket"],  r["ceph_name"], args["outdir"])
+    p = pool.Pool(int(args["processes"]))
+    results = p.imap_unordered(worker, rows)
+
+    logger.info("Completed reconstruction, {0} of {1} objects successful".format(
+                len(rows), sum(results)))
+

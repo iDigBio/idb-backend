@@ -311,6 +311,7 @@ def worker(r):
     except:
         logger.error("Exception in worker on {0}/{1} {2}".format(
                      r["ceph_bucket"], r["ceph_name"], traceback.format_exc()))
+        return False
 
 
 if __name__ == '__main__':
@@ -352,8 +353,8 @@ if __name__ == '__main__':
     rows = get_row_objs_from_db(args)
     p = pool.Pool(int(args["processes"]))
     results = p.imap_unordered(worker, rows)
-    # if there are no results, this will be TypeError but not sure how to get around laziness of imap
-    results_sum = sum(results)
+
+    results_sum = sum(results) # number of trues
 
     logger.info("Completed reconstruction, {0} of {1} objects successful".format(
                 results_sum, len(rows)))

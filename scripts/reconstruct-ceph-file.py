@@ -265,7 +265,7 @@ def do_a_file(ceph_bucket, ceph_name, output_dir):
         logger.error("Exception while reconstructing {0}/{1}".format(
                      ceph_bucket, ceph_name))
         raise
-        return False
+
 
 def update_db(ceph_bucket, ceph_name, status):
     global test
@@ -303,14 +303,15 @@ def worker(r):
     global outdir
 
     try:
-        if do_a_file(r["ceph_bucket"],  r["ceph_name"], outdir):
+        if do_a_file(r["ceph_bucket"], r["ceph_name"], outdir):
             status = "reconstructed"
         else:
-            status = "broken"
+            status = "invalid"
         return update_db(r["ceph_bucket"], r["ceph_name"], status)
     except:
         logger.error("Exception in worker on {0}/{1} {2}".format(
                      r["ceph_bucket"], r["ceph_name"], traceback.format_exc()))
+        update_db(r["ceph_bucket"], r["ceph_name"], "exception")
         return False
 
 

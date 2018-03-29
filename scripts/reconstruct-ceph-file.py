@@ -197,12 +197,17 @@ def get_file_parts_from_servers(parts_obj):
         os.mkdirs(TMP_DIR)
 
     for i, part in enumerate(parts_obj):
-        c = part["copies"][0] # examine re-trying additional copies
-        local_fn = os.path.join(TMP_DIR, c["filename"])
-        if get_file_from_server(c["server"],
-                                 c["fullname"],
-                                 local_fn):
-            parts_obj[i]["localpath"] = local_fn
+        for copy in part["copies"]:
+            local_fn = os.path.join(TMP_DIR, copy["filename"])
+            try:
+                get_file_from_server(copy["server"],
+                                     copy["fullname"],
+                                     local_fn)
+                parts_obj[i]["localpath"] = local_fn
+                break
+            except Exception as e:
+                logger.error("Error getting file part {0} from server {1} {2}".format(
+                             copy["fullname"], copy["server"], traceback.format_exc()))
 
     return parts_obj
 

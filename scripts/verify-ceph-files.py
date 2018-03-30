@@ -23,9 +23,9 @@ from idb.helpers.storage import IDigBioStorage
 from boto.exception import S3ResponseError
 
 TMP_DIR = os.path.join("/tmp", os.path.basename(sys.argv[0]))
+STORAGE_HOST = "10.13.44.93:7480"
 
 logger = getLogger("verify-ceph-files")
-storage = IDigBioStorage()
 
 
 def get_key_object(bucket, name):
@@ -34,7 +34,8 @@ def get_key_object(bucket, name):
     Note that most of the metadata with the key won't be populated
     until after it has been fetched.
     """
-    #global storage
+    global STORAGE_HOST
+    storage = IDigBioStorage(host=STORAGE_HOST)
     logger.debug("Retreiving key for {0}:{1}".format(bucket, name))
     key = storage.get_key(name, bucket)
     return key
@@ -95,6 +96,8 @@ def verify_object(row_obj, key_obj):
     invalid - Some of the metadata does not match
     failed - No longer used, when this function was boolean this was False
     """
+    global STORAGE_HOST
+    storage = IDigBioStorage(host=STORAGE_HOST)
 
     global TMP_DIR
     try:

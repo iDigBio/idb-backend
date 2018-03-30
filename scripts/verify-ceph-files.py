@@ -1,6 +1,10 @@
 # Verify objects in ceph by downloading and checksumming them and making
 # sure whats in the database matches what ceph is serving.
 # Track status and state with the ceph_objects table in the databse.
+import gevent
+from gevent import monkey, pool
+monkey.patch_all()
+
 import os
 import sys
 import argparse
@@ -213,18 +217,22 @@ def verify_all_objects_worker(row_obj):
     status = verify_object(row_obj, key_obj)
     return update_db(row_obj, key_obj, status) and (status == "verified")
 
-def verify_all_objects(row_objs):
+def verify_all_objects(row_objs, processes):
     """Loop over all the objects to verify from the database. Possibly
     multithreaded.
     """
-    fail = 0
-    succeed = 0
-    for row_obj in row_objs:
-        if verify_all_objects_worker(row_obj):
-            succeed += 1
-        else:
-            fail += 1
-    return (fail, succeed)
+#    fail = 0
+#    succeed = 0
+#    for row_obj in row_objs:
+#        if verify_all_objects_worker(row_obj):
+#            succeed += 1
+#        else:
+#            fail += 1
+#    return (fail, succeed)
+
+    p = pool.Pool(processes)
+    results = p.imap_unordered(verify_all_objects_worker, row_objs)
+    return sum(results)
 
 if __name__ == '__main__':
 
@@ -248,8 +256,8 @@ if __name__ == '__main__':
                        help="Reverify objects that have the specified status")
     argparser.add_argument("-t", "--test", required=False,
                        help="Don't update database with results, just print to stdout")
-#    argparser.add_argument("-p", "--processes", required=False, default=1,
-#                       help="How many processing to use verifying objects, default 1")
+    argparser.add_argument("-p", "--processes", required=False, default=1,
+                       help="How many processing to use verifying objects, default 1")
     args = vars(argparser.parse_args()) # convert namespace to dict
     #print(args)
 
@@ -264,8 +272,8 @@ if __name__ == '__main__':
     row_objs = get_row_objs_from_db(args)
     #print(row_objs)
 
-    fail, succeed = verify_all_objects(row_objs)
-    logger.info("Checked {0} objects, {1} failed, {2} succeeded".format(
-                 len(row_objs), fail, succeed))
+    verified = verify_all_objects(row_objs, int(args["processes"]))
+    logger.info("Checked {0} objects, {1} verified".format(
+                 len(row_objs), verified))
 
     apidbpool.closeall()

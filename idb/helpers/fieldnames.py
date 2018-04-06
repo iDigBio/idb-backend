@@ -3,6 +3,10 @@ import json
 import string
 from collections import defaultdict
 
+'''
+The namespaces are ...
+'''
+
 namespaces = {
     "http://rs.tdwg.org/dwc/terms/": "dwc",
     "http://purl.org/dc/terms/": "dcterms",
@@ -22,7 +26,8 @@ namespaces = {
     "http://ns.adobe.com/photoshop/1.0/": "photoshop",
     "http://ns.adobe.com/exif/1.0/": "exif",
     "http://purl.org/NET/aec/NET/aec/": "aec",
-    "http://purl.org/NET/aec/": "aec"
+    "http://purl.org/NET/aec/": "aec",
+    "http://zooarchnet.org/dwc/terms/": "zooarch"
 }
 
 namespaces_rev = {v:k for k, v in namespaces.items()}
@@ -33,6 +38,9 @@ namespaces_rev["aec"] = "http://purl.org/NET/aec/"
 # Manual Reverse Override
 namespaces_rev["Iptc4xmpExt"] = "http://iptc.org/std/Iptc4xmpExt/2008-02-29/"
 
+'''
+The types are ...
+'''
 types = {
     "http://purl.org/NET/aec/associatedTaxa": {"shortname": "aec:associatedTaxa"},
     "http://rs.gbif.org/terms/1.0/Identifier": {"shortname": "gbif:Identifier"},
@@ -50,9 +58,12 @@ types = {
     "http://rs.tdwg.org/dwc/terms/Occurrence": { "shortname": "dwc:Occurrence" },
     "http://rs.tdwg.org/dwc/terms/ResourceRelationship": { "shortname": "dwc:ResourceRelationship" },
     "http://rs.tdwg.org/dwc/terms/Taxon": {"shortname": "dwc:Taxon"},
-    
+    "http://zooarchnet.org/dwc/terms/ChronometricDate": {"shortname": "zooarch:ChronometricDate"}
 }
 
+'''
+The translate_dict is used to...
+'''
 translate_dict = {
     "ac:accessURI": ["ac:accessURI", "dwc:Multimedia"],
     "ac:associatedObservationReference": ["ac:associatedObservationReference", "dwc:Multimedia"],

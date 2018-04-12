@@ -35,38 +35,45 @@ def struct_to_datetime(s):
     return datetime.datetime.fromtimestamp(time.mktime(s))
 
 def create_tables():
-    db = PostgresDB()
-    db.execute("""CREATE TABLE IF NOT EXISTS publishers (
-        id BIGSERIAL NOT NULL PRIMARY KEY,
-        uuid uuid UNIQUE,
-        name text NOT NULL,
-        recordids text[] NOT NULL DEFAULT '{}',
-        pub_type varchar(20) NOT NULL DEFAULT 'rss',
-        portal_url text,
-        rss_url text NOT NULL,
-        auto_publish boolean NOT NULL DEFAULT false,
-        first_seen timestamp NOT NULL DEFAULT now(),
-        last_seen timestamp NOT NULL DEFAULT now(),
-        pub_date timestamp
-    )""")
+'''
+This function is out-of-sync with actual database, unmaintained.
+Commenting out all action in this function, it will do nothing until modified again.
+'''
 
-    #pubid, rsid  Ingest, rs_record_id, eml_link, file_link, First Seen Date, Last Seen Date, Feed Date, Harvest Date, Harvest Etag
-    db.execute("""CREATE TABLE IF NOT EXISTS recordsets (
-        id BIGSERIAL NOT NULL PRIMARY KEY,
-        uuid uuid UNIQUE,
-        publisher_uuid uuid REFERENCES publishers(uuid),
-        name text NOT NULL,
-        recordids text[] NOT NULL DEFAULT '{}',
-        eml_link text,
-        file_link text NOT NULL,
-        ingest boolean NOT NULL DEFAULT false,
-        first_seen timestamp NOT NULL DEFAULT now(),
-        last_seen timestamp NOT NULL DEFAULT now(),
-        pub_date timestamp,
-        harvest_date timestamp,
-        harvest_etag varchar(41)
-    )""")
-    db.commit()
+    db = PostgresDB()
+    logger.error('create_tables called but has no valid code to run.')
+
+    # db.execute("""CREATE TABLE IF NOT EXISTS publishers (
+    #     id BIGSERIAL NOT NULL PRIMARY KEY,
+    #     uuid uuid UNIQUE,
+    #     name text NOT NULL,
+    #     recordids text[] NOT NULL DEFAULT '{}',
+    #     pub_type varchar(20) NOT NULL DEFAULT 'rss',
+    #     portal_url text,
+    #     rss_url text NOT NULL,
+    #     auto_publish boolean NOT NULL DEFAULT false,
+    #     first_seen timestamp NOT NULL DEFAULT now(),
+    #     last_seen timestamp NOT NULL DEFAULT now(),
+    #     pub_date timestamp
+    # )""")
+
+    # #pubid, rsid  Ingest, rs_record_id, eml_link, file_link, First Seen Date, Last Seen Date, Feed Date, Harvest Date, Harvest Etag
+    # db.execute("""CREATE TABLE IF NOT EXISTS recordsets (
+    #     id BIGSERIAL NOT NULL PRIMARY KEY,
+    #     uuid uuid UNIQUE,
+    #     publisher_uuid uuid REFERENCES publishers(uuid),
+    #     name text NOT NULL,
+    #     recordids text[] NOT NULL DEFAULT '{}',
+    #     eml_link text,
+    #     file_link text NOT NULL,
+    #     ingest boolean NOT NULL DEFAULT false,
+    #     first_seen timestamp NOT NULL DEFAULT now(),
+    #     last_seen timestamp NOT NULL DEFAULT now(),
+    #     pub_date timestamp,
+    #     harvest_date timestamp,
+    #     harvest_etag varchar(41)
+    # )""")
+    # db.commit()
     db.close()
 
 def id_func(portal_url, e):

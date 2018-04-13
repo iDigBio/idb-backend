@@ -35,10 +35,10 @@ def struct_to_datetime(s):
     return datetime.datetime.fromtimestamp(time.mktime(s))
 
 def create_tables():
-'''
-This function is out-of-sync with actual database, unmaintained.
-Commenting out all action in this function, it will do nothing until modified again.
-'''
+    """
+    This function is out-of-sync with actual database, unmaintained.
+    Commenting out all action in this function, it will do nothing until modified again.
+    """
 
     db = PostgresDB()
     logger.error('create_tables called but has no valid code to run.')

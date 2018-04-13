@@ -520,6 +520,9 @@ def metadataToSummaryJSON(rsid, metadata, writeFile=True, doStats=True):
 
 
 def main(rsid, ingest=False):
+    from .db_rsids import get_paused_rsids
+    paused_rsids = get_paused_rsids()
+
     with LoggingContext(
             filename='./{0}.db_check.log'.format(rsid),
             file_level=logging.DEBUG,
@@ -581,6 +584,12 @@ def main(rsid, ingest=False):
         if len(db_i_d) == 0 and len(db_u_d) == 0:
             commit_force = True
 
+        ### At this point forward, we are already working on the rsid, so it is ok
+        ### to mutate ingest directive on recordsets that are paused.
+        if rsid in paused_rsids:
+            rlogger.warn("Recordset is PAUSED. It will be checked but will not be ingested.".format(rsid))
+            ingest = False
+
         metadata = process_file(name, mime, rsid, db_u_d, db_i_d, ingest=ingest, commit_force=commit_force)
         metadataToSummaryJSON(rsid, metadata)
         rlogger.info("Finished db_check in %0.3fs", (datetime.datetime.now() - t).total_seconds())
@@ -607,9 +616,13 @@ def launch_child(rsid, ingest):
 
 def allrsids(since=None, ingest=False):
     from .db_rsids import get_active_rsids
-
     rsids = get_active_rsids(since=since)
     logger.info("Checking %s recordsets", len(rsids))
+
+    from .db_rsids import get_paused_rsids
+    paused_recordsets = get_paused_rsids()
+    logger.info("Paused recordsets: {0}, rsids: {1}".format(len(paused_recordsets),paused_recordsets))
+
 
     # Need to ensure all the connections are closed before multiprocessing forks
     apidbpool.closeall()

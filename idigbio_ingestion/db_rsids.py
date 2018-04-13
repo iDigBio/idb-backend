@@ -20,6 +20,16 @@ def get_active_rsids(since=None):
     sql += "ORDER BY file_harvest_date DESC"
     return [r[0] for r in apidbpool.fetchall(sql, params, cursor_factory=cursor)]
 
+def get_paused_rsids():
+    sql = """
+        SELECT uuid
+        FROM recordsets
+        WHERE ingest=true
+          AND uuid IS NOT NULL
+          AND ingest_is_paused = true
+    """
+    params = []
+    return [r[0] for r in apidbpool.fetchall(sql, params, cursor_factory=cursor)]
 
 def main3():
     for rsid in get_active_rsids():

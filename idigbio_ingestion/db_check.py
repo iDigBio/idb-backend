@@ -178,6 +178,7 @@ def process_subfile(rf, rsid, rs_uuid_etag, rs_id_uuid, ingest=False, db=None):
         ingest = False
 
     t = datetime.datetime.now()
+    rlogger.info("Beginning row processing, rowtype = {0}".format(rf.rowtype))
     for r in rf:
         ids_to_add = {}
         uuids_to_add = {}
@@ -238,7 +239,7 @@ def process_subfile(rf, rsid, rs_uuid_etag, rs_id_uuid, ingest=False, db=None):
                 if parent is not None:
                     # assert parent == rsid
                     if parent != rsid:
-                        raise RecordException("Record exists but has a parent other than expected. Expected parent (this recordset): {0}  Existing Parent: {1}  Record: {2}".format(rsid,parent,u))
+                        raise RecordException("UUID exists but has a parent other than expected. Expected parent (this recordset): {0}  Existing Parent: {1}  UUID: {2}".format(rsid,parent,u))
 
             if deleted:
                 to_undelete += 1

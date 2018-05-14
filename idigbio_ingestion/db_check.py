@@ -128,6 +128,7 @@ def identifyRecord(t, etag, r, rsid):
         for pi in identifier_fields[t]:
             if pi[0] in r:
                 # The "UConn" exception
+                # (appears to allow numeric integers into uuids_identifier, screwing up morphosource et al...)
                 if pi[0] == "ac:providerManagedID" and "dcterms:identifier" in r and r["dcterms:identifier"].lower() == r["ac:providerManagedID"].lower():
                     continue
                 cid = pi[1](r[pi[0]], rsid)
@@ -180,6 +181,8 @@ def process_subfile(rf, rsid, rs_uuid_etag, rs_id_uuid, ingest=False, db=None):
     t = datetime.datetime.now()
     rlogger.info("Beginning row processing, rowtype = {0}".format(rf.rowtype))
     for r in rf:
+        # rf is of class idigbio_ingestion.lib.dwca.DwcaRecordFile
+        # r is a dict
         ids_to_add = {}
         uuids_to_add = {}
         siblings = []
@@ -233,12 +236,25 @@ def process_subfile(rf, rsid, rs_uuid_etag, rs_id_uuid, ingest=False, db=None):
                         if existing_ids[i] != u:
                             raise RecordException("Cross record ID violation, ID {0}, UUID {1}".format(existing_ids[i], u))
 
+
             deleted = False
             if u is None:
                 u, parent, deleted = db.get_uuid([i for _,_,i in idents])
                 if parent is not None:
                     # assert parent == rsid
                     if parent != rsid:
+                        rlogger.debug("****** proposed_idents (etag, type of identifier, lowercased identifier):")
+                        rlogger.debug("{0}".format(proposed_idents))
+                        rlogger.debug("****** Idents:")
+                        rlogger.debug("{0}".format(idents))
+                        
+                        rlogger.debug("******")
+                        rlogger.debug("u: {0}".format(u))
+                        rlogger.debug("parent: {0}".format(parent))
+                        rlogger.debug("deleted: {0}".format(deleted))
+
+                        rlogger.debug("****** Row:")
+                        rlogger.debug("{0}".format(json.dumps(r)))
                         raise RecordException("UUID exists but has a parent other than expected. Expected parent (this recordset): {0}  Existing Parent: {1}  UUID: {2}".format(rsid,parent,u))
 
             if deleted:

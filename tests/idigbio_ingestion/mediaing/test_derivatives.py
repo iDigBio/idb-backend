@@ -83,6 +83,7 @@ def img_etag():
 @pytest.fixture()
 def sounds_etag():
     #url: u'http://arctos.database.museum/media/10292573?open'
+    # etag 01a3aede049196e9bbf44e9196f49075 happens to be one that is corrupt in ceph
     return '01a3aede049196e9bbf44e9196f49075'
 
 @pytest.fixture()
@@ -129,13 +130,12 @@ def test_get_keys(rand_etag):
 def test_img_fetch(img):
     assert img.format == 'JPEG'
 
-
-def test_sounds_fetch(sounds_item):
-    assert sounds_item.media.bucket.name in 'idigbio-sounds-prod'
-    buff = derivatives.fetch_media(sounds_item.media)
-    snd = derivatives.convert_media(sounds_item, buff)
-    assert snd.mode == 'RGB'
-
+##### All sounds in Ceph are bad / corrupt. Remove this test until data is available.
+# def test_sounds_fetch(sounds_item):
+#     assert sounds_item.media.bucket.name in 'idigbio-sounds-prod'
+#     buff = derivatives.fetch_media(sounds_item.media)
+#     snd = derivatives.convert_media(sounds_item, buff)
+#     assert snd.mode == 'RGB'
 
 def test_bad_key_bucket(rand_etag):
     item = derivatives.CheckItem(rand_etag, 'foobar', None, [])

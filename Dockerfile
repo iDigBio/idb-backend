@@ -5,7 +5,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libav-tools \
     libblas-dev \
     libgdal-dev \
-    libgeos-c1  \
+#    libgeos-c1  \
     liblapack-dev \
     libpq-dev \
 #    libsystemd-dev   \

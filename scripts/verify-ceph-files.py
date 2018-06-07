@@ -134,32 +134,33 @@ def verify_object(row_obj, key_obj):
     # The db may have partial information so we need to support it being
     # empty, but if it exists, it should match. Use logging to say what's
     # wrong with file, maintain a return value if anything fails.
-    retval = "verified"
+    retval = False
 
-    if not size == key_obj.size:
+    if not retval and (not size == key_obj.size):
         logger.error("File size {0} does not match ceph size {1} for {2}:{3}".format(
                      size, key_obj.size, key_obj.bucket.name, key_obj.name))
         retval = "invalid"
 
-    if row_obj["ceph_bytes"] and (not size == row_obj["ceph_bytes"]):
+    if not retval and (row_obj["ceph_bytes"] and (not size == row_obj["ceph_bytes"])):
         logger.error("File size {0} does not match db size {1} for {2}:{3}".format(
                      size, row_obj["ceph_bytes"], key_obj.bucket.name, key_obj.name))
         retval = "invalid"
 
-    if not md5 == key_obj.etag[1:-1]: # etag is wraped in ""
+    if not retval and (not md5 == key_obj.etag[1:-1]): # etag is wraped in ""
         logger.error("File md5 {0} does not match ceph etag {1} for {2}:{3}".format(
                      md5, key_obj.etag[1:-1], key_obj.bucket.name, key_obj.name))
         retval = "invalid"
 
-    if row_obj["ceph_etag"] and (not md5 == row_obj["ceph_etag"]):
+    if not retval and (row_obj["ceph_etag"] and (not md5 == row_obj["ceph_etag"])):
         logger.error("File md5 {0} does not match db etag {1} for {2}:{3}".format(
                      md5, row_obj["ceph_etag"], key_obj.bucket.name, key_obj.name))
         retval = "invalid"
 
     os.unlink(fn)
 
-    if retval == "verified":
+    if not retval:
         logger.debug("Object {0}:{1} verified".format(key_obj.bucket.name, key_obj.name))
+        retval = "verified"
     else:
         logger.warn("Object {0}:{1} failed verification".format(key_obj.bucket.name, key_obj.name))
     return retval

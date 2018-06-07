@@ -7,6 +7,7 @@ monkey.patch_all()
 
 import os
 import sys
+import shutil
 import argparse
 import hashlib
 import traceback
@@ -91,6 +92,7 @@ def verify_object(row_obj, key_obj):
     Return is a string status of result of checking the file:
 
     verified - Object downloads and all available data matches
+    stashed - Object is verified and a copy has been kept in stash directory
     timeout - Download times out, probably due to file being truncated
     nosuchkey - Object does not exist, 404 error when downloading
     invalid - Some of the metadata does not match
@@ -151,19 +153,47 @@ def verify_object(row_obj, key_obj):
                      md5, key_obj.etag[1:-1], key_obj.bucket.name, key_obj.name))
         retval = "invalid"
 
-    if not retval and (row_obj["ceph_etag"] and (not md5 == row_obj["ceph_etag"])):
+    # db etag has extra '-' chars
+    if not retval and (row_obj["ceph_etag"] and (not md5 == row_obj["ceph_etag"].replace('-',''))):
         logger.error("File md5 {0} does not match db etag {1} for {2}:{3}".format(
                      md5, row_obj["ceph_etag"], key_obj.bucket.name, key_obj.name))
         retval = "invalid"
 
-    os.unlink(fn)
 
     if not retval:
         logger.debug("Object {0}:{1} verified".format(key_obj.bucket.name, key_obj.name))
-        retval = "verified"
+        global args
+        if args["stash"] and stash_file(fn, key_obj):
+            retval = "stashed"
+        else:
+            retval = "verified"
     else:
         logger.warn("Object {0}:{1} failed verification".format(key_obj.bucket.name, key_obj.name))
+
+    try:
+        os.unlink(fn)
+    except:
+        pass
+
     return retval
+
+
+def stash_file(fn, key_obj):
+    global args
+
+    dest_dir = os.path.join(args["stash"], key_obj.bucket.name)
+    if not os.path.exists(dest_dir):
+        os.makedirs(dest_dir)
+    dest_file = os.path.join(dest_dir, key_obj.name)
+
+    try:
+        shutil.copyfile(fn, dest_file)
+        logger.debug("Stashed file {0}:{1} in {2}".format(key_obj.bucket.name, key_obj.name, args["stash"]))
+        return True
+    except:
+        logger.error("Failed to stash file {0}:{1} in {2}: {3}".format(key_obj.bucket.name, key_obj.name, args["stash"], traceback.format_exc()))
+        return False
+
 
 def update_db(row_obj, key_obj, status):
     """Some db records are incomplete due to the original db being used
@@ -258,6 +288,8 @@ if __name__ == '__main__':
                        help="Verify only this one name")
     argparser.add_argument("-r", "--reverify", required=False,
                        help="Reverify objects that have the specified status")
+    argparser.add_argument("-g", "--stash", required=False,
+                       help="If verified, stash the file in given dir and mark ver_status as 'stashed'")
     argparser.add_argument("-t", "--test", required=False,
                        help="Don't update database with results, just print to stdout")
     argparser.add_argument("-p", "--processes", required=False, default=1,

@@ -77,10 +77,6 @@ def get_row_objs_from_db(args):
     for row in rows:
         row_objs.append(dict(zip(cols, row)))
 
-    logger.debug("length of row_objs: {0}".format(len(row_objs)))
-    #if len(row_objs) > args["count"]:
-
-
     return row_objs
 
 def calc_md5(fn):
@@ -254,7 +250,7 @@ def verify_all_objects_worker(row_obj):
     """
     key_obj = get_key_object(row_obj["ceph_bucket"], row_obj["ceph_name"])
     status = verify_object(row_obj, key_obj)
-    return update_db(row_obj, key_obj, status) and (status == "verified")
+    return update_db(row_obj, key_obj, status) and ((status == "verified") or (status == "stashed"))
 
 def verify_all_objects(row_objs, processes):
     """Loop over all the objects to verify from the database. Possibly
@@ -286,10 +282,10 @@ if __name__ == '__main__':
 #    argparser.add_argument("-e", "--etag", required=False,
 #                       help="Verify only this one etag")
     argparser.add_argument("--start", "-s", 
-                           required=False,
+                           required=False, metavar='DATE_START',
                            help="Start date for when ceph object was created eg '2010-02-23'.")
     argparser.add_argument("--end", "-e",
-                           required=False,
+                           required=False, metavar='DATE_END',
                            help="End date for when ceph object was created eg '2018-01-01'.")
     argparser.add_argument("--count", "-c",
                            required=False, type=int, default=10,
@@ -298,19 +294,20 @@ if __name__ == '__main__':
                            required=False, action='store_true',
                            help="Reverify objects that have the specified status.")
     argparser.add_argument("--stash", "-g",
-                           required=False, action='store_true',
+                           required=False, metavar='STASH_DIRECTORY_PATH',
                            help="If verified, stash the file in given dir and mark ver_status as 'stashed'.")
     argparser.add_argument("--test", "-t",
                            required=False, action='store_true',
                            help="Don't update database with results, just print to stdout.")
     argparser.add_argument("--processes", "-p",
-                           required=False, type=int, default=1,
+                           required=False, type=int, default=1, metavar='NUM_PROCESSES',
                            help="How many processing to use verifying objects, default 1.")
     # Script will no longer run without at least one argument
     group = argparser.add_mutually_exclusive_group(required=True)
     group.add_argument("--name", "-n",
                        help="Verify only this one name.")
     group.add_argument("--names-from-file",
+                       metavar='NAMES_INPUT_FILEPATH',
                        help="Read ceph names from a file, one name per line.")
     group.add_argument("--any", "-a", action='store_true',
                        help="Select any names. This was default behavior in previous versions of this script.")
@@ -321,9 +318,16 @@ if __name__ == '__main__':
     try:
         if args["names_from_file"] is not None:
             logger.error("'--names-from-file' not yet implemented.  Exiting...")
+            # Future: verify the file exits and is readable
             raise SystemExit
     except:
         raise
+
+    if "stash" in args:
+        if not (os.path.isdir(args["stash"])):
+            logger.error("Specified stash directory {0} does not exist. Aborting.".format(args["stash"]))
+            raise SystemExit
+
 
     logger.info("Processing with the following arguments: {0}".format(args))
 
@@ -331,7 +335,6 @@ if __name__ == '__main__':
     if (args["any"]) or (args["names_from_file"]):
         logger.info("using COUNT = {0}. Use '--count' option ".format(args["count"]) + \
                     "to increase COUNT if you wish to process more than {0} objects.".format(args["count"]))
-
 
     # Make test global
     test = args["test"]
@@ -344,7 +347,7 @@ if __name__ == '__main__':
     #print(row_objs)
 
     verified = verify_all_objects(row_objs, int(args["processes"]))
-    logger.info("Checked {0} objects, {1} verified".format(
+    logger.info("Checked {0} objects, {1} verified or stashed".format(
                  len(row_objs), verified))
 
     apidbpool.closeall()

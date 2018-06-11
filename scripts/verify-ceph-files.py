@@ -99,10 +99,10 @@ def verify_object(row_obj, key_obj):
     invalid - Some of the metadata does not match
     failed - No longer used, when this function was boolean this was False
     """
-    global STORAGE_HOST
+    #global STORAGE_HOST
     storage = IDigBioStorage(host=STORAGE_HOST)
 
-    global TMP_DIR
+    #global TMP_DIR
     try:
         if not os.path.exists(TMP_DIR):
             os.makedirs(TMP_DIR)
@@ -163,9 +163,11 @@ def verify_object(row_obj, key_obj):
 
     if not retval:
         logger.debug("Object {0}:{1} verified".format(key_obj.bucket.name, key_obj.name))
-        global args
-        if args["stash"] and stash_file(fn, key_obj):
+        #global args
+        if STASH and stash_file(fn, key_obj):
             retval = "stashed"
+            # here is where we would delete object
+            logger.info("** Here we would be able to delete the object! **")
         else:
             retval = "verified"
     else:
@@ -180,19 +182,19 @@ def verify_object(row_obj, key_obj):
 
 
 def stash_file(fn, key_obj):
-    global args
+    #global args
 
-    dest_dir = os.path.join(args["stash"], key_obj.bucket.name)
+    dest_dir = os.path.join(STASH, key_obj.bucket.name)
     if not os.path.exists(dest_dir):
         os.makedirs(dest_dir)
     dest_file = os.path.join(dest_dir, key_obj.name)
 
     try:
         shutil.copyfile(fn, dest_file)
-        logger.debug("Stashed file {0}:{1} in {2}".format(key_obj.bucket.name, key_obj.name, args["stash"]))
+        logger.debug("Stashed file {0}:{1} in {2}".format(key_obj.bucket.name, key_obj.name, STASH))
         return True
     except:
-        logger.error("Failed to stash file {0}:{1} in {2}: {3}".format(key_obj.bucket.name, key_obj.name, args["stash"], traceback.format_exc()))
+        logger.error("Failed to stash file {0}:{1} in {2}: {3}".format(key_obj.bucket.name, key_obj.name, STASH, traceback.format_exc()))
         return False
 
 
@@ -334,15 +336,15 @@ if __name__ == '__main__':
     DELETE = False
     if "stash_and_delete" in args:
         if args["stash_and_delete"] is not None:
-            stash = args["stash_and_delete"]
+            STASH = args["stash_and_delete"]
             DELETE = True
     if "stash" in args:
         if args["stash"] is not None:
-            stash = args["stash"]
+            STASH = args["stash"]
             DELETE = False
-    if stash is not None:
-        if not (os.path.isdir(stash)):
-            logger.error("Specified stash directory {0} does not exist. Aborting.".format(stash))
+    if STASH is not None:
+        if not (os.path.isdir(STASH)):
+            logger.error("Specified stash directory {0} does not exist. Aborting.".format(STASH))
             raise SystemExit
 
     TEST = args["test"]

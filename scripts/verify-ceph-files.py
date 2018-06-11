@@ -318,18 +318,25 @@ if __name__ == '__main__':
     args = vars(argparser.parse_args()) # convert namespace to dict
     #print(args)
 
-    # some checks
+    try:
+        if args["names_from_file"] is not None:
+            logger.error("'--names-from-file' not yet implemented.  Exiting...")
+            raise SystemExit
+    except:
+        raise
+
     logger.info("Processing with the following arguments: {0}".format(args))
-    if args["any"] or args["names-from-file"]:
+
+    # respect count when processing multiple objects
+    if (args["any"]) or (args["names_from_file"]):
         logger.info("using COUNT = {0}. Use '--count' option ".format(args["count"]) + \
                     "to increase COUNT if you wish to process more than {0} objects.".format(args["count"]))
 
 
     # Make test global
-    if args["test"]:
-        test = True
-    else:
-        test = False
+    test = args["test"]
+    if test:
+        logger.warn("TEST mode. Will not update the database.")
 
     #print(iDigBioStorage.boto.config)
 

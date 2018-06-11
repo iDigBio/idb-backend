@@ -201,9 +201,8 @@ def update_db(row_obj, key_obj, status):
     for backups and not a full accounting of object properties, backfill
     any missing information into the database. Verify status is the result of this check.
     """
-    global test
 
-    if test:
+    if TEST:
         logger.debug("Skipping metadata update for {0}:{1}".format(
                      key_obj.bucket.name, key_obj.name))
         return True
@@ -293,15 +292,21 @@ if __name__ == '__main__':
     argparser.add_argument("--reverify", "-r",
                            required=False, action='store_true',
                            help="Reverify objects that have the specified status.")
-    argparser.add_argument("--stash", "-g",
-                           required=False, metavar='STASH_DIRECTORY_PATH',
-                           help="If verified, stash the file in given dir and mark ver_status as 'stashed'.")
     argparser.add_argument("--test", "-t",
                            required=False, action='store_true',
-                           help="Don't update database with results, just print to stdout.")
+                           help="Don't update database with verify results or delete any ceph objects.")
     argparser.add_argument("--processes", "-p",
                            required=False, type=int, default=1, metavar='NUM_PROCESSES',
                            help="How many processing to use verifying objects, default 1.")
+    # handle stash argument.
+    stashgroup = argparser.add_mutually_exclusive_group()
+    stashgroup.add_argument("--stash", "-g",
+                             required=False, metavar='STASH_DIRECTORY_PATH',
+                             help="If verified, stash the file in given dir and mark ver_status as 'stashed'.")
+    stashgroup.add_argument("--stash-and-delete",
+                            required=False, metavar='STASH_DIRECTORY_PATH',
+                            help="Same as --stash, except delete each object in ceph storage after it is verified and stashed.")
+
     # Script will no longer run without at least one argument
     group = argparser.add_mutually_exclusive_group(required=True)
     group.add_argument("--name", "-n",
@@ -323,10 +328,27 @@ if __name__ == '__main__':
     except:
         raise
 
+
+
+    ## Make global flags ##
+    DELETE = False
+    if "stash_and_delete" in args:
+        if args["stash_and_delete"] is not None:
+            stash = args["stash_and_delete"]
+            DELETE = True
     if "stash" in args:
-        if not (os.path.isdir(args["stash"])):
-            logger.error("Specified stash directory {0} does not exist. Aborting.".format(args["stash"]))
+        if args["stash"] is not None:
+            stash = args["stash"]
+            DELETE = False
+    if stash is not None:
+        if not (os.path.isdir(stash)):
+            logger.error("Specified stash directory {0} does not exist. Aborting.".format(stash))
             raise SystemExit
+
+    TEST = args["test"]
+    if TEST:
+        logger.warn("TEST mode. Will not update the database.")
+
 
 
     logger.info("Processing with the following arguments: {0}".format(args))
@@ -335,11 +357,6 @@ if __name__ == '__main__':
     if (args["any"]) or (args["names_from_file"]):
         logger.info("using COUNT = {0}. Use '--count' option ".format(args["count"]) + \
                     "to increase COUNT if you wish to process more than {0} objects.".format(args["count"]))
-
-    # Make test global
-    test = args["test"]
-    if test:
-        logger.warn("TEST mode. Will not update the database.")
 
     #print(iDigBioStorage.boto.config)
 

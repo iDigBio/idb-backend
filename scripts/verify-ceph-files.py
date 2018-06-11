@@ -274,26 +274,35 @@ if __name__ == '__main__':
 
     argparser = argparse.ArgumentParser(
                 description="Verify objects in ceph, track verification in database")
-    argparser.add_argument("-b", "--bucket", required=False,
-                       help="Bucket name eg 'idigbio-images-prod'")
+    argparser.add_argument("--bucket", "-b",
+                           required=False,
+                           help="Bucket name eg 'idigbio-images-prod'")
 #    argparser.add_argument("-e", "--etag", required=False,
 #                       help="Verify only this one etag")
-    argparser.add_argument("-s", "--start", required=False,
-                       help="Start date for when ceph object was created eg '2010-02-23'")
-    argparser.add_argument("-d", "--end", required=False,
-                       help="End date for when ceph object was created eg '2018-01-01'")
-    argparser.add_argument("-c", "--count", required=False, default=10,
-                       help="How many to verify, default 10")
-    argparser.add_argument("-n", "--name", required=False,
-                       help="Verify only this one name")
-    argparser.add_argument("-r", "--reverify", required=False,
-                       help="Reverify objects that have the specified status")
-    argparser.add_argument("-g", "--stash", required=False,
-                       help="If verified, stash the file in given dir and mark ver_status as 'stashed'")
-    argparser.add_argument("-t", "--test", required=False,
-                       help="Don't update database with results, just print to stdout")
-    argparser.add_argument("-p", "--processes", required=False, default=1,
-                       help="How many processing to use verifying objects, default 1")
+    argparser.add_argument("--start", "-s", 
+                           required=False,
+                           help="Start date for when ceph object was created eg '2010-02-23'")
+    argparser.add_argument("--end", "-d",
+                           required=False,
+                           help="End date for when ceph object was created eg '2018-01-01'")
+    argparser.add_argument("--count", "-c",
+                           required=False, default=10,
+                           help="How many to verify, default 10")
+    argparser.add_argument("--name", "-n",
+                           required=False,
+                           help="Verify only this one name")
+    argparser.add_argument("--reverify", "-r",
+                           required=False,
+                           help="Reverify objects that have the specified status")
+    argparser.add_argument("--stash", "-g",
+                           required=False,
+                           help="If verified, stash the file in given dir and mark ver_status as 'stashed'")
+    argparser.add_argument("--test", "-t",
+                           required=False,
+                           help="Don't update database with results, just print to stdout")
+    argparser.add_argument("--processes", "-p",
+                           required=False, default=1,
+                           help="How many processing to use verifying objects, default 1")
     args = vars(argparser.parse_args()) # convert namespace to dict
     #print(args)
 

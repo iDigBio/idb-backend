@@ -166,8 +166,9 @@ def verify_object(row_obj, key_obj):
         #global args
         if STASH and stash_file(fn, key_obj):
             retval = "stashed"
-            # here is where we would delete object
-            logger.info("** Here we would be able to delete the object! **")
+            if DELETE and not TEST:
+                logger.info("** Here we would be able to delete the object! **")
+                
         else:
             retval = "verified"
     else:
@@ -191,7 +192,7 @@ def stash_file(fn, key_obj):
 
     try:
         shutil.copyfile(fn, dest_file)
-        logger.debug("Stashed file {0}:{1} in {2}".format(key_obj.bucket.name, key_obj.name, STASH))
+        logger.debug("Stashed file {0}:{1} in {2}".format(key_obj.bucket.name, key_obj.name, dest_file))
         return True
     except:
         logger.error("Failed to stash file {0}:{1} in {2}: {3}".format(key_obj.bucket.name, key_obj.name, STASH, traceback.format_exc()))
@@ -349,7 +350,7 @@ if __name__ == '__main__':
 
     TEST = args["test"]
     if TEST:
-        logger.warn("TEST mode. Will not update the database.")
+        logger.warn("TEST mode. Will not update the database or delete objects from ceph.")
 
 
 

@@ -26,8 +26,63 @@ from boto.exception import S3ResponseError
 TMP_DIR = os.path.join("/tmp", os.path.basename(sys.argv[0]))
 STORAGE_HOST = "10.13.44.93:7480"
 
+TEST = False
+DELETE = False
+STASH = None
+DELETED = []
+
 logger = getLogger("verify-ceph-files")
 
+def check_args_and_set_global_flags(args):
+    """Check the command-line arguments and set some global flags to control
+    processing."""
+
+    global DELETE
+    global TEST
+    global STASH
+
+    try:
+        if args["names_from_file"] is not None:
+            logger.error("'--names-from-file' not yet implemented.  Exiting...")
+            # Future: verify the file exits and is readable
+            raise SystemExit
+    except:
+        raise
+
+    if "stash_and_delete" in args:
+        if args["stash_and_delete"] is not None:
+            STASH = args["stash_and_delete"]
+            DELETE = True
+    if "stash" in args:
+        if args["stash"] is not None:
+            STASH = args["stash"]
+            DELETE = False
+    if STASH is not None:
+        if not (os.path.isdir(STASH)):
+            logger.error("Specified stash directory {0} does not exist. Aborting.".format(STASH))
+            raise SystemExit
+
+    TEST = args["test"]
+    if TEST:
+        logger.warn("TEST mode. Will not update the database or delete objects from ceph.")
+
+    logger.info("Processing with the following arguments: {0}".format(args))
+
+    # respect count when processing multiple objects
+    if (args["any"]) or (args["names_from_file"]):
+        logger.info("using COUNT = {0}. Use '--count' option ".format(args["count"]) + \
+                    "to increase COUNT if you wish to process more than {0} objects.".format(args["count"]))
+
+def output_deleted():
+    # We should probably make a logfile instead?
+    if len(DELETED) == 0:
+        logger.info("No objects Deleted.")
+    else:
+        logger.info("DELETED objects list follows...")
+        logger.info("************************************************")
+        for each in DELETED:
+            print (each)
+        logger.info("************************************************")
 
 def get_key_object(bucket, name):
     """Get a key object from Ceph for the requested object.
@@ -99,10 +154,9 @@ def verify_object(row_obj, key_obj):
     invalid - Some of the metadata does not match
     failed - No longer used, when this function was boolean this was False
     """
-    #global STORAGE_HOST
+
     storage = IDigBioStorage(host=STORAGE_HOST)
 
-    #global TMP_DIR
     try:
         if not os.path.exists(TMP_DIR):
             os.makedirs(TMP_DIR)
@@ -167,8 +221,13 @@ def verify_object(row_obj, key_obj):
         if STASH and stash_file(fn, key_obj):
             retval = "stashed"
             if DELETE and not TEST:
-                logger.info("** Here we would be able to delete the object! **")
-                
+                try:
+                    logger.info("** Here we would be able to delete the object! **")
+                    DELETED.append(key_obj.name)
+                except:
+                    logger.error("Unable to delete object {0}:{1}.".format(
+                            key_obj.bucket.name, key_obj.name))
+                    
         else:
             retval = "verified"
     else:
@@ -192,10 +251,12 @@ def stash_file(fn, key_obj):
 
     try:
         shutil.copyfile(fn, dest_file)
-        logger.debug("Stashed file {0}:{1} in {2}".format(key_obj.bucket.name, key_obj.name, dest_file))
+        logger.debug("Stashed file {0}:{1} in {2}".format(
+                key_obj.bucket.name, key_obj.name, dest_file))
         return True
     except:
-        logger.error("Failed to stash file {0}:{1} in {2}: {3}".format(key_obj.bucket.name, key_obj.name, STASH, traceback.format_exc()))
+        logger.error("Failed to stash file {0}:{1} in {2}: {3}".format(
+                key_obj.bucket.name, key_obj.name, STASH, traceback.format_exc()))
         return False
 
 
@@ -258,6 +319,8 @@ def verify_all_objects(row_objs, processes):
     """Loop over all the objects to verify from the database. Possibly
     multithreaded.
     """
+
+    logger.info("Begin verify objects...")
 #    fail = 0
 #    succeed = 0
 #    for row_obj in row_objs:
@@ -301,7 +364,7 @@ if __name__ == '__main__':
     argparser.add_argument("--processes", "-p",
                            required=False, type=int, default=1, metavar='NUM_PROCESSES',
                            help="How many processing to use verifying objects, default 1.")
-    # handle stash argument.
+    # Use either --stash or --stash-and-delete
     stashgroup = argparser.add_mutually_exclusive_group()
     stashgroup.add_argument("--stash", "-g",
                              required=False, metavar='STASH_DIRECTORY_PATH',
@@ -323,43 +386,7 @@ if __name__ == '__main__':
     args = vars(argparser.parse_args()) # convert namespace to dict
     #print(args)
 
-    try:
-        if args["names_from_file"] is not None:
-            logger.error("'--names-from-file' not yet implemented.  Exiting...")
-            # Future: verify the file exits and is readable
-            raise SystemExit
-    except:
-        raise
-
-
-
-    ## Make global flags ##
-    DELETE = False
-    if "stash_and_delete" in args:
-        if args["stash_and_delete"] is not None:
-            STASH = args["stash_and_delete"]
-            DELETE = True
-    if "stash" in args:
-        if args["stash"] is not None:
-            STASH = args["stash"]
-            DELETE = False
-    if STASH is not None:
-        if not (os.path.isdir(STASH)):
-            logger.error("Specified stash directory {0} does not exist. Aborting.".format(STASH))
-            raise SystemExit
-
-    TEST = args["test"]
-    if TEST:
-        logger.warn("TEST mode. Will not update the database or delete objects from ceph.")
-
-
-
-    logger.info("Processing with the following arguments: {0}".format(args))
-
-    # respect count when processing multiple objects
-    if (args["any"]) or (args["names_from_file"]):
-        logger.info("using COUNT = {0}. Use '--count' option ".format(args["count"]) + \
-                    "to increase COUNT if you wish to process more than {0} objects.".format(args["count"]))
+    check_args_and_set_global_flags(args)
 
     #print(iDigBioStorage.boto.config)
 
@@ -367,7 +394,18 @@ if __name__ == '__main__':
     #print(row_objs)
 
     verified = verify_all_objects(row_objs, int(args["processes"]))
-    logger.info("Checked {0} objects, {1} verified or stashed".format(
-                 len(row_objs), verified))
+    if DELETE:
+        output_deleted()
+        logger.info("Checked "
+                    "{0} objects, Verified {1} objects, Deleted {2} objects from ceph,"
+                    "Stashed in '{3}'.".format(len(row_objs), verified, len(DELETED), STASH))
+    elif STASH:
+        logger.info("Checked "
+                    "{0} objects, Verified {1} objects, Stashed in '{2}'".format
+                    (len(row_objs), verified, STASH))
+    else:
+        logger.info("Checked {0} objects, Verified {1} objects".format(
+                len(row_objs), verified))
+
 
     apidbpool.closeall()

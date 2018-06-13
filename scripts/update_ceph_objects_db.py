@@ -20,6 +20,7 @@ BUCKETS = ["idigbio-datasets-prod",
 
 TMP_TABLE = "ceph_objects_temp" # WARNING! Will be destroyed and re-created.
 
+logger = getLogger("update-ceph-files")
 
 def build_temp_table(buckets):
     """Recreate the temporary table with Ceph files
@@ -30,30 +31,47 @@ def build_temp_table(buckets):
     apidbpool.execute(("CREATE TABLE IF NOT EXISTS {0}( "
                    "ceph_bucket VARCHAR(32), "
                    "ceph_name VARCHAR(128), "
+                   "ceph_date TIMESTAMP WITHOUT TIME ZONE, "
                    "ceph_bytes bigint, "
                    "ceph_etag uuid);").format(TMP_TABLE))
 
+    storage = IDigBioStorage()
 
-#    # Read through bucket inserting into temp table
-#    logging.info("Importing bucket listing.")
-#    inserted = 1
-#    b = ceph.boto_conn.get_bucket(bucket)
-#    for f in b.list():
-#        db.cur.execute(("INSERT INTO {0} "
-#                        "(etag, bytes, bucket, date) "
-##                        "VALUES (?, ?, ?, ?)").format(tmp_table),
-#                        (f.name, f.size, bucket, f.last_modified))
-#        inserted += 1
-#
-#        if (inserted % 10000) == 0:
-#            logging.info("Committing {0}".format(inserted))
-#            db.con.commit()
-#
-#    db.con.commit()
+    # Read through bucket inserting into temp table
+    with apidbpool.connection(autocommit=False) as conn: # use a single connection from the pool to commit groups of statements
+        cur = conn.cursor()
+        inserted = 1
+        for bucket in buckets:
+            logger.info("Importing bucket listing for {0}.".format(bucket))
+            b = storage.get_bucket(bucket)
+            for f in b.list():
+                # see backfill_new_etags() for why no etag here
+                #key = b.get_key(f.name)
+                cur.execute(("INSERT INTO {0} "
+                               "(ceph_bucket, ceph_name, ceph_date, ceph_bytes) "
+                               "VALUES (%s, %s, %s, %s)").format(TMP_TABLE),
+                              (bucket, f.name, f.last_modified, f.size))
+                inserted += 1
+
+            if (inserted % 10000) == 0:
+                logger.info("Committing {0}".format(inserted))
+                conn.commit()
+
+        conn.commit()
 
 
 def get_buckets(buckets):
     ceph 
+
+
+# The list() method on a bucket gets partial metadata so we have to HEAD each
+# key individually to get the etags. HEADing each object is painfully slow, 
+# 4 min vs 3 sec for 2k records, populate temp table w/o etags, just list bucket results. Then
+# backfill the info in parallel later for only new things. This means we can't croscheck db and ceph for
+# changing etags. Not sure under what circumstances that could happen and why we'd want to make sure it
+# didn't. Is last_modified a good enough check?
+def backfill_new_etags():
+    pass
 
 
 if __name__ == '__main__':

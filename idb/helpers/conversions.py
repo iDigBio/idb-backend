@@ -18,7 +18,7 @@ from .biodiversity_socket_connector import Biodiversity
 from .rg import get_country
 from .media_validation import get_default_bucket
 
-b = Biodiversity()
+bioserv = Biodiversity()
 
 
 PARENT_MAP = {
@@ -720,7 +720,7 @@ def filled(k, d):
 
 
 def genusSpeciesFiller(t, r):
-    gs = b.get_genus_species(r["scientificname"])
+    gs = bioserv.get_genus_species(r["scientificname"])
     return gs
 
 

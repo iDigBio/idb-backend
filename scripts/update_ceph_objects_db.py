@@ -1,7 +1,19 @@
-# This script relies on a lot of set operations (what is new, what's changed?) 
+# This script relies on a lot of set operations (what is new, what's changed?)
 # and the best place to do that is in SQL rather than making data structures in
 # Python memory. So, use a temp table to copy all the listing data from ceph
 # into the DB and run queries there.
+#
+# What are the kinds of things we need to update?
+#
+# 1) Insert new records in to ceph_objects for everything in ceph not already
+#    tracked.
+# 2) Flag things that are in both the table and ceph where the metadata does
+#    not match.
+
+import gevent
+from gevent import monkey, pool
+monkey.patch_all()
+
 
 import os
 import sys
@@ -33,7 +45,8 @@ def build_temp_table(buckets):
                    "ceph_name VARCHAR(128), "
                    "ceph_date TIMESTAMP WITHOUT TIME ZONE, "
                    "ceph_bytes bigint, "
-                   "ceph_etag uuid);").format(TMP_TABLE))
+                   "ceph_etag uuid, "
+                   "ceph_status VARCHAR(8));").format(TMP_TABLE))
 
     storage = IDigBioStorage()
 
@@ -60,9 +73,40 @@ def build_temp_table(buckets):
         conn.commit()
 
 
-def get_buckets(buckets):
-    ceph 
+def flag_new_records():
+    """Mark records in the ceph_objects_temp table 'new' if they are not in ceph_objects
+    """
+    return apidbpool.execute("""UPDATE {0}
+        SET ceph_status='new'
+        WHERE
+          ctid IN (
+            SELECT t.ctid
+            FROM ceph_objects_temp t LEFT JOIN ceph_objects o
+            ON t.ceph_bucket=o.ceph_bucket AND t.ceph_name=o.ceph_name
+            WHERE o.ceph_name IS NULL
+          )
+        """.format(TMP_TABLE))
 
+
+def flag_changed_records():
+    """Compare records that exist in both tables and flag things as 'changed' if they differ
+    """
+    return apidbpool.execute("""UPDATE {0}
+        SET ceph_status='changed'
+        WHERE
+          ctid IN (
+            SELECT t.ctid
+             FROM ceph_objects_temp t JOIN ceph_objects o
+             ON t.ceph_bucket=o.ceph_bucket AND t.ceph_name=o.ceph_name
+             WHERE t.ceph_date!=o.ceph_date OR t.ceph_bytes!=o.ceph_bytes
+          )
+        """.format(TMP_TABLE))
+
+
+def copy_new_to_ceph_objects():
+    """Copy 'new' records from ceph_objects_temp to ceph_objects
+    """
+    pass
 
 # The list() method on a bucket gets partial metadata so we have to HEAD each
 # key individually to get the etags. HEADing each object is painfully slow, 
@@ -70,8 +114,36 @@ def get_buckets(buckets):
 # backfill the info in parallel later for only new things. This means we can't croscheck db and ceph for
 # changing etags. Not sure under what circumstances that could happen and why we'd want to make sure it
 # didn't. Is last_modified a good enough check?
-def backfill_new_etags():
-    pass
+def backfill_flagged_etags():
+    """Update ceph_objects_temp etags where records have a flag of any kind
+    """
+    cols = ["ceph_bucket", "ceph_name"]
+    results = apidbpool.fetchall("""SELECT {0}
+        FROM {1}
+        WHERE ceph_status IS NOT NULL
+        """.format(','.join(cols), TMP_TABLE))
+
+    row_objs = [] # Convert to something we can use with pool.imap_unordered
+    for row in results:
+        row_objs.append(dict(zip(cols, row)))
+
+    p = pool.Pool(3)
+    results = p.imap_unordered(backfill_flagged_worker, row_objs)
+    return sum(results)
+
+
+def backfill_flagged_worker(row):
+    """Parallel worker for backfill_flagged_etags()
+    """
+    storage = IDigBioStorage()
+    print(row)
+    b = storage.get_bucket(row["ceph_bucket"]) # Two phase here because validate=False in storage class
+    row["etag"] = b.get_key(row["ceph_name"]).etag[1:-1]
+    print(row["etag"])
+    return apidbpool.execute("""UPDATE {0}
+       SET ceph_etag=%(etag)s
+       WHERE ceph_bucket=%(ceph_bucket)s AND ceph_name=%(ceph_name)s
+       """.format(TMP_TABLE), row)
 
 
 if __name__ == '__main__':
@@ -84,10 +156,23 @@ if __name__ == '__main__':
     argparser.add_argument("--bucket", "-b",
                            required=False,
                            help="Just do one bucket instead of all configured buckets eg 'idigbio-images-prod'.")
+    argparser.add_argument("--force", "-f",
+                           required=False, default=False, action='store_true',
+                           help="Force updating main table with new records even if changed records are found.")
     args = argparser.parse_args()
     if args.bucket != "":
         BUCKETS = [ args.bucket ]
 
     build_temp_table(BUCKETS)
+    new = flag_new_records()
+    changed = flag_changed_records()
+
+    logger.info("Found {0} new records".format(new))
+    if changed > 0:
+        logger.error("Found {0} changed records, inspect {1} for rows with ceph_status='changed'".format(changed, TMP_TABLE))
+        if not args.force:
+            raw_input("Press any key to continue or Ctl-C to cancel ")
+
+    etagged = backfill_flagged_etags()
 
     apidbpool.closeall()

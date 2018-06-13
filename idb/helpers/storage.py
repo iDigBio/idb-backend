@@ -72,6 +72,12 @@ class IDigBioStorage(object):
         else:
             return self.get_bucket(bucket_name).get_key(key_name, validate=False)
 
+    # def delete_key(...)
+        # No separate delete function is needed since the key object itself has a delete() method.
+        # e.g. 
+        #       k = get_key ('KEY_NAME', 'BUCKET_NAME')
+        #       k.delete()  # works on the boto.s3.Key object
+
     def get_link(self, key_name, bucket_name, secure=False):
         if secure:
             return "https://{0}/{1}/{2}".format(self.host, bucket_name, key_name)

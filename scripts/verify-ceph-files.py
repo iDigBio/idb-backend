@@ -359,7 +359,7 @@ if __name__ == '__main__':
                            required=False, default=None, choices=
                            ["invalid","503Error","nosuchkey","stashed","verified","timeout", "ANY"],
                            help="Reverify objects that have the specified status. Use 'ANY'"
-                           " for all statuses")
+                           " for all statuses including NULL.")
     argparser.add_argument("--test", "-t",
                            required=False, action='store_true',
                            help="Don't update database with verify results or delete any ceph objects.")

@@ -336,7 +336,7 @@ def verify_all_objects(row_objs, processes):
 
 if __name__ == '__main__':
 
-    # this enables debug level logging
+    # this enables DEBUG level logging
     configure_app_log(2, logfile="./verify.log", journal='auto')
 
     argparser = argparse.ArgumentParser(

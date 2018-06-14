@@ -73,17 +73,6 @@ def check_args_and_set_global_flags(args):
         logger.info("using COUNT = {0}. Use '--count' option ".format(args["count"]) + \
                     "to increase COUNT if you wish to process more than {0} objects.".format(args["count"]))
 
-def output_deleted():
-    # We should probably make a logfile instead?
-    if len(DELETED) == 0:
-        logger.info("No objects Deleted.")
-    else:
-        logger.info("DELETED objects list follows...")
-        logger.info("************************************************")
-        for each in DELETED:
-            print (each)
-        logger.info("************************************************")
-
 def get_key_object(bucket, name):
     """Get a key object from Ceph for the requested object.
 
@@ -118,7 +107,9 @@ def get_row_objs_from_db(args):
         wheres.append("ceph_name like %(name)s")
     if args["bucket"]:
         wheres.append("ceph_bucket=%(bucket)s")
-    if args["reverify"]:
+    if args["reverify"] == 'ANY':
+        pass  # ver_status can be anything including NULL
+    elif args["reverify"]:
         wheres.append("ver_status=%(reverify)s")
     else:
         wheres.append("ver_status IS NULL")
@@ -131,7 +122,7 @@ def get_row_objs_from_db(args):
     row_objs = []
     for row in rows:
         row_objs.append(dict(zip(cols, row)))
-
+    
     return row_objs
 
 def calc_md5(fn):
@@ -221,13 +212,13 @@ def verify_object(row_obj, key_obj):
         if STASH and stash_file(fn, key_obj):
             retval = "stashed"
             if DELETE and not TEST:
+                logger.debug("Deleting {0}:{1} from ceph.".format(key_obj.bucket.name, key_obj.name))
                 try:
-                    logger.info("** Here we would be able to delete the object! **")
+                    key_obj.delete()
                     DELETED.append(key_obj.name)
                 except:
-                    logger.error("Unable to delete object {0}:{1}.".format(
+                    logger.error("Unable to delete object {0}:{1} in ceph.".format(
                             key_obj.bucket.name, key_obj.name))
-                    
         else:
             retval = "verified"
     else:
@@ -280,12 +271,21 @@ def update_db(row_obj, key_obj, status):
         cols.append("ver_status=%(status)s")
         vals["status"] = status
 
-        if status == "verified":
+        if status == "verified" or status == "stashed":
             cols.append("ver_last_success=%(timestamp)s")
         else:
             cols.append("ver_last_failure=%(timestamp)s")
-        vals["timestamp"] = '{:%Y-%m-%d %H:%M:%S}'.format(datetime.datetime.now())
 
+        # To save refactoring larger portions of the script and status returns, see if *this* name
+        # is in the list of things successfully deleted. Performance won't be great on large
+        # numbers of items.
+        if key_obj.name in DELETED:
+            cols.append("ceph_deleted=%(was_it_deleted)s")
+            cols.append("ceph_deleted_date=%(timestamp)s")
+
+        vals["timestamp"] = '{:%Y-%m-%d %H:%M:%S}'.format(datetime.datetime.now())
+        vals["was_it_deleted"] = True
+            
         # Even if the obj does not verify, update the db with what's in ceph
         if not row_obj["ceph_date"]:
             cols.append("ceph_date=%(last_modified)s")
@@ -356,8 +356,10 @@ if __name__ == '__main__':
                            required=False, type=int, default=10,
                            help="How many to verify, default 10.")
     argparser.add_argument("--reverify", "-r",
-                           required=False, action='store_true',
-                           help="Reverify objects that have the specified status.")
+                           required=False, default=None, choices=
+                           ["invalid","503Error","nosuchkey","stashed","verified","timeout", "ANY"],
+                           help="Reverify objects that have the specified status. Use 'ANY'"
+                           " for all statuses")
     argparser.add_argument("--test", "-t",
                            required=False, action='store_true',
                            help="Don't update database with verify results or delete any ceph objects.")
@@ -395,9 +397,8 @@ if __name__ == '__main__':
 
     verified = verify_all_objects(row_objs, int(args["processes"]))
     if DELETE:
-        output_deleted()
         logger.info("Checked "
-                    "{0} objects, Verified {1} objects, Deleted {2} objects from ceph,"
+                    "{0} objects, Verified {1} objects, Deleted {2} objects from ceph, "
                     "Stashed in '{3}'.".format(len(row_objs), verified, len(DELETED), STASH))
     elif STASH:
         logger.info("Checked "

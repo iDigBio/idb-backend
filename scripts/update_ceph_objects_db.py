@@ -49,6 +49,7 @@ def build_temp_table(buckets):
                    "ceph_status VARCHAR(8));").format(TMP_TABLE))
 
     storage = IDigBioStorage()
+    boto_conn = storage.boto_conn # Use the connection directly since the wrapper does not pass through some args
 
     # Read through bucket inserting into temp table
     with apidbpool.connection(autocommit=False) as conn: # use a single connection from the pool to commit groups of statements
@@ -57,7 +58,8 @@ def build_temp_table(buckets):
         for bucket in buckets:
             logger.info("Importing bucket listing for {0}.".format(bucket))
             b = storage.get_bucket(bucket)
-            for f in b.list():
+            # Temp limit to a subset of the bucket, took 10 hours to list a 24M bucket and then got socket timeout
+            for f in b.list(prefix="00"):
                 # see backfill_new_etags() for why no etag here
                 #key = b.get_key(f.name)
                 cur.execute(("INSERT INTO {0} "

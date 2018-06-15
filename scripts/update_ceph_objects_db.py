@@ -18,6 +18,7 @@ monkey.patch_all()
 import os
 import sys
 import argparse
+import string
 
 from idb.postgres_backend import apidbpool
 from idb.helpers.logging import getLogger, configure_app_log
@@ -49,7 +50,11 @@ def build_temp_table(buckets):
                    "ceph_status VARCHAR(8));").format(TMP_TABLE))
 
     storage = IDigBioStorage()
-    boto_conn = storage.boto_conn # Use the connection directly since the wrapper does not pass through some args
+
+    # Possible start characters of names, used for iterating through subsets of the bucket.
+    # Took 10 hours to list a 24M bucket and then got socket timeout, try smaller chunks at a time.
+    # DRAGON WARNING - file names that don't start with one of these letters (eg UTF8, punctuation) will not be tracked!
+    prefixes = string.ascii_letters + string.digits
 
     # Read through bucket inserting into temp table
     with apidbpool.connection(autocommit=False) as conn: # use a single connection from the pool to commit groups of statements
@@ -58,19 +63,19 @@ def build_temp_table(buckets):
         for bucket in buckets:
             logger.info("Importing bucket listing for {0}.".format(bucket))
             b = storage.get_bucket(bucket)
-            # Temp limit to a subset of the bucket, took 10 hours to list a 24M bucket and then got socket timeout
-            for f in b.list(prefix="00"):
-                # see backfill_new_etags() for why no etag here
-                #key = b.get_key(f.name)
-                cur.execute(("INSERT INTO {0} "
-                               "(ceph_bucket, ceph_name, ceph_date, ceph_bytes) "
-                               "VALUES (%s, %s, %s, %s)").format(TMP_TABLE),
-                              (bucket, f.name, f.last_modified, f.size))
-                inserted += 1
+            for p in prefixes:
+                for f in b.list(prefix=p):
+                    # see backfill_new_etags() for why no etag here
+                    #key = b.get_key(f.name)
+                    cur.execute(("INSERT INTO {0} "
+                                   "(ceph_bucket, ceph_name, ceph_date, ceph_bytes) "
+                                   "VALUES (%s, %s, %s, %s)").format(TMP_TABLE),
+                                  (bucket, f.name, f.last_modified, f.size))
+                    inserted += 1
 
-            if (inserted % 10000) == 0:
-                logger.info("Committing {0}".format(inserted))
-                conn.commit()
+                if (inserted % 10000) == 0:
+                    logger.info("Committing {0}".format(inserted))
+                    conn.commit()
 
         conn.commit()
 
@@ -78,6 +83,7 @@ def build_temp_table(buckets):
 def flag_new_records():
     """Mark records in the ceph_objects_temp table 'new' if they are not in ceph_objects
     """
+    logger.info("Flagging new records")
     return apidbpool.execute("""UPDATE {0}
         SET ceph_status='new'
         WHERE
@@ -93,6 +99,7 @@ def flag_new_records():
 def flag_changed_records():
     """Compare records that exist in both tables and flag things as 'changed' if they differ
     """
+    logger.info("Flagging changed records")
     return apidbpool.execute("""UPDATE {0}
         SET ceph_status='changed'
         WHERE
@@ -108,7 +115,14 @@ def flag_changed_records():
 def copy_new_to_ceph_objects():
     """Copy 'new' records from ceph_objects_temp to ceph_objects
     """
-    pass
+    logger.info("Copying new ceph records to main table")
+    return apidbpool.execute("""INSERT INTO ceph_objects
+        (ceph_bucket, ceph_name, ceph_date, ceph_bytes, ceph_etag)
+        SELECT ceph_bucket, ceph_name, ceph_date, ceph_bytes, ceph_etag
+        FROM {0}
+        WHERE ceph_status='new'
+        """.format(TMP_TABLE))
+
 
 # The list() method on a bucket gets partial metadata so we have to HEAD each
 # key individually to get the etags. HEADing each object is painfully slow, 
@@ -119,6 +133,7 @@ def copy_new_to_ceph_objects():
 def backfill_flagged_etags():
     """Update ceph_objects_temp etags where records have a flag of any kind
     """
+    logger.info("Backfilling etags on new/changed records")
     cols = ["ceph_bucket", "ceph_name"]
     results = apidbpool.fetchall("""SELECT {0}
         FROM {1}
@@ -138,10 +153,10 @@ def backfill_flagged_worker(row):
     """Parallel worker for backfill_flagged_etags()
     """
     storage = IDigBioStorage()
-    print(row)
+    #print(row)
     b = storage.get_bucket(row["ceph_bucket"]) # Two phase here because validate=False in storage class
     row["etag"] = b.get_key(row["ceph_name"]).etag[1:-1]
-    print(row["etag"])
+    #print(row["etag"])
     return apidbpool.execute("""UPDATE {0}
        SET ceph_etag=%(etag)s
        WHERE ceph_bucket=%(ceph_bucket)s AND ceph_name=%(ceph_name)s
@@ -176,5 +191,6 @@ if __name__ == '__main__':
             raw_input("Press any key to continue or Ctl-C to cancel ")
 
     etagged = backfill_flagged_etags()
+    copy_new_to_ceph_objects()
 
     apidbpool.closeall()

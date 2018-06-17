@@ -96,6 +96,10 @@ def flag_new_records():
         """.format(TMP_TABLE))
 
 
+# It looks like a lot of records get flagged as changed (idigbio-datasets) because the file size is 
+# different and what's in the temp table is 512k, but these files download. Maybe multi-segment files
+# only have the first part? No, lots of things over 512K have sizes. Maybe multi-part uploads?
+# Already know that the real etag requires a head, maybe real size does too? 
 def flag_changed_records():
     """Compare records that exist in both tables and flag things as 'changed' if they differ
     """

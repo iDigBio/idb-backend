@@ -35,7 +35,25 @@ TMP_TABLE = "ceph_objects_temp" # WARNING! Will be destroyed and re-created.
 
 logger = getLogger("update-ceph-files")
 
-def build_temp_table(buckets):
+
+def append_prefixes(bucket, prefix=""):
+    """Generate prefixes for bucket files so we can do little sections at a time.
+    Remember that files can be named anything, most just happen to be md5sums
+    but we still need to go through all possible letters and numbers unless
+    we only parallelize buckets that use etags.
+    """
+    if prefix != "":
+        return [{"bucket":bucket, "prefix":prefix}]
+    else:
+        valid_chars = string.hexdigits[0:-6] # no capitals, we lowercase
+        prefixes = []
+        for l_1 in valid_chars:
+            for l_2 in valid_chars:
+                prefixes.append({"bucket":bucket, "prefix":l_1 + l_2})
+        return prefixes[0:20] #FIXME: temp limit to only 20 prefixes to get us some things to delete quickly
+
+
+def build_temp_table(buckets, prefix=""):
     """Recreate the temporary table with Ceph files
     """
 
@@ -49,35 +67,42 @@ def build_temp_table(buckets):
                    "ceph_etag uuid, "
                    "ceph_status VARCHAR(8));").format(TMP_TABLE))
 
+
+    # Parralleize over prefixes in each bucket, faster and listing all items in a bucket w/ 25M
+    # files failed with timeout after 10 hours. Up to 100k seems to work fine though.
+    total = 0
+    p = pool.Pool(1)
+    for bucket in buckets:
+        work = append_prefixes(bucket, prefix)
+        results = p.imap_unordered(bucket_list_worker, work)
+        total += sum(results)
+
+    return total
+
+
+def bucket_list_worker(work):
+    logger.debug("Listing and inserting prefix {0} from bucket {1}".format(work["prefix"], work["bucket"]))
+
     storage = IDigBioStorage()
-
-    # Possible start characters of names, used for iterating through subsets of the bucket.
-    # Took 10 hours to list a 24M bucket and then got socket timeout, try smaller chunks at a time.
-    # DRAGON WARNING - file names that don't start with one of these letters (eg UTF8, punctuation) will not be tracked!
-    prefixes = string.ascii_letters + string.digits
-
     # Read through bucket inserting into temp table
     with apidbpool.connection(autocommit=False) as conn: # use a single connection from the pool to commit groups of statements
         cur = conn.cursor()
-        inserted = 1
-        for bucket in buckets:
-            logger.info("Importing bucket listing for {0}.".format(bucket))
-            b = storage.get_bucket(bucket)
-            for p in prefixes:
-                for f in b.list(prefix=p):
-                    # see backfill_new_etags() for why no etag here
-                    #key = b.get_key(f.name)
-                    cur.execute(("INSERT INTO {0} "
-                                   "(ceph_bucket, ceph_name, ceph_date, ceph_bytes) "
-                                   "VALUES (%s, %s, %s, %s)").format(TMP_TABLE),
-                                  (bucket, f.name, f.last_modified, f.size))
-                    inserted += 1
+#        inserted = 1
+        #logger.info("Importing bucket listing for {0}.".format(bucket))
+        b = storage.get_bucket(work["bucket"])
+        for f in b.list(prefix=work["prefix"]):
+            # see backfill_new_etags() for why no etag here
+            cur.execute(("INSERT INTO {0} "
+                         "(ceph_bucket, ceph_name, ceph_date, ceph_bytes) "
+                         "VALUES (%s, %s, %s, %s)").format(TMP_TABLE),
+                          (work["bucket"], f.name, f.last_modified, f.size))
+#            inserted += 1
 
-                if (inserted % 10000) == 0:
-                    logger.info("Committing {0}".format(inserted))
-                    conn.commit()
-
+#            if (inserted % 10000) == 0:
+#                logger.info("Committing {0}".format(inserted))
+#                conn.commit()
         conn.commit()
+        return 1
 
 
 def flag_new_records():
@@ -158,7 +183,7 @@ def backfill_flagged_worker(row):
     """
     storage = IDigBioStorage()
     #print(row)
-    b = storage.get_bucket(row["ceph_bucket"]) # Two phase here because validate=False in storage class
+    b = storage.get_bucket(row["ceph_bucket"]) # Two phase here because validate=False in storage class so etag is not populated
     row["etag"] = b.get_key(row["ceph_name"]).etag[1:-1]
     #print(row["etag"])
     return apidbpool.execute("""UPDATE {0}
@@ -177,6 +202,9 @@ if __name__ == '__main__':
     argparser.add_argument("--bucket", "-b",
                            required=False,
                            help="Just do one bucket instead of all configured buckets eg 'idigbio-images-prod'.")
+    argparser.add_argument("--prefix", "-x",
+                           required=False, type=str,
+                           help="Prefix of items in bucket to update.")
     argparser.add_argument("--force", "-f",
                            required=False, default=False, action='store_true',
                            help="Force updating main table with new records even if changed records are found.")
@@ -184,7 +212,10 @@ if __name__ == '__main__':
     if args.bucket != "":
         BUCKETS = [ args.bucket ]
 
-    build_temp_table(BUCKETS)
+    if args.prefix != "":
+        PREFIX = args.prefix
+
+    build_temp_table(BUCKETS, PREFIX)
     new = flag_new_records()
     changed = flag_changed_records()
 

@@ -33,7 +33,6 @@ BUCKETS = ["idigbio-datasets-prod",
            "idigbio-static-downloads",
            "idigbio-video-prod"]
 
-TMP_TABLE = "ceph_objects_temp" # WARNING! Will be destroyed and re-created.
 
 logger = getLogger("update-ceph-files")
 
@@ -55,29 +54,54 @@ def append_prefixes(bucket, prefix=""):
         return prefixes[0:20] #FIXME: temp limit to only 20 prefixes to get us some things to delete quickly
 
 
+def make_temp_table_name(prefix):
+    TMP_TABLE_BASE = "ceph_objects_temp" # WARNING! Temp tables will be destroyed and re-created.
+    return "{0}_{1}".format(TMP_TABLE_BASE, prefix)
+
+
+def create_temp_table(prefix):
+    """Create temporary table for each prefix to hold list from Ceph
+    Probably naming by prefix is ok because we loop over buckets in the outer
+    loop so the same prefix should not be getting worked on in two buckets.
+    """
+    table = make_temp_table_name(prefix)
+    try:
+        # Drop and create temp table
+        drop_temp_table(prefix)
+        apidbpool.execute(("CREATE TABLE IF NOT EXISTS {0}( "
+                       "ceph_bucket VARCHAR(32), "
+                       "ceph_name VARCHAR(128), "
+                       "ceph_date TIMESTAMP WITHOUT TIME ZONE, "
+                       "ceph_bytes bigint, "
+                       "ceph_etag uuid, "
+                       "ceph_status VARCHAR(8));").format(table))
+        return table
+    except:
+        logger.error("Failed to create temp table for prefix {0} {1}".format(prefix, traceback.format_exc()))
+        return False
+
+
+def drop_temp_table(prefix):
+    """Clean up a temporary table when done
+    """
+    table = make_temp_table_name(prefix)
+    apidbpool.execute("DROP TABLE IF EXISTS {0};".format(table))
+
+
 def build_temp_table(buckets, prefix=""):
     """Recreate the temporary table with Ceph files
     """
 
-    # Drop and create temp table
-    apidbpool.execute("DROP TABLE IF EXISTS {0};".format(TMP_TABLE))
-    apidbpool.execute(("CREATE TABLE IF NOT EXISTS {0}( "
-                   "ceph_bucket VARCHAR(32), "
-                   "ceph_name VARCHAR(128), "
-                   "ceph_date TIMESTAMP WITHOUT TIME ZONE, "
-                   "ceph_bytes bigint, "
-                   "ceph_etag uuid, "
-                   "ceph_status VARCHAR(8));").format(TMP_TABLE))
-
-
-    # Parralleize over prefixes in each bucket, faster and listing all items in a bucket w/ 25M
-    # files failed with timeout after 10 hours. Up to 100k seems to work fine though.
     total = 0
-    p = pool.Pool(1)
-    for bucket in buckets:
-        work = append_prefixes(bucket, prefix)
-        results = p.imap_unordered(bucket_list_worker, work)
-        total += sum(results)
+    if create_temp_table(prefix):
+
+        # Parralleize over prefixes in each bucket, faster and listing all items in a bucket w/ 25M
+        # files failed with timeout after 10 hours. Up to 100k seems to work fine though.
+        p = pool.Pool(1)
+        for bucket in buckets:
+            work = append_prefixes(bucket, prefix)
+            results = p.imap_unordered(bucket_list_worker, work)
+            total += sum(results)
 
     return total
 
@@ -96,7 +120,7 @@ def bucket_list_worker(work):
             # see backfill_new_etags() for why no etag here
             cur.execute(("INSERT INTO {0} "
                          "(ceph_bucket, ceph_name, ceph_date, ceph_bytes) "
-                         "VALUES (%s, %s, %s, %s)").format(TMP_TABLE),
+                         "VALUES (%s, %s, %s, %s)").format(make_temp_table_name(work["prefix"])),
                           (work["bucket"], f.name, f.last_modified, f.size))
 #            inserted += 1
 
@@ -108,52 +132,55 @@ def bucket_list_worker(work):
 
 
 
-def flag_new_records():
+def flag_new_records(prefix):
     """Mark records in the ceph_objects_temp table 'new' if they are not in ceph_objects
     """
-    logger.info("Flagging new records")
+    table = make_temp_table_name(prefix)
+    logger.info("Flagging new records in {0}".format(table))
     return apidbpool.execute("""UPDATE {0}
         SET ceph_status='new'
         WHERE
           ctid IN (
             SELECT t.ctid
-            FROM ceph_objects_temp t LEFT JOIN ceph_objects o
+            FROM {0} t LEFT JOIN ceph_objects o
             ON t.ceph_bucket=o.ceph_bucket AND t.ceph_name=o.ceph_name
             WHERE o.ceph_name IS NULL
           )
-        """.format(TMP_TABLE))
+        """.format(table))
 
 
 # It looks like a lot of records get flagged as changed (idigbio-datasets) because the file size is 
 # different and what's in the temp table is 512k, but these files download. Maybe multi-segment files
 # only have the first part? No, lots of things over 512K have sizes. Maybe multi-part uploads?
 # Already know that the real etag requires a head, maybe real size does too? 
-def flag_changed_records():
+def flag_changed_records(prefix):
     """Compare records that exist in both tables and flag things as 'changed' if they differ
     """
-    logger.info("Flagging changed records")
+    table = make_temp_table_name(prefix)
+    logger.info("Flagging changed records in {0}".format(table))
     return apidbpool.execute("""UPDATE {0}
         SET ceph_status='changed'
         WHERE
           ctid IN (
             SELECT t.ctid
-             FROM ceph_objects_temp t JOIN ceph_objects o
+             FROM {0} t JOIN ceph_objects o
              ON t.ceph_bucket=o.ceph_bucket AND t.ceph_name=o.ceph_name
              WHERE t.ceph_date!=o.ceph_date OR t.ceph_bytes!=o.ceph_bytes
           )
-        """.format(TMP_TABLE))
+        """.format(table))
 
 
-def copy_new_to_ceph_objects():
+def copy_new_to_ceph_objects(prefix):
     """Copy 'new' records from ceph_objects_temp to ceph_objects
     """
-    logger.info("Copying new ceph records to main table")
+    table = make_temp_table_name(prefix)
+    logger.info("Copying new ceph records from {0} to main table".format(table))
     return apidbpool.execute("""INSERT INTO ceph_objects
         (ceph_bucket, ceph_name, ceph_date, ceph_bytes, ceph_etag)
         SELECT ceph_bucket, ceph_name, ceph_date, ceph_bytes, ceph_etag
         FROM {0}
         WHERE ceph_status='new' AND ceph_etag IS NOT NULL
-        """.format(TMP_TABLE)) # some etags might not get filled in, better to not copy them and let them be picked up next time
+        """.format(table)) # some etags might not get filled in, better to not copy them and let them be picked up next time
 
 
 def batch_work(work, batches):
@@ -168,19 +195,21 @@ def batch_work(work, batches):
 # backfill the info in parallel later for only new things. This means we can't croscheck db and ceph for
 # changing etags. Not sure under what circumstances that could happen and why we'd want to make sure it
 # didn't. Is last_modified a good enough check?
-def backfill_flagged_etags():
+def backfill_flagged_etags(prefix):
     """Update ceph_objects_temp etags where records have a flag of any kind
     """
-    logger.info("Backfilling etags on new/changed records")
+    table = make_temp_table_name(prefix)
+    logger.info("Backfilling etags on new/changed records in {0}".format(table))
     cols = ["ceph_bucket", "ceph_name"]
     results = apidbpool.fetchall("""SELECT {0}
         FROM {1}
         WHERE ceph_status IS NOT NULL
-        """.format(','.join(cols), TMP_TABLE))
+        """.format(','.join(cols), table))
 
     row_objs = [] # Convert to something we can use with pool.imap_unordered
     for row in results:
-        row_objs.append(dict(zip(cols, row)))
+        # pack prefix in so we know what temp table the works goes with
+        row_objs.append(dict(zip(cols + ["prefix"], row + [prefix])))
 
     # Found that batching up rows saves a bit of CPU time rather than greenlet switching and commiting each row
     pools = 3
@@ -200,14 +229,15 @@ def backfill_flagged_worker(rows):
         cur = conn.cursor()
         for row in rows:
             try:
+                table = make_temp_table_name(row['prefix'])
                 b = storage.get_bucket(row['ceph_bucket']) # Two phase here because validate=False in storage class so etag is not populated
                 row["etag"] = b.get_key(row["ceph_name"]).etag[1:-1]
                 cur.execute("""UPDATE {0}
                     SET ceph_etag=%(etag)s
                     WHERE ceph_bucket=%(ceph_bucket)s AND ceph_name=%(ceph_name)s
-                    """.format(TMP_TABLE), row)
+                    """.format(table), row)
             except:
-                logger.error("Failed to update etag for {0}:{1} {2}".format(row["ceph_bucket"], row["ceph_name"], traceback.format_exc()))
+                logger.error("Failed to update etag for {0}:{1} in {2} {3}".format(row["ceph_bucket"], row["ceph_name"], row["prefix"], traceback.format_exc()))
     conn.commit()
     return 0
 
@@ -236,8 +266,8 @@ if __name__ == '__main__':
         PREFIX = args.prefix
 
     build_temp_table(BUCKETS, PREFIX)
-    new = flag_new_records()
-    changed = flag_changed_records()
+    new = flag_new_records(PREFIX)
+    changed = flag_changed_records(PREFIX)
 
     logger.info("Found {0} new records".format(new))
     if changed > 0:
@@ -245,7 +275,7 @@ if __name__ == '__main__':
         if not args.force:
             raw_input("Press any key to continue or Ctl-C to cancel ")
 
-    etagged = backfill_flagged_etags()
-    copy_new_to_ceph_objects()
+    etagged = backfill_flagged_etags(PREFIX)
+    copy_new_to_ceph_objects(PREFIX)
 
     apidbpool.closeall()

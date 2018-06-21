@@ -19,6 +19,8 @@ import os
 import sys
 import argparse
 import string
+import math
+import traceback
 
 from idb.postgres_backend import apidbpool
 from idb.helpers.logging import getLogger, configure_app_log
@@ -105,6 +107,7 @@ def bucket_list_worker(work):
         return 1
 
 
+
 def flag_new_records():
     """Mark records in the ceph_objects_temp table 'new' if they are not in ceph_objects
     """
@@ -149,8 +152,14 @@ def copy_new_to_ceph_objects():
         (ceph_bucket, ceph_name, ceph_date, ceph_bytes, ceph_etag)
         SELECT ceph_bucket, ceph_name, ceph_date, ceph_bytes, ceph_etag
         FROM {0}
-        WHERE ceph_status='new'
-        """.format(TMP_TABLE))
+        WHERE ceph_status='new' AND ceph_etag IS NOT NULL
+        """.format(TMP_TABLE)) # some etags might not get filled in, better to not copy them and let them be picked up next time
+
+
+def batch_work(work, batches):
+    """Return a list of n lists of about equal size
+    """
+    return [work[i::batches] for i in xrange(batches)]
 
 
 # The list() method on a bucket gets partial metadata so we have to HEAD each
@@ -173,23 +182,34 @@ def backfill_flagged_etags():
     for row in results:
         row_objs.append(dict(zip(cols, row)))
 
-    p = pool.Pool(3)
-    results = p.imap_unordered(backfill_flagged_worker, row_objs)
+    # Found that batching up rows saves a bit of CPU time rather than greenlet switching and commiting each row
+    pools = 3
+    batches = max(math.floor(len(row_objs) / 5000), pools)
+    work = batch_work(row_objs, batches)
+    p = pool.Pool(pools)
+    results = p.imap_unordered(backfill_flagged_worker, work)
     return sum(results)
 
 
-def backfill_flagged_worker(row):
+def backfill_flagged_worker(rows):
     """Parallel worker for backfill_flagged_etags()
+    Expects a list of records to work on and commit as a group
     """
     storage = IDigBioStorage()
-    #print(row)
-    b = storage.get_bucket(row["ceph_bucket"]) # Two phase here because validate=False in storage class so etag is not populated
-    row["etag"] = b.get_key(row["ceph_name"]).etag[1:-1]
-    #print(row["etag"])
-    return apidbpool.execute("""UPDATE {0}
-       SET ceph_etag=%(etag)s
-       WHERE ceph_bucket=%(ceph_bucket)s AND ceph_name=%(ceph_name)s
-       """.format(TMP_TABLE), row)
+    with apidbpool.connection(autocommit=False) as conn:
+        cur = conn.cursor()
+        for row in rows:
+            try:
+                b = storage.get_bucket(row['ceph_bucket']) # Two phase here because validate=False in storage class so etag is not populated
+                row["etag"] = b.get_key(row["ceph_name"]).etag[1:-1]
+                cur.execute("""UPDATE {0}
+                    SET ceph_etag=%(etag)s
+                    WHERE ceph_bucket=%(ceph_bucket)s AND ceph_name=%(ceph_name)s
+                    """.format(TMP_TABLE), row)
+            except:
+                logger.error("Failed to update etag for {0}:{1} {2}".format(row["ceph_bucket"], row["ceph_name"], traceback.format_exc()))
+    conn.commit()
+    return 0
 
 
 if __name__ == '__main__':

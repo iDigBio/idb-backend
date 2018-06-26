@@ -208,7 +208,8 @@ def process_subfile(rf, rsid, rs_uuid_etag, rs_id_uuid, ingest=False, db=None):
 
             proposed_idents = identifyRecord(rf.rowtype, etag, r, rsid)
 
-            rlogger.debug("****** proposed / identifyRecord = (etag, type of identifier, lowercased identifiers): {0}".format(proposed_idents))
+            # Debugging of record identifiers
+            # rlogger.debug("****** proposed / identifyRecord = (etag, type of identifier, lowercased identifiers): {0}".format(proposed_idents))
 
             idents = []
             if len(proposed_idents) == 0 and rf.rowtype in ingestion_types:
@@ -238,7 +239,8 @@ def process_subfile(rf, rsid, rs_uuid_etag, rs_id_uuid, ingest=False, db=None):
                         if existing_ids[i] != u:
                             raise RecordException("Cross record ID violation, ID {0}, UUID {1}".format(existing_ids[i], u))
 
-            rlogger.debug("****** idents = (etag, type of identifier, lowercased identifiers).................... {0}".format(idents))
+            # Debugging of record identifiers
+            # rlogger.debug("****** idents = (etag, type of identifier, lowercased identifiers).................... {0}".format(idents))
 
             deleted = False
             if u is None:

@@ -73,7 +73,6 @@ setup(
             'pytest-cov',
             'pytest-flask',
             'pytest-mock',
-            'pytest-catchlog>=1.2.2,<2',
             'fakeredis',
         ]
     },

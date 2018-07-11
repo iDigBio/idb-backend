@@ -33,9 +33,9 @@ In Ubuntu 16.04:
     apt-get install libxml2 libxslt1-dev ffmpeg fonts-dejavu-core
 
 
-Additional dependencies that may be needed to install the pip package or to use the libraries on Ubuntu 14.04:
+Additional dependencies that are needed to install the pip package or to use the libraries on Ubuntu 14.04, in particular media derivative generation:
 
-    apt-get install libsystemd-journal-dev libsystemd-daemon-dev libsystemd-login-dev libgeos-dev libfreetype6-dev
+    apt-get install libsystemd-journal-dev libsystemd-daemon-dev libsystemd-login-dev libgeos-dev libfreetype6-dev libopenjp2-7-dev libtiff5-dev
 
 
 

@@ -359,7 +359,7 @@ translate_dict = {
     "dwc:verbatimCoordinateSystem": ["dwc:verbatimCoordinateSystem", "dwc:Occurrence"],
     "dwc:verbatimDepth": ["dwc:verbatimDepth", "dwc:Occurrence"],
     "dwc:verbatimElevation": ["dwc:verbatimElevation", "dwc:Occurrence"],
-    "dwc:VerbatimEventDate": ["dwc:VerbatimEventDate", "dwc:Occurrence"],
+    "dwc:VerbatimEventDate": ["dwc:verbatimEventDate", "dwc:Occurrence"],
     "dwc:verbatimEventDate": ["dwc:verbatimEventDate", "dwc:Occurrence"],
     "dwc:verbatimLatitude": ["dwc:verbatimLatitude", "dwc:Occurrence"],
     "dwc:verbatimLocality": ["dwc:verbatimLocality", "dwc:Occurrence"],

@@ -204,7 +204,7 @@ class IDigBioStorage(object):
         key.get_contents_to_file(fp)
         if md5 and key.md5 != md5:
             raise S3DataError(
-                'MD5 of downloaded did not match given MD5'
+                'MD5 of downloaded did not match given MD5: '
                 '%s vs. %s' % (key.md5, md5))
         return key
 

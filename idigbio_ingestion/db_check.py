@@ -217,10 +217,13 @@ def process_subfile(rf, rsid, rs_uuid_etag, rs_id_uuid, ingest=False, db=None):
                 raise RecordException("No Record ID")
             elif len(proposed_idents) > 0:
                 for ident in proposed_idents:
+                    logger.debug("#### ident | ident[2] #### : {0} | {1}'".format(ident, ident[2])) 
                     if ident[2] in seen_ids:
                         dupe_ids.add(ident[2])
                         duplicate_id_count += 1
-                        raise RecordException("Duplicate ID Detected, File {2}, Record {0}, ID {1}".format(count, ident[2], rf.name))
+                        raise RecordException(
+                            "Duplicate ID Detected: {3}, File {2}, ID Record {0}, Previously Seen ID {1}".format(
+                                count, ident[2], rf.name, ident))
                     else:
                         ids_to_add[ident[2]] = True
                         idents.append(ident)

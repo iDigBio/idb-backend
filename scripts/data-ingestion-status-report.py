@@ -66,37 +66,36 @@ buff = buff + hr + "\n"
 
 # Generate VertNet section
 
-buff = buff + "VertNet Report since " + since_date + ":\n\n"
-
-buff = buff + "(github login and access permission are required to view issues)\n\n"
-if os.environ.get('GITHUB_ACCESS_TOKEN') is None:
-    buff = buff + "*Unable to access VertNet github issues to generate report. Check environment variables.* \n\n"
-else:
-    access_token = os.environ.get('GITHUB_ACCESS_TOKEN')
-    api_priv_url = 'https://api.github.com/repos/VertNet/Tasks/issues'
-    q_month = '?since=' + since_date
-
-    r = requests.get(api_priv_url + q_month, headers={'Authorization': 'token ' + access_token})
-
-    buff = buff + "NEW issues:\n"
-    for each in r.json():
-        if "title" in each:
-            for labels in each["labels"]:
-                if "name" in labels:
-                    if labels["name"] == "new":
-                        buff = buff + each["html_url"] + "  " + each["title"] + "\n"
-
-    ## leave UPDATED out of report for now.
-    #buff = buff + "\nUPDATED issues:\n"
-    #for each in r.json():
-    #    if "title" in each:
-    #        buff = buff + each["html_url"] + "  " + each["title"] + "\n"
+# buff = buff + "VertNet Report since " + since_date + ":\n\n"
+#
+# buff = buff + "(github login and access permission are required to view issues)\n\n"
+# if os.environ.get('GITHUB_ACCESS_TOKEN') is None:
+#     buff = buff + "*Unable to access VertNet github issues to generate report. Check environment variables.* \n\n"
+# else:
+#     access_token = os.environ.get('GITHUB_ACCESS_TOKEN')
+#     api_priv_url = 'https://api.github.com/repos/VertNet/Tasks/issues'
+#     q_month = '?since=' + since_date
+#
+#     r = requests.get(api_priv_url + q_month, headers={'Authorization': 'token ' + access_token})
+#
+#     buff = buff + "NEW issues:\n"
+#     for each in r.json():
+#         if "title" in each:
+#             for labels in each["labels"]:
+#                 if "name" in labels:
+#                     if labels["name"] == "new":
+#                         buff = buff + each["html_url"] + "  " + each["title"] + "\n"
+#
+#     ## leave UPDATED out of report for now.
+#     #buff = buff + "\nUPDATED issues:\n"
+#     #for each in r.json():
+#     #    if "title" in each:
+#     #        buff = buff + each["html_url"] + "  " + each["title"] + "\n"
 
     
-buff = buff + "\n" + hr
+#buff = buff + "\n" + hr
 
 buff = buff + '''
-
 Notes:
 
 

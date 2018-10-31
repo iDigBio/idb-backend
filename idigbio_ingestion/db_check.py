@@ -217,7 +217,7 @@ def process_subfile(rf, rsid, rs_uuid_etag, rs_id_uuid, ingest=False, db=None):
                 raise RecordException("No Record ID")
             elif len(proposed_idents) > 0:
                 for ident in proposed_idents:
-                    logger.debug("#### ident | ident[2] #### : %r | %r", ident, ident[2])
+                    #logger.debug("#### ident | ident[2] #### : %r | %r", ident, ident[2])
                     if ident[2] in seen_ids:
                         dupe_ids.add(ident[2])
                         duplicate_id_count += 1

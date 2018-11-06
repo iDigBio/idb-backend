@@ -21,6 +21,7 @@ In Ubuntu 16.04:
       libatlas-base-dev gfortran libgdal-dev libpq-dev libgeos-c1v5 \
       libsystemd-dev
 
+TBD 18.04
 
 For ingestion the following are also needed:
 

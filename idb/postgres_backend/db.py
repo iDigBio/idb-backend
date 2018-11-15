@@ -820,7 +820,7 @@ class RecordSet(object):
         "id", "uuid", "publisher_uuid", "name", "recordids",
         "eml_link", "file_link", "ingest", "first_seen",
         "last_seen", "pub_date", "file_harvest_date",
-        "file_harvest_etag","eml_harvest_date", "eml_harvest_etag"
+        "file_harvest_etag","eml_harvest_date", "eml_harvest_etag", "ingest_is_paused"
     ]
 
     def __init__(self, **attrs):
@@ -834,7 +834,7 @@ class RecordSet(object):
         sql = """
         SELECT id, uuid, publisher_uuid, name, recordids, eml_link, file_link,
             ingest, first_seen, last_seen, pub_date, file_harvest_date, file_harvest_etag,
-            eml_harvest_date, eml_harvest_etag
+            eml_harvest_date, eml_harvest_etag, ingest_is_paused
         FROM recordsets
         WHERE uuid = %s"""
         r = idbmodel.fetchone(sql, (uuid, ), cursor_factory=DictCursor)

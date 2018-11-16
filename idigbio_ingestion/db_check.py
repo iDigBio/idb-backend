@@ -389,7 +389,7 @@ def process_subfile(rf, rsid, rs_uuid_etag, rs_id_uuid, ingest=False, db=None):
     }
 
 
-def process_file(fname, mime, rsid, existing_etags, existing_ids, ingest=False, commit_force=False):
+def process_file(fname, mime, rsid, existing_etags, existing_ids, ingest=False, commit_force=False, ispaused=False):
     rlogger = getrslogger(rsid)
     rlogger.info("Processing %s, type: %s", fname, mime)
     counts = {}
@@ -470,6 +470,7 @@ def process_file(fname, mime, rsid, existing_etags, existing_ids, ingest=False, 
         "processing_start_datetime": t.isoformat(),
         "total_processing_time": (datetime.datetime.now() - t).total_seconds(),
         "commited": commited,
+        "paused": ispaused
     }
 
 
@@ -495,6 +496,7 @@ def metadataToSummaryJSON(rsid, metadata, writeFile=True, doStats=True):
         "mediarecords_delete": 0,
         "datafile_ok": True,
         "commited": metadata["commited"],
+        "paused": metadata["paused"]
     }
 
     if metadata["filemd5"] is None:
@@ -582,6 +584,7 @@ def main(rsid, ingest=False):
                 "processing_start_datetime": "",
                 "total_processing_time": "",
                 "commited": False,
+                "paused": False,
                 }
             metadataToSummaryJSON(rsid, metadata)
             rlogger.info("Finished db_check in %0.3fs", (datetime.datetime.now() - t).total_seconds())
@@ -606,11 +609,13 @@ def main(rsid, ingest=False):
 
         ### At this point forward, we are already working on the rsid, so it is ok
         ### to mutate ingest directive on recordsets that are paused.
+        ispaused = False
         if rsid in paused_rsids:
+            ispaused = True
             rlogger.warn("Recordset is PAUSED. It will be checked but will not be ingested.".format(rsid))
             ingest = False
 
-        metadata = process_file(name, mime, rsid, db_u_d, db_i_d, ingest=ingest, commit_force=commit_force)
+        metadata =process_file(name, mime, rsid, db_u_d, db_i_d, ingest=ingest, commit_force=commit_force, ispaused=ispaused)
         metadataToSummaryJSON(rsid, metadata)
         rlogger.info("Finished db_check in %0.3fs", (datetime.datetime.now() - t).total_seconds())
         return rsid

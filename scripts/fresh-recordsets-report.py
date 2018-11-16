@@ -3,22 +3,11 @@ from __future__ import print_function
 
 import sys
 
-import json
 import unicodecsv as csv
-import pprint
 
 from idb import config
 
 from idb.postgres_backend.db import PostgresDB
-
-
-# def output_pretty(mylist):
-#     # this isn't very pretty actually.
-#     pp = pprint.PrettyPrinter()
-#     pp.pprint(mylist)
-
-# def output_json(mylist):
-#     print(json.dumps(mylist))
 
 def output_tsv(mylist, outputfile):
     # tab-separated, all fields quoted
@@ -57,18 +46,6 @@ def main():
         fh.close()
     else:
         output_tsv(results_list, sys.stdout)
-
-    # with open("fresh-recordsets-report." + args.output_format, w) as outfile:
-
-
-    #     if args.output_format == "pretty":
-    #     output_pretty(results_list, outfile)
-
-    #     if args.output_format == "json":
-    #         output_json(results_list, outfile)
-
-    #     if args.output_format == "tsv":
-
 
 
 if __name__ == "__main__":

@@ -11,10 +11,10 @@ now=`date -I`
 
 echo Starting python - Fresh Recordsets Report generation...
 
-python fresh-recordsets-report.py -f csv  # makes a csv named fresh-recordsets-report.csv
+python fresh-recordsets-report.py -w # makes a tsv: fresh-recordsets-report.tsv
 
 echo Starting zip...
-zip -r fresh-recordsets-report.zip fresh-recordsets-report.csv
+zip -r fresh-recordsets-report.zip fresh-recordsets-report.tsv
 
 echo Starting mail command...
 
@@ -23,7 +23,7 @@ Data report attached.
 EOF
 
 echo Removing temporary files...
-rm fresh-recordsets-report.csv
+rm fresh-recordsets-report.tsv
 rm fresh-recordsets-report.zip
 
 echo Finished run.

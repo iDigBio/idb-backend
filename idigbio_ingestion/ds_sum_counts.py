@@ -15,13 +15,13 @@ from idb.helpers.logging import idblogger as logger
 
 
 header = [
-    "file", "csv line cnt", "R cnt", "R cr8", "R upd8",
+    "file", "paused", "csv line cnt", "R cnt", "R cr8", "R upd8",
     "R del", "MR cnt", "MR cr8", "MR upd8",
     "MR del", "dup occ ids", "no recordid cnt"
 ]
 
 fields = [
-    "csv_line_count", "records_count", "records_create", "records_update",
+    "paused", "csv_line_count", "records_count", "records_create", "records_update",
     "records_delete", "mediarecords_count", "mediarecords_create",
     "mediarecords_update", "mediarecords_delete", "duplicate_occurence_count",
     "no_recordid_count"

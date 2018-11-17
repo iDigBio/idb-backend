@@ -39,6 +39,8 @@ Additional dependencies that are needed to install the pip package or to use the
     apt-get install libsystemd-journal-dev libsystemd-daemon-dev libsystemd-login-dev libgeos-dev libfreetype6-dev libopenjp2-7-dev libtiff5-dev
 
 
+Also, it is possible that package libopenjp2-7-dev has been renamed to libopenjpeg2-dev.
+
 
 ### Package installation
 

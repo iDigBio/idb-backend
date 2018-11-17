@@ -64,6 +64,19 @@ NEW Publishers and/or Recordsets added to iDigBio since last report:
 buff = buff + hr + "\n"
 
 
+buff = buff + '''
+UPDATED Recordsets since last report:
+
+
+Approximately ___ recordsets were re-published by data providers with updated data.
+
+These data were incorporated into iDigBio by the standard Data Ingestion process.
+
+
+'''
+
+buff = buff + hr + "\n"
+
 # Generate VertNet section
 
 # buff = buff + "VertNet Report since " + since_date + ":\n\n"

@@ -24,7 +24,7 @@ from idb.helpers.storage import IDigBioStorage
 from boto.exception import S3ResponseError
 
 TMP_DIR = os.path.join("/tmp", os.path.basename(sys.argv[0]))
-STORAGE_HOST = "10.13.44.93:7480"
+STORAGE_HOST = "10.13.44.95:7480"
 
 TEST = False
 DELETE = False

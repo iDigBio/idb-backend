@@ -213,7 +213,7 @@ def backfill_flagged_etags(prefix):
 
     # Found that batching up rows saves a bit of CPU time rather than greenlet switching and commiting each row
     pools = 3
-    batches = max(math.floor(len(row_objs) / 5000), pools)
+    batches = int(max(math.floor(len(row_objs) / 5000), pools))
     work = batch_work(row_objs, batches)
     p = pool.Pool(pools)
     results = p.imap_unordered(backfill_flagged_worker, work)

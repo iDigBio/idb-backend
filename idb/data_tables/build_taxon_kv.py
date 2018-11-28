@@ -7,6 +7,7 @@ import sys
 import json
 import traceback
 from collections import Counter
+import pprint
 
 import re
 pattern = re.compile('[\W_0-9]+|sp.')
@@ -69,7 +70,10 @@ def run_query(q, cache_string, log_score=True):
         #     return (None, best_response["_score"])
 
         if DEBUG:
-            print(best_response, "synonym" in best_response["_source"]["dwc:taxonomicStatus"])
+            pp = pprint.PrettyPrinter(indent=2)
+            pp.pprint(best_response)
+            print("\n\n")
+            print("synonym" in best_response["_source"]["dwc:taxonomicStatus"])
         if "synonym" in best_response["_source"]["dwc:taxonomicStatus"]:
             rsp = es.search(index="taxonnames",doc_type="taxonnames",body={
                 "size": 1,
@@ -222,6 +226,8 @@ def work(t):
 
                         if r["dwc:scientificName"] == r.get(k,None):
                             rank = k.split(":")[1].lower()
+                            if DEBUG:
+                                print("rank: {}").format(rank)
                             break
                     else:
                         raise TaxonRankError("Failed to find rank for monomial")

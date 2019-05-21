@@ -77,7 +77,7 @@ def test_render_svg(client, mock):
     url = url_for('idb.data_api.v2_media.lookup_uuid', u="872733a2-67a3-4c54-aa76-862735a5f334", deriv="thumbnail")
     r = client.get(url)
     assert r.status_code == 200
-    assert r.content_type == "image/svg+xml"
+    assert r.content_type == "image/svg+xml; charset=utf-8"
 
 
 @pytest.mark.readonly

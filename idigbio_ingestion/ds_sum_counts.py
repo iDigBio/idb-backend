@@ -84,7 +84,7 @@ def is_row_suspect(row):
         return "ALLNEW_MEDIA"
     if mediarecords_count == 0 and mediarecords_delete > 0:
         return "DELETED_ALL_MEDIA"
-    if mediarecords_count > 300:
+    if mediarecords_count > 400:
         if mediarecords_delete / mediarecords_count > 0.05:
             return "DELETED_MANY_MEDIA"
         if mediarecords_create / mediarecords_count > 0.4:

@@ -10,12 +10,12 @@ locale.setlocale(locale.LC_ALL, 'en_US.UTF-8')
 ### Run with:
 ### $ GITHUB_ACCESS_TOKEN=*your_github_access_token* python data_ingestion_status_report.py
 
-
+since_date = None
 parser = argparse.ArgumentParser(description='generate monthly Data Ingestion status report')
 parser.add_argument('--since', dest='since_date', required=False, help='The "since" date for github issues reporting in the form of YYYY-MM-DD')
 args = parser.parse_args()
 
-if since_date:
+if since_date is not None:
     # verify here that the supplied date argument is an actual date
     try:
         since_date = datetime.datetime.strftime(datetime.datetime.strptime(args.since_date, '%Y-%m-%d'),'%Y-%m-%d')

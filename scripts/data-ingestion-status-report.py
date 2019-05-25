@@ -12,7 +12,7 @@ locale.setlocale(locale.LC_ALL, 'en_US.UTF-8')
 
 
 parser = argparse.ArgumentParser(description='generate monthly Data Ingestion status report')
-parser.add_argument('--since', dest='since_date', required=True, help='The "since" date for github issues reporting in the form of YYYY-MM-DD')
+parser.add_argument('--since', dest='since_date', required=False, help='The "since" date for github issues reporting in the form of YYYY-MM-DD')
 args = parser.parse_args()
 
 # verify here that the supplied date argument is an actual date

@@ -15,16 +15,17 @@ parser = argparse.ArgumentParser(description='generate monthly Data Ingestion st
 parser.add_argument('--since', dest='since_date', required=False, help='The "since" date for github issues reporting in the form of YYYY-MM-DD')
 args = parser.parse_args()
 
-# verify here that the supplied date argument is an actual date
-try:
-    since_date = datetime.datetime.strftime(datetime.datetime.strptime(args.since_date, '%Y-%m-%d'),'%Y-%m-%d')
-except:
-    print '''
+if since_date:
+    # verify here that the supplied date argument is an actual date
+    try:
+        since_date = datetime.datetime.strftime(datetime.datetime.strptime(args.since_date, '%Y-%m-%d'),'%Y-%m-%d')
+    except:
+        print '''
 *****************************************************************
 ERROR:  since_date must be supplied in the format --> YYYY-MM-DD
 *****************************************************************
 '''
-    raise SystemExit
+        raise SystemExit
 
 
 buff = ''

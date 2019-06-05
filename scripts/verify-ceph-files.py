@@ -43,9 +43,8 @@ def check_args_and_set_global_flags(args):
 
     try:
         if args["names_from_file"] is not None:
-            logger.error("'--names-from-file' not yet implemented.  Exiting...")
-            # Future: verify the file exits and is readable
-            raise SystemExit
+            if not os.path.exists(args["names_from_file"]):
+                raise SystemExit
     except:
         raise
 
@@ -105,6 +104,15 @@ def get_row_objs_from_db(args):
         wheres.append("ceph_date<=%(end)s")
     if args["name"]:
         wheres.append("ceph_name like %(name)s")
+    if args["names_from_file"]:
+
+        logger.debug("names_from_file set.  reading names up to COUNT = {0}".format(args["count"]))
+
+        # all values for parameters are held in args, so lets create a new key
+        # for use only in this specific --names-from-file case
+        args["names"] = read_names_from_file_to_tuple(args)
+
+        wheres.append("ceph_name in %(names)s")
     if args["bucket"]:
         wheres.append("ceph_bucket=%(bucket)s")
     if args["reverify"] == 'ANY':
@@ -114,16 +122,57 @@ def get_row_objs_from_db(args):
     else:
         wheres.append("ver_status IS NULL")
 
-    rows = apidbpool.fetchall("""SELECT {0} FROM ceph_objects WHERE
+    # script wasn't accounting for records that had been marked as ceph_deleted = true.
+    # reverifying with --ANY would try to reverify them and then fail as not found.
+    if args["ignore_deleted"]:
+        wheres.append("ceph_deleted = false")
+
+    temp_query = """SELECT {0} FROM ceph_objects WHERE
                                   {1}
                                   LIMIT %(count)s""".format(','.join(cols),
-                                                            ' AND '.join(wheres)),
-                                  args)
+                                                            ' AND '.join(wheres))
+
+    try:
+        mogrified_query = apidbpool.mogrify(temp_query, args)
+
+        if "names" in args and len(args["names"]) > 50:
+            logger.debug("names arg is long, skipping print of parameters.  retrieving ceph_objects with query: {0}".format(temp_query))
+        else:
+            logger.debug("retrieving ceph_objects with query: {0}".format(mogrified_query))
+
+        rows = apidbpool.fetchall(temp_query, args)
+    except Exception:
+        logger.exception("exception when connecting to postgres for mogrify or fetchall: {0}".format(traceback.format_exc()))
+        raise
+
     row_objs = []
     for row in rows:
         row_objs.append(dict(zip(cols, row)))
     
     return row_objs
+
+
+def read_names_from_file_to_tuple(args):
+    """handles pulling in the list of names via file arugment and converting to the tuple
+    that psycopg2 needs for parameterizing an IN query
+    """
+    with open(args["names_from_file"], 'r') as file_of_names:
+        names = []
+
+        line_number = 0
+
+        for line in file_of_names:
+            line_number += 1
+
+            line = line.strip()
+            names.append(line)
+
+            if line_number == args["count"]:
+                break
+
+        assert len(names) > 0, "names_from_file was apparently empty; no lines of names found"
+
+        return tuple(names)
 
 def calc_md5(fn):
     """Calculate the md5 hash of a file on disk."""
@@ -154,7 +203,15 @@ def verify_object(row_obj, key_obj):
         fn = os.path.join(TMP_DIR, key_obj.name)
 
         logger.debug("Fetching file {0}:{1}".format(key_obj.bucket.name, key_obj.name))
-        storage.get_contents_to_filename(key_obj, fn)
+
+        try:
+            storage.get_contents_to_filename(key_obj, fn)
+        except Exception as ex:
+            logger.debug("except thrown for get_contents. {0}".format(ex))
+            raise
+
+
+
         md5 = calc_md5(fn)
         size = os.stat(fn).st_size
     except (S3ResponseError) as ex:
@@ -366,6 +423,11 @@ if __name__ == '__main__':
     argparser.add_argument("--processes", "-p",
                            required=False, type=int, default=1, metavar='NUM_PROCESSES',
                            help="How many processing to use verifying objects, default 1.")
+    argparser.add_argument("--ignore-deleted",
+                           required=False, action='store_true',
+                           help="Skips verifying any objects that have been marked as deleted = true.  Helpful when "
+                                "using --reverify=ANY")
+
     # Use either --stash or --stash-and-delete
     stashgroup = argparser.add_mutually_exclusive_group()
     stashgroup.add_argument("--stash", "-g",

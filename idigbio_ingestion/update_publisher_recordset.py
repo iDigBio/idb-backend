@@ -95,7 +95,22 @@ def id_func(portal_url, e):
 
 
 def get_feed(rss_url):
-    "Download contents of feed url since feedparser does not have a timeout parameter"
+    """
+    Download contents of an RSS feed into a string.
+    This is required since feedparser itself doesn't have a timeout parameter
+
+    Parameters
+    ----------
+    rss_url : str
+        The URI of an rss feed
+
+    Returns
+    -------
+    text or False
+        Content of the RSS feed (body / text) if we are able to download it
+        from the URI, otherwise return False.
+
+    """
     feedtest = None
     try:
         feedtest = requests.get(rss_url, timeout=10)
@@ -113,7 +128,7 @@ def get_feed(rss_url):
         if feedtest is None:
             logger.error("Specific reason: %s", e)
         return False
-    # At this point we could have feedtest = None coming out of the SSLError exception above. 
+    # At this point we could have feedtest = None coming out of the SSLError exception above.
     if feedtest is None:
         logger.error("Feed error on rss_url = %r", rss_url)
         return False
@@ -151,6 +166,23 @@ def update_db_from_rss():
 
 
 def _do_rss(rsscontents, r, db, recordsets, existing_recordsets):
+    """
+    Process one RSS feed contents.  Compares the recordsets we know
+    about with the ones found in the feed.
+
+    Parameters
+    ----------
+    rsscontents : text
+        Content of an RSS feed
+    r : row of publisher data
+        A row of data from the publishers table that contains all columns
+    db : database object
+        A PostgresDB() database object
+    recordsets : set
+        Set object to maintain list of recordsets found in the RSS feed
+    existing_recordsets : set
+        Set of existing known recordset uuids
+    """
     logger.debug("Start parsing results of %s, length: %s", r['rss_url'], len(rsscontents))
     feed = feedparser.parse(rsscontents)
     pub_uuid = r["uuid"]
@@ -255,7 +287,7 @@ def _do_rss(rsscontents, r, db, recordsets, existing_recordsets):
                 """INSERT INTO recordsets
                      (uuid, publisher_uuid, name, recordids, eml_link, file_link, ingest, pub_date)
                    VALUES (%s,%s,%s,%s,%s,%s,%s,%s)
-                   ON CONFLICT (file_link) DO UPDATE set recordids=array_append(recordsets.recordids,%s), pub_date=%s, 
+                   ON CONFLICT (file_link) DO UPDATE set recordids=array_append(recordsets.recordids,%s), pub_date=%s,
                    last_seen = now()
                 """,
                 (rsid, pub_uuid, rs_name, recordids, eml_link, file_link, ingest, date, recordid, date))

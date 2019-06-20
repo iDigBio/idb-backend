@@ -70,6 +70,7 @@ def get_feed(rss_url):
         from the URI, otherwise return False.
 
     """
+
     feedtest = None
     try:
         feedtest = requests.get(rss_url, timeout=10)
@@ -142,6 +143,7 @@ def _do_rss(rsscontents, r, db, recordsets, existing_recordsets):
     existing_recordsets : set
         Set of existing known recordset uuids
     """
+
     logger.debug("Start parsing results of %s, length: %s", r['rss_url'], len(rsscontents))
     feed = feedparser.parse(rsscontents)
     pub_uuid = r["uuid"]

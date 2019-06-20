@@ -6,7 +6,7 @@ iDigBio server and backend code for data ingestion and data API.
 
 ### System Dependencies
 
-Currently this project only works in python2.7.
+Currently this project only works in python2.7 and is not compatible with Python 3.
 
 The following library packages will need to be installed to run the api:
 
@@ -21,7 +21,11 @@ In Ubuntu 16.04:
       libatlas-base-dev gfortran libgdal-dev libpq-dev libgeos-c1v5 \
       libsystemd-dev
 
-TBD 18.04
+In Ubuntu 18.04:
+
+    apt install python-dev libblas-dev liblapack-dev \
+      libatlas-base-dev gfortran libgdal-dev libpq-dev libgeos-c1v5 \
+      libsystemd-dev
 
 For ingestion the following are also needed:
 
@@ -29,7 +33,7 @@ In Ubuntu 14.04:
 
     apt-get install libxml2 libxslt1-dev libav-tools fonts-dejavu-core
 
-In Ubuntu 16.04:
+In Ubuntu 16.04, 18.04:
 
     apt-get install libxml2 libxslt1-dev ffmpeg fonts-dejavu-core
 

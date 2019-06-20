@@ -6,7 +6,7 @@ iDigBio server and backend code for data ingestion and data API.
 
 ### System Dependencies
 
-Currently this project only works in python2.7.
+Currently this project only works in python2.7 and is not compatible with Python 3.
 
 The following library packages will need to be installed to run the api:
 

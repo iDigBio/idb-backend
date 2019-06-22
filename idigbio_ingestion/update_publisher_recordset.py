@@ -314,7 +314,7 @@ def _do_rss(rsscontents, r, db, recordsets, existing_recordsets):
                         recordset["id"], recordset["uuid"], file_link, rs_name)
 
 
-    db.set_record(pub_uuid, "publisher", IDIGBIO_ROOT_UUID)
+    db.set_record(pub_uuid, "publisher", IDIGBIO_ROOT_UUID),
                   {
                       "rss_url": r["rss_url"],
                       "name": name,

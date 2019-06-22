@@ -55,12 +55,14 @@ def struct_to_datetime(s):
 
 def id_func(portal_url, e):
     """
-    Given a portal url, return something suitable to be used as a recordid.
+    Given a portal url and a feedparser RSS dictionary,
+    return something suitable to be used as a recordid.
 
     Parameters
     ----------
-    portal_url : a url to a data portal ?
-    e :
+    portal_url : a url to a data portal
+    e : feedparser object (feedparser.FeedParserDict)
+        An individual rss entry already processed into a feedparser dict.
 
     """
 
@@ -219,7 +221,6 @@ def _do_rss(rsscontents, r, db, recordsets, existing_recordsets):
 
     logger.debug("Begin iteration over entries found in '{0}'".format(r['rss_url']))
     for e in feed['entries']:
-        logger.debug ("'e' in feed is of type {0}".format(type(e)))
         recordid = id_func(r['portal_url'], e)
         logger.debug ("id_func returned '{0}'".format(recordid))
         rsid = None

@@ -217,7 +217,7 @@ def _do_rss(rsscontents, r, db, recordsets, existing_recordsets):
            })
     db.execute(*sql)
 
-    logger.debug("Begin iteration over entries found in '{0}'".format(r['rss_url'])
+    logger.debug("Begin iteration over entries found in '{0}'".format(r['rss_url']))
     for e in feed['entries']:
         logger.debug ("'e' in feed is of type {0}".format(type(e)))
         recordid = id_func(r['portal_url'], e)

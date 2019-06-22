@@ -28,6 +28,9 @@ from idigbio_ingestion.lib.eml import parseEml
 #urllib3.disable_warnings()
 ####
 
+# uuid '872733a2-67a3-4c54-aa76-862735a5f334' is the idigbio root entity,
+# the parent of all publishers.
+IDIGBIO_ROOT_UUID = "872733a2-67a3-4c54-aa76-862735a5f334"
 
 logger = idblogger.getChild('upr')
 
@@ -51,6 +54,16 @@ def struct_to_datetime(s):
 
 
 def id_func(portal_url, e):
+    """
+    Given a portal url, return something suitable to be used as a recordid.
+
+    Parameters
+    ----------
+    portal_url : a url to a data portal ?
+    e :
+
+    """
+
     id = None
     if "id" in e:   # feedparser magic maps various fields to "id"
         id = e["id"]
@@ -204,8 +217,11 @@ def _do_rss(rsscontents, r, db, recordsets, existing_recordsets):
            })
     db.execute(*sql)
 
+    logger.debug("Begin iteration over entries found in '{0}'".format(r['rss_url'])
     for e in feed['entries']:
+        logger.debug ("'e' in feed is of type {0}".format(type(e)))
         recordid = id_func(r['portal_url'], e)
+        logger.debug ("id_func returned '{0}'".format(recordid))
         rsid = None
         ingest = auto_publish
         recordids = [recordid]
@@ -297,7 +313,8 @@ def _do_rss(rsscontents, r, db, recordsets, existing_recordsets):
             logger.info("Update Recordset id:%s %s %s '%s'",
                         recordset["id"], recordset["uuid"], file_link, rs_name)
 
-    db.set_record(pub_uuid, "publisher", "872733a2-67a3-4c54-aa76-862735a5f334",
+
+    db.set_record(pub_uuid, "publisher", IDIGBIO_ROOT_UUID)
                   {
                       "rss_url": r["rss_url"],
                       "name": name,

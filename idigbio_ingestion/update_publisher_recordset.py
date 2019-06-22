@@ -32,6 +32,21 @@ from idigbio_ingestion.lib.eml import parseEml
 logger = idblogger.getChild('upr')
 
 def struct_to_datetime(s):
+    """
+    Convert a Struct representation of a time to a datetime
+    timestamp.
+
+    Parameters
+    ----------
+    s : struct
+        Timestamp in Struct representation, a 9-tuple such as
+        (2019, 2, 17, 17, 3, 38, 1, 48, 0)
+
+    Returns
+    -------
+    datetime timestamp
+    """
+
     return datetime.datetime.fromtimestamp(time.mktime(s))
 
 
@@ -135,7 +150,8 @@ def _do_rss(rsscontents, r, db, recordsets, existing_recordsets):
     rsscontents : text
         Content of an RSS feed
     r : row of publisher data
-        A row of data from the publishers table that contains all columns
+        A row of data from the publishers table that contains all columns,
+        each column addressable as r["column_name"]
     db : database object
         A PostgresDB() database object
     recordsets : set
@@ -242,6 +258,11 @@ def _do_rss(rsscontents, r, db, recordsets, existing_recordsets):
             rs_name = recordset["name"]
         else:
             rs_name = recordid
+
+        if recordid is not None:
+            logger.debug("Identified recordid:  '{0}'".format(recordid))
+        else:
+            logger.debug("No recordid identified.")
 
         if recordset is None:
             sql = (

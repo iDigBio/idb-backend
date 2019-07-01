@@ -135,8 +135,7 @@ def update_db_from_rss():
             for recordid in r["recordids"]:
                 logger.debug("recordid | id : '{0}' | '{1}'".format(recordid, r["id"]))
                 existing_recordsets[recordid] = r["id"]
-            # I believe the bug for Redmine #3124 is multiple ids are added to the set, but by definition
-            # the set only keeps one of them.
+            # BZZZZP
             recordsets[r["id"]] = r
         #logger.debug("***existing_recordsets DUMP ***\n")
         #logger.debug("{0}".format(existing_recordsets))

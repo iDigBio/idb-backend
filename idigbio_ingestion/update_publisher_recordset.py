@@ -127,7 +127,7 @@ def get_feed(rss_url):
 
 
 def update_db_from_rss():
-    # existing_recordsets is a dict that will hold rows base on recordids
+    # existing_recordsets is a dict that will hold mapping of recordids to db id
     existing_recordsets = {}
     # recordsets is a dict that will hold rows based on db id (not recordid or uuid)
     recordsets = {}
@@ -144,6 +144,7 @@ def update_db_from_rss():
                 else:
                     existing_recordsets[recordid] = row["id"]
             recordsets[row["id"]] = row
+        for
         logger.debug("Gathering existing publishers...")
         pub_recs = db.fetchall("SELECT * FROM publishers")
         logger.debug("Checking %d publishers", len(pub_recs))
@@ -179,9 +180,9 @@ def _do_rss(rsscontents, r, db, recordsets, existing_recordsets):
     db : database object
         A PostgresDB() database object
     recordsets : set
-        Set object to maintain list of recordsets found in the RSS feed
-    existing_recordsets : set
-        Set of existing known recordset uuids
+        dict of existing known recordset db ids with associated db row data
+    existing_recordsets : dict
+        dict of existing known recordset recordids with associated db ids
     """
 
     logger.debug("Start parsing results of %s, length: %s", r['rss_url'], len(rsscontents))
@@ -239,9 +240,10 @@ def _do_rss(rsscontents, r, db, recordsets, existing_recordsets):
         if recordid in existing_recordsets:
             logger.debug("Found recordid '{0}' in existing recordsets.".format(recordid))
             recordset = recordsets[existing_recordsets[recordid]]
+            logger.debug("recordset = '{0}'".format(recordset))
             rsid = recordset["uuid"]
             ingest = recordset["ingest"]
-            recordids = list(set(recordids + recordset["recordids"]))
+            recordids = list(set(recordids + recordset["recordids"])) # is this set dropping important info
         else:
             logger.debug("recordid '{0}' NOT found in existing recordsets.".format(recordid))
 
@@ -289,6 +291,8 @@ def _do_rss(rsscontents, r, db, recordsets, existing_recordsets):
             logger.debug("Identified recordid:  '{0}'".format(recordid))
         else:
             logger.debug("No recordid identified.")
+
+
 
         if recordset is None:
             sql = (

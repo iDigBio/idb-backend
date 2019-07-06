@@ -131,23 +131,27 @@ def update_db_from_rss():
     existing_recordsets = {}
     recordsets = {}
     with PostgresDB() as db:
-        for r in db.fetchall("SELECT * FROM recordsets"):
-            for recordid in r["recordids"]:
-                logger.debug("recordid | id : '{0}' | '{1}'".format(recordid, r["id"]))
-                existing_recordsets[recordid] = r["id"]
-            # BZZZZP
-            recordsets[r["id"]] = r
+        for row in db.fetchall("SELECT * FROM recordsets"):
+            for recordid in row["recordids"]:
+                logger.debug("recordid | id : '{0}' | '{1}'".format(recordid, row["id"]))
+# sample loglines, '1162234d-4e06-4d63-8a49-034184a38c7e' maps to multiple db ids
+#2019-06-30 22:24:46.456 DEBUG idb.upr჻ recordid | id : '1162234d-4e06-4d63-8a49-034184a38c7e' | '4246'
+#2019-06-30 22:24:46.456 DEBUG idb.upr჻ recordid | id : 'http://ipt.idigbio.org/resource?id=uprm-invcol' | '4246'
+#2019-06-30 22:24:47.108 DEBUG idb.upr჻ recordid | id : 'ff3f430a-ca02-46ed-81b5-7c53c17f4041' | '12681'
+#2019-06-30 22:24:47.108 DEBUG idb.upr჻ recordid | id : '1162234d-4e06-4d63-8a49-034184a38c7e' | '12681'
+                existing_recordsets[recordid] = row["id"]
+            recordsets[row["id"]] = row
         #logger.debug("***existing_recordsets DUMP ***\n")
         #logger.debug("{0}".format(existing_recordsets))
         pub_recs = db.fetchall("SELECT * FROM publishers")
         logger.debug("Checking %d publishers", len(pub_recs))
-        for r in pub_recs:
-            uuid, rss_url = r['uuid'], r['rss_url']
+        for row in pub_recs:
+            uuid, rss_url = row['uuid'], row['rss_url']
             logger.info("Starting Publisher Feed: %s %s", uuid, rss_url)
             rsscontents = get_feed(rss_url)
             if rsscontents:
                 try:
-                    _do_rss(rsscontents, r, db, recordsets, existing_recordsets)
+                    _do_rss(rsscontents, row, db, recordsets, existing_recordsets)
                     db.commit()
                 except Exception:
                     logger.exception("Error with %s %s", uuid, rss_url)

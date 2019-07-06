@@ -144,7 +144,7 @@ def update_db_from_rss():
                 else:
                     existing_recordsets[recordid] = row["id"]
             recordsets[row["id"]] = row
-        for
+
         logger.debug("Gathering existing publishers...")
         pub_recs = db.fetchall("SELECT * FROM publishers")
         logger.debug("Checking %d publishers", len(pub_recs))

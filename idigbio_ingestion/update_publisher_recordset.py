@@ -127,22 +127,24 @@ def get_feed(rss_url):
 
 
 def update_db_from_rss():
-    # existing_recordsets is a SET that will hold db ids (not uuids or recordids)
+    # existing_recordsets is a dict that will hold rows base on recordids
     existing_recordsets = {}
+    # recordsets is a dict that will hold rows based on db id (not recordid or uuid)
     recordsets = {}
     with PostgresDB() as db:
+        logger.debug("Gathering existing recordsets...")
         for row in db.fetchall("SELECT * FROM recordsets"):
             for recordid in row["recordids"]:
                 logger.debug("id | recordid | file_link: '{0}' | '{1}' | '{2}'".format(
                     row["id"], recordid, row["file_link"]))
                 if recordid in existing_recordsets:
-                    logger.error("Found a duplicate recordid. This recordid = '{0}'"
-                        ". Other row = {1}".format(recordid, existing_recordsets[recordid]))
+                    logger.error("Found a duplicate recordid in existing recordsets. This should never happen.")
+                    logger.error("This recordid = '{0}'"
+                        ". Other row = ''{1}''".format(recordid, existing_recordsets[recordid]))
                 else:
                     existing_recordsets[recordid] = row["id"]
             recordsets[row["id"]] = row
-        #logger.debug("***existing_recordsets DUMP ***\n")
-        #logger.debug("{0}".format(existing_recordsets))
+        logger.debug("Gathering existing publishers...")
         pub_recs = db.fetchall("SELECT * FROM publishers")
         logger.debug("Checking %d publishers", len(pub_recs))
         for row in pub_recs:

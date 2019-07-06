@@ -135,10 +135,9 @@ def update_db_from_rss():
             for recordid in row["recordids"]:
                 logger.debug("recordid | id : '{0}' | '{1}'".format(recordid, row["id"]))
 # sample loglines, '1162234d-4e06-4d63-8a49-034184a38c7e' maps to multiple db ids
-#2019-06-30 22:24:46.456 DEBUG idb.upr჻ recordid | id : '1162234d-4e06-4d63-8a49-034184a38c7e' | '4246'
-#2019-06-30 22:24:46.456 DEBUG idb.upr჻ recordid | id : 'http://ipt.idigbio.org/resource?id=uprm-invcol' | '4246'
-#2019-06-30 22:24:47.108 DEBUG idb.upr჻ recordid | id : 'ff3f430a-ca02-46ed-81b5-7c53c17f4041' | '12681'
-#2019-06-30 22:24:47.108 DEBUG idb.upr჻ recordid | id : '1162234d-4e06-4d63-8a49-034184a38c7e' | '12681'
+#2019-06-30 22:24:46.456 DEBUG idb.upr:- recordid | id : '1162234d-4e06-4d63-8a49-034184a38c7e' | '4246'
+#2019-06-30 22:24:46.456 DEBUG idb.upr:- recordid | id : 'http://ipt.idigbio.org/resource?id=uprm-invcol' | '4246'
+#2019-06-30 22:24:47.108 DEBUG idb.upr:- recordid | id : '1162234d-4e06-4d63-8a49-034184a38c7e' | '12681'
                 existing_recordsets[recordid] = row["id"]
             recordsets[row["id"]] = row
         #logger.debug("***existing_recordsets DUMP ***\n")

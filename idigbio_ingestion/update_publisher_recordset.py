@@ -34,7 +34,7 @@ IDIGBIO_ROOT_UUID = "872733a2-67a3-4c54-aa76-862735a5f334"
 
 logger = idblogger.getChild('upr')
 
-def EARLY_EXIT(msg):
+def EARLY_EXIT(msg=''):
     raise SystemExit("EARLY EXIT  " + msg)
 
 def struct_to_datetime(s):

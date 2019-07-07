@@ -303,9 +303,8 @@ def _do_rss(rsscontents, r, db, recordsets, existing_recordsets):
         else:
             logger.debug("No recordid identified.")
 
-        EARLY_EXIT()
-
         if recordset is None:
+            logger.debug("Ready to INSERT: '{0}', '{1}', '{2}'".format(name, recordids, file_link))
             sql = (
                 """INSERT INTO recordsets
                      (uuid, publisher_uuid, name, recordids, eml_link, file_link, ingest, pub_date)
@@ -315,8 +314,9 @@ def _do_rss(rsscontents, r, db, recordsets, existing_recordsets):
                 """,
                 (rsid, pub_uuid, rs_name, recordids, eml_link, file_link, ingest, date, recordid, date))
             db.execute(*sql)
-            logger.info("Create Recordset for recordid:%s '%s'", recordid, rs_name)
+            logger.info("Created Recordset for recordid:%s '%s'", recordid, rs_name)
         else:
+            logger.debug("Ready to UPDATE: '{0}', '{1}', '{2}', '{3}'".format(uuid, name, recordids, file_link))
             sql = ("""UPDATE recordsets
                       SET publisher_uuid=%(publisher_uuid)s,
                           eml_link=%(eml_link)s,
@@ -335,7 +335,7 @@ def _do_rss(rsscontents, r, db, recordsets, existing_recordsets):
                        "id": recordset["id"]
                    })
             db.execute(*sql)
-            logger.info("Update Recordset id:%s %s %s '%s'",
+            logger.info("Updated Recordset id:%s %s %s '%s'",
                         recordset["id"], recordset["uuid"], file_link, rs_name)
 
     EARLY_EXIT("before set_record")

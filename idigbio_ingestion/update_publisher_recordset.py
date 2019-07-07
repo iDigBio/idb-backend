@@ -59,25 +59,30 @@ def struct_to_datetime(s):
 def id_func(portal_url, e):
     """
     Given a portal url and an RSS feed entry (feedparser dictionary
-    object), return something suitable to be used as a recordid.
+    object), return something suitable to be used as a recordid
+    for the published dataset entry.  The portal_url is only used
+    to help construct a recordid for Symbiota recordsets.
+
 
     Parameters
     ----------
-    portal_url : a url to a data portal
+    portal_url : a url to a data portal from the publishers table
     e : feedparser object (feedparser.FeedParserDict)
         An individual rss entry already processed into a feedparser dict.
 
     """
 
     id = None
-    if "id" in e:   # feedparser magic maps various fields to "id" including "guid"
+    # feedparser magic maps various fields to "id" including "guid"
+    if "id" in e:
         id = e["id"]
+    # portal_url is used to help construct ids in Symbiota feeds
     elif "collid" in e:
         id = "{0}collections/misc/collprofiles.php?collid={1}".format(
             portal_url, e["collid"])
 
     if id is not None:
-        # Strip version from ipt ids
+        # Strip trailing version info from ipt ids
         m = re.search('^(.*)/v[0-9]*(\.)?[0-9]*$', id)
         if m is not None:
             id = m.group(1)

@@ -55,8 +55,8 @@ def struct_to_datetime(s):
 
 def id_func(portal_url, e):
     """
-    Given a portal url and a feedparser RSS dictionary,
-    return something suitable to be used as a recordid.
+    Given a portal url and an RSS feed entry (feedparser dictionary
+    object), return something suitable to be used as a recordid.
 
     Parameters
     ----------
@@ -67,7 +67,7 @@ def id_func(portal_url, e):
     """
 
     id = None
-    if "id" in e:   # feedparser magic maps various fields to "id"
+    if "id" in e:   # feedparser magic maps various fields to "id" including "guid"
         id = e["id"]
     elif "collid" in e:
         id = "{0}collections/misc/collprofiles.php?collid={1}".format(
@@ -231,8 +231,9 @@ def _do_rss(rsscontents, r, db, recordsets, existing_recordsets):
 
     logger.debug("Begin iteration over entries found in '{0}'".format(r['rss_url']))
     for e in feed['entries']:
+        # why is the portal_url and not something like file_link ?
         recordid = id_func(r['portal_url'], e)
-        logger.debug ("id_func returned '{0}'".format(recordid))
+        logger.debug ("id_func returned recorid '{0}' from portal url '{1}'".format(recordid, r['portal_url']))
         rsid = None
         ingest = auto_publish
         recordids = [recordid]
@@ -243,7 +244,7 @@ def _do_rss(rsscontents, r, db, recordsets, existing_recordsets):
             logger.debug("recordset = '{0}'".format(recordset))
             rsid = recordset["uuid"]
             ingest = recordset["ingest"]
-            recordids = list(set(recordids + recordset["recordids"])) # is this set dropping important info
+            recordids = list(set(recordids + recordset["recordids"])) # is this set dropping important info?
         else:
             logger.debug("recordid '{0}' NOT found in existing recordsets.".format(recordid))
 

@@ -80,6 +80,7 @@ def id_func(portal_url, e):
             id = m.group(1)
 
         id = id.lower()
+    logger.debug ("id_func returning recorid '{0}' from portal url '{1}'".format(id, portal_url))
     return id
 
 
@@ -233,7 +234,7 @@ def _do_rss(rsscontents, r, db, recordsets, existing_recordsets):
     for e in feed['entries']:
         # why is the portal_url and not something like file_link ?
         recordid = id_func(r['portal_url'], e)
-        logger.debug ("id_func returned recorid '{0}' from portal url '{1}'".format(recordid, r['portal_url']))
+
         rsid = None
         ingest = auto_publish
         recordids = [recordid]

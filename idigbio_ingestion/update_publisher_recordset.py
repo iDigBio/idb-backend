@@ -164,14 +164,25 @@ def update_db_from_rss():
             if rsscontents:
                 try:
                     _do_rss(rsscontents, row, db, recordsets, existing_recordsets)
+                    logger.debug('_do_rss returned, ready to COMMIT...')
                     db.commit()
                 except Exception:
-                    logger.exception("Error with %s %s", uuid, rss_url)
+                    logger.exception("Will ROLLBACK... Error with %s %s", uuid, rss_url)
                     db.rollback()
                 except:
+                    logger.exception("Will ROLLBACK...")
                     db.rollback()
                     raise
     logger.info("Finished processing add publisher RSS feeds")
+
+# def _do_rss_entry(e, db, ):
+#     """
+#     Do the recordset parts.
+#
+#     Parameters
+#     ----------
+#
+#     """
 
 
 def _do_rss(rsscontents, r, db, recordsets, existing_recordsets):
@@ -241,7 +252,7 @@ def _do_rss(rsscontents, r, db, recordsets, existing_recordsets):
     logger.debug("Begin iteration over entries found in '{0}'".format(r['rss_url']))
     for e in feed['entries']:
         logger.debug("feed entry: '{0}'".format(e))
-        # why is the portal_url and not something like file_link ?
+        # We pass in portal_url even though it is only needeed for Symbiota portals
         recordid = id_func(r['portal_url'], e)
 
         rsid = None
@@ -338,7 +349,7 @@ def _do_rss(rsscontents, r, db, recordsets, existing_recordsets):
             logger.info("Updated Recordset id:%s %s %s '%s'",
                         recordset["id"], recordset["uuid"], file_link, rs_name)
 
-    EARLY_EXIT("before set_record")
+    EARLY_EXIT("before set_record on pub_uuid")
 
     db.set_record(pub_uuid, "publisher", IDIGBIO_ROOT_UUID,
                   {

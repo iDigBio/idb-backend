@@ -175,7 +175,7 @@ def update_db_from_rss():
                     raise
     logger.info("Finished processing add publisher RSS feeds")
 
-def _do_rss_entry(entry, portal_url, db, recordsets, existing_recordsets):
+def _do_rss_entry(entry, portal_url, db, recordsets, existing_recordsets, pub_uuid):
     """
     Do the recordset parts.
 
@@ -354,7 +354,8 @@ def _do_rss(rsscontents, r, db, recordsets, existing_recordsets):
     logger.debug("Begin iteration over entries found in '{0}'".format(r['rss_url']))
     for e in feed['entries']:
         _do_rss_entry(e, r['portal_url'], db, recordsets,
-                      existing_recordsets) # (feedparser object, row of pub data, db object)
+                      existing_recordsets,
+                      pub_uuid) # (feedparser object, row of pub data, db object)
 
     EARLY_EXIT("before set_record on pub_uuid")
 

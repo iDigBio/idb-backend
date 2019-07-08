@@ -251,7 +251,7 @@ def _do_rss_entry(entry, portal_url, db, recordsets, existing_recordsets):
         logger.debug("No recordid identified.")
 
     if recordset is None:
-        logger.debug("Ready to INSERT: '{0}', '{1}', '{2}'".format(recordids, rs_name, file_link))
+        logger.debug("Ready to INSERT: '{0}', '{1}'".format(recordids, file_link))
         sql = (
             """INSERT INTO recordsets
                  (uuid, publisher_uuid, name, recordids, eml_link, file_link, ingest, pub_date)
@@ -263,7 +263,7 @@ def _do_rss_entry(entry, portal_url, db, recordsets, existing_recordsets):
         db.execute(*sql)
         logger.info("Created Recordset for recordid:%s '%s'", recordid, rs_name)
     else:
-        logger.debug("Ready to UPDATE: '{0}', '{1}', '{2}'".format(recordids, rs_name, file_link))
+        logger.debug("Ready to UPDATE: '{0}', '{1}', '{2}'".format(recordset["id"], recordids, file_link))
         sql = ("""UPDATE recordsets
                   SET publisher_uuid=%(publisher_uuid)s,
                       eml_link=%(eml_link)s,

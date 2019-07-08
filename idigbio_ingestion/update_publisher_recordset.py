@@ -306,8 +306,9 @@ def _do_rss(rsscontents, r, db, recordsets, existing_recordsets):
         dict of existing known recordset recordids with associated db ids
     """
 
-    logger.debug("Start parsing results of %s, length: %s", r['rss_url'], len(rsscontents))
+    logger.debug("Start parsing results of %s", r['rss_url'])
     feed = feedparser.parse(rsscontents)
+    logger.debug("Found {0} entries in feed to process.".format(len(feed)))
     pub_uuid = r["uuid"]
     if pub_uuid is None:
         pub_uuid, _, _ = db.get_uuid(r["recordids"])

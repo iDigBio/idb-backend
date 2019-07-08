@@ -67,7 +67,7 @@ def id_func(portal_url, e):
     Parameters
     ----------
     portal_url : a url to a data portal from the publishers table
-    e : feedparser object (feedparser.FeedParserDict)
+    e : feedparser entry object (feedparser.FeedParserDict)
         An individual rss entry already processed into a feedparser dict.
 
     """
@@ -214,7 +214,7 @@ def _do_rss_entry(entry, portal_url, db, recordsets, existing_recordsets, pub_uu
         date = struct_to_datetime(entry["published_parsed"])
         logger.debug('pub_date struct via published_parsed: {0}'.format(date.isoformat()))
     elif "published" in entry and entry["published"] is not None:
-        date = dateutil.parser.parse(e["published"])
+        date = dateutil.parser.parse(entry["published"])
         logger.debug('pub_date via dateutil: {0}'.format(date.isoformat()))
 
     # Pick a time distinctly before now() to avoid data races

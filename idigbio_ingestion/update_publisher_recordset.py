@@ -284,7 +284,6 @@ def _do_rss_entry(entry, portal_url, db, recordsets, existing_recordsets, pub_uu
         db.execute(*sql)
         logger.info("Updated Recordset id:%s %s %s '%s'",
                     recordset["id"], recordset["uuid"], file_link, rs_name)
-        EARLY_EXIT("NEW FUNCTION _do_rss_entry end.")
 
 
 def _do_rss(rsscontents, r, db, recordsets, existing_recordsets):

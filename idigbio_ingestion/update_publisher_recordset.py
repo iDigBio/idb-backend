@@ -175,14 +175,116 @@ def update_db_from_rss():
                     raise
     logger.info("Finished processing add publisher RSS feeds")
 
-# def _do_rss_entry(e, db, ):
-#     """
-#     Do the recordset parts.
-#
-#     Parameters
-#     ----------
-#
-#     """
+def _do_rss_entry(entry, portal_url, db, recordsets, existing_recordsets):
+    """
+    Do the recordset parts.
+
+    Parameters
+    ----------
+    entry = feedparser entry object
+    portal_url = publisher portal url, needed for some id functions
+    db = db object
+    """
+    logger.debug("In func _do_rss_entry")
+
+    logger.debug("feed entry: '{0}'".format(entry))
+    # We pass in portal_url even though it is only needeed for Symbiota portals
+    recordid = id_func(portal_url, entry)
+
+    rsid = None
+    ingest = False # any newly discovered entries default to False
+    recordids = [recordid]
+    recordset = None
+    if recordid in existing_recordsets:
+        logger.debug("Found recordid '{0}' in existing recordsets.".format(recordid))
+        recordset = recordsets[existing_recordsets[recordid]]
+        logger.debug("recordset = '{0}'".format(recordset))
+        rsid = recordset["uuid"]
+        ingest = recordset["ingest"]
+        recordids = list(set(recordids + recordset["recordids"])) # is this set dropping important info?
+    else:
+        logger.debug("recordid '{0}' NOT found in existing recordsets.".format(recordid))
+
+    eml_link = None
+    file_link = None
+    date = None
+    rs_name = None
+
+    if "published_parsed" in entry and entry["published_parsed"] is not None:
+        date = struct_to_datetime(entry["published_parsed"])
+        logger.debug('pub_date struct via published_parsed: {0}'.format(date.isoformat()))
+    elif "published" in entry and entry["published"] is not None:
+        date = dateutil.parser.parse(e["published"])
+        logger.debug('pub_date via dateutil: {0}'.format(date.isoformat()))
+
+    # Pick a time distinctly before now() to avoid data races
+    fifteen_minutes_ago = datetime.datetime.now() - datetime.timedelta(minutes=15)
+    if date is None or date > datetime.datetime.now():
+        date = fifteen_minutes_ago
+
+    for eml_prop in ["ipt_eml", "emllink"]:
+        if eml_prop in entry:
+            eml_link = entry[eml_prop]
+            break
+    else:
+        if recordset is not None:
+            eml_link = recordset["eml_link"]
+
+    for link_prop in ["ipt_dwca", "link"]:
+        if link_prop in entry:
+            file_link = entry[link_prop]
+            break
+    else:
+        if recordset is not None:
+            file_link = recordset["file_link"]
+
+    if "title" in entry:
+        rs_name = entry['title']
+    elif recordset is not None:
+        rs_name = recordset["name"]
+    else:
+        rs_name = recordid
+
+    if recordid is not None:
+        logger.debug("Identified recordid:  '{0}'".format(recordid))
+    else:
+        logger.debug("No recordid identified.")
+
+    if recordset is None:
+        logger.debug("Ready to INSERT: '{0}', '{1}', '{2}'".format(recordids, name, file_link))
+        sql = (
+            """INSERT INTO recordsets
+                 (uuid, publisher_uuid, name, recordids, eml_link, file_link, ingest, pub_date)
+               VALUES (%s,%s,%s,%s,%s,%s,%s,%s)
+               ON CONFLICT (file_link) DO UPDATE set recordids=array_append(recordsets.recordids,%s), pub_date=%s,
+               last_seen = now()
+            """,
+            (rsid, pub_uuid, rs_name, recordids, eml_link, file_link, ingest, date, recordid, date))
+        db.execute(*sql)
+        logger.info("Created Recordset for recordid:%s '%s'", recordid, rs_name)
+    else:
+        logger.debug("Ready to UPDATE: '{0}', '{1}', '{2}'".format(recordids, name, file_link))
+        sql = ("""UPDATE recordsets
+                  SET publisher_uuid=%(publisher_uuid)s,
+                      eml_link=%(eml_link)s,
+                      file_link=%(file_link)s,
+                      last_seen=%(last_seen)s,
+                      pub_date=%(pub_date)s
+                  WHERE id=%(id)s""",
+               {
+                   "publisher_uuid": pub_uuid,
+                   "name": rs_name,
+                   "recordids": recordids,
+                   "eml_link": eml_link,
+                   "file_link": file_link,
+                   "last_seen": datetime.datetime.now(),
+                   "pub_date": date,
+                   "id": recordset["id"]
+               })
+        db.execute(*sql)
+        logger.info("Updated Recordset id:%s %s %s '%s'",
+                    recordset["id"], recordset["uuid"], file_link, rs_name)
+        EARLY_EXIT("NEW FUNCTION _do_rss_entry end.")
 
 
 def _do_rss(rsscontents, r, db, recordsets, existing_recordsets):
@@ -225,7 +327,7 @@ def _do_rss(rsscontents, r, db, recordsets, existing_recordsets):
 
     logger.info("Update Publisher id:%s %s '%s'", r["id"], pub_uuid, name)
 
-    auto_publish = r["auto_publish"]
+    auto_publish = False # we never auto-publish anymore
 
     pub_date = None
     if "published_parsed" in feed["feed"]:
@@ -251,103 +353,8 @@ def _do_rss(rsscontents, r, db, recordsets, existing_recordsets):
 
     logger.debug("Begin iteration over entries found in '{0}'".format(r['rss_url']))
     for e in feed['entries']:
-        logger.debug("feed entry: '{0}'".format(e))
-        # We pass in portal_url even though it is only needeed for Symbiota portals
-        recordid = id_func(r['portal_url'], e)
-
-        rsid = None
-        ingest = auto_publish
-        recordids = [recordid]
-        recordset = None
-        if recordid in existing_recordsets:
-            logger.debug("Found recordid '{0}' in existing recordsets.".format(recordid))
-            recordset = recordsets[existing_recordsets[recordid]]
-            logger.debug("recordset = '{0}'".format(recordset))
-            rsid = recordset["uuid"]
-            ingest = recordset["ingest"]
-            recordids = list(set(recordids + recordset["recordids"])) # is this set dropping important info?
-        else:
-            logger.debug("recordid '{0}' NOT found in existing recordsets.".format(recordid))
-
-        eml_link = None
-        file_link = None
-        date = None
-        rs_name = None
-
-        if "published_parsed" in e and e["published_parsed"] is not None:
-            date = struct_to_datetime(e["published_parsed"])
-            logger.debug('pub_date struct via published_parsed: {0}'.format(date.isoformat()))
-        elif "published" in e and e["published"] is not None:
-            date = dateutil.parser.parse(e["published"])
-            logger.debug('pub_date via dateutil: {0}'.format(date.isoformat()))
-
-        # Pick a time distinctly before now() to avoid data races
-        fifteen_minutes_ago = datetime.datetime.now() - datetime.timedelta(minutes=15)
-        if date is None or date > datetime.datetime.now():
-            date = fifteen_minutes_ago
-
-        for eml_prop in ["ipt_eml", "emllink"]:
-            if eml_prop in e:
-                eml_link = e[eml_prop]
-                break
-        else:
-            if recordset is not None:
-                eml_link = recordset["eml_link"]
-
-        for link_prop in ["ipt_dwca", "link"]:
-            if link_prop in e:
-                file_link = e[link_prop]
-                break
-        else:
-            if recordset is not None:
-                file_link = recordset["file_link"]
-
-        if "title" in e:
-            rs_name = e['title']
-        elif recordset is not None:
-            rs_name = recordset["name"]
-        else:
-            rs_name = recordid
-
-        if recordid is not None:
-            logger.debug("Identified recordid:  '{0}'".format(recordid))
-        else:
-            logger.debug("No recordid identified.")
-
-        if recordset is None:
-            logger.debug("Ready to INSERT: '{0}', '{1}', '{2}'".format(recordids, name, file_link))
-            sql = (
-                """INSERT INTO recordsets
-                     (uuid, publisher_uuid, name, recordids, eml_link, file_link, ingest, pub_date)
-                   VALUES (%s,%s,%s,%s,%s,%s,%s,%s)
-                   ON CONFLICT (file_link) DO UPDATE set recordids=array_append(recordsets.recordids,%s), pub_date=%s,
-                   last_seen = now()
-                """,
-                (rsid, pub_uuid, rs_name, recordids, eml_link, file_link, ingest, date, recordid, date))
-            db.execute(*sql)
-            logger.info("Created Recordset for recordid:%s '%s'", recordid, rs_name)
-        else:
-            logger.debug("Ready to UPDATE: '{0}', '{1}', '{2}'".format(recordids, name, file_link))
-            sql = ("""UPDATE recordsets
-                      SET publisher_uuid=%(publisher_uuid)s,
-                          eml_link=%(eml_link)s,
-                          file_link=%(file_link)s,
-                          last_seen=%(last_seen)s,
-                          pub_date=%(pub_date)s
-                      WHERE id=%(id)s""",
-                   {
-                       "publisher_uuid": pub_uuid,
-                       "name": rs_name,
-                       "recordids": recordids,
-                       "eml_link": eml_link,
-                       "file_link": file_link,
-                       "last_seen": datetime.datetime.now(),
-                       "pub_date": date,
-                       "id": recordset["id"]
-                   })
-            db.execute(*sql)
-            logger.info("Updated Recordset id:%s %s %s '%s'",
-                        recordset["id"], recordset["uuid"], file_link, rs_name)
+        _do_rss_entry(e, r['portal_url'], db, recordsets,
+                      existing_recordsets) # (feedparser object, row of pub data, db object)
 
     EARLY_EXIT("before set_record on pub_uuid")
 

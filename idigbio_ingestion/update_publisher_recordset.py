@@ -357,8 +357,6 @@ def _do_rss(rsscontents, r, db, recordsets, existing_recordsets):
                       existing_recordsets,
                       pub_uuid) # (feedparser object, row of pub data, db object)
 
-    EARLY_EXIT("before set_record on pub_uuid")
-
     db.set_record(pub_uuid, "publisher", IDIGBIO_ROOT_UUID,
                   {
                       "rss_url": r["rss_url"],

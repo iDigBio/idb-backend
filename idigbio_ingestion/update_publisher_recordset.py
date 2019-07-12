@@ -168,7 +168,7 @@ def update_db_from_rss():
             rsscontents = get_feed(rss_url)
             if rsscontents:
                 try:
-                    _do_rss(rsscontents, row, db, recordsets, existing_recordsets)
+                    _do_rss(rsscontents, row, db, recordsets, existing_recordsets, file_links)
                     logger.debug('_do_rss returned, ready to COMMIT...')
                     db.commit()
                 except Exception:
@@ -312,7 +312,7 @@ def _do_rss_entry(entry, portal_url, db, recordsets, existing_recordsets, pub_uu
                     recordset["id"], recordset["uuid"], file_link, rs_name)
 
 
-def _do_rss(rsscontents, r, db, recordsets, existing_recordsets):
+def _do_rss(rsscontents, r, db, recordsets, existing_recordsets, file_links):
     """
     Process one RSS feed contents.  Compares the recordsets we know
     about with the ones found in the feed.
@@ -330,6 +330,8 @@ def _do_rss(rsscontents, r, db, recordsets, existing_recordsets):
         dict of existing known recordset db ids with associated db row data
     existing_recordsets : dict
         dict of existing known recordset recordids with associated db ids
+    file_links : dict
+        dict of existing know file_links with associated db ids
     """
 
     logger.debug("Start parsing results of %s", r['rss_url'])

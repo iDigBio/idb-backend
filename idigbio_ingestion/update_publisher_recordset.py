@@ -136,13 +136,18 @@ def get_feed(rss_url):
 
 
 def update_db_from_rss():
-    # existing_recordsets is a dict that will hold mapping of recordids to db id
+    # existing_recordsets is a dict that holds mapping of recordids to DB id
     existing_recordsets = {}
-    # recordsets is a dict that will hold rows based on db id (not recordid or uuid)
+    # file_links is a dict that holds mapping of file_links to DB id
+    file_links = {}
+    # recordsets is a dict that holds entire rows based on DB id (not recordid or uuid)
     recordsets = {}
+
     with PostgresDB() as db:
         logger.debug("Gathering existing recordsets...")
         for row in db.fetchall("SELECT * FROM recordsets"):
+            recordsets[row["id"]] = row
+            file_links[row["file_link"]] = row["id"]
             for recordid in row["recordids"]:
                 logger.debug("id | recordid | file_link: '{0}' | '{1}' | '{2}'".format(
                     row["id"], recordid, row["file_link"]))
@@ -152,7 +157,7 @@ def update_db_from_rss():
                         ". Other row = ''{1}''".format(recordid, existing_recordsets[recordid]))
                 else:
                     existing_recordsets[recordid] = row["id"]
-            recordsets[row["id"]] = row
+
 
         logger.debug("Gathering existing publishers...")
         pub_recs = db.fetchall("SELECT * FROM publishers")
@@ -272,10 +277,14 @@ def _do_rss_entry(entry, portal_url, db, recordsets, existing_recordsets, pub_uu
         logger.info("Created Recordset for recordid:%s '%s'", recordid, rs_name)
     else:
         logger.debug("Ready to UPDATE: '{0}', '{1}', '{2}'".format(recordset["id"], feed_recordids, file_link))
-        if file_link != recordsets["id"]["file_link"]:
-            logger.debug("file_link '{0}' found does not match expected '{1}' based on DB id '{2}'".format(
-                file_link, recordsets["id"]["file_link"],  recordset["id"]
-            ))
+        logger.debug("This feed_recordids has '{0}' items".format(len(feed_recordids)))
+        for each_feed_recordid in feed_recordids:
+            logger.debug("feed recordid: '{0}'".format(each_feed_recordid))
+        if recordset["id"] != file_links[file_link]:
+            logger.debug("FIREWORKS")
+            # logger.debug("file_link '{0}' found does not match expected '{1}' based on DB id '{2}'".format(
+            #     file_link, recordsets["id"]["file_link"],  recordset["id"]
+            # ))
         logger.debug("Existing DB id for this recordid: '{0}'".format(existing_recordsets[recordid]))
         logger.debug("Expected DB id to update: '{0}'".format(recordset["id"]))
         if existing_recordsets[recordid] != recordset["id"]:

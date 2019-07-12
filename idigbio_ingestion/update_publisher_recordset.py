@@ -153,9 +153,7 @@ def update_db_from_rss():
                 logger.debug("id | recordid | file_link: '{0}' | '{1}' | '{2}'".format(
                     row["id"], recordid, row["file_link"]))
                 if recordid in existing_recordsets:
-                    logger.error("Found a duplicate recordid in existing recordsets. This should never happen.")
-                    logger.error("This recordid = '{0}'"
-                        ". Other row = ''{1}''".format(recordid, existing_recordsets[recordid]))
+                    logger.error("recordid '{0}' already in existing recordsets. This should never happen.".format(recordid))
                 else:
                     existing_recordsets[recordid] = row["id"]
 

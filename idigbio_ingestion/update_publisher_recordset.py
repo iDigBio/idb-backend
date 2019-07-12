@@ -272,7 +272,10 @@ def _do_rss_entry(entry, portal_url, db, recordsets, existing_recordsets, pub_uu
         logger.info("Created Recordset for recordid:%s '%s'", recordid, rs_name)
     else:
         logger.debug("Ready to UPDATE: '{0}', '{1}', '{2}'".format(recordset["id"], feed_recordids, file_link))
-
+        if file_link != recordsets["id"]["file_link"]:
+            logger.debug("file_link '{0}' found does not match expected '{1}' based on DB id '{2}'".format(
+                file_link, recordsets["id"]["file_link"],  recordset["id"]
+            ))
         logger.debug("Existing DB id for this recordid: '{0}'".format(existing_recordsets[recordid]))
         logger.debug("Expected DB id to update: '{0}'".format(recordset["id"]))
         if existing_recordsets[recordid] != recordset["id"]:

@@ -273,9 +273,9 @@ def _do_rss_entry(entry, portal_url, db, recordsets, existing_recordsets, pub_uu
     else:
         logger.debug("Ready to UPDATE: '{0}', '{1}', '{2}'".format(recordset["id"], feed_recordids, file_link))
 
-        logger.debug("Existing ID for this recordid: '{0}'".format(existing_recordsets["recordid"]))
-        logger.debug("Expected ID to update: '{0}'".format(recordset["id"]))
-        if existing_recordsets["recordid"] != recordset["id"]:
+        logger.debug("Existing DB id for this recordid: '{0}'".format(existing_recordsets[recordid]))
+        logger.debug("Expected DB id to update: '{0}'".format(recordset["id"]))
+        if existing_recordsets[recordid] != recordset["id"]:
             logger.debug("WOULD BE MAGIC CONDITION IF FOUND")
             # and then should not run the SQL
         sql = ("""UPDATE recordsets

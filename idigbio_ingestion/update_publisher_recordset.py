@@ -390,7 +390,8 @@ def _do_rss(rsscontents, r, db, recordsets, existing_recordsets, file_links):
     for e in feed['entries']:
         _do_rss_entry(e, r['portal_url'], db, recordsets,
                       existing_recordsets,
-                      pub_uuid) # (feedparser object, row of pub data, db object)
+                      pub_uuid,
+                      file_links)
 
     db.set_record(pub_uuid, "publisher", IDIGBIO_ROOT_UUID,
                   {

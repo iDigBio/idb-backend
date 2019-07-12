@@ -66,7 +66,8 @@ def id_func(portal_url, e):
 
     Parameters
     ----------
-    portal_url : a url to a data portal from the publishers table
+    portal_url : url string
+        A url to a data portal from the publishers table
     e : feedparser entry object (feedparser.FeedParserDict)
         An individual rss entry already processed into a feedparser dict.
 
@@ -180,22 +181,28 @@ def update_db_from_rss():
                     raise
     logger.info("Finished processing add publisher RSS feeds")
 
-def _do_rss_entry(entry, portal_url, db, recordsets, existing_recordsets, pub_uuid):
+def _do_rss_entry(entry, portal_url, db, recordsets, existing_recordsets, pub_uuid, file_links):
     """
     Do the recordset parts.
 
     Parameters
     ----------
     entry : feedparser entry object
-    portal_url : publisher portal url, needed for some id functions
+        Each field in the feedparser object is accessible via dict notation
+    portal_url : url string
+        publisher portal url, needed for some id functions
     db : db object
+        DB connection object
     recordsets : dict
-        dict of existing known recordset db ids with associated db row data
+        dict of existing known recordset DB ids with associated DB row data
     existing_recordsets : dict
-        dict of existing known recordset recordids with associated db ids
-    pub_uuid : publisher uuid
-    ....
+        dict of existing known recordset recordids with associated DB ids
+    pub_uuid : uuid
+        Publisher's uuid
+    file_links : dict
+        dict of existing known file_links with associated DB ids
     """
+
     logger.debug("In func _do_rss_entry")
 
     logger.debug("feed entry: '{0}'".format(entry))
@@ -327,11 +334,11 @@ def _do_rss(rsscontents, r, db, recordsets, existing_recordsets, file_links):
     db : database object
         A PostgresDB() database object
     recordsets : dict
-        dict of existing known recordset db ids with associated db row data
+        dict of existing known recordset DB ids with associated DB row data
     existing_recordsets : dict
-        dict of existing known recordset recordids with associated db ids
+        dict of existing known recordset recordids with associated DB ids
     file_links : dict
-        dict of existing know file_links with associated db ids
+        dict of existing known file_links with associated DB ids
     """
 
     logger.debug("Start parsing results of %s", r['rss_url'])

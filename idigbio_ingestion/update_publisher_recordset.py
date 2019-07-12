@@ -167,10 +167,10 @@ def update_db_from_rss():
                     logger.debug('_do_rss returned, ready to COMMIT...')
                     db.commit()
                 except Exception:
-                    logger.exception("Will ROLLBACK... Error with %s %s", uuid, rss_url)
+                    logger.exception("An exception occurred processing '{0}' in rss '{1}', will try ROLLBACK...".format(uuid, rss_url))
                     db.rollback()
                 except:
-                    logger.exception("Will ROLLBACK...")
+                    logger.exception("Unknown exception occurred in rss '{0}' in rss '{1}', will try ROLLBACK...".format(uuid, rss_url))
                     db.rollback()
                     raise
     logger.info("Finished processing add publisher RSS feeds")
@@ -181,19 +181,26 @@ def _do_rss_entry(entry, portal_url, db, recordsets, existing_recordsets, pub_uu
 
     Parameters
     ----------
-    entry = feedparser entry object
-    portal_url = publisher portal url, needed for some id functions
-    db = db object
+    entry : feedparser entry object
+    portal_url : publisher portal url, needed for some id functions
+    db : db object
+    recordsets : dict
+        dict of existing known recordset db ids with associated db row data
+    existing_recordsets : dict
+        dict of existing known recordset recordids with associated db ids
+    pub_uuid : publisher uuid
+    ....
     """
     logger.debug("In func _do_rss_entry")
 
     logger.debug("feed entry: '{0}'".format(entry))
+
     # We pass in portal_url even though it is only needeed for Symbiota portals
     recordid = id_func(portal_url, entry)
 
     rsid = None
-    ingest = False # any newly discovered entries default to False
-    recordids = [recordid]
+    ingest = False # any newly discovered recordsets default to False
+    feed_recordids = [recordid]
     recordset = None
     if recordid in existing_recordsets:
         logger.debug("Found recordid '{0}' in existing recordsets.".format(recordid))
@@ -201,7 +208,8 @@ def _do_rss_entry(entry, portal_url, db, recordsets, existing_recordsets, pub_uu
         logger.debug("recordset = '{0}'".format(recordset))
         rsid = recordset["uuid"]
         ingest = recordset["ingest"]
-        recordids = list(set(recordids + recordset["recordids"])) # is this set dropping important info?
+        feed_recordids = list(set(feed_recordids + recordset["recordids"]))
+        logger.debug("")
     else:
         logger.debug("recordid '{0}' NOT found in existing recordsets.".format(recordid))
 
@@ -251,7 +259,7 @@ def _do_rss_entry(entry, portal_url, db, recordsets, existing_recordsets, pub_uu
         logger.debug("No recordid identified.")
 
     if recordset is None:
-        logger.debug("Ready to INSERT: '{0}', '{1}'".format(recordids, file_link))
+        logger.debug("Ready to INSERT: '{0}', '{1}'".format(feed_recordids, file_link))
         sql = (
             """INSERT INTO recordsets
                  (uuid, publisher_uuid, name, recordids, eml_link, file_link, ingest, pub_date)
@@ -259,11 +267,17 @@ def _do_rss_entry(entry, portal_url, db, recordsets, existing_recordsets, pub_uu
                ON CONFLICT (file_link) DO UPDATE set recordids=array_append(recordsets.recordids,%s), pub_date=%s,
                last_seen = now()
             """,
-            (rsid, pub_uuid, rs_name, recordids, eml_link, file_link, ingest, date, recordid, date))
+            (rsid, pub_uuid, rs_name, feed_recordids, eml_link, file_link, ingest, date, recordid, date))
         db.execute(*sql)
         logger.info("Created Recordset for recordid:%s '%s'", recordid, rs_name)
     else:
-        logger.debug("Ready to UPDATE: '{0}', '{1}', '{2}'".format(recordset["id"], recordids, file_link))
+        logger.debug("Ready to UPDATE: '{0}', '{1}', '{2}'".format(recordset["id"], feed_recordids, file_link))
+
+        logger.debug("Existing ID for this recordid: '{0}'".format(existing_recordsets["recordid"]))
+        logger.debug("Expected ID to update: '{0}'".format(recordset["id"]))
+        if existing_recordsets["recordid"] != recordset["id"]:
+            logger.debug("WOULD BE MAGIC CONDITION IF FOUND")
+            # and then should not run the SQL
         sql = ("""UPDATE recordsets
                   SET publisher_uuid=%(publisher_uuid)s,
                       eml_link=%(eml_link)s,
@@ -274,7 +288,7 @@ def _do_rss_entry(entry, portal_url, db, recordsets, existing_recordsets, pub_uu
                {
                    "publisher_uuid": pub_uuid,
                    "name": rs_name,
-                   "recordids": recordids,
+                   "recordids": feed_recordids,
                    "eml_link": eml_link,
                    "file_link": file_link,
                    "last_seen": datetime.datetime.now(),
@@ -300,7 +314,7 @@ def _do_rss(rsscontents, r, db, recordsets, existing_recordsets):
         each column addressable as r["column_name"]
     db : database object
         A PostgresDB() database object
-    recordsets : set
+    recordsets : dict
         dict of existing known recordset db ids with associated db row data
     existing_recordsets : dict
         dict of existing known recordset recordids with associated db ids

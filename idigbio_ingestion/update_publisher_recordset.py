@@ -28,69 +28,65 @@ from idigbio_ingestion.lib.eml import parseEml
 #urllib3.disable_warnings()
 ####
 
+# uuid '872733a2-67a3-4c54-aa76-862735a5f334' is the idigbio root entity,
+# the parent of all publishers.
+IDIGBIO_ROOT_UUID = "872733a2-67a3-4c54-aa76-862735a5f334"
 
 logger = idblogger.getChild('upr')
 
 def struct_to_datetime(s):
+    """
+    Convert a Struct representation of a time to a datetime
+    timestamp.
+
+    Parameters
+    ----------
+    s : struct
+        Timestamp in Struct representation, a 9-tuple such as
+        (2019, 2, 17, 17, 3, 38, 1, 48, 0)
+
+    Returns
+    -------
+    datetime timestamp
+    """
+
     return datetime.datetime.fromtimestamp(time.mktime(s))
 
-def create_tables():
-    """
-    This function is out-of-sync with actual database, unmaintained.
-    Commenting out all action in this function, it will do nothing until modified again.
-    """
-
-    db = PostgresDB()
-    logger.error('create_tables called but has no valid code to run.')
-
-    # db.execute("""CREATE TABLE IF NOT EXISTS publishers (
-    #     id BIGSERIAL NOT NULL PRIMARY KEY,
-    #     uuid uuid UNIQUE,
-    #     name text NOT NULL,
-    #     recordids text[] NOT NULL DEFAULT '{}',
-    #     pub_type varchar(20) NOT NULL DEFAULT 'rss',
-    #     portal_url text,
-    #     rss_url text NOT NULL,
-    #     auto_publish boolean NOT NULL DEFAULT false,
-    #     first_seen timestamp NOT NULL DEFAULT now(),
-    #     last_seen timestamp NOT NULL DEFAULT now(),
-    #     pub_date timestamp
-    # )""")
-
-    # #pubid, rsid  Ingest, rs_record_id, eml_link, file_link, First Seen Date, Last Seen Date, Feed Date, Harvest Date, Harvest Etag
-    # db.execute("""CREATE TABLE IF NOT EXISTS recordsets (
-    #     id BIGSERIAL NOT NULL PRIMARY KEY,
-    #     uuid uuid UNIQUE,
-    #     publisher_uuid uuid REFERENCES publishers(uuid),
-    #     name text NOT NULL,
-    #     recordids text[] NOT NULL DEFAULT '{}',
-    #     eml_link text,
-    #     file_link text NOT NULL,
-    #     ingest boolean NOT NULL DEFAULT false,
-    #     first_seen timestamp NOT NULL DEFAULT now(),
-    #     last_seen timestamp NOT NULL DEFAULT now(),
-    #     pub_date timestamp,
-    #     harvest_date timestamp,
-    #     harvest_etag varchar(41)
-    # )""")
-    # db.commit()
-    db.close()
 
 def id_func(portal_url, e):
+    """
+    Given a portal url and an RSS feed entry (feedparser dictionary
+    object), return something suitable to be used as a recordid
+    for the published dataset entry.  The portal_url is only used
+    to help construct a recordid for Symbiota recordsets.
+
+
+    Parameters
+    ----------
+    portal_url : url string
+        A url to a data portal from the publishers table
+    e : feedparser entry object (feedparser.FeedParserDict)
+        An individual rss entry already processed into a feedparser dict.
+
+    """
+
     id = None
-    if "id" in e:   # feedparser magic maps various fields to "id"
+    # feedparser magic maps various fields to "id" including "guid"
+    if "id" in e:
         id = e["id"]
+    # portal_url is used to help construct ids in Symbiota feeds
     elif "collid" in e:
         id = "{0}collections/misc/collprofiles.php?collid={1}".format(
             portal_url, e["collid"])
 
     if id is not None:
-        # Strip version from ipt ids
+        # Strip trailing version info from ipt ids
         m = re.search('^(.*)/v[0-9]*(\.)?[0-9]*$', id)
         if m is not None:
             id = m.group(1)
 
         id = id.lower()
+    logger.debug ("id_func ready to return recorid '{0}' from portal url '{1}'".format(id, portal_url))
     return id
 
 
@@ -111,6 +107,7 @@ def get_feed(rss_url):
         from the URI, otherwise return False.
 
     """
+
     feedtest = None
     try:
         feedtest = requests.get(rss_url, timeout=10)
@@ -137,35 +134,184 @@ def get_feed(rss_url):
 
 
 def update_db_from_rss():
+    # existing_recordsets is a dict that holds mapping of recordids to DB id
     existing_recordsets = {}
+    # file_links is a dict that holds mapping of file_links to DB id
+    file_links = {}
+    # recordsets is a dict that holds entire rows based on DB id (not recordid or uuid)
     recordsets = {}
+
     with PostgresDB() as db:
-        for r in db.fetchall("SELECT * FROM recordsets"):
-            for recordid in r["recordids"]:
-                existing_recordsets[recordid] = r["id"]
-            recordsets[r["id"]] = r
-        #logger.debug("***existing_recordsets DUMP ***\n")
-        #logger.debug("{0}".format(existing_recordsets))
+        logger.debug("Gathering existing recordsets...")
+        for row in db.fetchall("SELECT * FROM recordsets"):
+            recordsets[row["id"]] = row
+            file_links[row["file_link"]] = row["id"]
+            for recordid in row["recordids"]:
+                logger.debug("id | recordid | file_link : '{0}' | '{1}' | '{2}'".format(
+                    row["id"], recordid, row["file_link"]))
+                if recordid in existing_recordsets:
+                    logger.error("recordid '{0}' already in existing recordsets. This should never happen.".format(recordid))
+                else:
+                    existing_recordsets[recordid] = row["id"]
+
+
+        logger.debug("Gathering existing publishers...")
         pub_recs = db.fetchall("SELECT * FROM publishers")
         logger.debug("Checking %d publishers", len(pub_recs))
-        for r in pub_recs:
-            uuid, rss_url = r['uuid'], r['rss_url']
+        for row in pub_recs:
+            uuid, rss_url = row['uuid'], row['rss_url']
             logger.info("Starting Publisher Feed: %s %s", uuid, rss_url)
             rsscontents = get_feed(rss_url)
             if rsscontents:
                 try:
-                    _do_rss(rsscontents, r, db, recordsets, existing_recordsets)
+                    _do_rss(rsscontents, row, db, recordsets, existing_recordsets, file_links)
+                    logger.debug('_do_rss returned, ready to COMMIT...')
                     db.commit()
                 except Exception:
-                    logger.exception("Error with %s %s", uuid, rss_url)
+                    logger.exception("An exception occurred processing '{0}' in rss '{1}', will try ROLLBACK...".format(uuid, rss_url))
                     db.rollback()
                 except:
+                    logger.exception("Unknown exception occurred in rss '{0}' in rss '{1}', will try ROLLBACK...".format(uuid, rss_url))
                     db.rollback()
                     raise
     logger.info("Finished processing add publisher RSS feeds")
 
+def _do_rss_entry(entry, portal_url, db, recordsets, existing_recordsets, pub_uuid, file_links):
+    """
+    Do the recordset parts.
 
-def _do_rss(rsscontents, r, db, recordsets, existing_recordsets):
+    Parameters
+    ----------
+    entry : feedparser entry object
+        Each field in the feedparser object is accessible via dict notation
+    portal_url : url string
+        publisher portal url, needed for some id functions
+    db : db object
+        DB connection object
+    recordsets : dict
+        dict of existing known recordset DB ids with associated DB row data
+    existing_recordsets : dict
+        dict of existing known recordset recordids with associated DB ids
+    pub_uuid : uuid
+        Publisher's uuid
+    file_links : dict
+        dict of existing known file_links with associated DB ids
+    """
+
+    logger.debug("Dump of this feed entry: '{0}'".format(entry))
+
+    # We pass in portal_url even though it is only needeed for Symbiota portals
+    recordid = id_func(portal_url, entry)
+
+    rsid = None
+    ingest = False # any newly discovered recordsets default to False
+    feed_recordids = [recordid]
+    # recordset holds one row of recordset data
+    recordset = None
+    if recordid in existing_recordsets:
+        logger.debug("Found recordid '{0}' in existing recordsets.".format(recordid))
+        recordset = recordsets[existing_recordsets[recordid]]
+        logger.debug("recordset = '{0}'".format(recordset))
+        rsid = recordset["uuid"]
+        ingest = recordset["ingest"]
+        feed_recordids = list(set(feed_recordids + recordset["recordids"]))
+        logger.debug("")
+    else:
+        logger.debug("recordid '{0}' NOT found in existing recordsets.".format(recordid))
+
+    eml_link = None
+    file_link = None
+    date = None
+    rs_name = None
+
+    if "published_parsed" in entry and entry["published_parsed"] is not None:
+        date = struct_to_datetime(entry["published_parsed"])
+        logger.debug('pub_date struct via published_parsed: {0}'.format(date.isoformat()))
+    elif "published" in entry and entry["published"] is not None:
+        date = dateutil.parser.parse(entry["published"])
+        logger.debug('pub_date via dateutil: {0}'.format(date.isoformat()))
+
+    # Pick a time distinctly before now() to avoid data races
+    fifteen_minutes_ago = datetime.datetime.now() - datetime.timedelta(minutes=15)
+    if date is None or date > datetime.datetime.now():
+        date = fifteen_minutes_ago
+
+    for eml_prop in ["ipt_eml", "emllink"]:
+        if eml_prop in entry:
+            eml_link = entry[eml_prop]
+            break
+    else:
+        if recordset is not None:
+            eml_link = recordset["eml_link"]
+
+    for link_prop in ["ipt_dwca", "link"]:
+        if link_prop in entry:
+            file_link = entry[link_prop]
+            break
+    else:
+        if recordset is not None:
+            file_link = recordset["file_link"]
+
+    if "title" in entry:
+        rs_name = entry['title']
+    elif recordset is not None:
+        rs_name = recordset["name"]
+    else:
+        rs_name = recordid
+
+    if recordid is not None:
+        logger.debug("Identified recordid:  '{0}'".format(recordid))
+    else:
+        logger.debug("No recordid identified.")
+
+    if recordset is None:
+        logger.debug("Ready to INSERT: '{0}', '{1}'".format(feed_recordids, file_link))
+        sql = (
+            """INSERT INTO recordsets
+                 (uuid, publisher_uuid, name, recordids, eml_link, file_link, ingest, pub_date)
+               VALUES (%s,%s,%s,%s,%s,%s,%s,%s)
+               ON CONFLICT (file_link) DO UPDATE set recordids=array_append(recordsets.recordids,%s), pub_date=%s,
+               last_seen = now()
+            """,
+            (rsid, pub_uuid, rs_name, feed_recordids, eml_link, file_link, ingest, date, recordid, date))
+        db.execute(*sql)
+        logger.info("Created Recordset for recordid:%s '%s'", recordid, rs_name)
+    else:
+        logger.debug("Ready to UPDATE: '{0}', '{1}', '{2}'".format(recordset["id"], feed_recordids, file_link))
+
+        # The following checks helps to identify dataset recordids that exist in multiple RSS feeds.
+        # The DB id should match when doing a "reverse" look up by file_link.
+        if file_link in file_links:
+            if recordset["id"] != file_links[file_link]:
+                logger.error("Skipping file_link: '{0}'. Found conflict or duplicate recordid. "
+                             "Investigate db ids: '{1}' and '{2}'".format(
+                    file_link, recordset["id"], file_links[file_link]
+                ))
+                return
+
+        sql = ("""UPDATE recordsets
+                  SET publisher_uuid=%(publisher_uuid)s,
+                      eml_link=%(eml_link)s,
+                      file_link=%(file_link)s,
+                      last_seen=%(last_seen)s,
+                      pub_date=%(pub_date)s
+                  WHERE id=%(id)s""",
+               {
+                   "publisher_uuid": pub_uuid,
+                   "name": rs_name,
+                   "recordids": feed_recordids,
+                   "eml_link": eml_link,
+                   "file_link": file_link,
+                   "last_seen": datetime.datetime.now(),
+                   "pub_date": date,
+                   "id": recordset["id"]
+               })
+        db.execute(*sql)
+        logger.info("Updated Recordset id:%s %s %s '%s'",
+                    recordset["id"], recordset["uuid"], file_link, rs_name)
+
+
+def _do_rss(rsscontents, r, db, recordsets, existing_recordsets, file_links):
     """
     Process one RSS feed contents.  Compares the recordsets we know
     about with the ones found in the feed.
@@ -175,16 +321,21 @@ def _do_rss(rsscontents, r, db, recordsets, existing_recordsets):
     rsscontents : text
         Content of an RSS feed
     r : row of publisher data
-        A row of data from the publishers table that contains all columns
+        A row of data from the publishers table that contains all columns,
+        each column addressable as r["column_name"]
     db : database object
         A PostgresDB() database object
-    recordsets : set
-        Set object to maintain list of recordsets found in the RSS feed
-    existing_recordsets : set
-        Set of existing known recordset uuids
+    recordsets : dict
+        dict of existing known recordset DB ids with associated DB row data
+    existing_recordsets : dict
+        dict of existing known recordset recordids with associated DB ids
+    file_links : dict
+        dict of existing known file_links with associated DB ids
     """
-    logger.debug("Start parsing results of %s, length: %s", r['rss_url'], len(rsscontents))
+
+    logger.debug("Start parsing results of %s", r['rss_url'])
     feed = feedparser.parse(rsscontents)
+    logger.debug("Found {0} entries in feed to process.".format(len(feed)))
     pub_uuid = r["uuid"]
     if pub_uuid is None:
         pub_uuid, _, _ = db.get_uuid(r["recordids"])
@@ -203,7 +354,7 @@ def _do_rss(rsscontents, r, db, recordsets, existing_recordsets):
 
     logger.info("Update Publisher id:%s %s '%s'", r["id"], pub_uuid, name)
 
-    auto_publish = r["auto_publish"]
+    auto_publish = False # we never auto-publish anymore
 
     pub_date = None
     if "published_parsed" in feed["feed"]:
@@ -227,95 +378,14 @@ def _do_rss(rsscontents, r, db, recordsets, existing_recordsets):
            })
     db.execute(*sql)
 
+    logger.debug("Begin iteration over entries found in '{0}'".format(r['rss_url']))
     for e in feed['entries']:
-        recordid = id_func(r['portal_url'], e)
-        rsid = None
-        ingest = auto_publish
-        recordids = [recordid]
-        recordset = None
-        if recordid in existing_recordsets:
-            logger.debug("Found recordid '{0}' in existing recordsets.".format(recordid))
-            recordset = recordsets[existing_recordsets[recordid]]
-            rsid = recordset["uuid"]
-            ingest = recordset["ingest"]
-            recordids = list(set(recordids + recordset["recordids"]))
-        else:
-            logger.debug("recordid '{0}' NOT found in existing recordsets.".format(recordid))
+        _do_rss_entry(e, r['portal_url'], db, recordsets,
+                      existing_recordsets,
+                      pub_uuid,
+                      file_links)
 
-        eml_link = None
-        file_link = None
-        date = None
-        rs_name = None
-
-        if "published_parsed" in e and e["published_parsed"] is not None:
-            date = struct_to_datetime(e["published_parsed"])
-            logger.debug('pub_date struct via published_parsed: {0}'.format(date.isoformat()))
-        elif "published" in e and e["published"] is not None:
-            date = dateutil.parser.parse(e["published"])
-            logger.debug('pub_date via dateutil: {0}'.format(date.isoformat()))
-
-        # Pick a time distinctly before now() to avoid data races
-        fifteen_minutes_ago = datetime.datetime.now() - datetime.timedelta(minutes=15)
-        if date is None or date > datetime.datetime.now():
-            date = fifteen_minutes_ago
-
-        for eml_prop in ["ipt_eml", "emllink"]:
-            if eml_prop in e:
-                eml_link = e[eml_prop]
-                break
-        else:
-            if recordset is not None:
-                eml_link = recordset["eml_link"]
-
-        for link_prop in ["ipt_dwca", "link"]:
-            if link_prop in e:
-                file_link = e[link_prop]
-                break
-        else:
-            if recordset is not None:
-                file_link = recordset["file_link"]
-
-        if "title" in e:
-            rs_name = e['title']
-        elif recordset is not None:
-            rs_name = recordset["name"]
-        else:
-            rs_name = recordid
-
-        if recordset is None:
-            sql = (
-                """INSERT INTO recordsets
-                     (uuid, publisher_uuid, name, recordids, eml_link, file_link, ingest, pub_date)
-                   VALUES (%s,%s,%s,%s,%s,%s,%s,%s)
-                   ON CONFLICT (file_link) DO UPDATE set recordids=array_append(recordsets.recordids,%s), pub_date=%s,
-                   last_seen = now()
-                """,
-                (rsid, pub_uuid, rs_name, recordids, eml_link, file_link, ingest, date, recordid, date))
-            db.execute(*sql)
-            logger.info("Create Recordset for recordid:%s '%s'", recordid, rs_name)
-        else:
-            sql = ("""UPDATE recordsets
-                      SET publisher_uuid=%(publisher_uuid)s,
-                          eml_link=%(eml_link)s,
-                          file_link=%(file_link)s,
-                          last_seen=%(last_seen)s,
-                          pub_date=%(pub_date)s
-                      WHERE id=%(id)s""",
-                   {
-                       "publisher_uuid": pub_uuid,
-                       "name": rs_name,
-                       "recordids": recordids,
-                       "eml_link": eml_link,
-                       "file_link": file_link,
-                       "last_seen": datetime.datetime.now(),
-                       "pub_date": date,
-                       "id": recordset["id"]
-                   })
-            db.execute(*sql)
-            logger.info("Update Recordset id:%s %s %s '%s'",
-                        recordset["id"], recordset["uuid"], file_link, rs_name)
-
-    db.set_record(pub_uuid, "publisher", "872733a2-67a3-4c54-aa76-862735a5f334",
+    db.set_record(pub_uuid, "publisher", IDIGBIO_ROOT_UUID,
                   {
                       "rss_url": r["rss_url"],
                       "name": name,
@@ -442,6 +512,49 @@ def upload_recordset(rsid, fname, idbmodel):
         mo.ensure_media_object(idbmodel)
         return mo.etag
     logger.debug("Finished Upload of %r", rsid)
+
+
+def create_tables():
+    """
+    This function is out-of-sync with actual database, unmaintained.
+    Commenting out all action in this function, it will do nothing until modified again.
+    """
+
+    db = PostgresDB()
+    logger.error('create_tables called but has no valid code to run.')
+
+    # db.execute("""CREATE TABLE IF NOT EXISTS publishers (
+    #     id BIGSERIAL NOT NULL PRIMARY KEY,
+    #     uuid uuid UNIQUE,
+    #     name text NOT NULL,
+    #     recordids text[] NOT NULL DEFAULT '{}',
+    #     pub_type varchar(20) NOT NULL DEFAULT 'rss',
+    #     portal_url text,
+    #     rss_url text NOT NULL,
+    #     auto_publish boolean NOT NULL DEFAULT false,
+    #     first_seen timestamp NOT NULL DEFAULT now(),
+    #     last_seen timestamp NOT NULL DEFAULT now(),
+    #     pub_date timestamp
+    # )""")
+
+    # #pubid, rsid  Ingest, rs_record_id, eml_link, file_link, First Seen Date, Last Seen Date, Feed Date, Harvest Date, Harvest Etag
+    # db.execute("""CREATE TABLE IF NOT EXISTS recordsets (
+    #     id BIGSERIAL NOT NULL PRIMARY KEY,
+    #     uuid uuid UNIQUE,
+    #     publisher_uuid uuid REFERENCES publishers(uuid),
+    #     name text NOT NULL,
+    #     recordids text[] NOT NULL DEFAULT '{}',
+    #     eml_link text,
+    #     file_link text NOT NULL,
+    #     ingest boolean NOT NULL DEFAULT false,
+    #     first_seen timestamp NOT NULL DEFAULT now(),
+    #     last_seen timestamp NOT NULL DEFAULT now(),
+    #     pub_date timestamp,
+    #     harvest_date timestamp,
+    #     harvest_etag varchar(41)
+    # )""")
+    # db.commit()
+    db.close()
 
 
 def main():

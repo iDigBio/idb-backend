@@ -288,7 +288,7 @@ def _do_rss_entry(entry, portal_url, db, recordsets, existing_recordsets, pub_uu
             if recordset["id"] != file_links[file_link]:
                 logger.error("Skipping file_link: '{3}'. Found conflict or duplicate recordid. "
                              "Investigate db ids: '{0}' and '{1}'".format(
-                    recordset["id"], file_links[file_link]
+                    recordset["id"], file_links[file_link], file_link
                 ))
                 return
 

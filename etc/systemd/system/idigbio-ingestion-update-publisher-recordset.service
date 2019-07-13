@@ -4,4 +4,4 @@ Description="Runs `idigbio-ingestion update-publisher-recordset`"
 [Service]
 Type=oneshot
 Environment=LANG=en_US.UTF-8
-ExecStart=/usr/local/bin/idigbio-ingestion --journal -vv update-publisher-recordset
+ExecStart=/usr/local/bin/idigbio-ingestion --journal -v update-publisher-recordset

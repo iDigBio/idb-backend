@@ -89,7 +89,7 @@ def id_func(portal_url, e):
             id = m.group(1)
 
         id = id.lower()
-    logger.debug ("id_func returning recorid '{0}' from portal url '{1}'".format(id, portal_url))
+    logger.debug ("id_func ready to return recorid '{0}' from portal url '{1}'".format(id, portal_url))
     return id
 
 
@@ -150,7 +150,7 @@ def update_db_from_rss():
             recordsets[row["id"]] = row
             file_links[row["file_link"]] = row["id"]
             for recordid in row["recordids"]:
-                logger.debug("id | recordid | file_link: '{0}' | '{1}' | '{2}'".format(
+                logger.debug("id | recordid | file_link : '{0}' | '{1}' | '{2}'".format(
                     row["id"], recordid, row["file_link"]))
                 if recordid in existing_recordsets:
                     logger.error("recordid '{0}' already in existing recordsets. This should never happen.".format(recordid))
@@ -201,9 +201,7 @@ def _do_rss_entry(entry, portal_url, db, recordsets, existing_recordsets, pub_uu
         dict of existing known file_links with associated DB ids
     """
 
-    logger.debug("In func _do_rss_entry")
-
-    logger.debug("feed entry: '{0}'".format(entry))
+    logger.debug("Dump of this feed entry: '{0}'".format(entry))
 
     # We pass in portal_url even though it is only needeed for Symbiota portals
     recordid = id_func(portal_url, entry)
@@ -211,6 +209,7 @@ def _do_rss_entry(entry, portal_url, db, recordsets, existing_recordsets, pub_uu
     rsid = None
     ingest = False # any newly discovered recordsets default to False
     feed_recordids = [recordid]
+    # recordset holds one row of recordset data
     recordset = None
     if recordid in existing_recordsets:
         logger.debug("Found recordid '{0}' in existing recordsets.".format(recordid))
@@ -282,19 +281,17 @@ def _do_rss_entry(entry, portal_url, db, recordsets, existing_recordsets, pub_uu
         logger.info("Created Recordset for recordid:%s '%s'", recordid, rs_name)
     else:
         logger.debug("Ready to UPDATE: '{0}', '{1}', '{2}'".format(recordset["id"], feed_recordids, file_link))
-        logger.debug("This feed_recordids has '{0}' items".format(len(feed_recordids)))
-        for each_feed_recordid in feed_recordids:
-            logger.debug("feed recordid: '{0}'".format(each_feed_recordid))
-        if recordset["id"] != file_links[file_link]:
-            logger.debug("FIREWORKS")
-            # logger.debug("file_link '{0}' found does not match expected '{1}' based on DB id '{2}'".format(
-            #     file_link, recordsets["id"]["file_link"],  recordset["id"]
-            # ))
-        logger.debug("Existing DB id for this recordid: '{0}'".format(existing_recordsets[recordid]))
-        logger.debug("Expected DB id to update: '{0}'".format(recordset["id"]))
-        if existing_recordsets[recordid] != recordset["id"]:
-            logger.debug("WOULD BE MAGIC CONDITION IF FOUND")
-            # and then should not run the SQL
+
+        # The following checks helps to identify dataset recordids that exist in multiple RSS feeds.
+        # The DB id should match when doing a "reverse" look up by file_link.
+        if file_link in file_links:
+            if recordset["id"] != file_links[file_link]:
+                logger.error("Skipping file_link: '{3}'. Found conflict or duplicate recordid. "
+                             "Investigate db ids: '{0}' and '{1}'".format(
+                    recordset["id"], file_links[file_link]
+                ))
+                return
+
         sql = ("""UPDATE recordsets
                   SET publisher_uuid=%(publisher_uuid)s,
                       eml_link=%(eml_link)s,

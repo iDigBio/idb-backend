@@ -286,8 +286,8 @@ def _do_rss_entry(entry, portal_url, db, recordsets, existing_recordsets, pub_uu
         # The DB id should match when doing a "reverse" look up by file_link.
         if file_link in file_links:
             if recordset["id"] != file_links[file_link]:
-                logger.error("Skipping file_link: '{3}'. Found conflict or duplicate recordid. "
-                             "Investigate db ids: '{0}' and '{1}'".format(
+                logger.error("Skipping file_link: '{0}'. Found conflict or duplicate recordid."
+                             "Investigate db ids: '{1}' and '{2}'".format(
                     recordset["id"], file_links[file_link], file_link
                 ))
                 return

@@ -34,9 +34,6 @@ IDIGBIO_ROOT_UUID = "872733a2-67a3-4c54-aa76-862735a5f334"
 
 logger = idblogger.getChild('upr')
 
-def EARLY_EXIT(msg=''):
-    raise SystemExit("EARLY EXIT  " + msg)
-
 def struct_to_datetime(s):
     """
     Convert a Struct representation of a time to a datetime
@@ -401,8 +398,6 @@ def _do_rss(rsscontents, r, db, recordsets, existing_recordsets, file_links):
 
 
 def harvest_all_eml():
-    EARLY_EXIT('harvest')
-
     sql = """SELECT *
              FROM recordsets
              WHERE eml_link IS NOT NULL
@@ -424,8 +419,6 @@ def harvest_all_eml():
                 logger.exception("failed Harvest EML %s %s", r["id"], r["name"])
 
 def harvest_eml(r, db):
-    EARLY_EXIT('harvest')
-
     logger.info("Harvest EML %s '%s' @ '%s'", r["id"], r["name"], r["eml_link"])
     fname = "{0}.eml".format(r["id"])
     if not download_file(r["eml_link"], fname):
@@ -458,8 +451,6 @@ def harvest_eml(r, db):
 
 
 def harvest_all_file():
-    EARLY_EXIT("before harvest")
-
     sql = """SELECT *
              FROM recordsets
              WHERE file_link IS NOT NULL
@@ -483,7 +474,6 @@ def harvest_all_file():
                 db.rollback()
 
 def harvest_file(r, db):
-    EARLY_EXIT('harvest_file')
     logger.info("Harvest File %s '%s' @ '%s'", r["id"], r["name"], r["file_link"])
     fname = "{0}.file".format(r["id"])
 
@@ -504,8 +494,6 @@ def harvest_file(r, db):
 
 
 def upload_recordset(rsid, fname, idbmodel):
-    EARLY_EXIT('upload_recordset')
-
     filereference = "http://api.idigbio.org/v1/recordsets/" + rsid
     logger.debug("Starting Upload of %r", rsid)
     stor = IDigBioStorage()

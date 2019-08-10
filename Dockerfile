@@ -2,7 +2,7 @@ FROM python:2.7
 RUN apt-get update && apt-get install -y --no-install-recommends \
     gfortran \
     libatlas-base-dev \
-    libav-tools \
+    ffmpeg \
     libblas-dev \
     libgdal-dev \
 #    libgeos-c1  \

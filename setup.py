@@ -60,7 +60,7 @@ setup(
         'jsonlines>=1.1.3',
     ],
     extras_require={
-        'journal': ['python-systemd>=230'],
+        'journal': ['systemd-python>=230'],
         'ingestion': [
             'pydub==0.16.5',
             'pillow-simd>=3.4',

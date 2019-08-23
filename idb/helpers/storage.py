@@ -55,6 +55,7 @@ class IDigBioStorage(object):
             is_secure=False,
             calling_format=boto.s3.connection.OrdinaryCallingFormat(),
         )
+        logging.debug("Initialized IDigBioStorage connection (boto.connect_s3) to {0}:{1}".format(host,port))
 
     def get_bucket(self, bucket_name):
         """Return a boto.s3.Bucket object for the requested bucket.
@@ -74,7 +75,7 @@ class IDigBioStorage(object):
 
     # def delete_key(...)
         # No separate delete function is needed since the key object itself has a delete() method.
-        # e.g. 
+        # e.g.
         #       k = get_key ('KEY_NAME', 'BUCKET_NAME')
         #       k.delete()  # works on the boto.s3.Key object
 

@@ -36,13 +36,14 @@ LAST_CHECK_INTERVAL = '1 month'
 
 # TODO: Add idb __version__ to this string?
 USER_AGENT = 'iDigBio Media Ingestor (idigbio@acis.ufl.edu https://www.idigbio.org/wiki/index.php/Media_Ingestor)'
-
+logger.info("Started fetcher with User Agent string: '{0}'".format(USER_AGENT))
 
 PREFIX_RE = re.compile('^https?://[^/]*[/?]')
 
 
 def once(prefix=None, ignores=IGNORE_PREFIXES):
     "Fetch all outstanding media and exit"
+    logger.info("mediaing - run once mode")
     fetchitems = get_items(prefix=prefix)
     groups = group_by_prefix(fetchitems)
     procs = start_all_procs(groups).values()
@@ -75,6 +76,7 @@ def start_all_procs(groups, running=None):
 
 def continuous(prefix=None, looptime=3600):
     "Continuously loop checking for and downloading media"
+    logger.info("mediaing - continuous mode")
     running = {}
     while True:
         logger.debug("Loop top")

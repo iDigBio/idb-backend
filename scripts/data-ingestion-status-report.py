@@ -31,16 +31,15 @@ record_count = locale.format("%d", api.count_records(), grouping=True)
 media_record_count = locale.format("%d", api.count_media(), grouping=True)
 recordset_count = locale.format("%d", api.count_recordsets(), grouping=True)
 
-# Paused recordsets is the count of recordsets where ingest is true,
+# Paused count is the count of recordsets where ingest is true,
 # and paused is also true.  Will not count paused recordsets where
 # ingest is false.
 db = PostgresDB()
 sql = """
       SELECT count(*) FROM recordsets WHERE ingest = true AND ingest_is_paused = true;
 """
-paused_count = db.execute(sql)
-
-print("PAUSED COUNT... '{0}'".format(paused_count))
+db_r = db.fetchone(sql)
+paused_count = db_r["count"]
 
 # Updated recordsets is an approximation based on the number of items
 # appearing in the Ingestion summary log, minus 15% to take into account
@@ -73,8 +72,7 @@ NEW Publishers and/or Recordsets added to iDigBio since last report:
 
 '''
 
-buff = buff + hr + "\n"
-
+buff = buff + hr
 
 buff = buff + '''
 UPDATED Recordsets since last report:
@@ -86,7 +84,9 @@ These data were incorporated into iDigBio by the standard Data Ingestion process
 
 '''
 
-buff = buff + hr + "\n"
+buff = buff + "There are currently {0} PAUSED recordsets.".format(paused_count) + "\n\n"
+
+buff = buff + hr
 
 buff = buff + '''
 Notes:

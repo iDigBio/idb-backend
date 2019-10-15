@@ -16,6 +16,17 @@ def update_publisher_recordset():
     from idigbio_ingestion.update_publisher_recordset import main
     main()
 
+@cli.command(name="upload-recordset-from-file",
+             help="Run the upload step for a single local dataset file manually. "
+             "This skips all RSS feed processing.")
+@click.argument("rsid", type=click.UUID)
+@click.argument("file", type=click.Path())
+@fnlogged
+def manual_update_recordset_from_file(rsid, file):
+    from idigbio_ingestion.update_publisher_recordset import upload_recordset_from_file
+    upload_recordset_from_file(rsid, file)
+
+
 @cli.command(name="db-check",
              help="Check a dataset, by rsid, against the database "
              "and report what will be ingested")

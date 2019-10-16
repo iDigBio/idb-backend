@@ -510,8 +510,9 @@ def upload_recordset(rsid, fname, idbmodel):
         mo.ensure_media(idbmodel)
         mo.ensure_object(idbmodel)
         mo.ensure_media_object(idbmodel)
+        logger.debug("Finished Upload of %r, etag = %m", rsid, mo.etag)
         return mo.etag
-    logger.debug("Finished Upload of %r", rsid)
+
 
 
 def create_tables():

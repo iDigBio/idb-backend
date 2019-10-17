@@ -510,9 +510,75 @@ def upload_recordset(rsid, fname, idbmodel):
         mo.ensure_media(idbmodel)
         mo.ensure_object(idbmodel)
         mo.ensure_media_object(idbmodel)
-        logger.debug("Finished Upload of %r, etag = %m", rsid, mo.etag)
+        logger.debug("Finished Upload of %r, etag = %s", rsid, mo.etag)
         return mo.etag
 
+
+def upload_recordset_from_file(rsid, fname):
+    """
+    Given a recordset uuid and a local dataset filename, upload the local
+    dataset file as the "current" file for that uuid.
+
+    Parameters
+    ----------
+    rsid : uuid
+        An iDigBio recordset uuid
+    fname : string
+        Filename (full path or current directory only)
+
+    Returns
+    -------
+    bool
+        True if successful, False otherwise
+    """
+    # convert rsid uuid to string here because of either:
+    #   psycopg2.ProgrammingError: can't adapt type 'UUID'
+    # or
+    #  TypeError: 'UUID' object does not support indexing
+    rsuuid = str(rsid)
+
+    logger.info("Manual upload of '{0}' from file '{1}' requested.".format(rsuuid, fname))
+
+    # do some checks here
+    try:
+        f = open(fname)
+        f.close()
+    except:
+        logger.error("Cannot access file: '{0}'. Aborting upload.".format(fname))
+        raise
+    db = PostgresDB()
+    sql = ("""SELECT id FROM recordsets WHERE uuid=%s""", (rsuuid, ))
+    idcount = db.execute(*sql)
+    if idcount < 1:
+        logger.error("Cannot find uuid '{0}' in db.  Aborting upload.".format(rsuuid))
+        db.rollback()
+        return False
+
+    # output the "before" state
+    results = db.fetchall("""SELECT id,file_harvest_date,file_harvest_etag FROM recordsets WHERE uuid=%s""", (rsuuid, ))
+    for each in results:
+        logger.debug("{0}".format(each))
+
+    try:
+        etag = upload_recordset(rsuuid, fname, db)
+        assert etag
+        sql = ("""UPDATE recordsets
+                  SET file_harvest_etag=%s, file_harvest_date=%s
+                  WHERE uuid=%s""",
+               (etag, datetime.datetime.now(), rsuuid))
+        update_count = db.execute(*sql)
+        db.commit()
+        logger.info("UPDATED {0} rows.".format(update_count))
+        logger.info("Finished manual upload of file '{0}', result etag = '{1}', saved to db.".format(fname, etag))
+    except:
+        logger.error("An exception occurred during upload of file or db update for '{0}'".format(fname))
+        raise
+    # output the "after" state
+    results = db.fetchall("""SELECT id,file_harvest_date,file_harvest_etag FROM recordsets WHERE uuid=%s""", (rsuuid, ))
+    for each in results:
+        logger.debug("{0}".format(each))
+
+    return True
 
 
 def create_tables():

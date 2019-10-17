@@ -571,7 +571,7 @@ def upload_recordset_from_file(rsid, fname):
         logger.info("UPDATED {0} rows.".format(update_count))
         logger.info("Finished manual upload of file '{0}', result etag = '{1}', saved to db.".format(fname, etag))
     except:
-        logger.error("An exception occurred during upload of file '{0}'".format(fname))
+        logger.error("An exception occurred during upload of file or db update for '{0}'".format(fname))
         raise
     # output the "after" state
     results = db.fetchall("""SELECT id,file_harvest_date,file_harvest_etag FROM recordsets WHERE uuid=%s""", (rsuuid, ))

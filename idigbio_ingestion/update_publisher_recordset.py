@@ -538,6 +538,7 @@ def upload_recordset_from_file(rsid, fname):
     rsuuid = str(rsid)
 
     logger.info("Manual upload of '{0}' from file '{1}' requested.".format(rsuuid, fname))
+
     # do some checks here
     try:
         f = open(fname)
@@ -546,18 +547,18 @@ def upload_recordset_from_file(rsid, fname):
         logger.error("Cannot access file: '{0}'. Aborting upload.".format(fname))
         raise
     db = PostgresDB()
-
-    # output the "before" state
-    results = db.fetchall("""SELECT id,file_harvest_date,file_harvest_etag FROM recordsets WHERE uuid=%s""", (rsuuid, ))
-    for each in results:
-        logger.debug("{0}".format(each))
-
     sql = ("""SELECT id FROM recordsets WHERE uuid=%s""", (rsuuid, ))
     idcount = db.execute(*sql)
     if idcount < 1:
         logger.error("Cannot find uuid '{0}' in db.  Aborting upload.".format(rsuuid))
         db.rollback()
         return False
+
+    # output the "before" state
+    results = db.fetchall("""SELECT id,file_harvest_date,file_harvest_etag FROM recordsets WHERE uuid=%s""", (rsuuid, ))
+    for each in results:
+        logger.debug("{0}".format(each))
+
     try:
         etag = upload_recordset(rsuuid, fname, db)
         assert etag

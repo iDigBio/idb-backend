@@ -55,7 +55,7 @@ class IDigBioStorage(object):
             is_secure=False,
             calling_format=boto.s3.connection.OrdinaryCallingFormat(),
         )
-        logger.info("Initialized IDigBioStorage connection (boto.connect_s3) to host '{0}'".format(host))
+        logger.debug("Initialized IDigBioStorage connection (boto.connect_s3) to host '{0}'".format(host))
 
     def get_bucket(self, bucket_name):
         """Return a boto.s3.Bucket object for the requested bucket.

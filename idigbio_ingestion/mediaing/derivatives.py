@@ -26,7 +26,9 @@ WIDTHS = {
     'webview': 600
 }
 
-POOLSIZE = 50
+# Some really large images starting to come from some data providers. Reduce
+# the pool size to keep from running the workflow machine out of memory.
+POOLSIZE = 25
 DTYPES = ('thumbnail', 'fullsize', 'webview')
 
 logger = idblogger.getChild('deriv')
@@ -164,8 +166,14 @@ def generate_all(item):
     except (BotoServerError, BotoClientError):
         return None
     except BadImageError as bie:
-        logger.error("%s: %s", item.etag, bie.message)
+        logger.error("%s caused BadImageError: %s", item.etag, bie.message)
         return None
+    # catch PIL.Image.DecompressionBombError and other exceptions here
+    except Exception as e:
+        logger.error("%s caused Exception: %s", item.etag, e.message)
+        return None
+
+
 
     try:
         items = map(lambda k: build_deriv(item, img, k), item.keys)

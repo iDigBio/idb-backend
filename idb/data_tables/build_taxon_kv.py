@@ -181,33 +181,38 @@ def result_collector(map_r):
         yield r
 
 def work(t):
-    etag, r = t
+    etag, taxon_data_input = t
     try:
-        rt = None
+        # taxon_data_query is the query we run against the taxonnames index
+        taxon_data_query = None
         match = None
 
         should = {}
 
-        if "dwc:verbatimTaxonRank" in r:
-            if "dwc:taxonRank" not in r:
-                r["dwc:taxonRank"] = r["dwc:verbatimTaxonRank"]
-            del r["dwc:verbatimTaxonRank"]
+        # if given a verbatimTaxonRank but no taxonRank,
+        # use verbatimTaxonRank as taxonRank
+        if "dwc:verbatimTaxonRank" in taxon_data_input:
+            if "dwc:taxonRank" not in taxon_data_input:
+                taxon_data_input["dwc:taxonRank"] = taxon_data_input["dwc:verbatimTaxonRank"]
+            del taxon_data_input["dwc:verbatimTaxonRank"]
 
+        # copy all the fields we are going to use into the new object,
+        #
         for k in taxon_data_fields:
-            if k in r:
-                should[k] = r[k]
+            if k in taxon_data_input:
+                should[k] = taxon_data_input[k]
 
-        if "dwc:genus" in r and "dwc:specificEpithet" in r and r["dwc:specificEpithet"] not in ["sp.", "sp"]:
-            rt = {
-                "dwc:genus": r["dwc:genus"],
-                "dwc:specificEpithet": r["dwc:specificEpithet"]
+        if "dwc:genus" in taxon_data_input and "dwc:specificEpithet" in taxon_data_input and taxon_data_input["dwc:specificEpithet"] not in ["sp.", "sp"]:
+            taxon_data_query = {
+                "dwc:genus": taxon_data_input["dwc:genus"],
+                "dwc:specificEpithet": taxon_data_input["dwc:specificEpithet"]
             }
-            match, score = fuzzy_wuzzy_string_new(r["dwc:genus"] + " " + r["dwc:specificEpithet"], rank="species", should=should)
-        elif "dwc:scientificName" in r:
+            match, score = fuzzy_wuzzy_string_new(taxon_data_input["dwc:genus"] + " " + taxon_data_input["dwc:specificEpithet"], rank="species", should=should)
+        elif "dwc:scientificName" in taxon_data_input:
             rank = None
 
-            if "dwc:taxonRank" in r:
-                cand_rank = r["dwc:taxonRank"].lower()
+            if "dwc:taxonRank" in taxon_data_input:
+                cand_rank = taxon_data_input["dwc:taxonRank"].lower()
                 if cand_rank in taxon_rank.acceptable:
                     rank = cand_rank
                 elif cand_rank in taxon_rank.mapping:
@@ -216,15 +221,15 @@ def work(t):
                     print "unkown rank:", cand_rank
 
             if rank is None:
-                if r["dwc:scientificName"].endswith(" sp.") or r["dwc:scientificName"].endswith(" sp"):
+                if taxon_data_input["dwc:scientificName"].endswith(" sp.") or taxon_data_input["dwc:scientificName"].endswith(" sp"):
                     rank = "genus"
-                    r["dwc:scientificName"] = r["dwc:scientificName"].split(" ")[0]
-                elif len(r["dwc:scientificName"].split()) == 1:
+                    taxon_data_input["dwc:scientificName"] = taxon_data_input["dwc:scientificName"].split(" ")[0]
+                elif len(taxon_data_input["dwc:scientificName"].split()) == 1:
                     for k in taxon_data_fields:
                         if k == "dwc:scientificName":
                             continue
 
-                        if r["dwc:scientificName"] == r.get(k,None):
+                        if taxon_data_input["dwc:scientificName"] == taxon_data_input.get(k,None):
                             rank = k.split(":")[1].lower()
                             if DEBUG:
                                 print("rank: {}").format(rank)
@@ -235,23 +240,23 @@ def work(t):
                 else:
                     rank = "species"
 
-            rt = {
-                "dwc:scientificName": r["dwc:scientificName"]
+            taxon_data_query = {
+                "dwc:scientificName": taxon_data_input["dwc:scientificName"]
             }
-            match, score = fuzzy_wuzzy_string_new(r["dwc:scientificName"], rank=rank, should=should)
-        elif "dwc:genus" in r:
-            rt = {
-                "dwc:genus": r["dwc:genus"]
+            match, score = fuzzy_wuzzy_string_new(taxon_data_input["dwc:scientificName"], rank=rank, should=should)
+        elif "dwc:genus" in taxon_data_input:
+            taxon_data_query = {
+                "dwc:genus": taxon_data_input["dwc:genus"]
             }
-            match, score = fuzzy_wuzzy_string_new(r["dwc:genus"], rank="genus", should=should)
+            match, score = fuzzy_wuzzy_string_new(taxon_data_input["dwc:genus"], rank="genus", should=should)
         else:
-            print r
+            print taxon_data_input
             return (etag, "failout", (None, None), -1, etags[etag])
 
         if match is not None:
-            return (etag, "match", (rt, match), score, etags[etag])
+            return (etag, "match", (taxon_data_query, match), score, etags[etag])
         else:
-            return (etag, "nomatch", (rt, {"flag_taxon_match_failed": True}), score, etags[etag])
+            return (etag, "nomatch", (taxon_data_query, {"flag_taxon_match_failed": True}), score, etags[etag])
     except KeyboardInterrupt:
         raise KeyboardInterrupt
     except:

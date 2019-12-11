@@ -60,14 +60,14 @@ class Dwca(object):
                 try:
                     root = etree.parse(meta, parser=parser).getroot()
                 except:
-                    self.logger.info("Schema validation failed against '%s', continuing unvalidated", DWC_SCHEMA_URL)
+                    self.logger.info("Schema validation failed against '%s', continuing unvalidated.", DWC_SCHEMA_URL)
                     self.logger.debug(traceback.format_exc())
                     meta.seek(0)
                     # print meta.read()
                     # meta.seek(0)
                     root = etree.parse(meta).getroot()
         except:
-            self.logger.info("Failed to fetch schema '%s', continuing unvalidated", DWC_SCHEMA_URL)
+            self.logger.info("Failed to fetch schema '%s', continuing unvalidated.", DWC_SCHEMA_URL)
             self.logger.debug(traceback.format_exc())
             with open(meta_filename,'r') as meta:
                 root = etree.parse(meta).getroot()

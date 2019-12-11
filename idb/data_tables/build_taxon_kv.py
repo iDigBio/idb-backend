@@ -99,7 +99,7 @@ core_kingdoms = ["animalia", "plantae", "fungi", "chromista", "protista", "proto
 def fuzzy_wuzzy_string_new(s, rank="species", should=None):
     # if s in search_cache:
     #     return search_cache[s]
-
+    # if we're given a specified kingdom, only match those
     if "dwc:kingdom" in should and should["dwc:kingdom"].lower() in core_kingdoms:
         kingdom_restriction = {
             "term": {
@@ -107,6 +107,7 @@ def fuzzy_wuzzy_string_new(s, rank="species", should=None):
             }
         }
         del should["dwc:kingdom"]
+    # otherwise, restrict the kingdoms queried for to those in core_kingdoms
     else:
         kingdom_restriction = {"or": []}
         for k in core_kingdoms:
@@ -154,6 +155,7 @@ def fuzzy_wuzzy_string_new(s, rank="species", should=None):
                 })
 
     if DEBUG:
+        print("Query before running against index:")
         print(json.dumps(q, indent=2))
 
     return run_query(q, s.lower())
@@ -197,7 +199,8 @@ def work(t):
             del taxon_data_input["dwc:verbatimTaxonRank"]
 
         # copy all the fields we are going to use into the new object,
-        #
+        # "should"
+        # in Elasticsearch this means the query "should" appear in the matching document
         for k in taxon_data_fields:
             if k in taxon_data_input:
                 should[k] = taxon_data_input[k]
@@ -215,7 +218,6 @@ def work(t):
         # Case 2:
         #   we don't have the above situation
         # but we do have a scientificName
-
         elif "dwc:scientificName" in taxon_data_input:
             rank = None
             # verify the taxonRank against our lists of acceptable values and mappings
@@ -309,6 +311,7 @@ def get_taxon_from_index():
             try:
                 yield (etag,r["_source"]["data"])
             except KeyError as e:
+                print("KeyError: ")
                 print(r)
                 raise e
         etags[etag] += 1
@@ -498,14 +501,21 @@ def test_main():
         #     "dwc:class": "Actinopterygii",
         #     "dwc:scientificName": "Gaidropsarus capensis"
         # },
+        # {
+        #     "dwc:kingdom": "Animalia",
+        #     "dwc:order": "Orthida",
+        #     "dwc:genus": "Acosarina",
+        #     "dwc:family": "Schizophoriidae",
+        #     "dwc:phylum": "Brachiopoda",
+        #     "dwc:class": "Rhynchonellata",
+        #     "dwc:scientificName": "Acosarina"
+        # }
+        # example from https://redmine.idigbio.org/issues/2222
         {
-            "dwc:kingdom": "Animalia",
-            "dwc:order": "Orthida",
-            "dwc:genus": "Acosarina",
-            "dwc:family": "Schizophoriidae",
-            "dwc:phylum": "Brachiopoda",
-            "dwc:class": "Rhynchonellata",
-            "dwc:scientificName": "Acosarina"
+            "dwc:scientificName": "Echinodermata",
+            "dwc:phylum": "Echinodermata",
+            "dwc:taxonRank": "phylum",
+            "dwc:kingdom": "Animalia"
         }
     ]
     for i, t in enumerate(tests):

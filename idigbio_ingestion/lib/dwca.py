@@ -10,7 +10,7 @@ from idb.helpers.fieldnames import namespaces
 from .xmlDictTools import xml2d
 
 FNF_ERROR = "File {0} not present in archive."
-
+DWC_SCHEMA_URL = "http://rs.tdwg.org/dwc/text/tdwg_dwc_text.xsd"
 
 def archiveFile(archive,name):
     metaname = name
@@ -52,21 +52,22 @@ class Dwca(object):
         meta_filename = self.path + "/" + archiveFile(self.archive,"meta.xml")
         try:
             schema_parser = etree.XMLParser(no_network=False)
-            schema = etree.XMLSchema(etree.parse("http://rs.tdwg.org/dwc/text/tdwg_dwc_text.xsd", parser=schema_parser))
+            # wut is going on. see https://redmine.idigbio.org/issues/3042
+            schema = etree.XMLSchema(etree.parse(DWC_SCHEMA_URL, parser=schema_parser))
             parser = etree.XMLParser(schema=schema, no_network=False)
 
             with open(meta_filename,'r') as meta:
                 try:
                     root = etree.parse(meta, parser=parser).getroot()
                 except:
-                    self.logger.info("Schema validation failed, continuing unvalidated")
+                    self.logger.info("Schema validation failed against '%s', continuing unvalidated.", DWC_SCHEMA_URL)
                     self.logger.debug(traceback.format_exc())
                     meta.seek(0)
                     # print meta.read()
                     # meta.seek(0)
                     root = etree.parse(meta).getroot()
         except:
-            self.logger.info("Failed to fetch schema, continuing unvalidated")
+            self.logger.info("Failed to fetch schema '%s', continuing unvalidated.", DWC_SCHEMA_URL)
             self.logger.debug(traceback.format_exc())
             with open(meta_filename,'r') as meta:
                 root = etree.parse(meta).getroot()

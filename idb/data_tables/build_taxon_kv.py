@@ -202,23 +202,31 @@ def work(t):
             if k in taxon_data_input:
                 should[k] = taxon_data_input[k]
 
+        # Case 1:
+        #   we have a genus and a specificEpithet that is not "sp." or "sp"
+        # Then:
+        #   match just on those two fields with the rank of species
         if "dwc:genus" in taxon_data_input and "dwc:specificEpithet" in taxon_data_input and taxon_data_input["dwc:specificEpithet"] not in ["sp.", "sp"]:
             taxon_data_query = {
                 "dwc:genus": taxon_data_input["dwc:genus"],
                 "dwc:specificEpithet": taxon_data_input["dwc:specificEpithet"]
             }
             match, score = fuzzy_wuzzy_string_new(taxon_data_input["dwc:genus"] + " " + taxon_data_input["dwc:specificEpithet"], rank="species", should=should)
+        # Case 2:
+        #   we don't have the above situation
+        # but we do have a scientificName
+
         elif "dwc:scientificName" in taxon_data_input:
             rank = None
-
+            # verify the taxonRank against our lists of acceptable values and mappings
             if "dwc:taxonRank" in taxon_data_input:
-                cand_rank = taxon_data_input["dwc:taxonRank"].lower()
-                if cand_rank in taxon_rank.acceptable:
-                    rank = cand_rank
-                elif cand_rank in taxon_rank.mapping:
-                    rank = taxon_rank.mapping[cand_rank]
+                candidate_rank = taxon_data_input["dwc:taxonRank"].lower()
+                if candidate_rank in taxon_rank.acceptable:
+                    rank = candidate_rank
+                elif candidate_rank in taxon_rank.mapping:
+                    rank = taxon_rank.mapping[candidate_rank]
                 else:
-                    print "unkown rank:", cand_rank
+                    print "unknown rank:", candidate_rank
 
             if rank is None:
                 if taxon_data_input["dwc:scientificName"].endswith(" sp.") or taxon_data_input["dwc:scientificName"].endswith(" sp"):

@@ -72,6 +72,10 @@ class GeventedConnPool(object):
             except:
                 self.lock.release()
                 raise
+        except Exception as e:
+            logger.exception(type(e))
+            logger.exception(e)
+            raise
 
     def put(self, conn):
         assert conn is not None

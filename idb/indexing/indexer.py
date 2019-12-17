@@ -17,7 +17,14 @@ INDEX_CHUNK_SIZE = 1000
 #INDEX_CHUNK_SIZE = 1000
 
 def get_connection(**kwargs):
-    "Build connection to ElasticSearch based on json config overriding with specified kwargs"
+    """
+    Build connection to ElasticSearch based on json config overriding with specified kwargs
+
+    Returns
+    -------
+    elasticsearch.Elasticsearch
+        An elasticsearch connection object
+    """
     kwargs.setdefault('hosts', config.config["elasticsearch"]["servers"])
     kwargs.setdefault('retry_on_timeout', True)  # this isn't valid until >=1.3
     kwargs.setdefault('sniff_on_start', False)
@@ -28,7 +35,14 @@ def get_connection(**kwargs):
 
 
 def get_indexname(name=config.config["elasticsearch"]["indexname"]):
-    "Build idigbio indexname, checking for numeric only variant"
+    """
+    Build idigbio indexname, checking for numeric only variant
+
+    Returns
+    -------
+    string
+        idigbio index name in the form of idigbio-#numeric.version#
+    """
     if name.startswith("idigbio"):
         return name
     else:
@@ -36,6 +50,21 @@ def get_indexname(name=config.config["elasticsearch"]["indexname"]):
 
 
 def prepForEs(t, i):
+    """
+    what does this do?
+
+    Parameters
+    ----------
+    t : tbd
+        The tbd description
+    i : TBD
+        The tbd description
+
+    Returns
+    -------
+    TBD : type
+        The description
+    """
     value = {}
     for f in fields[t]:
         if f[0] not in i or i[f[0]] is None:
@@ -59,6 +88,13 @@ def prepForEs(t, i):
 
 
 class ElasticSearchIndexer(object):
+    """
+    This should have a docstring.
+
+    Attributes
+    ----------
+    ?
+    """
 
     def __init__(self, indexName, types,
                  commitCount=100000, disableRefresh=True,
@@ -82,6 +118,15 @@ class ElasticSearchIndexer(object):
             })
 
     def esMapping(self, t):
+        """
+        Puts a mapping (?) into es
+
+        Parameters
+        ----------
+        t : TBD
+
+        """
+
         m = {
             "date_detection": False,
             "properties": {}
@@ -122,6 +167,14 @@ class ElasticSearchIndexer(object):
         logger.debug("Built mapping for %s: %s", t, res)
 
     def index(self, t, i):
+        """
+        Parameters
+        ----------
+        t : string
+            A type such as "mediarecords" or "records"
+        i : TBD
+            something
+        """
         if t == "mediarecords" and "records" in i and len(i["records"]) > 0:
             self.es.index(
                 index=self.indexName, doc_type=t, id=i["uuid"], parent=i["records"][0], body=i)
@@ -133,10 +186,19 @@ class ElasticSearchIndexer(object):
                 index=self.indexName, doc_type=t, id=i["uuid"], body=i)
 
     def optimize(self):
+        """
+        Runs the es optimize command with the proper number of segments.
+
+        TODO: max_num_segments probably needs to be more configurable
+        """
         logger.info("Running index optimization on %r", self.indexName)
         self.es.indices.optimize(index=self.indexName, max_num_segments=5)
 
     def bulk_formater(self, tups):
+        """
+        Bulk formats something.
+        Needs more info here.
+        """
         for t, i in tups:
             meta = {
                 "_index": self.indexName,
@@ -162,10 +224,17 @@ class ElasticSearchIndexer(object):
             yield meta
 
     def bulk_index(self, tups):
+        """
+        Bulk indexes something.
+        Needs more info here.
+        """
         return elasticsearch.helpers.streaming_bulk(
             self.es, self.bulk_formater(tups), chunk_size=INDEX_CHUNK_SIZE)
 
     def close(self):
+        """
+        Finishes index processing.
+        """
         if self.disableRefresh:
             self.es.indices.put_settings(index=self.indexName, body={
                 "index": {
@@ -175,6 +244,9 @@ class ElasticSearchIndexer(object):
         self.optimize()
 
     def query_for_one(self, uuid, doc_type, source=False):
+        """
+        What is the point of this?
+        """
         r = self.es.search(
             index="idigbio",
             doc_type=doc_type,

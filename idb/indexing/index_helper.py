@@ -9,6 +9,20 @@ from idb.helpers.fieldnames import types
 from urlparse import urlparse
 
 def index_record(ei, rc, typ, r, do_index=True):
+    """
+    Summary goes here.
+
+    Parameters
+    ----------
+    ei : ?
+        TBD
+    rc : ?
+        TBD
+    typ : ?
+        TBD
+    do_index : ?
+        TBD
+    """
     if r["etag"] == tombstone_etag:
         i = {
             "uuid": r["uuid"],

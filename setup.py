@@ -63,7 +63,7 @@ setup(
         'journal': ['systemd-python>=230'],
         'ingestion': [
             'pydub==0.16.5',
-            'pillow-simd>=3.4',
+            'pillow-simd>=3.4,<=5.1.1',
             'lxml',
             'chardet',
             'pyquery>=1.2',
@@ -72,7 +72,7 @@ setup(
             'pytest>=3.0',
             'pytest-cov',
             'pytest-flask',
-            'pytest-mock',
+            'pytest-mock==1.13.0',
             'fakeredis',
         ]
     },

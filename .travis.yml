@@ -30,7 +30,7 @@ deploy:
     on:
       tags: true
   - provider: script
-  script: bash scripts/docker-push.sh
+    script: bash scripts/docker-push.sh
     on:
       all_branches: true
 env:

@@ -1,0 +1,10 @@
+# https://redmine.idigbio.org/projects/infrastructure/wiki/Portal_and_api_stats_overview
+
+[Unit]
+Description="Runs `idb-collect-stats` via non-root user and virtualenv"
+
+[Service]
+Type=oneshot
+User=stats
+Environment=LANG=en_US.UTF-8
+ExecStart=/home/stats/.virtualenvs/idb-backend/bin/python /home/stats/.virtualenvs/idb-backend/bin/idb --journal -vv collect-stats

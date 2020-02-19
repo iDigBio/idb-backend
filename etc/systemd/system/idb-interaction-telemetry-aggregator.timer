@@ -1,0 +1,10 @@
+[Unit]
+Description="daily timer for idb-interaction-stats-aggregator"
+
+[Timer]
+OnBootSec=5min
+OnUnitInactiveSec=24h
+RandomizedDelaySec=1m
+
+[Install]
+WantedBy=timers.target

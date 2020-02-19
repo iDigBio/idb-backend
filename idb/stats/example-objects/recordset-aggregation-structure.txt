@@ -1,0 +1,5 @@
+The final nested dict object:
+
+k:8f886a6c-a477-42b0-8587-db4832177be9 , rsc:defaultdict(<type 'int'>, {'recordset_id': '8f886a6c-a477-42b0-8587-db4832177be9', 'mediarecords_count': 0, 'harvest_date': '2020-02-19T19:47:46.391894', 'records_count': '412'}) 
+
+of which "rsc" (variable in the code) is what is index into ES.

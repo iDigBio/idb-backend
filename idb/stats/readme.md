@@ -1,6 +1,8 @@
 # stats
 
-Warning: these processes are not idempotent.  Some efforts are present in the code to prevent duplicate runs but care should still be taken.
+IDB staff should consult the following for more information: https://redmine.idigbio.org/projects/infrastructure/wiki/Portal_and_api_stats_overview
+
+**Warning: these processes are not idempotent.  Some efforts are present in the code to prevent duplicate runs but care should still be taken.**
 
 ## telemetry/interaction stats
 
@@ -9,7 +11,7 @@ These come from the search api and are things such as "search," "view," and "dow
 Aggregation of telemetry stats is done by systemd job fired by systemd timer, `idb-interaction-telemetry-aggregator` (in this repo).  The code lives [here](https://github.com/iDigBio/idb-backend/blob/master/idb/stats/collect.py).
 
 
-for telemtry stats, it defaults to `now()` back to 24 hours previously.  To pass another date:
+for telemtry stats, it defaults to `now()` back to 24 hours previously.  To pass another date (but still hard-coded to the "24 hours previous" limit):
 ```
 idb -vv collect-stats -d 2020-02-18
 ```
@@ -20,6 +22,21 @@ An example of this aggregator structure can be found in `example-objects/stats-a
 
 `example-objectsstats-dict-object.zip` is a larger (1.8MB json uncompressed) example of the data that is being saved into elasticsearch.
 
+## recordset stats
+
+Aggregation of recordset stats is done by systemd job fired by systemd timer, `idb-recordset-stats-aggregator` (in this repo).  The code lives [here](https://github.com/iDigBio/idb-backend/blob/master/idb/stats/collect.py).
+
+This loads: 
+
+```
+SELECT parent,type,count(id)
+FROM uuids
+WHERE deleted=false and (type='record' or type='mediarecord')
+```
+
+and then aggregates them into final structure [like so](recordset-aggregation-structure.txt)
+
+----
 
 ## installation
 

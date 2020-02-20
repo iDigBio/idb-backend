@@ -1,12 +1,16 @@
 # stats
 
-IDB staff should consult the following for more information: https://redmine.idigbio.org/projects/infrastructure/wiki/Portal_and_api_stats_overview
+IDB staff should consult the following for more information and to help understand the various pieces invovled: https://redmine.idigbio.org/projects/infrastructure/wiki/Portal_and_api_stats_overview
 
 **Warning: these processes are not idempotent.  Some efforts are present in the code to prevent duplicate runs but care should still be taken.**
 
 ## telemetry/interaction stats
 
-These come from the search api and are things such as "search," "view," and "download."
+These are available via the API but are mostly used/loaded here: https://www.idigbio.org/portal/portalstats
+
+For more info about how these work outside of the aggregation, see `docs/stats.md` in the [search api](https://github.com/iDigBio/idigbio-search-api/blob/master/docs/stats.md):
+
+This data comes from the search api and are things such as "search," "view," and "download" events.
 
 Aggregation of telemetry stats is done by systemd job fired by systemd timer, `idb-interaction-telemetry-aggregator` (in this repo).  The code lives [here](https://github.com/iDigBio/idb-backend/blob/master/idb/stats/collect.py).
 
@@ -22,6 +26,7 @@ An example of this aggregator structure can be found in `example-objects/stats-a
 
 `example-objectsstats-dict-object.zip` is a larger (1.8MB json uncompressed) example of the data that is being saved into elasticsearch.
 
+
 ## recordset stats
 
 Aggregation of recordset stats is done by systemd job fired by systemd timer, `idb-recordset-stats-aggregator` (in this repo).  The code lives [here](https://github.com/iDigBio/idb-backend/blob/master/idb/stats/collect.py).
@@ -35,6 +40,8 @@ WHERE deleted=false and (type='record' or type='mediarecord')
 ```
 
 and then aggregates them into final structure [like so](recordset-aggregation-structure.txt)
+
+Also note that because it is pulling from the current IDB `uuids` table as-is, it is not possible to do date range selection or slicing: this process implies/assumes that it will run every day, will run successfully, and does not need to be re-run at a point-in-time.  This means that elasticsearch is the sole source of historical data and it cannot be regenerated reliably (c.f. telemetry stats, which are all date-stamped).
 
 ----
 
@@ -88,13 +95,13 @@ workon idb-backend
 ```
 
 
-install the idb backend according to the readme.  For "stats only", you can do:
+install the idb backend according to the readme.  For "stats only", you can do the following (but a lot of unnecessary "backend" packages will still get installed):
 
 ```
 pip install -e .[journal]
 ```
 
-for a user "stats" and a virtualenv named "idb-backend", the path to `idb` will look like this:
+For a user "stats" and a virtualenv named "idb-backend", the path to `idb` will look like this:
 ```
 $ which idb
 /home/stats/.virtualenvs/idb-backend/bin/idb
@@ -104,7 +111,7 @@ type `idb` and you should get the default help screen.  If so, it's been install
 
 ### as root
 
-as root, copy the systemd files into `/etc/systemd/system` and then reload to pick them up:
+as root, copy the systemd files into `/etc/systemd/system`, edit the full path to `idb` within the virtualenv if necessary, and then reload to pick them up:
 
 ```
 systemctl daemon-reload

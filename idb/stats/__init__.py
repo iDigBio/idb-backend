@@ -34,6 +34,8 @@ def collect_stats(date, mapping):
     import dateutil.parser
     from . import collect
 
+    # This builds the schema mapping that's needed when initially creating the index.
+    # for example output of this function, see: ./example-objects/stats-index-mapping.json
     if mapping:
         collect.put_search_stats_mapping()
 

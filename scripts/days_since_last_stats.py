@@ -6,11 +6,18 @@ last30 = t - timedelta(days=30)
 
 
 es = Elasticsearch([
-                "c18node2.acis.ufl.edu:9200",
-                "c18node6.acis.ufl.edu:9200",
-                "c18node10.acis.ufl.edu:9200",
-                "c18node12.acis.ufl.edu:9200",
-                "c18node14.acis.ufl.edu:9200"
+                "c20node1.acis.ufl.edu:9200",
+                "c20node2.acis.ufl.edu:9200",
+                "c20node3.acis.ufl.edu:9200",
+                "c20node4.acis.ufl.edu:9200",
+                "c20node5.acis.ufl.edu:9200",
+                "c20node6.acis.ufl.edu:9200",
+                "c20node7.acis.ufl.edu:9200",
+                "c20node8.acis.ufl.edu:9200",
+                "c20node9.acis.ufl.edu:9200",
+                "c20node10.acis.ufl.edu:9200",
+                "c20node11.acis.ufl.edu:9200",
+                "c20node12.acis.ufl.edu:9200"
 ], sniff_on_start=False, sniff_on_connection_fail=False,timeout=30)
 
 stats_query = {

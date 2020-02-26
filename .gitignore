@@ -1,5 +1,5 @@
 
-# Created by https://www.gitignore.io/api/python,ipythonnotebook,sublimetext,emacs,r
+# with help from https://www.gitignore.io/api/python,ipythonnotebook,sublimetext,emacs,r
 
 ### Python ###
 # Byte-compiled / optimized / DLL files
@@ -187,6 +187,11 @@ vignettes/*.pdf
 # OAuth2 token, see https://github.com/hadley/httr/releases/tag/v0.3
 .httr-oauth
 
+
+# Visual Studio Code
+# Some folder-specific settings probably ought to be tracked in git
+# but for now, just ignore all vscode files.
+.vscode/
 
 #########
 idb/.pythoscope

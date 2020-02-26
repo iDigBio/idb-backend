@@ -14,7 +14,6 @@ logger = idblogger.getChild('indexing')
 
 # Try using smaller batches.
 INDEX_CHUNK_SIZE = 1000
-#INDEX_CHUNK_SIZE = 1000
 
 def get_connection(**kwargs):
     """

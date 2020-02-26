@@ -10,14 +10,6 @@ import math
 import signal
 import logging
 
-# MULTIPROCESS = False
-# if MULTIPROCESS:
-#     from multiprocessing import Pool
-# else:
-#     # import gevent.monkey
-#     # gevent.monkey.patch_all()
-#     from gevent.pool import Pool
-
 from idb.postgres_backend import apidbpool, DictCursor
 from .index_helper import index_record
 from idb.helpers.signals import signalcm

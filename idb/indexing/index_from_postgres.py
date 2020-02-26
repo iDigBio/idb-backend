@@ -82,16 +82,6 @@ def type_yield_modified(ei, rc, typ, yield_record=False):
     after = datetime.datetime.utcfromtimestamp(
         math.ceil(o["aggregations"]["mm"]["value"] / 1000))
 
-    # This code doesn't work, I would need to poll the database for this information.
-    # I don't care whether ES has changed or not (although presumably it hasn't).
-    # if typ in last_afters:
-    #     if after == last_afters[typ]:
-    #         logger.info("%s after value %s same as last run, skipping", typ, after)
-    #         return
-    #     else:
-    #         last_afters[typ] = after
-    # else:
-    #     last_afters[typ] = after
     logger.info("Indexing %s after %s", typ, after.isoformat())
 
     # Note, a subtle distinction: The below query will index every

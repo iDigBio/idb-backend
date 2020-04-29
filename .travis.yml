@@ -7,6 +7,8 @@ services:
 - postgresql
 addons:
   postgresql: "9.5"
+git:
+  depth: 1
 
 install:
 - docker build -t $BUILDING .

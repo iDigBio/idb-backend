@@ -35,7 +35,7 @@ setup(
         'elasticsearch>=2.3, <3',
         'pyproj>=1.9.3',
         'pytz>=2016.10',
-        'requests>=2.4.0',
+        'requests=2.13.0',
         'pycrypto',
         'flask>=0.11.0, <1.0.0',
         'Flask-UUID',

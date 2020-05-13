@@ -8,11 +8,13 @@ services:
     # restart: always
     environment:
       POSTGRES_PASSWORD: ""
+      POSTGRES_HOST_AUTH_METHOD: "trust"
   s3-storage:
     # minio is an S3 compatible object store, local dev replacement for Ceph, for binary blob data (media and datasets)
     ## Sample run command:
     ## $ docker run -p 9000:9000 minio/minio server /data
     image: minio/minio
+    command: server /data
     # restart: always
   elasticsearch:
     # elasticsearch is "You Know, for Search", backend to idigbio search API, target of "indexing" process
@@ -20,3 +22,5 @@ services:
     ## $ docker run -p 9200:9200 -p 9300:9300 -e "discovery.type=single-node" docker.elastic.co/elasticsearch/elasticsearch:5.5.3
     image: docker.elastic.co/elasticsearch/elasticsearch:5.5.3
     # restart: always
+    environment:
+      discovery.type: "single-node"

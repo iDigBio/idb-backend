@@ -335,7 +335,10 @@ def _do_rss(rsscontents, r, db, recordsets, existing_recordsets, file_links):
 
     logger.debug("Start parsing results of %s", r['rss_url'])
     feed = feedparser.parse(rsscontents)
-    logger.debug("Found {0} entries in feed to process.".format(len(feed)))
+    # check bozo bit here
+    # https://pythonhosted.org/feedparser/bozo.html#advanced-bozo
+
+    logger.debug("Found {0} entries in feed to process.".format(len(feed)))  # should this be  'len(feed.entries)' ?
     pub_uuid = r["uuid"]
     if pub_uuid is None:
         pub_uuid, _, _ = db.get_uuid(r["recordids"])

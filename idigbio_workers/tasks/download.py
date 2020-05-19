@@ -112,7 +112,7 @@ def send_download_email(link, email, params, ip=None, source=None):
             stats_post["ip"] = ip
         if source is not None:
             stats_post["source"] = source
-        s.post("http://idb-redis-stats.acis.ufl.edu:3000",
+        s.post("http://idb-portal-telemetry-collector.acis.ufl.edu:3000",
                data=json.dumps(stats_post), headers={'content-type': 'application/json'})
     send_mail("data@idigbio.org", [email], "iDigBio Download Ready",
               mail_text.format(link, json.dumps(params)))

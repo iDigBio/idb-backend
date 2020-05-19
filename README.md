@@ -10,11 +10,6 @@ Currently this project only works in python2.7 and is not compatible with Python
 
 The following library packages will need to be installed to run the api:
 
-In Ubuntu 14.04:
-
-    apt-get install python2.7-dev libgeos-c1 libblas-dev liblapack-dev \
-      libatlas-base-dev gfortran libgdal-dev
-
 In Ubuntu 16.04:
 
     apt-get install python2.7-dev libblas-dev liblapack-dev \
@@ -27,23 +22,11 @@ In Ubuntu 18.04:
       libatlas-base-dev gfortran libgdal-dev libpq-dev libgeos-c1v5 \
       libsystemd-dev
 
-For ingestion the following are also needed:
-
-In Ubuntu 14.04:
-
-    apt-get install libxml2 libxslt1-dev libav-tools fonts-dejavu-core
+For Ingestion the following are also needed:
 
 In Ubuntu 16.04, 18.04:
 
     apt-get install libxml2 libxslt1-dev ffmpeg fonts-dejavu-core
-
-
-Additional dependencies that are needed to install the pip package or to use the libraries on Ubuntu 14.04, in particular media derivative generation:
-
-    apt-get install libsystemd-journal-dev libsystemd-daemon-dev libsystemd-login-dev libgeos-dev libfreetype6-dev libopenjp2-7-dev libtiff5-dev
-
-
-Also, it is possible that package libopenjp2-7-dev has been renamed to libopenjpeg2-dev.
 
 
 ### Package installation

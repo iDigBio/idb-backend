@@ -36,10 +36,15 @@
 	],
 
 	// Use 'postCreateCommand' to run commands after the container is created.
-	"postCreateCommand": "pip install -r requirements.txt"
+	"postCreateCommand": "pip install -r requirements.txt",
 
 	// Uncomment to use the Docker CLI from inside the container. See https://aka.ms/vscode-remote/samples/docker-in-docker.
 	// "mounts": [ "source=/var/run/docker.sock,target=/var/run/docker.sock,type=bind" ],
+
+	// This will mount the .devcontainer/idigbio.json into the workspace at the top level directory "." and at "~/" to ensure
+	// the local dev idigbio.json config values are used inside the dev container.  Bind mount paths must be absolute.
+	"mounts": ["source=${localWorkspaceFolder}/.devcontainer/idigbio.json,target=/workspaces/idb-backend/idigbio.json,type=bind",
+		"source=${localWorkspaceFolder}/.devcontainer/idigbio.json,target=/root/idigbio.json,type=bind"]
 
 	// Uncomment to connect as a non-root user. See https://aka.ms/vscode-remote/containers/non-root.
 	// "remoteUser": "vscode"

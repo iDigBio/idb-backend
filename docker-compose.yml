@@ -1,10 +1,12 @@
 version: '3'
+
 services:
 
-  database:
+  dev-database:
     # postgres is an open source SQL RDBMS, target of "data ingestion" process
     ## Sample run command:
     ## $ docker run --name some-postgres -e POSTGRES_PASSWORD=mysecretpassword -d postgres
+    container_name: dev-database
     image: postgres:9.5
     ports:
       - "5432:5432"
@@ -12,25 +14,45 @@ services:
       POSTGRES_PASSWORD: ""
       POSTGRES_HOST_AUTH_METHOD: "trust"
 
-  s3-storage:
+  dev-storage:
     # minio is an S3 compatible object store, local dev replacement for Ceph, for binary blob data (media and datasets)
     ## Sample run command:
     ## $ docker run -p 9000:9000 minio/minio server /data
+    container_name: dev-storage
     image: minio/minio
     ports:
       - "9000:9000"
     command: server /data
 
-  elasticsearch:
+  dev-elasticsearch:
     # elasticsearch is "You Know, for Search", backend to idigbio search API, target of "indexing" process
     ## Sample run command:
     ## $ docker run -p 9200:9200 -p 9300:9300 -e "discovery.type=single-node" docker.elastic.co/elasticsearch/elasticsearch:5.5.3
     #
     # Note: may need to increase vm.max_map_count. Ubuntu default is 65530 suggested value is at least 262144
-
+    container_name: dev-elasticsearch
     image: docker.elastic.co/elasticsearch/elasticsearch:5.5.3
     ports:
       - "9200:9200"
       - "9300:9300"
     environment:
       discovery.type: "single-node"
+
+  tacklebox:
+    # Interactive node in the same docker network with client tools.
+    # Should be able to access the other containers by their short name
+    # e.g. $ ping dev-database
+    container_name: tacklebox
+    image: idigbio/docker-library.idb-tacklebox-bionic
+    command: 
+      - bash
+      - -c
+      - |
+        echo ""
+        echo "tacklebox container starting..."
+        echo ""
+        echo "Access via:"
+        echo ""
+        echo "    docker exec -it tacklebox bash"
+        echo ""
+        sleep infinity

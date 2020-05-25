@@ -2,6 +2,13 @@ version: '3'
 
 services:
 
+  idb-backend:
+    # this is the "service" that vscode will use as the main application, where the
+    # Debugger can run, etc.
+    container_name: idb-backend
+    image: idigbio/docker-library.base-idb-backend:latest
+    command: sleep infinity
+
   dev-database:
     # postgres is an open source SQL RDBMS, target of "data ingestion" process
     ## Sample run command:

@@ -5,7 +5,7 @@
     "db": 0
   },
   "postgres": {
-    "host": "localhost",
+    "host": "dev-database",
     "user": "idigbio",
     "password": "",
     "db_prefix": "idb_",
@@ -20,7 +20,7 @@
     ],
     "indexname": "0.0.1",
     "servers": [
-        "localhost:9200"
+        "dev-elasticsearch:9200"
     ]
   },
   "env": {
@@ -28,6 +28,7 @@
     "IDB_UUID": "872733a2-67a3-4c54-aa76-862735a5f334",
     "IDB_APIKEY": "thisislocaldevIDB_APIKEY",
     "IDB_DBPASS": "",
+    "IDB_STORAGE_HOST": "dev-storage",
     "IDB_STORAGE_ACCESS_KEY": "minioadmin",
     "IDB_STORAGE_SECRET_KEY": "minioadmin",
     "IDB_CRYPT_KEY": "thisislocaldevIDB_CRYPT_KEY"

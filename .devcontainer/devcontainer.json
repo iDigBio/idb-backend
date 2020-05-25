@@ -8,7 +8,9 @@
 	//"context": "..",
 
 	// Update the 'dockerFile' property if you aren't using the standard 'Dockerfile' filename.
-	"dockerFile": "Dockerfile",
+	//"dockerFile": "Dockerfile",
+	"dockerComposeFile": "docker-compose.yml",
+	"service": "idb-backend",
 	// We have an image!
 	//  But we want to customize it a little, so use the Dockerfile intead.
 	// "image" : "idigbio/docker-library.base-idb-backend:latest",

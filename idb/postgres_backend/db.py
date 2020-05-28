@@ -90,7 +90,6 @@ class PostgresDB(object):
             recordids,
             siblings,
             latest.id as vid,
-            annotation_count
     """
 
     __columns_master_query_data = __columns_master_query + \

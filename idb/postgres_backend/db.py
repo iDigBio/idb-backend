@@ -89,7 +89,7 @@ class PostgresDB(object):
             parent,
             recordids,
             siblings,
-            latest.id as vid,
+            latest.id as vid
     """
 
     __columns_master_query_data = __columns_master_query + \

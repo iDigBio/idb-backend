@@ -1,5 +1,5 @@
 sudo: required
-dist: trusty
+dist: xenial
 language: python
 python: 2.7 
 services:
@@ -7,6 +7,8 @@ services:
 - postgresql
 addons:
   postgresql: "9.5"
+git:
+  depth: 1
 
 install:
 - docker build -t $BUILDING .

@@ -10,14 +10,6 @@ import math
 import signal
 import logging
 
-# MULTIPROCESS = False
-# if MULTIPROCESS:
-#     from multiprocessing import Pool
-# else:
-#     # import gevent.monkey
-#     # gevent.monkey.patch_all()
-#     from gevent.pool import Pool
-
 from idb.postgres_backend import apidbpool, DictCursor
 from .index_helper import index_record
 from idb.helpers.signals import signalcm
@@ -90,16 +82,6 @@ def type_yield_modified(ei, rc, typ, yield_record=False):
     after = datetime.datetime.utcfromtimestamp(
         math.ceil(o["aggregations"]["mm"]["value"] / 1000))
 
-    # This code doesn't work, I would need to poll the database for this information.
-    # I don't care whether ES has changed or not (although presumably it hasn't).
-    # if typ in last_afters:
-    #     if after == last_afters[typ]:
-    #         logger.info("%s after value %s same as last run, skipping", typ, after)
-    #         return
-    #     else:
-    #         last_afters[typ] = after
-    # else:
-    #     last_afters[typ] = after
     logger.info("Indexing %s after %s", typ, after.isoformat())
 
     # Note, a subtle distinction: The below query will index every
@@ -343,80 +325,3 @@ def continuous_incremental(ei, rc, no_index=False):
             [MAX_SLEEP - (t_end - t_start).total_seconds(), MIN_SLEEP])
         logger.info("Sleeping for %s seconds", sleep_duration)
         time.sleep(sleep_duration)
-
-
-# def main():
-#     import json
-#     import os
-#     import argparse
-#     from idb.corrections.record_corrector import RecordCorrector
-#     from idb.config import config
-#     from idb.indexing.indexer import ElasticSearchIndexer
-
-#     parser = argparse.ArgumentParser(
-#         description='Index data from new database to elasticsearch')
-#     parser.add_argument('-i', '--incremental', dest='incremental',
-#                         action='store_true', help='run incremental index')
-#     parser.add_argument(
-#         '-f', '--full', dest='full', action='store_true', help='run full sync')
-#     parser.add_argument('-r', '--resume', dest='resume',
-#                         action='store_true', help='resume a full sync (full + etag compare)')
-#     parser.add_argument('-c', '--continuous', dest='continuous',
-#                         action='store_true', help='run incemental continously (implies -i)')
-#     parser.add_argument('-d', '--delete', dest='delete', action='store_true',
-#                         help='delete records from index that are deleted in api')
-#     parser.add_argument('-k', '--check', dest='check',
-#                         action='store_true', help='run a full check (delete + resume)')
-#     parser.add_argument('-n', '--noindex', dest='no_index',
-#                         action='store_true', help="don't actually index records")
-#     parser.add_argument('-t', '--types', dest='types', nargs='+',
-#                         type=str, default=config["elasticsearch"]["types"])
-#     parser.add_argument('-q', '--query', dest='query',
-#                         type=str, default="{}")
-#     parser.add_argument('-u', '--uuid', dest='uuid', nargs='+',
-#                         type=str, default=[])
-#     parser.add_argument('--uuid-file', dest='uuid_file',
-#                         type=str, default=None)
-
-#     args = parser.parse_args()
-
-#     if any(args.__dict__.values()):
-#         sl = config["elasticsearch"]["servers"]
-#         indexname = config["elasticsearch"]["indexname"]
-#         if os.environ["ENV"] == "beta":
-#             indexname = "2.5.0"
-#             sl = [
-#                 "c17node52.acis.ufl.edu",
-#                 "c17node53.acis.ufl.edu",
-#                 "c17node54.acis.ufl.edu",
-#                 "c17node55.acis.ufl.edu",
-#                 "c17node56.acis.ufl.edu"
-#             ]
-#         ei = ElasticSearchIndexer(indexname, args.types, serverlist=sl)
-
-#         rc = RecordCorrector()
-
-#         if args.continuous:
-#             continuous_incremental(ei, rc)
-#         elif args.incremental:
-#             incremental(ei, rc, no_index=args.no_index)
-#         elif args.query != "{}":
-#             q = json.loads(args.query)
-#             query(ei, rc, q)
-#         elif args.uuid_file is not None:
-#             with open(args.uuid_file,"rb") as uf:
-#                 uuids(ei,rc,uf.readlines())
-#         elif len(args.uuid) > 0:
-#             uuids(ei,rc,args.uuid)
-#         elif args.resume:
-#             resume(ei, rc, no_index=args.no_index)
-#         elif args.full:
-#             full(ei, rc, no_index=args.no_index)
-#         elif args.delete:
-#             delete(ei, no_index=args.no_index)
-#         elif args.check:
-#             resume(ei, rc, also_delete=True, no_index=args.no_index)
-#         else:
-#             parser.print_help()
-#     else:
-#         parser.print_help()

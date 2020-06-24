@@ -92,7 +92,7 @@ To run tests:
     py.test
 
 
-Relies on having a local postgresql with user/pass `test` / `test`
+idb-backend testing relies on having a local postgresql with user/pass `test` / `test`
 that can connect to DB `test_idigbio`. The data in the DB will be
 destroyed during the testing.
 
@@ -107,9 +107,9 @@ destroyed during the testing.
     psql -c "DROP SCHEMA public CASCADE;" test_idigbio
 
 
-### Schema and data
+### Schema
 
-Testing the DB uses the schema copied from the live DB with:
+The live production db schema is copied into `tests/data/schema.sql` by periodically running this command:
 
     pg_dump --host c18node8.acis.ufl.edu --username idigbio \
         --format plain --schema-only --schema=public \
@@ -118,11 +118,29 @@ Testing the DB uses the schema copied from the live DB with:
         --file tests/data/schema.sql \
         idb_api_prod
 
+Except not yet because there are lots of differences between the existing file and one created by running that command (due to fixes for https://wiki.postgresql.org/wiki/A_Guide_to_CVE-2018-1058:_Protect_Your_Search_Path).
 
-The data has been built up to support the test suite; it is provided
-in `tests/data/testdata.sql`
 
-    pg_dump --port 5432 --format plain --data-only --encoding UTF8 \
+### Data
+
+A trimmed down set of data has been manually curated to support the test suite. It is provided in `tests/data/testdata.sql`
+
+The full dump / original was created with something like:
+
+    pg_dump --port 5432 --host c18node8.acis.ufl.edu --username idigbio \
+      --format plain --data-only --encoding UTF8 \
       --inserts --column-inserts --no-privileges --no-tablespaces \
       --verbose --no-unlogged-table-data  \
-      --file tests/data/testdata.sql $DBNAME
+      --exclude-table-data=ceph_server_files \
+      --file tests/data/testdata.sql idb_api_prod
+
+Such a dump is huge and un-usable and un-editable by normal means. It is not clear how the dump was transformed / curated into its current state.
+
+If running the dump again, consider adding multiple `--exclude-table-data=TABLE` for some of the bigger tables that are not materially relevant to test suite such as:
+
+```plaintext
+annotations
+data
+corrections
+ceph_server_files
+```

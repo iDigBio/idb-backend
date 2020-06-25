@@ -145,7 +145,7 @@ A "what the heck is going on with the tests and skip the one that is Seg Faultin
 
 ### Create a local postgres DB
 
-The recommended approach is to run postgres via docker (see above)
+The recommended approach is to run postgres via docker (see above).
 
 If you have a full installation of postgres running locally, the db can be manually created with: 
 

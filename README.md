@@ -85,18 +85,69 @@ celery to a background worker.
 
 [celery worker]: http://docs.celeryproject.org/en/latest/userguide/workers.html
 
-## Testing
+## Development and Testing
 
-To run tests:
+You probably want to run in a virtual environment.
 
-    py.test
+```bash
+$ virtualenv -p python2.7 .venv
 
+$ source .venv/bin/activate
 
-idb-backend testing relies on having a local postgresql with user/pass `test` / `test`
-that can connect to DB `test_idigbio`. The data in the DB will be
-destroyed during the testing.
+$ python --version
+Python 2.7.17
 
-### Create the local DB
+$ pip install -e .
+
+$ pip install -r requirements.txt
+```
+
+It is possible in the future that this project will be runnable using "Open in container" features of Microsoft Visual Studio Code (aka vscode or just `code`).
+
+### Testing Dependencies
+
+Some idb-backend tests depend on external resources, such as a database or Elasticsearch.
+
+A local postgresql DB named `test_idigbio` with user/pass `test` / `test` must exist for many of the tests to run.  Note: The data in the DB will be destroyed during the testing.
+
+Database tests will be SKIPPED if the database is not available.
+
+Tests that depend on Elasticsearch will FAIL if the computer running the tests cannot reach the Elasticsearch cluster (fail very slowly in fact), or if there is some other failure.
+
+### Running tests
+
+The test suite can be run by executing `py.test` (or `pytest`).
+
+However due to the dependencies mentioned above, you may wish to run the database in docker each time.
+
+    docker run --rm --name postgres_test_idigbio --network host \
+      -e POSTGRES_PASSWORD=test -e POSTGRES_USER=test -e POSTGRES_DB=test_idigbio  \
+      -d postgres:9.5 && \
+      sleep 3; \
+      py.test ; \
+      docker stop postgres_test_idigbio
+        
+
+To exclude a single set of tests that are failing (or Seg Faulting!), add the `--deselect` option to the pytest command:
+
+    py.test --deselect=tests/idigbio_ingestion/mediaing/test_derivatives.py
+
+To find out why tests are being Skipped, add the `-rxs` options.
+
+A "what the heck is going on with the tests and skip the one that is Seg Faulting" example command:
+
+    docker run --rm --name postgres_test_idigbio --network host  \
+      -e POSTGRES_PASSWORD=test -e POSTGRES_USER=test -e POSTGRES_DB=test_idigbio \
+      -d postgres:9.5 && \
+      sleep 3; \
+      py.test -rxs --deselect=tests/idigbio_ingestion/mediaing/test_derivatives.py ; \
+      docker stop postgres_test_idigbio
+
+### Create a local postgres DB
+
+The recommended approach is to run postgres via docker (see above).
+
+If you have a full installation of postgres running locally, the db can be manually created with: 
 
     createuser -l -e test -P
     createdb -l 'en_US.UTF-8' -E UTF8 -O test -e test_idigbio;
@@ -144,3 +195,5 @@ data
 corrections
 ceph_server_files
 ```
+
+We likely need to find a new way to refresh the test dataset.

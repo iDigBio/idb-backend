@@ -22,11 +22,11 @@ In Ubuntu 18.04:
       libatlas-base-dev gfortran libgdal-dev libpq-dev libgeos-c1v5 \
       libsystemd-dev
 
-For Ingestion the following are also needed:
+For Ingestion and Development, the following are also needed:
 
 In Ubuntu 16.04, 18.04:
 
-    apt-get install libxml2 libxslt1-dev ffmpeg fonts-dejavu-core
+    apt-get install libxml2 libxslt1-dev ffmpeg fonts-dejavu-core libfreetype6-dev
 
 
 ### Package installation

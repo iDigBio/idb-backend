@@ -87,7 +87,8 @@ celery to a background worker.
 
 ## Development and Testing
 
-You probably want to run in a virtual environment.
+You probably want to run in a virtual environment.   You may wish to disable the pip cache
+to verify package builds are working properly.
 
 ```bash
 $ virtualenv -p python2.7 .venv
@@ -97,9 +98,9 @@ $ source .venv/bin/activate
 $ python --version
 Python 2.7.17
 
-$ pip install -e .
+$ pip --no-cache-dir install -e .
 
-$ pip install -r requirements.txt
+$ pip --no-cache-dir install -r requirements.txt
 ```
 
 It is possible in the future that this project will be runnable using "Open in container" features of Microsoft Visual Studio Code (aka vscode or just `code`).

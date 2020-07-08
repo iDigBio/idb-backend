@@ -119,12 +119,12 @@ Tests that depend on Elasticsearch will FAIL if the computer running the tests c
 
 The test suite can be run by executing `py.test` (or `pytest`).
 
-However due to the dependencies mentioned above, you may wish to run the database in docker each time.
+However due to the dependencies mentioned above, you may wish to run the database in docker each time.  The sleep is needed to allow postgres time to start accepting connections.
 
     docker run --rm --name postgres_test_idigbio --network host \
       -e POSTGRES_PASSWORD=test -e POSTGRES_USER=test -e POSTGRES_DB=test_idigbio  \
       -d postgres:9.5 && \
-      sleep 3; \
+      sleep 5; \
       py.test ; \
       docker stop postgres_test_idigbio
         
@@ -140,7 +140,7 @@ A "what the heck is going on with the tests and skip the one that is Seg Faultin
     docker run --rm --name postgres_test_idigbio --network host  \
       -e POSTGRES_PASSWORD=test -e POSTGRES_USER=test -e POSTGRES_DB=test_idigbio \
       -d postgres:9.5 && \
-      sleep 3; \
+      sleep 5; \
       py.test -rxs --deselect=tests/idigbio_ingestion/mediaing/test_derivatives.py ; \
       docker stop postgres_test_idigbio
 

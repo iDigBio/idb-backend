@@ -1,9 +1,9 @@
 import os
 import re
+import sys
 from setuptools import setup, find_packages
 
 from codecs import open
-
 
 def read(*paths):
     """Build a file path from *paths* and return the contents."""
@@ -14,6 +14,20 @@ readme = read('README.md')
 
 version = re.search(r'^__version__\s*=\s*[\'"]([^\'"]*)[\'"]',
                     read(os.path.join(os.path.dirname(__file__), 'idb/__init__.py')), re.MULTILINE).group(1)
+
+# Abort if on Python 3 since we know the codebase does not support it.
+if sys.version_info >= (3,0):
+    sys.exit("idb-backend: Python 3 is not supported. Consider passing '-p python2.7' when creating the venv.")
+
+# Pillow-SIMD causes segfault on newer Python 2.
+# We do not yet support Python 3.
+# Only install Pillow-SIMD where it is known to work, otherwise
+# install Pillow.
+# (see https://github.com/iDigBio/idb-backend/issues/92)
+if sys.version_info >= (2,7,15):
+    pillow_package = "pillow>=3.4,<=5.1.1"
+else:
+    pillow_package = "pillow-simd>=3.4,<=5.1.1"
 
 setup(
     name='idb-backend',
@@ -64,7 +78,7 @@ setup(
         'journal': ['systemd-python>=230'],
         'ingestion': [
             'pydub==0.16.5',
-            'pillow-simd>=3.4,<=5.1.1',
+            pillow_package,
             'lxml',
             'chardet',
             'pyquery>=1.2',

@@ -100,14 +100,14 @@ def collect_stats(collect_datetime, es=None):
     date_max = collect_datetime.date()
 
     # Trap duplicate runs and abort.
-    # c = es.count(index="stats", doc_type="search", body={"query": {
-    #     "term": {
-    #         "harvest_date": date_max.isoformat()
-    #     }
-    # }})
-    # if c["count"] != 0:
-    #     logger.warn("Duplicate run detected, aborting")
-    #     return
+    c = es.count(index="stats", doc_type="search", body={"query": {
+        "term": {
+            "harvest_date": date_max.isoformat()
+        }
+    }})
+    if c["count"] != 0:
+        logger.warn("Duplicate run detected, aborting")
+        return
 
     logger.info("Collecting stats for %s to %s", date_min, date_max)
     recordset_stats = defaultdict(new_stats_dict)
@@ -119,9 +119,13 @@ def collect_stats(collect_datetime, es=None):
     """
     logger.debug("min is %s, max is %s, query is: %s" % (date_min, date_max, sql))
 
-    filename = "telem-output-structures-%s" % (datetime.now().isoformat())
+    filename = "telem-output-structures-%s" % (datetime.now().strftime("%Y-%m-%d-%H-%M-%S"))
+    tracefilename = "trace-log-%s" % (datetime.now().strftime("%Y-%m-%d-%H-%M-%S"))
+
+    # collects the raw objects we're sending to ES
     output_fh = open(filename, 'w')
-    trace_fh = open("trace.log", 'w')
+    
+    trace_fh = open(tracefilename, 'w')
 
     trace_fh.write("doingquery and looping through results...")
 

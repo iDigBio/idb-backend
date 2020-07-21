@@ -11,8 +11,6 @@ git:
   depth: 1
 
 install:
-- pip install codecov
-- pip install pytest-cov
 - docker build -t $BUILDING .
 - psql -U postgres -c 'create database test_idigbio;'
 - psql -U postgres -c "DROP SCHEMA public CASCADE;" test_idigbio
@@ -24,11 +22,9 @@ script:
   -e "IDB_STORAGE_SECRET_KEY=${SECRET_KEY}"
   -e "IDB_STORAGE_HOST=localhost:9000"
   $BUILDING
-  pytest -p no:cacheprovider --pguser=postgres --pgpass="" tests/idb --cov-report=xml --cov=myproj tests/
+  pytest -p no:cacheprovider --pguser=postgres --pgpass="" tests/idb
 
 after_success:
-# report code coverage to codecov.io
-- codecov 
 # upload new docker images
 - docker login --username="$DOCKER_USERNAME" --password="$DOCKER_PASSWORD"
 deploy:

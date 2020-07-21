@@ -25,6 +25,8 @@ script:
   pytest -p no:cacheprovider --pguser=postgres --pgpass="" tests/idb
 
 after_success:
+# report code coverage to codecov.io
+- bash <(curl -s https://codecov.io/bash)
 - docker login --username="$DOCKER_USERNAME" --password="$DOCKER_PASSWORD"
 deploy:
   - provider: script

@@ -46,9 +46,9 @@ def check_response_props(tmr, r, status=200,
 
 
 @pytest.fixture(autouse=True)
-def block_upload_to_ceph(mock):
+def block_upload_to_ceph(mocker):
     "During the course of these tests we don't actually want to post to Ceph"
-    mock.patch.object(MediaObject, 'upload', autospec=True)
+    mocker.patch.object(MediaObject, 'upload', autospec=True)
 
 
 @pytest.mark.readonly
@@ -67,8 +67,8 @@ def test_lookup_uuid_missing(client):
 
 
 @pytest.mark.readonly
-def test_render_svg(client, mock):
-    mock.patch.object(MediaObject, "fromuuid",
+def test_render_svg(client, mocker):
+    mocker.patch.object(MediaObject, "fromuuid",
                       return_value=MediaObject(
                           url=u'http://collections.nmnh.si.edu/media/index.php?irn=7002478',
                           mime=u'application/pdf',
@@ -203,8 +203,8 @@ def test_upload_jpeg(client, valid_auth_header, jpgpath):
     assert r.json['etag'] == '0fd72727eb6e181c5ef91a5140431530'
 
 
-def test_upload_etag(client, testmedia_result, valid_auth_header, mock):
-    mock.patch.object(boto.s3.key.Key, 'exists', return_value=True)
+def test_upload_etag(client, testmedia_result, valid_auth_header, mocker):
+    mocker.patch.object(boto.s3.key.Key, 'exists', return_value=True)
     tmr = testmedia_result
     filereference = "http://test.idigbio.org/idigbio_logo.jpg"
     url = url_for('idb.data_api.v2_media.upload',
@@ -215,8 +215,8 @@ def test_upload_etag(client, testmedia_result, valid_auth_header, mock):
     assert r.json['last_status'] == 200
     check_response_props(tmr, r, keys=('etag', 'mime', 'user', 'url', 'last_status', 'type'))
 
-def test_upload_etag_validate(client, testmedia_result, valid_auth_header, mock, jpgpath):
-    mock.patch.object(boto.s3.key.Key, 'exists', return_value=True)
+def test_upload_etag_validate(client, testmedia_result, valid_auth_header, mocker, jpgpath):
+    mocker.patch.object(boto.s3.key.Key, 'exists', return_value=True)
     filereference = "http://test.idigbio.org/test.jpg"
     etag = calcFileHash(str(jpgpath), return_size=False)
     url = url_for('idb.data_api.v2_media.upload',
@@ -230,16 +230,16 @@ def test_upload_etag_validate(client, testmedia_result, valid_auth_header, mock,
     assert r.json['etag'] == etag
 
 
-def test_upload_missing_etag_in_db(client, valid_auth_header, mock):
-    mock.patch.object(boto.s3.key.Key, 'exists', return_value=True)
+def test_upload_missing_etag_in_db(client, valid_auth_header, mocker):
+    mocker.patch.object(boto.s3.key.Key, 'exists', return_value=True)
     filereference = "http://test.idigbio.org/idigbio_logo.jpg"
     url = url_for('idb.data_api.v2_media.upload',
                   filereference=filereference, etag="foobar")
     r = client.post(url, headers=[valid_auth_header])
     assert r.status_code == 404
 
-def test_upload_missing_etag_in_ceph(client, valid_auth_header, mock):
-    mock.patch.object(boto.s3.key.Key, 'exists', return_value=False)
+def test_upload_missing_etag_in_ceph(client, valid_auth_header, mocker):
+    mocker.patch.object(boto.s3.key.Key, 'exists', return_value=False)
     filereference = "http://test.idigbio.org/idigbio_logo.jpg"
     url = url_for('idb.data_api.v2_media.upload',
                   filereference=filereference, etag="foobar")
@@ -256,11 +256,11 @@ def test_bad_media_type(client, valid_auth_header):
     assert r.status_code == 400, r.json
 
 
-def test_datasets_mime_type(client, valid_auth_header, zippath, mock):
+def test_datasets_mime_type(client, valid_auth_header, zippath, mocker):
     """We currently allow uploading anything to the datasets bucket
     because there isn't really reliable validation we can do
     """
-    mock.patch.object(boto.s3.key.Key, 'exists', return_value=True)
+    mocker.patch.object(boto.s3.key.Key, 'exists', return_value=True)
     filereference = "http://test.idigbio.org/dataset.zip"
     url = url_for('idb.data_api.v2_media.upload', filereference=filereference)
     r = client.post(url,

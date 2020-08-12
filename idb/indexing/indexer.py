@@ -15,6 +15,15 @@ logger = idblogger.getChild('indexing')
 # Try using smaller batches.
 INDEX_CHUNK_SIZE = 1000
 
+ES_INDEX_CREATE_SETTINGS = {
+      "settings" : {
+         "index" : {
+            "number_of_shards" : 48,
+            "number_of_replicas" : 2
+         }
+      }
+   }
+
 def get_connection(**kwargs):
     """
     Build connection to ElasticSearch based on json config overriding with specified kwargs
@@ -99,6 +108,15 @@ class ElasticSearchIndexer(object):
         self.es = get_connection(hosts=serverlist)
         self.indexName = get_indexname(indexName)
         self.types = types
+        self.BASECONFIG = {}
+
+        # If the index does not exist, create it.
+        if not self.es.indices.exists(index=self.indexName):
+            logger.info("Index not found.  Creating: %s", self.indexName)
+            self.__create_index(self.indexName)
+
+        # We POST the mappings every time an indexer object is created
+        # regardless of actual indexing operation we are going to do.
         for t in self.types:
             self.esMapping(t)
 
@@ -106,12 +124,23 @@ class ElasticSearchIndexer(object):
         self.indexedCount = 0
         self.disableRefresh = disableRefresh
 
+        # This is a performance setting so newly indexed documents are not necessarily
+        # visible in the index immediately.
+        # See close() which sets refresh_interval again.
         if disableRefresh:
             self.es.indices.put_settings(index=self.indexName, body={
                 "index": {
                     "refresh_interval": "-1"
                 }
             })
+
+    def __create_index(self):
+        """
+        Create an index with appropriate shard count and replicas for the cluster.
+        """
+        # create(index, body=None, params=None, headers=None)
+        res = self.es.create(self.indexname, body=ES_INDEX_CREATE_SETTINGS)
+        logger.info("Create new Index: %s - %s", self.indexName, res)
 
     def esMapping(self, t):
         """
@@ -186,7 +215,7 @@ class ElasticSearchIndexer(object):
         """
         Do Nothing.
 
-        Runs the es optimize command with the proper number of segments.
+        Previously ran the es optimize command with the proper number of segments.
 
         What the heck are the proper number of segments?
 
@@ -242,6 +271,7 @@ class ElasticSearchIndexer(object):
         """
         Finishes index processing.
         """
+        # This will allow newly-indexed documents to appear.
         if self.disableRefresh:
             self.es.indices.put_settings(index=self.indexName, body={
                 "index": {

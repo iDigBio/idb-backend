@@ -113,7 +113,7 @@ class ElasticSearchIndexer(object):
         # If the index does not exist, create it.
         if not self.es.indices.exists(index=self.indexName):
             logger.info("Index not found.  Creating: %s", self.indexName)
-            self.__create_index(self.indexName)
+            self.__create_index()
 
         # We POST the mappings every time an indexer object is created
         # regardless of actual indexing operation we are going to do.

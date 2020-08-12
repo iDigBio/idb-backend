@@ -139,7 +139,7 @@ class ElasticSearchIndexer(object):
         Create an index with appropriate shard count and replicas for the cluster.
         """
         # create(index, body=None, params=None, headers=None)
-        res = self.es.create(index=self.indexName, body=ES_INDEX_CREATE_SETTINGS)
+        res = self.es.indices.create(index=self.indexName, body=ES_INDEX_CREATE_SETTINGS)
         logger.info("Create new Index: %s - %s", self.indexName, res)
 
     def esMapping(self, t):

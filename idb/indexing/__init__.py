@@ -20,7 +20,7 @@ from idb.helpers.logging import fnlogged
               default=True,
               help="Enable/disable the record corrector, Default: enabled")
 @click.option('--types', '-t',
-              # TODO: this should porbably be `idb.helpers.conversions.fields.keys()`
+              # TODO: this should probably be `idb.helpers.conversions.fields.keys()`
               type=click.Choice([
                   'publishers', 'recordsets', 'mediarecords', 'records']),
               multiple=True)

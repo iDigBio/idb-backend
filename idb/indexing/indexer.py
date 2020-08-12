@@ -54,8 +54,8 @@ def prepForEs(t, i):
 
     Parameters
     ----------
-    t : tbd
-        The tbd description
+    t : string
+        A type such as 'publishers', 'recordsets', 'mediarecords', 'records'
     i : TBD
         The tbd description
 
@@ -88,11 +88,8 @@ def prepForEs(t, i):
 
 class ElasticSearchIndexer(object):
     """
-    This should have a docstring.
-
-    Attributes
-    ----------
-    ?
+    The Elasticsearch object for managing a connection to the search cluster
+    and contains the idigbio indexing methods.
     """
 
     def __init__(self, indexName, types,
@@ -118,11 +115,12 @@ class ElasticSearchIndexer(object):
 
     def esMapping(self, t):
         """
-        Puts a mapping (?) into es
+        Puts field mappings into Elasticsearch.
 
         Parameters
         ----------
-        t : TBD
+        t : string
+            A type such as 'publishers', 'recordsets', 'mediarecords', 'records'
 
         """
 
@@ -170,7 +168,7 @@ class ElasticSearchIndexer(object):
         Parameters
         ----------
         t : string
-            A type such as "mediarecords" or "records"
+            A type such as 'publishers', 'recordsets', 'mediarecords', 'records'
         i : TBD
             something
         """

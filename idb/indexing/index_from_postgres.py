@@ -301,7 +301,6 @@ def consume(ei, rc, iter_func, no_index=False):
         index_func = functools.partial(index_record, ei, rc, typ, do_index=False)
 
         to_index = iter_func(ei, rc, typ, yield_record=True)
-        #index_record_tuples = Pool(10).imap(index_func, to_index, 100)
         index_record_tuples = itertools.imap(index_func, to_index)
 
         if no_index:

@@ -10,18 +10,16 @@ from urlparse import urlparse
 
 def index_record(ei, rc, typ, r, do_index=True):
     """
-    Summary goes here.
+    Index a single database record.
 
     Parameters
     ----------
-    ei : ?
-        TBD
-    rc : ?
-        TBD
-    typ : ?
-        TBD
-    do_index : ?
-        TBD
+    ei : ElasticSearchIndexer
+    rc : RecordCorrector
+    t : string
+        A type such as 'publishers', 'recordsets', 'mediarecords', 'records'
+    do_index : boolean
+        Actually update the index or not.
     """
     if r["etag"] == tombstone_etag:
         i = {

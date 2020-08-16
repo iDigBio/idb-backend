@@ -47,7 +47,7 @@ for p in conf_paths:
     except IOError:
         pass
 
-
+# These become available as config.VARIABLE when imported e.g. 'from idb import config'
 ENV = os.environ.get('ENV', 'dev')
 IDB_UUID = os.environ.get('IDB_UUID')
 IDB_APIKEY = os.environ.get('IDB_APIKEY')
@@ -56,3 +56,8 @@ IDB_STORAGE_HOST = os.environ.get('IDB_STORAGE_HOST', 's.idigbio.org')
 IDB_STORAGE_ACCESS_KEY = os.environ.get('IDB_STORAGE_ACCESS_KEY')
 IDB_STORAGE_SECRET_KEY = os.environ.get('IDB_STORAGE_SECRET_KEY')
 IDB_CRYPT_KEY = os.environ.get('IDB_CRYPT_KEY')
+
+ES_ALLOW_INDEX_CREATION = os.environ.get('ES_ALLOW_INDEX_CREATION', 'no')
+ES_INDEX_CHUNK_SIZE = os.environ.get('ES_INDEX_CHUNK_SIZE', '1000')
+ES_INDEX_NUMBER_OF_SHARDS = os.environ.get('ES_INDEX_NUMBER_OF_SHARDS', '48')
+ES_INDEX_NUMBER_OF_REPLICAS = os.environ.get('ES_INDEX_NUMBER_OF_REPLICAS', '2')

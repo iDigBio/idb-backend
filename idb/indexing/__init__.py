@@ -40,6 +40,14 @@ def cli(ctx, index, corrections, types, indexname):
         indexname = config.config["elasticsearch"]["indexname"]
     serverlist = config.config["elasticsearch"]["servers"]
 
+    if config.ENV == 'dev':
+        logger.info("Enabling dev configuration")
+        indexname = "dev-local"
+        serverlist = [
+            "localhost"
+        ]
+
+
     if config.ENV == 'beta':
         logger.info("Enabling beta configuration")
         indexname = "2.5.0"

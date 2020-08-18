@@ -28,7 +28,7 @@ For Ingestion and Development, the following are also needed:
 
 In Ubuntu 16.04, 18.04:
 
-    apt-get install libxml2 libxslt1-dev ffmpeg fonts-dejavu-core libfreetype6-dev
+    apt-get install libxml2 libxslt1-dev ffmpeg fonts-dejavu-core libfreetype6-dev python-systemd
 
 
 ### Package installation
@@ -51,7 +51,6 @@ For partial installation (without extra components) you can just run
 
 The available extra components are:
 
- * `journal`: Writes directly to systemd-journald
  * `ingestion`:  the extra librs for running ingestion
  * `test`: the extra libs for testing
 

@@ -113,6 +113,7 @@ def get_feed(rss_url):
         feedtest = requests.get(rss_url, timeout=10)
         feedtest.raise_for_status()
     except requests.exceptions.SSLError:
+        logger.warning("requests.exceptions.SSLError occurred on %s", rss_url)
         # Ignore urllib3 SSL issues on this check?
         # Most of the time, SSL issues are simply certificate errors at the provider side and we feel ok skipping.
         #

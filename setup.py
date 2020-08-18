@@ -75,7 +75,6 @@ setup(
         'jsonlines>=1.1.3',
     ],
     extras_require={
-        'journal': ['systemd-python>=230'],
         'ingestion': [
             'pydub==0.16.5',
             pillow_package,

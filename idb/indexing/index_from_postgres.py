@@ -18,7 +18,7 @@ from idb.postgres_backend.db import tombstone_etag
 
 import elasticsearch.helpers
 
-logger = idblogger.getChild('indexer_from_postgres')
+logger = idblogger.getChild('index_from_postgres')
 configure(logger=logger, stderr_level=logging.INFO)
 
 last_afters = {}
@@ -268,6 +268,7 @@ def resume(ei, rc, also_delete=False, no_index=False):
 
 
 def full(ei, rc, no_index=False):
+    logger.info("Begin 'full' indexing...")
     consume(ei, rc, type_yield, no_index=no_index)
 
 

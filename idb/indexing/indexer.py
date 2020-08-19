@@ -10,10 +10,7 @@ from idb.helpers.logging import idblogger
 from idb.helpers.conversions import fields, custom_mappings
 
 local_tz = timezone('US/Eastern')
-logger = idblogger.getChild('indexing')
-
-# Try using smaller batches.
-INDEX_CHUNK_SIZE = 1000
+logger = idblogger.getChild('indexer')
 
 def get_connection(**kwargs):
     """
@@ -95,10 +92,56 @@ class ElasticSearchIndexer(object):
     def __init__(self, indexName, types,
                  commitCount=100000, disableRefresh=True,
                  serverlist=["localhost"]):
-        logger.info("Initializing ElasticSearchIndexer(%r, %r)", indexName, types)
+        logger.info("Initializing ElasticSearchIndexer(%r, %r, First cluster node: %r)", indexName, types, serverlist[0])
         self.es = get_connection(hosts=serverlist)
+
+        # verify connectivity to cluster
+        try:
+            self.es.ping()
+        except:
+            logger.error("Connection failed to cluster. First cluster node: %s", serverlist[0])
+            raise SystemExit
+
         self.indexName = get_indexname(indexName)
         self.types = types
+        self.BASECONFIG = {}
+
+        # If in dev environment we are probably using single node elasticsearch
+        # on a local machine.  Use single node es config.
+        if config.ENV == 'dev':
+            self.INDEX_CREATE_SETTINGS = {
+                "settings" : {
+                    "index" : {
+                        "number_of_shards" : 1,
+                        "number_of_replicas" : 0
+                    }
+                }
+            }
+        else:
+            self.INDEX_CREATE_SETTINGS = {
+                "settings" : {
+                    "index" : {
+                        "number_of_shards" : config.ES_INDEX_NUMBER_OF_SHARDS,
+                        "number_of_replicas" : config.ES_INDEX_NUMBER_OF_REPLICAS
+                    }
+                }
+            }
+
+        # Create index only if:
+        #     1. it does not exist, and 
+        #     2. we have the environment variable set to permit index creation.
+        self.ALLOW_INDEX_CREATION = True if config.ES_ALLOW_INDEX_CREATION == "yes" else False
+        if not self.ALLOW_INDEX_CREATION and not self.es.indices.exists(index=self.indexName):
+            logger.info("Index '%s' not found.  If you wish to create it, set ES_ALLOW_INDEX_CREATION=yes environment variable.", self.indexName)
+            raise SystemExit
+        if self.ALLOW_INDEX_CREATION and not self.es.indices.exists(index=self.indexName):
+            logger.info("Creating index: '%s'", self.indexName)
+            self.__create_index()
+        if self.es.indices.exists(index=self.indexName):
+            logger.info("Found index '%s'", self.indexName)
+
+        # We POST the mappings every time an indexer object is created
+        # regardless of actual indexing operation we are going to do.
         for t in self.types:
             self.esMapping(t)
 
@@ -106,12 +149,23 @@ class ElasticSearchIndexer(object):
         self.indexedCount = 0
         self.disableRefresh = disableRefresh
 
+        # This is a performance setting so newly indexed documents are not necessarily
+        # visible in the index immediately.
+        # See close() which sets refresh_interval again.
         if disableRefresh:
             self.es.indices.put_settings(index=self.indexName, body={
                 "index": {
                     "refresh_interval": "-1"
                 }
             })
+
+    def __create_index(self):
+        """
+        Create an index with appropriate shard count and replicas for the cluster.
+        """
+        # create(index, body=None, params=None, headers=None)
+        res = self.es.indices.create(index=self.indexName, body=self.INDEX_CREATE_SETTINGS)
+        logger.info("Create new Index: %s - %s", self.indexName, res)
 
     def esMapping(self, t):
         """
@@ -161,7 +215,7 @@ class ElasticSearchIndexer(object):
                 "type": "records"
             }
         res = self.es.indices.put_mapping(index=self.indexName, doc_type=t, body={t: m})
-        logger.debug("Built mapping for %s: %s", t, res)
+        logger.info("Built mapping for %s: %s", t, res)
 
     def index(self, t, i):
         """
@@ -186,7 +240,7 @@ class ElasticSearchIndexer(object):
         """
         Do Nothing.
 
-        Runs the es optimize command with the proper number of segments.
+        Previously ran the es optimize command with the proper number of segments.
 
         What the heck are the proper number of segments?
 
@@ -236,12 +290,13 @@ class ElasticSearchIndexer(object):
         Needs more info here.
         """
         return elasticsearch.helpers.streaming_bulk(
-            self.es, self.bulk_formater(tups), chunk_size=INDEX_CHUNK_SIZE)
+            self.es, self.bulk_formater(tups), chunk_size=config.ES_INDEX_CHUNK_SIZE)
 
     def close(self):
         """
         Finishes index processing.
         """
+        # This will allow newly-indexed documents to appear.
         if self.disableRefresh:
             self.es.indices.put_settings(index=self.indexName, body={
                 "index": {

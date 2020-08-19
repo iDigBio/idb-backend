@@ -18,7 +18,7 @@ from idb.postgres_backend.db import tombstone_etag
 
 import elasticsearch.helpers
 
-logger = idblogger.getChild('indexing')
+logger = idblogger.getChild('index_from_postgres')
 configure(logger=logger, stderr_level=logging.INFO)
 
 last_afters = {}
@@ -48,7 +48,7 @@ def rate_logger(prefix, iterator, every=10000):
 def type_yield(ei, rc, typ, yield_record=False):
     # drop the trailing s
     pg_typ = "".join(typ[:-1])
-
+    logger.info("Fetching rows for: %s", typ)
     sql = "SELECT * FROM idigbio_uuids_data WHERE type=%s AND deleted=false"
     results = apidbpool.fetchiter(sql, (pg_typ,),
                                   named=True, cursor_factory=DictCursor)
@@ -268,6 +268,7 @@ def resume(ei, rc, also_delete=False, no_index=False):
 
 
 def full(ei, rc, no_index=False):
+    logger.info("Begin 'full' indexing...")
     consume(ei, rc, type_yield, no_index=no_index)
 
 
@@ -301,7 +302,6 @@ def consume(ei, rc, iter_func, no_index=False):
         index_func = functools.partial(index_record, ei, rc, typ, do_index=False)
 
         to_index = iter_func(ei, rc, typ, yield_record=True)
-        #index_record_tuples = Pool(10).imap(index_func, to_index, 100)
         index_record_tuples = itertools.imap(index_func, to_index)
 
         if no_index:

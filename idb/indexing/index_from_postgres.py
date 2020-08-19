@@ -18,7 +18,7 @@ from idb.postgres_backend.db import tombstone_etag
 
 import elasticsearch.helpers
 
-logger = idblogger.getChild('indexing')
+logger = idblogger.getChild('indexer')
 configure(logger=logger, stderr_level=logging.INFO)
 
 last_afters = {}
@@ -48,7 +48,7 @@ def rate_logger(prefix, iterator, every=10000):
 def type_yield(ei, rc, typ, yield_record=False):
     # drop the trailing s
     pg_typ = "".join(typ[:-1])
-
+    logger.info("Fetching rows for: %s", typ)
     sql = "SELECT * FROM idigbio_uuids_data WHERE type=%s AND deleted=false"
     results = apidbpool.fetchiter(sql, (pg_typ,),
                                   named=True, cursor_factory=DictCursor)

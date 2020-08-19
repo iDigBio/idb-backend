@@ -215,7 +215,7 @@ class ElasticSearchIndexer(object):
                 "type": "records"
             }
         res = self.es.indices.put_mapping(index=self.indexName, doc_type=t, body={t: m})
-        logger.debug("Built mapping for %s: %s", t, res)
+        logger.info("Built mapping for %s: %s", t, res)
 
     def index(self, t, i):
         """

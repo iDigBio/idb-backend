@@ -27,7 +27,7 @@ def get_connection(**kwargs):
     kwargs.setdefault('sniff_on_connection_fail', True)
     kwargs.setdefault('max_retries', 5)
     kwargs.setdefault('timeout', 30)
-    return elasticsearch.Elasticsearch(**kwargs,)
+    return elasticsearch.Elasticsearch(**kwargs)
 
 
 def get_indexname(name=config.config["elasticsearch"]["indexname"]):

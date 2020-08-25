@@ -46,7 +46,7 @@ setup(
         'redis>=2.9.1, <3.0.0',
         'python-dateutil>=2.2, <3.0',
         'udatetime>=0.0.13',
-        'elasticsearch>=2.3, <3',
+        'elasticsearch>=5, <6',
         'pyproj>=1.9.3',
         'pytz>=2016.10',
         'requests==2.20.0',

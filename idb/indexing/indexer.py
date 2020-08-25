@@ -22,12 +22,12 @@ def get_connection(**kwargs):
         An elasticsearch connection object
     """
     kwargs.setdefault('hosts', config.config["elasticsearch"]["servers"])
-    kwargs.setdefault('retry_on_timeout', True)  # this isn't valid until >=1.3
+    kwargs.setdefault('retry_on_timeout', True)
     kwargs.setdefault('sniff_on_start', False)
-    kwargs.setdefault('sniff_on_connection_fail', False)
-    kwargs.setdefault('max_retries', 10)
+    kwargs.setdefault('sniff_on_connection_fail', True)
+    kwargs.setdefault('max_retries', 5)
     kwargs.setdefault('timeout', 30)
-    return elasticsearch.Elasticsearch(**kwargs)
+    return elasticsearch.Elasticsearch(**kwargs,)
 
 
 def get_indexname(name=config.config["elasticsearch"]["indexname"]):
@@ -290,7 +290,7 @@ class ElasticSearchIndexer(object):
         Needs more info here.
         """
         return elasticsearch.helpers.streaming_bulk(
-            self.es, self.bulk_formater(tups), chunk_size=config.ES_INDEX_CHUNK_SIZE)
+            self.es, self.bulk_formater(tups), chunk_size=config.ES_INDEX_CHUNK_SIZE, max_retries=3)
 
     def close(self):
         """

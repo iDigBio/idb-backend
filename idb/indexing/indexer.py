@@ -267,6 +267,9 @@ class ElasticSearchIndexer(object):
                 "_id": i["uuid"],
                 "_source": i,
             }
+
+            if config.IDB_EXTRA_SERIOUS_DEBUG = 'yes':
+                logger.debug("Formatted for bulk: %s", meta["_id"])
             if i.get("delete", False):
                 meta["_op_type"] = "delete"
                 del meta["_source"]

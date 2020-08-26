@@ -70,7 +70,7 @@ def index_record(ei, rc, typ, r, do_index=True):
         i["data"] = r["data"]
         i["indexData"] = d
 
-        if config.IDB_EXTRA_SERIOUS_DEBUG == 'yes':
+        if config.IDB_EXTRA_SERIOUS_DEBUG == 'yes': # dummy comment because github
             logger.debug("Index record: %s with approx. %s bytes of data.", i["uuid"], len(repr(i)))
             logger.debug("Data: %s", repr(i))
 

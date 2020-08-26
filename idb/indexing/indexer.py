@@ -268,7 +268,7 @@ class ElasticSearchIndexer(object):
                 "_source": i,
             }
 
-            if config.IDB_EXTRA_SERIOUS_DEBUG = 'yes':
+            if config.IDB_EXTRA_SERIOUS_DEBUG == 'yes':
                 logger.debug("Formatted for bulk: %s", meta["_id"])
             if i.get("delete", False):
                 meta["_op_type"] = "delete"

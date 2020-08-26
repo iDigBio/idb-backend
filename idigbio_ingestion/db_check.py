@@ -209,7 +209,9 @@ def process_subfile(rf, rsid, rs_uuid_etag, rs_id_uuid, ingest=False, db=None):
             proposed_idents = identifyRecord(rf.rowtype, etag, r, rsid)
 
             # Debugging of record identifiers
-            # rlogger.debug("****** proposed / identifyRecord = (etag, type of identifier, lowercased identifiers): {0}".format(proposed_idents))
+            # TODO: use this variable instead of leaving in the code commented out
+            #if config.IDB_EXTRA_SERIOUS_DEBUG = 'yes':
+            #    rlogger.debug("****** proposed / identifyRecord = (etag, type of identifier, lowercased identifiers): {0}".format(proposed_idents))
 
             idents = []
             if len(proposed_idents) == 0 and rf.rowtype in ingestion_types:
@@ -217,7 +219,9 @@ def process_subfile(rf, rsid, rs_uuid_etag, rs_id_uuid, ingest=False, db=None):
                 raise RecordException("No Record ID")
             elif len(proposed_idents) > 0:
                 for ident in proposed_idents:
-                    #logger.debug("#### ident | ident[2] #### : %r | %r", ident, ident[2])
+                    # TODO: use this variable instead of leaving in the code commented out
+                    #if config.IDB_EXTRA_SERIOUS_DEBUG = 'yes':
+                    #    logger.debug("#### ident | ident[2] #### : %r | %r", ident, ident[2])
                     if ident[2] in seen_ids:
                         dupe_ids.add(ident[2])
                         duplicate_id_count += 1
@@ -243,6 +247,8 @@ def process_subfile(rf, rsid, rs_uuid_etag, rs_id_uuid, ingest=False, db=None):
                             raise RecordException("Cross record ID violation, ID {0}, UUID {1}".format(existing_ids[i], u))
 
             # Debugging of record identifiers
+            # TODO: use this variable instead of leaving in the code commented out
+            #if config.IDB_EXTRA_SERIOUS_DEBUG = 'yes':
             # rlogger.debug("****** idents = (etag, type of identifier, lowercased identifiers).................... {0}".format(idents))
 
             deleted = False

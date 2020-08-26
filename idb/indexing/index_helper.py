@@ -1,9 +1,13 @@
 from __future__ import absolute_import
 from idb.helpers.conversions import grabAll
 from idb.postgres_backend.db import tombstone_etag
+from idb import config
 
 from .indexer import prepForEs
 from idb.helpers.fieldnames import types
+
+from idb.helpers.logging import idblogger
+logger = idblogger.getChild('index_helper')
 
 # PYTHON3_WARNING
 from urlparse import urlparse
@@ -65,6 +69,10 @@ def index_record(ei, rc, typ, r, do_index=True):
 
         i["data"] = r["data"]
         i["indexData"] = d
+
+        if config.IDB_EXTRA_SERIOUS_DEBUG == 'yes':
+            logger.debug("Index record: %s with approx. %s bytes of data.", i["uuid"], len(repr(i)))
+            logger.debug("Data: %s", repr(i))
 
         if do_index:
             ei.index(typ, i)

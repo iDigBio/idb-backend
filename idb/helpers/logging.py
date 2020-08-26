@@ -133,7 +133,7 @@ def add_stderr_handler(logger=logging.root, level=logging.INFO):
         logger.setLevel(level)
     se = logging.StreamHandler()
     se.setLevel(level)
-    se.setFormatter(logging.Formatter(PRECISE_FORMAT, datefmt=TIME_FORMAT))
+    se.setFormatter(logging.Formatter(PRECISE_FORMAT, datefmt=DATETIME_FORMAT))
     logger.addHandler(se)
     return se
 

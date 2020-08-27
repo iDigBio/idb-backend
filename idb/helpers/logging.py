@@ -46,7 +46,9 @@ def configure_app_log(verbose, logfile=None, journal=False):
         0: logging.WARNING,
         1: logging.INFO,
         2: logging.DEBUG,
-        3: 0
+        3: logging.DEBUG,
+        4: logging.DEBUG,
+        5: logging.DEBUG
     }
     if verbose is None:
         verbose = 0

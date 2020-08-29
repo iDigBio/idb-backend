@@ -90,10 +90,10 @@ def configure(logger=idblogger,
     handlers = []
     if filename:
         handlers.append(
-            add_file_handler(logger=logger, filename=filename, logdir=logdir, level=file_level))
+            add_file_handler(logger=logger, filename=filename, logdir=logdir, level=file_level)) # file_level different than normal level?
     if stderr_level:
         handlers.append(
-            add_stderr_handler(logger=logger, level=stderr_level)
+            add_stderr_handler(logger=logger, level=stderr_level)  # where does stderr play into this?  is *this* where extra in console is coming from?
         )
     return handlers
 

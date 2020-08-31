@@ -268,7 +268,7 @@ class ElasticSearchIndexer(object):
                 "_source": i,
             }
 
-            if config.IDB_EXTRA_SERIOUS_DEBUG = 'yes':
+            if config.IDB_EXTRA_SERIOUS_DEBUG == 'yes':
                 logger.debug("Formatted for bulk: %s", meta["_id"])
             if i.get("delete", False):
                 meta["_op_type"] = "delete"
@@ -293,7 +293,7 @@ class ElasticSearchIndexer(object):
         Needs more info here.
         """
         return elasticsearch.helpers.streaming_bulk(
-            self.es, self.bulk_formater(tups), chunk_size=config.ES_INDEX_CHUNK_SIZE)
+            self.es, self.bulk_formater(tups), chunk_size=config.ES_INDEX_CHUNK_SIZE, max_chunk_bytes=1048576)
 
     def close(self):
         """

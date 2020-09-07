@@ -42,13 +42,18 @@ def db_check(rsid):
              help="Check a dataset, by filename, against the database "
              "and report what will be ingested")
 @click.argument("file", type=click.Path())
+@click.option("--csv", is_flag=True, default=False, help="Process file as a CSV instead of a DwCA (zip)")
 @fnlogged
-def db_check_file(file):
+def db_check_file(file, csv=False):
     # rsid = u'{0}'.format(rsid)
     from idigbio_ingestion.db_check import process_file
+    if csv:
+        mime="text/plain"
+    else:
+        mime="application/zip"
     print(json.dumps(process_file(
         file,
-        "application/zip",
+        mime,
         "00000000-0000-0000-0000-000000000000",
         {"records":{},"mediarecords":{}},
         {"records":{},"mediarecords":{}},

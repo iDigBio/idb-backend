@@ -82,6 +82,11 @@ def process_objects(objects):
     pool = Pool(POOLSIZE)
 
     def one(o):
+        ## This probably doesn't avoid the broken ones eating a "slot" each time
+        #if o.etag in DERIVATIVES_BLACKLIST:
+        #    logger.info("%s is blacklisted. Skipping.")
+        #    return None
+        ##
         logger.info("%s starting processing", o.etag)
         ci = get_keys(o)
         gr = generate_all(ci)

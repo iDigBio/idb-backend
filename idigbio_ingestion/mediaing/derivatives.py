@@ -107,7 +107,7 @@ def objects_for_buckets(buckets):
              AND etag NOT IN %s
              ORDER BY random()
     """
-    return apidbpool.fetchall(sql, (buckets,DERIVATIVES_BLACKLIST,), cursor_factory=NamedTupleCursor)
+    return apidbpool.fetchall(sql, (buckets, DERIVATIVES_BLACKLIST,), cursor_factory=NamedTupleCursor)
 
 
 def objects_for_etags(etags):

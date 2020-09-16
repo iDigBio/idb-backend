@@ -7,7 +7,8 @@
 # valid derivative.
 # We blacklist these so they do not retry every single derivative run.
 
-DERIVATIVES_BLACKLIST = [
+# Note that this is a Tuple so it can be used in pyscopg2 as an input to "NOT IN"
+DERIVATIVES_BLACKLIST = (
 '000281ba1d5f8d068e3dee96296ff102',
 '0029b39c964e3c10ec92690f1835de8d',
 '005481bf6fba9b3f6e43cd4dfb0fef5e',
@@ -962,4 +963,4 @@ DERIVATIVES_BLACKLIST = [
 'ff71416839616f7f0fe52612502cccc7',
 'ff7617302c6625609ec0cb443b0fe647',
 'ffcd87951df2bfd8bc83dc5addf723e0'
-]
+)

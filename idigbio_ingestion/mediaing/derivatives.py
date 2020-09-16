@@ -19,7 +19,7 @@ from idb import config
 from idb.helpers.storage import IDigBioStorage
 from idb.postgres_backend import apidbpool, NamedTupleCursor
 from idb.helpers.logging import idblogger
-
+from idb.blacklists.derivatives import DERIVATIVES_BLACKLIST
 
 WIDTHS = {
     'thumbnail': 260,
@@ -69,6 +69,8 @@ def main(buckets, procs=2):
 
 
 def process_etags(etags):
+    # Do not use DERIVATIVES_BLACKLIST here, this function is only
+    # called from cli with specified human-provided etags.
     objects = objects_for_etags(etags)
     t1 = datetime.now()
     logger.info("Checking derivatives for %d objects", len(objects))

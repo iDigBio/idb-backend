@@ -55,6 +55,7 @@ def main(buckets, procs=2):
         buckets = ('images', 'sounds')
     objects = objects_for_buckets(buckets)
 
+
     t1 = datetime.now()
     logger.info("Checking derivatives for %d objects", len(objects))
 
@@ -82,11 +83,6 @@ def process_objects(objects):
     pool = Pool(POOLSIZE)
 
     def one(o):
-        ## This probably doesn't avoid the broken ones eating a "slot" each time
-        #if o.etag in DERIVATIVES_BLACKLIST:
-        #    logger.info("%s is blacklisted. Skipping.")
-        #    return None
-        ##
         logger.info("%s starting processing", o.etag)
         ci = get_keys(o)
         gr = generate_all(ci)
@@ -108,9 +104,10 @@ def objects_for_buckets(buckets):
     sql = """SELECT etag, bucket
              FROM objects
              WHERE derivatives=false AND bucket IN %s
+             AND etag NOT IN %s
              ORDER BY random()
     """
-    return apidbpool.fetchall(sql, (buckets,), cursor_factory=NamedTupleCursor)
+    return apidbpool.fetchall(sql, (buckets,DERIVATIVES_BLACKLIST,), cursor_factory=NamedTupleCursor)
 
 
 def objects_for_etags(etags):

@@ -19,7 +19,7 @@ from idb import config
 from idb.helpers.storage import IDigBioStorage
 from idb.postgres_backend import apidbpool, NamedTupleCursor
 from idb.helpers.logging import idblogger
-
+from idb.blacklists.derivatives import DERIVATIVES_BLACKLIST
 
 WIDTHS = {
     'thumbnail': 260,
@@ -55,6 +55,7 @@ def main(buckets, procs=2):
         buckets = ('images', 'sounds')
     objects = objects_for_buckets(buckets)
 
+
     t1 = datetime.now()
     logger.info("Checking derivatives for %d objects", len(objects))
 
@@ -69,6 +70,8 @@ def main(buckets, procs=2):
 
 
 def process_etags(etags):
+    # Do not use DERIVATIVES_BLACKLIST here, this function is only
+    # called from cli with specified human-provided etags.
     objects = objects_for_etags(etags)
     t1 = datetime.now()
     logger.info("Checking derivatives for %d objects", len(objects))
@@ -101,9 +104,10 @@ def objects_for_buckets(buckets):
     sql = """SELECT etag, bucket
              FROM objects
              WHERE derivatives=false AND bucket IN %s
+             AND etag NOT IN %s
              ORDER BY random()
     """
-    return apidbpool.fetchall(sql, (buckets,), cursor_factory=NamedTupleCursor)
+    return apidbpool.fetchall(sql, (buckets, DERIVATIVES_BLACKLIST,), cursor_factory=NamedTupleCursor)
 
 
 def objects_for_etags(etags):

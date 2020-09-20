@@ -20,8 +20,9 @@ def index_record(ei, rc, typ, r, do_index=True):
     ----------
     ei : ElasticSearchIndexer
     rc : RecordCorrector
-    t : string
+    typ : string
         A type such as 'publishers', 'recordsets', 'mediarecords', 'records'
+    r : the record data object
     do_index : boolean
         Actually update the index or not.
     """

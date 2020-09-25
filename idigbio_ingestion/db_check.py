@@ -17,6 +17,7 @@ from boto.exception import S3ResponseError, S3DataError
 
 
 from idb import stats
+from idb import config
 from idb.postgres_backend import apidbpool, NamedTupleCursor
 from idb.postgres_backend.db import PostgresDB, RecordSet
 from idb.helpers import ilen
@@ -127,15 +128,14 @@ def identifyRecord(t, etag, r, rsid):
     if t in identifier_fields:
         for pi in identifier_fields[t]:
             if pi[0] in r:
-                # The "UConn" exception
-                # (appears to allow numeric integers into uuids_identifier, screwing up morphosource et al...)
+                # The "UConn exception"
+                # (After working initially, it now appears to allow numeric integers into uuids_identifier,
+                # screwing up morphosource et al...)
                 if pi[0] == "ac:providerManagedID" and "dcterms:identifier" in r and r["dcterms:identifier"].lower() == r["ac:providerManagedID"].lower():
                     continue
                 cid = pi[1](r[pi[0]], rsid)
                 if cid is not None:
                     idents.append((etag, pi[0], cid.lower()))
-                    # Breaking would give us only the first ID
-                    # break
     return idents
 
 unconsumed_extensions = {}
@@ -143,6 +143,16 @@ core_siblings = {}
 
 
 def process_subfile(rf, rsid, rs_uuid_etag, rs_id_uuid, ingest=False, db=None):
+    """
+    Processes a data file (typically one of multiple files inside a DwCA).
+
+    rf : idigbio_ingestion.lib.dwca.DwcaRecordFile
+
+    Returns
+    -------
+    Dict
+        A data structure containing summary information on the results of the subfile processing.
+    """
     rlogger = getrslogger(rsid)
 
     count = 0
@@ -181,8 +191,7 @@ def process_subfile(rf, rsid, rs_uuid_etag, rs_id_uuid, ingest=False, db=None):
     t = datetime.datetime.now()
     rlogger.info("Beginning row processing, rowtype = {0}".format(rf.rowtype))
     for r in rf:
-        # rf is of class idigbio_ingestion.lib.dwca.DwcaRecordFile
-        # r is a dict
+        # r is a Dict representation of a data row
         ids_to_add = {}
         uuids_to_add = {}
         siblings = []
@@ -208,10 +217,8 @@ def process_subfile(rf, rsid, rs_uuid_etag, rs_id_uuid, ingest=False, db=None):
 
             proposed_idents = identifyRecord(rf.rowtype, etag, r, rsid)
 
-            # Debugging of record identifiers
-            # TODO: use this variable instead of leaving in the code commented out
-            #if config.IDB_EXTRA_SERIOUS_DEBUG == 'yes':
-            #    rlogger.debug("****** proposed / identifyRecord = (etag, type of identifier, lowercased identifiers): {0}".format(proposed_idents))
+            if config.IDB_EXTRA_SERIOUS_DEBUG == 'yes':
+                rlogger.debug("****** proposed / identifyRecord = (etag, type of identifier, lowercased identifiers): {0}".format(proposed_idents))
 
             idents = []
             if len(proposed_idents) == 0 and rf.rowtype in ingestion_types:
@@ -219,9 +226,8 @@ def process_subfile(rf, rsid, rs_uuid_etag, rs_id_uuid, ingest=False, db=None):
                 raise RecordException("No Record ID")
             elif len(proposed_idents) > 0:
                 for ident in proposed_idents:
-                    # TODO: use this variable instead of leaving in the code commented out
-                    #if config.IDB_EXTRA_SERIOUS_DEBUG == 'yes':
-                    #    logger.debug("#### ident | ident[2] #### : %r | %r", ident, ident[2])
+                    if config.IDB_EXTRA_SERIOUS_DEBUG == 'yes':
+                        logger.debug("#### ident | ident[2] #### : %r | %r", ident, ident[2])
                     if ident[2] in seen_ids:
                         dupe_ids.add(ident[2])
                         duplicate_id_count += 1
@@ -246,24 +252,22 @@ def process_subfile(rf, rsid, rs_uuid_etag, rs_id_uuid, ingest=False, db=None):
                         if existing_ids[i] != u:
                             raise RecordException("Cross record ID violation, ID {0}, UUID {1}".format(existing_ids[i], u))
 
-            # Debugging of record identifiers
-            # TODO: use this variable instead of leaving in the code commented out
-            #if config.IDB_EXTRA_SERIOUS_DEBUG == 'yes':
-            # rlogger.debug("****** idents = (etag, type of identifier, lowercased identifiers).................... {0}".format(idents))
+            if config.IDB_EXTRA_SERIOUS_DEBUG == 'yes':
+                rlogger.debug("****** idents = (etag, type of identifier, lowercased identifiers).................... {0}".format(idents))
 
             deleted = False
             if u is None:
                 u, parent, deleted = db.get_uuid([i for _,_,i in idents])
                 if parent is not None:
-                    # assert parent == rsid
-                    if parent != rsid:                       
-                        rlogger.debug("******")
-                        rlogger.debug("u: {0}".format(u))
-                        rlogger.debug("parent: {0}".format(parent))
-                        rlogger.debug("deleted: {0}".format(deleted))
+                    if parent != rsid:
+                        if config.IDB_EXTRA_SERIOUS_DEBUG == 'yes':                       
+                            rlogger.debug("******")
+                            rlogger.debug("u: {0}".format(u))
+                            rlogger.debug("parent: {0}".format(parent))
+                            rlogger.debug("deleted: {0}".format(deleted))
 
-                        rlogger.debug("****** Row:")
-                        rlogger.debug("{0}".format(json.dumps(r)))
+                            rlogger.debug("****** Row:")
+                            rlogger.debug("{0}".format(json.dumps(r)))
                         raise RecordException("UUID exists but has a parent other than expected. Expected parent (this recordset): {0}  Existing Parent: {1}  UUID: {2}".format(rsid,parent,u))
 
             if deleted:
@@ -279,8 +283,8 @@ def process_subfile(rf, rsid, rs_uuid_etag, rs_id_uuid, ingest=False, db=None):
                     for s in siblings:
                         db._upsert_uuid_sibling(u, s)
                 else:
-                    #             u, t,        p,    d, ids,               siblings, commit
-                    # print u, typ[:-1], rsid, r, ids_to_add.keys(), siblings
+                    if config.IDB_EXTRA_SERIOUS_DEBUG == 'yes':
+                        rlogger.debug("Setting sibling for '{0}'".format(u))
                     db.set_record(u, typ[:-1], rsid, r, ids_to_add.keys(), siblings)
                     ingestions += 1
             elif ingest and deleted:
@@ -325,7 +329,10 @@ def process_subfile(rf, rsid, rs_uuid_etag, rs_id_uuid, ingest=False, db=None):
                         db_uuid = db_r["uuid"]
 
                     if db_uuid is None:
-                        raise RecordException("Record contains ac:associatedSpecimenReference '{0}' that does not relate to an existing identifier.".format(ref_uuid))
+                        # We probably need to do something other than raise this RecordException for this since 
+                        # ac:associatedSpecimenReference is not required to be in *this* file / system.
+                        # Can we find a different identifier?
+                        raise RecordException("Record (idents: [{0}]) contains ac:associatedSpecimenReference '{1}' that does not relate to an existing identifier.".format(ref_uuid, idents))
                     elif ingest:
                         db._upsert_uuid_sibling(u, db_uuid)
 
@@ -354,9 +361,6 @@ def process_subfile(rf, rsid, rs_uuid_etag, rs_id_uuid, ingest=False, db=None):
 
         seen_ids.update(ids_to_add)
         seen_uuids.update(uuids_to_add)
-
-        # if ingestions % 10000 == 0:
-        #     db.commit()
 
     eu_set = existing_etags.viewkeys()
     nu_set = seen_uuids.viewkeys()
@@ -630,7 +634,7 @@ def main(rsid, ingest=False):
 def launch_child(rsid, ingest):
     try:
         import logging
-        # close any logging filehandlers on root, leave alone any
+        # Close any logging filehandlers on root, leave alone any
         # other stream handlers (e.g. stderr) this way main can set up
         # its own filehandler to `$RSID.db_check.log`
         for fh in filter(lambda h: isinstance(h, logging.FileHandler), logging.root.handlers):

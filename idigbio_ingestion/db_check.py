@@ -332,7 +332,7 @@ def process_subfile(rf, rsid, rs_uuid_etag, rs_id_uuid, ingest=False, db=None):
                         # We probably need to do something other than raise this RecordException for this since 
                         # ac:associatedSpecimenReference is not required to be in *this* file / system.
                         # Can we find a different identifier?
-                        raise RecordException("Record contains ac:associatedSpecimenReference '{0}' that does not relate to an existing identifier.".format(ref_uuid))
+                        raise RecordException("Record (idents: [{0}]) contains ac:associatedSpecimenReference '{1}' that does not relate to an existing identifier.".format(ref_uuid, idents))
                     elif ingest:
                         db._upsert_uuid_sibling(u, db_uuid)
 

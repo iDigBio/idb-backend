@@ -292,6 +292,13 @@ def process_subfile(rf, rsid, rs_uuid_etag, rs_id_uuid, ingest=False, db=None):
                 db.set_record(u, typ[:-1], rsid, r, ids_to_add.keys(), siblings)
                 resurrections += 1
 
+
+            # TODO:
+            # It appears that archives are coming to us now with the 0'th column
+            # named "id" instead of "coreId". This means the direct relationship from extension
+            # to core is not being constructed for these rows.
+            # TODO also:
+            # What about the coreid vs coreId issue?
             if "coreid" in r:
                 if rf.rowtype in ingestion_types:
                     if r["coreid"] in core_siblings:
@@ -307,6 +314,11 @@ def process_subfile(rf, rsid, rs_uuid_etag, rs_id_uuid, ingest=False, db=None):
 
                     unconsumed_extensions[r["coreid"]][rf.rowtype].append(r)
 
+            # TODO:
+            # "ac:associatedSpecimenReference" currently gets checked even if we have already established
+            # the related specimen record thru "strictor" relationship.  e.g. extension to coreid.
+            # In cases where "ac:associatedSpecimenReference" points to a resource outside of iDigBio,
+            # this causes a fatal error trying to process this row as no relationship can be built.
             if r.get("ac:associatedSpecimenReference"):
                 ref_uuids_list = uuid_re.findall(r["ac:associatedSpecimenReference"])
                 for ref_uuid in ref_uuids_list:

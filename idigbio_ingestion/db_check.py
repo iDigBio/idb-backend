@@ -315,8 +315,8 @@ def process_subfile(rf, rsid, rs_uuid_etag, rs_id_uuid, ingest=False, db=None):
                     unconsumed_extensions[r["coreid"]][rf.rowtype].append(r)
 
             # TODO:
-            # "ac:associatedSpecimenReference" currently gets checked even if we have already established
-            # the related specimen record thru "strictor" relationship.  e.g. extension to coreid.
+            # The presence of "ac:associatedSpecimenReference" currently gets checked even if we have already
+            # established the related specimen record thru "strictor" relationship.  e.g. extension to coreid.
             # In cases where "ac:associatedSpecimenReference" points to a resource outside of iDigBio,
             # this causes a fatal error trying to process this row as no relationship can be built.
             if r.get("ac:associatedSpecimenReference"):

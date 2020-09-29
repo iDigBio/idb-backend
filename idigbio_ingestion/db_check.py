@@ -634,7 +634,7 @@ def main(rsid, ingest=False):
         ispaused = False
         if rsid in paused_rsids:
             ispaused = True
-            rlogger.warn("Recordset is PAUSED. It will be checked but will not be ingested.".format(rsid))
+            rlogger.warn("Recordset '{0}' is PAUSED. It will be checked but will not be ingested.".format(rsid))
             ingest = False
 
         metadata =process_file(name, mime, rsid, db_u_d, db_i_d, ingest=ingest, commit_force=commit_force, ispaused=ispaused)

@@ -147,6 +147,17 @@ def process_subfile(rf, rsid, rs_uuid_etag, rs_id_uuid, ingest=False, db=None):
     Processes a data file (typically one of multiple files inside a DwCA).
 
     rf : idigbio_ingestion.lib.dwca.DwcaRecordFile
+    rsid : string
+        A recordset uuid
+    rs_uuid_etag : dictionary
+        Structure:
+        { type: {uuid:etag, uuid:etag, ... }}
+    rs_id_uuid : dictionary
+        Structure:
+        { type: {identifier:uuid, identifier:uuid, ... }}
+    ingest : bool
+    db : PostgresDB connection object
+
 
     Returns
     -------

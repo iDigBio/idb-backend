@@ -150,6 +150,9 @@ def process_subfile(rf, rsid, rs_uuid_etag, rs_id_uuid, ingest=False, db=None):
     rsid : string
         A recordset uuid
     rs_uuid_etag : dictionary
+        All of the uuids of a type having this rsid for a parent, paired with each
+        uuid's highest data etag version.
+
         Structure:
         { type: {uuid:etag, uuid:etag, ... }}
     rs_id_uuid : dictionary

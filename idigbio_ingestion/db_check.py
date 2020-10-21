@@ -282,7 +282,7 @@ def process_subfile(rf, rsid, rs_uuid_etag, rs_id_uuid, ingest=False, db=None):
 
                             rlogger.debug("****** Row:")
                             rlogger.debug("{0}".format(json.dumps(r)))
-                        raise RecordException("UUID exists but has a parent other than expected. Expected parent (this recordset): {0}  Existing Parent: {1}  UUID: {2}".format(rsid,parent,u))
+                        raise RecordException("UUID for this '{0}' exists but has a parent other than expected. Expected Parent (this recordset): {1}  Existing Parent: {2}  UUID: {3}".format(rf.rowtype,rsid,parent,u))
 
             if deleted:
                 to_undelete += 1

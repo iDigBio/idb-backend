@@ -147,6 +147,20 @@ def process_subfile(rf, rsid, rs_uuid_etag, rs_id_uuid, ingest=False, db=None):
     Processes a data file (typically one of multiple files inside a DwCA).
 
     rf : idigbio_ingestion.lib.dwca.DwcaRecordFile
+    rsid : string
+        A recordset uuid
+    rs_uuid_etag : dictionary
+        All of the uuids of a type having this rsid for a parent, paired with each
+        uuid's highest data etag version.
+
+        Structure:
+        { type: {uuid:etag, uuid:etag, ... }}
+    rs_id_uuid : dictionary
+        Structure:
+        { type: {identifier:uuid, identifier:uuid, ... }}
+    ingest : bool
+    db : PostgresDB connection object
+
 
     Returns
     -------
@@ -268,7 +282,7 @@ def process_subfile(rf, rsid, rs_uuid_etag, rs_id_uuid, ingest=False, db=None):
 
                             rlogger.debug("****** Row:")
                             rlogger.debug("{0}".format(json.dumps(r)))
-                        raise RecordException("UUID exists but has a parent other than expected. Expected parent (this recordset): {0}  Existing Parent: {1}  UUID: {2}".format(rsid,parent,u))
+                        raise RecordException("UUID for this '{0}' exists but has a parent other than expected. Expected Parent (this recordset): {1}  Existing Parent: {2}  UUID: {3}".format(rf.rowtype,rsid,parent,u))
 
             if deleted:
                 to_undelete += 1
@@ -292,6 +306,13 @@ def process_subfile(rf, rsid, rs_uuid_etag, rs_id_uuid, ingest=False, db=None):
                 db.set_record(u, typ[:-1], rsid, r, ids_to_add.keys(), siblings)
                 resurrections += 1
 
+
+            # TODO:
+            # It appears that archives are coming to us now with the 0'th column
+            # named "id" instead of "coreId". This means the direct relationship from extension
+            # to core is not being constructed for these rows.
+            # TODO also:
+            # What about the coreid vs coreId issue?
             if "coreid" in r:
                 if rf.rowtype in ingestion_types:
                     if r["coreid"] in core_siblings:
@@ -307,6 +328,11 @@ def process_subfile(rf, rsid, rs_uuid_etag, rs_id_uuid, ingest=False, db=None):
 
                     unconsumed_extensions[r["coreid"]][rf.rowtype].append(r)
 
+            # TODO:
+            # The presence of "ac:associatedSpecimenReference" currently gets checked even if we have already
+            # established the related specimen record thru "strictor" relationship.  e.g. extension to coreid.
+            # In cases where "ac:associatedSpecimenReference" points to a resource outside of iDigBio,
+            # this causes a fatal error trying to process this row as no relationship can be built.
             if r.get("ac:associatedSpecimenReference"):
                 ref_uuids_list = uuid_re.findall(r["ac:associatedSpecimenReference"])
                 for ref_uuid in ref_uuids_list:
@@ -622,7 +648,7 @@ def main(rsid, ingest=False):
         ispaused = False
         if rsid in paused_rsids:
             ispaused = True
-            rlogger.warn("Recordset is PAUSED. It will be checked but will not be ingested.".format(rsid))
+            rlogger.warn("Recordset '{0}' is PAUSED. It will be checked but will not be ingested.".format(rsid))
             ingest = False
 
         metadata =process_file(name, mime, rsid, db_u_d, db_i_d, ingest=ingest, commit_force=commit_force, ispaused=ispaused)

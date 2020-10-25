@@ -1,4 +1,11 @@
 from __future__ import absolute_import, print_function
+
+### for debugging
+
+import pysnooper
+
+###
+
 import datetime
 import functools
 import json
@@ -123,6 +130,7 @@ def get_db_dicts(rsid):
     return (uuid_etag, id_uuid)
 
 
+@pysnooper.snoop()
 def identifyRecord(t, etag, r, rsid):
     idents = []
     if t in identifier_fields:
@@ -289,9 +297,11 @@ def process_subfile(rf, rsid, rs_uuid_etag, rs_id_uuid, ingest=False, db=None):
             if deleted:
                 to_undelete += 1
 
-            for _, _, i in idents:
-                ids_to_add[i] = u
-            uuids_to_add[u] = etag
+            # pysnooper
+            with pysnooper.snoop():
+                for _, _, i in idents:
+                    ids_to_add[i] = u
+                uuids_to_add[u] = etag
 
             if ingest and not deleted:
                 if matched:
@@ -337,34 +347,37 @@ def process_subfile(rf, rsid, rs_uuid_etag, rs_id_uuid, ingest=False, db=None):
             # established the related specimen record thru "strictor" relationship.  e.g. extension to coreid.
             # In cases where "ac:associatedSpecimenReference" points to a resource outside of iDigBio,
             # this causes a fatal error trying to process this row as no relationship can be built.
-            if r.get("ac:associatedSpecimenReference"):
-                ref_uuids_list = uuid_re.findall(r["ac:associatedSpecimenReference"])
-                for ref_uuid in ref_uuids_list:
-                    # Check for internal idigbio_uuid reference
-                    db_r = db.get_item(ref_uuid)
-                    db_uuid = None
-                    if db_r is None:
-                        # Check for identifier suffix match
-                        # db_r will hold a tuple-ly thing.
-                        db_r = db.fetchone(
-                            "SELECT uuids_id FROM uuids_identifier WHERE reverse(identifier) LIKE reverse(%s)",
-                            ("%" + ref_uuid,),cursor_factory=DictCursor)
 
+            # pysnooper
+            with pysnooper.snoop():
+                if r.get("ac:associatedSpecimenReference"):
+                    ref_uuids_list = uuid_re.findall(r["ac:associatedSpecimenReference"])
+                    for ref_uuid in ref_uuids_list:
+                        # Check for internal idigbio_uuid reference
+                        db_r = db.get_item(ref_uuid)
+                        db_uuid = None
                         if db_r is None:
-                            db_uuid = None
+                            # Check for identifier suffix match
+                            # db_r will hold a tuple-ly thing.
+                            db_r = db.fetchone(
+                                "SELECT uuids_id FROM uuids_identifier WHERE reverse(identifier) LIKE reverse(%s)",
+                                ("%" + ref_uuid,),cursor_factory=DictCursor)
+
+                            if db_r is None:
+                                db_uuid = None
+                            else:
+                                db_uuid = db_r["uuids_id"]
+
                         else:
-                            db_uuid = db_r["uuids_id"]
+                            db_uuid = db_r["uuid"]
 
-                    else:
-                        db_uuid = db_r["uuid"]
-
-                    if db_uuid is None:
-                        # We probably need to do something other than raise this RecordException for this since 
-                        # ac:associatedSpecimenReference is not required to be in *this* file / system.
-                        # Can we find a different identifier?
-                        raise RecordException("Record (idents: [{0}]) contains ac:associatedSpecimenReference '{1}' that does not relate to an existing identifier.".format(ref_uuid, idents))
-                    elif ingest:
-                        db._upsert_uuid_sibling(u, db_uuid)
+                        if db_uuid is None:
+                            # We probably need to do something other than raise this RecordException for this since 
+                            # ac:associatedSpecimenReference is not required to be in *this* file / system.
+                            # Can we find a different identifier?
+                            raise RecordException("Record (idents: [{0}]) contains ac:associatedSpecimenReference '{1}' that does not relate to an existing identifier.".format(ref_uuid, idents))
+                        elif ingest:
+                            db._upsert_uuid_sibling(u, db_uuid)
 
             count += 1
         except RecordException as e:

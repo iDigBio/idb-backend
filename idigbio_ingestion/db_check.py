@@ -252,6 +252,8 @@ def process_subfile(rf, rsid, rs_uuid_etag, rs_id_uuid, ingest=False, db=None):
                         ids_to_add[ident[2]] = True
                         idents.append(ident)
 
+            # At this point we have 'idents' populated with all of the recordId candidates that were found
+
             u = None
             matched = False
             for _, _, i in idents:
@@ -313,6 +315,8 @@ def process_subfile(rf, rsid, rs_uuid_etag, rs_id_uuid, ingest=False, db=None):
             # to core is not being constructed for these rows.
             # TODO also:
             # What about the coreid vs coreId issue?
+            # TODO also:
+            # Is this dead code since "coreid" is not longer in identifier_fields ?
             if "coreid" in r:
                 if rf.rowtype in ingestion_types:
                     if r["coreid"] in core_siblings:

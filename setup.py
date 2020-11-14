@@ -16,8 +16,8 @@ version = re.search(r'^__version__\s*=\s*[\'"]([^\'"]*)[\'"]',
                     read(os.path.join(os.path.dirname(__file__), 'idb/__init__.py')), re.MULTILINE).group(1)
 
 # Abort if on Python 3 since we know the codebase does not support it.
-if sys.version_info >= (3,0):
-    sys.exit("idb-backend: Python 3 is not supported. Consider passing '-p python2.7' when creating the venv.")
+if sys.version_info < (3,0):
+    sys.exit("idb-backend: Python 2 is not supported in this branch.")
 
 # Pillow-SIMD causes segfault on newer Python 2.
 # We do not yet support Python 3.

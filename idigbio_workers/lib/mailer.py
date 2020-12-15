@@ -1,11 +1,11 @@
 from __future__ import division, absolute_import, print_function
 import os.path
 import smtplib
-from email.MIMEMultipart import MIMEMultipart
-from email.MIMEBase import MIMEBase
-from email.MIMEText import MIMEText
-from email.Utils import COMMASPACE, formatdate
-from email import Encoders
+from email.mime.multipart import MIMEMultipart
+from email.mime.base import MIMEBase
+from email.mime.text import MIMEText
+from email.utils import COMMASPACE, formatdate
+from email import encoders
 
 from idb.helpers.logging import idblogger
 

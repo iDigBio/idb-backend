@@ -1,4 +1,4 @@
-from __future__ import absolute_import
+from __future__ import absolute_import, print_function
 import hashlib
 import json
 
@@ -69,7 +69,7 @@ def objectHasher(hash_type, data, sort_arrays=False, sort_keys=True):
     elif data is None:
         pass
     else:
-        print type(data)
+        print (type(data))
 
     # print s
     h.update(s.encode("utf8"))

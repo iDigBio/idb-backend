@@ -2,7 +2,7 @@ from __future__ import division, absolute_import
 from __future__ import print_function
 
 from functools import wraps
-import cPickle
+import pickle
 from idb.helpers.logging import getLogger
 from atomicfile import AtomicFile
 
@@ -54,15 +54,15 @@ def _memoize_nargs_callthru(fn):
     return memo
 
 
-def _memoize_nargs_cPickle(fn):
+def _memoize_nargs_pickle(fn):
     "A memoizer for function w/ arbitrary length arguments."
     memory = {}
-    import cPickle
+    import pickle
 
     @wraps(fn)
     def memo(*args, **kwargs):
-        key = (cPickle.dumps(args, cPickle.HIGHEST_PROTOCOL),
-               cPickle.dumps(kwargs, cPickle.HIGHEST_PROTOCOL))
+        key = (pickle.dumps(args, pickle.HIGHEST_PROTOCOL),
+               pickle.dumps(kwargs, pickle.HIGHEST_PROTOCOL))
         try:
             v = memory[key]
         except KeyError:
@@ -72,20 +72,20 @@ def _memoize_nargs_cPickle(fn):
     return memo
 
 
-def memoized(unhashable="cPickle"):
+def memoized(unhashable="pickle"):
     "Decorator to memoize a function."
     def getfn(fn):
         if fn.func_code.co_argcount == 0:
             memo = _memoize_0args(fn)
         elif unhashable == "call":
             memo = _memoize_nargs_callthru(fn)
-        elif unhashable == "cPickle":
-            memo = _memoize_nargs_cPickle(fn)
+        elif unhashable == "pickle":
+            memo = _memoize_nargs_pickle(fn)
         elif unhashable == "error":
             memo = _memoize_nargs_error(fn)
         else:
             raise ValueError(
-                "Uknown unhashable memoization strategy, expected {call, cPickle, error}")
+                "Uknown unhashable memoization strategy, expected {call, pickle, error}")
         if memo.__doc__:
             memo.__doc__ = memo.__doc__ + "\n\nThis function is memoized."
         else:
@@ -101,7 +101,7 @@ def filecached(filename, writeback=True):
     def writecache(value):
         logger.debug("Writing cache to %r", filename)
         with AtomicFile(filename, 'wb') as f:
-            cPickle.dump(value, f)
+            pickle.dump(value, f)
 
     def getfn(fn):
         @wraps(fn)
@@ -109,7 +109,7 @@ def filecached(filename, writeback=True):
             val = None
             try:
                 with open(filename, 'rb') as f:
-                    val = cPickle.load(f)
+                    val = pickle.load(f)
                     logger.debug("read cache from %r", filename)
             except (IOError, EOFError):
                 val = fn(*args, **kwargs)

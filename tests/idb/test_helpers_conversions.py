@@ -208,7 +208,7 @@ class TestDateGrabber(unittest.TestCase):
         }
         self.assertEqual({
             "datemodified": datetime.datetime(2014, 1, 10, tzinfo=pytz.utc),
-            "datecollected": datetime.date(2014,01,10),
+            "datecollected": datetime.date(2014, 1, 10),
             "startdayofyear": 10,
         }, conversions.dateGrabber("records", r))
 

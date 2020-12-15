@@ -1,4 +1,4 @@
-from __future__ import absolute_import
+from __future__ import absolute_import, print_function
 import socket
 import json
 
@@ -101,13 +101,13 @@ class Biodiversity(object):
 def main():
     b = Biodiversity()
 
-    print b.get_genus_species("Puma concolor")
+    print (b.get_genus_species("Puma concolor"))
 
-    print b.get_genus_species_list([
+    print (b.get_genus_species_list([
         "Puma concolor",
         "Quercus alba",
         "Acer floridanum"
-    ])
+    ]))
 
 if __name__ == '__main__':
     main()

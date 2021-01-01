@@ -45,7 +45,12 @@ class DelimitedFile(object):
     def __init__(self, fh, encoding="utf8", delimiter=",", fieldenc="\"", header=None, rowtype=None, logname=None):
         super(DelimitedFile, self).__init__()
 
-        self.encoding = encoding
+        # if incoming encoding is specified but is an empty string, we should abort here rather than
+        # waiting for the actual file processing to raise an exception.
+        if encoding == "":
+            raise ValueError("Encoding cannot be an empty string, must specify an actual encoding.")
+        else:
+            self.encoding = encoding
         self.fieldenc = fieldenc
         self.delimiter = delimiter
         self.rowtype = rowtype

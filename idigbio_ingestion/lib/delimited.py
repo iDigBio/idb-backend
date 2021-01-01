@@ -47,7 +47,7 @@ class DelimitedFile(object):
 
         # if incoming encoding is specified but is an empty string, we should abort here rather than
         # waiting for the actual file processing to raise an exception.
-        if encoding = "":
+        if encoding == "":
             raise ValueError("Encoding cannot be an empty string, must specify an actual encoding.")
         else:
             self.encoding = encoding

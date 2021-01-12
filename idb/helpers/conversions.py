@@ -291,7 +291,7 @@ def verbatimGrabber(t, d):
         r[f[0]] = getfield(f[1], d, t=f[2])
     return r
 
-gfn = re.compile("([+-]?[0-9]+(?:[,][0-9]{3})*(?:[\.][0-9]*)?)")
+gfn = re.compile(r"([+-]?[0-9]+(?:[,][0-9]{3})*(?:[\.][0-9]*)?)")
 
 
 def grabFirstNumber(f):
@@ -307,7 +307,7 @@ def grabFirstNumber(f):
         pass
     return n
 
-mangler = re.compile("[\W]+")
+mangler = re.compile(r"[\W]+")
 
 
 def mangleString(s):
@@ -315,7 +315,7 @@ def mangleString(s):
 
 
 uuid_re = re.compile(
-    "([a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12})")
+    r"([a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12})")
 
 
 def grabFirstUUID(f):
@@ -812,7 +812,7 @@ def collect_common_names(t, d):
         return {}
 
 
-genbank_ids = re.compile("[a-zA-Z]{1,2}\-?_?\d{5,6}")
+genbank_ids = re.compile(r"[a-zA-Z]{1,2}\-?_?\d{5,6}")
 
 def collect_genbank_sequences(t, d):
     if t == "records":

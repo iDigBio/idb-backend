@@ -39,7 +39,7 @@ class FakeKey(object):
 
 @pytest.fixture()
 def rand_etag():
-    return unicode(uuid.uuid4())
+    return str(uuid.uuid4())
 
 
 @pytest.fixture()

@@ -3,7 +3,7 @@
 """
 from __future__ import division, absolute_import, print_function
 
-import cStringIO
+from io import BytesIO
 import math
 import os
 import time
@@ -194,8 +194,8 @@ class IDigBioStorage(object):
 
     @staticmethod
     def get_contents_to_mem(key, md5=None):
-        "Wraps ``key.get_contents_to_file fetching into a StringIO buffer``"
-        buff = cStringIO.StringIO()
+        "Wraps ``key.get_contents_to_file fetching into a BytesIO buffer``"
+        buff = BytesIO()
         IDigBioStorage.get_contents_to_file(key, buff, md5=md5)
         buff.seek(0)
         return buff
@@ -203,7 +203,7 @@ class IDigBioStorage(object):
     @staticmethod
     def get_contents_to_file(key, fp, md5=None):
         key.get_contents_to_file(fp)
-        if md5 and key.md5 != md5:
+        if md5 is not None and key.md5.decode('utf-8') != md5:
             raise S3DataError(
                 'MD5 of downloaded did not match given MD5: '
                 '%s vs. %s' % (key.md5, md5))

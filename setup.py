@@ -58,7 +58,7 @@ setup(
         'coverage',
         'numpy',
         'scipy',
-        'gevent=1.3.0',
+        'gevent==1.3.0',
         'gipc>=0.6.0, <0.7.0',
         'unicodecsv>=0.14.1, < 0.15.0',
         'shapely',

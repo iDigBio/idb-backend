@@ -7,7 +7,7 @@ import sys
 import itertools
 
 from datetime import datetime
-from cStringIO import StringIO
+from io import StringIO
 
 from psycopg2.extras import DictCursor, NamedTupleCursor
 from psycopg2.extensions import cursor

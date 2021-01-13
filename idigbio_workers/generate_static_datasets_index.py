@@ -8,7 +8,7 @@ import dateutil.parser
 import requests
 import json
 import re
-from cStringIO import StringIO
+from io import StringIO
 
 
 from idb.helpers.storage import IDigBioStorage

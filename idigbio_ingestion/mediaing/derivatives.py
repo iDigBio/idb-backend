@@ -1,12 +1,10 @@
 from __future__ import division, absolute_import
 from __future__ import print_function
-from future_builtins import map, filter
 
-import cStringIO
+from io import BytesIO
 
 from datetime import datetime
 from collections import Counter, namedtuple
-import itertools
 
 from gevent.pool import Pool
 from PIL import Image
@@ -87,7 +85,7 @@ def process_objects(objects):
         ci = get_keys(o)
         gr = generate_all(ci)
         return upload_all(gr)
-    results = pool.imap_unordered(one, itertools.ifilter(None, objects))
+    results = pool.imap_unordered(one, filter(None, objects))
     results = count_results(results, update_freq=100)
     etags = ((gr.etag,) for gr in results if gr)
     count = apidbpool.executemany(
@@ -151,7 +149,7 @@ get_store = memoized()(lambda: IDigBioStorage())
 
 def get_keys(obj):
     etag, bucket = obj.etag, obj.bucket
-    etag = unicode(etag)
+    etag = str(etag)
     s = get_store()
     bucketbase = u"idigbio-{0}-{1}".format(bucket, config.ENV)
     mediakey = s.get_key(etag, bucketbase)
@@ -235,7 +233,7 @@ def upload_item(item):
 def img_to_buffer(img, **kwargs):
     kwargs.setdefault('format', 'JPEG')
     kwargs.setdefault('quality', 95)
-    dervbuff = cStringIO.StringIO()
+    dervbuff = BytesIO()
     img.save(dervbuff, **kwargs)
     dervbuff.seek(0)
     return dervbuff

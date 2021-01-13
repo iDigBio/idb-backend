@@ -222,7 +222,7 @@ def pick_license(s, debug=False):
         return manual_assignment[s]
 
     rights_regex = re.compile(
-        "((?:by(?:.?nc)?(?:.?sa)?(?:.?nd)?)|cc0|zero|(?:public.?domain)).?(\d\.\d)?", re.I)
+        r"((?:by(?:.?nc)?(?:.?sa)?(?:.?nd)?)|cc0|zero|(?:public.?domain)).?(\d\.\d)?", re.I)
     strip_special = re.compile('[^0-9a-zA-Z]+')
     picked = None
     order = -1

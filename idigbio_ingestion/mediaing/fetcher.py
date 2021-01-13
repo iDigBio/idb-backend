@@ -117,7 +117,8 @@ def process_list(fetchitems, forprefix=''):
         items = update_db_status(items)
         items = count_result_types(items, forprefix=forprefix)
         return ilen(items)  # consume the generator
-    except StandardError:
+
+    except:
         logger.exception("Unhandled error forprefix:%s", forprefix)
         raise
 

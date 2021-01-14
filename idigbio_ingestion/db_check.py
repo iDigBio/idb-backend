@@ -515,7 +515,7 @@ def process_file(fname, mime, rsid, existing_etags, existing_ids, ingest=False, 
 
 
 def save_summary_json(rsid, counts):
-    with AtomicFile(rsid + ".summary.json", "wb") as sumf:
+    with AtomicFile(rsid + ".summary.json", "w") as sumf:
         json.dump(counts, sumf, indent=2)
 
 
@@ -542,7 +542,7 @@ def metadataToSummaryJSON(rsid, metadata, writeFile=True, doStats=True):
     if metadata["filemd5"] is None:
         summary["datafile_ok"] = False
         if writeFile:
-            with AtomicFile(rsid + ".summary.json", "wb") as jf:
+            with AtomicFile(rsid + ".summary.json", "w") as jf:
                 json.dump(summary, jf, indent=2)
         return summary
     
@@ -573,9 +573,9 @@ def metadataToSummaryJSON(rsid, metadata, writeFile=True, doStats=True):
         stats.index(doc_type='digest', body=summary)
 
     if writeFile:
-        with AtomicFile(rsid + ".summary.json", "wb") as jf:
+        with AtomicFile(rsid + ".summary.json", "w") as jf:
             json.dump(summary, jf, indent=2)
-        with AtomicFile(rsid + ".metadata.json", "wb") as jf:
+        with AtomicFile(rsid + ".metadata.json", "w") as jf:
             json.dump(metadata, jf, indent=2)
     else:
         return summary
@@ -638,9 +638,9 @@ def main(rsid, ingest=False):
         else:
             rlogger.info("Building ids/uuids json")
             db_u_d, db_i_d = get_db_dicts(rsid)
-            with AtomicFile(rsid + "_uuids.json", "wb") as uuidf:
+            with AtomicFile(rsid + "_uuids.json", "w") as uuidf:
                 json.dump(db_u_d, uuidf)
-            with AtomicFile(rsid + "_ids.json", "wb") as idf:
+            with AtomicFile(rsid + "_ids.json", "w") as idf:
                 json.dump(db_i_d, idf)
 
         commit_force = False

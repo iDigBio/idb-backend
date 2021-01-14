@@ -588,7 +588,7 @@ class MediaObject(object):
     )
 
     def __init__(self, *args, **kwargs):
-        for s, a in itertools.izip_longest(self.__slots__, args):
+        for s, a in itertools.zip_longest(self.__slots__, args):
             setattr(self, s, a)
         for kw in kwargs.items():
             setattr(self, *kw)

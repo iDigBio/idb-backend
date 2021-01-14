@@ -274,7 +274,7 @@ class FetchItem(object):
             if self.ok:
                 logger.info("Success!  %s", self.url)
             return self
-        except StandardError:
+        except:
             self.status_code = Status.UNHANDLED_FAILURE
             logger.exception("Unhandled error processing: %s", self.url)
             return self
@@ -450,7 +450,7 @@ class TropicosItem(FetchItem):
                                  self.url, self.sleep_retry, self.retries)
                     sleep(self.sleep_retry)
                     self.sleep_retry *= 1.5
-        except StandardError:
+        except:
             self.status_code = Status.UNHANDLED_FAILURE
             logger.exception("Unhandled %s", self.url)
         return self

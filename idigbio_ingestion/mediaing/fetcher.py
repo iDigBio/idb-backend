@@ -113,7 +113,7 @@ def process_list(fetchitems, forprefix=''):
         uploadpool = gevent.pool.Pool(8)
         items = fetchrpool.imap_unordered(lambda fi: fi.get_media(), fetchitems, maxsize=10)
         items = uploadpool.imap_unordered(lambda fi: fi.upload_to_storage(store), items, maxsize=10)
-        items = itertools.imap(FetchItem.cleanup, items)
+        items = map(FetchItem.cleanup, items)
         items = update_db_status(items)
         items = count_result_types(items, forprefix=forprefix)
         return ilen(items)  # consume the generator

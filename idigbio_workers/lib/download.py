@@ -209,7 +209,7 @@ def query_to_csv(outf, t, body, header_fields, fields, id_field, raw, tabs, id_f
             for k in fields:
                 v = get_source_value(r["_source"],k)
                 if v is not None:
-                    if isinstance(v, str) or isinstance(v, unicode):
+                    if isinstance(v, str):
                         r_fields.append(v)
                     else:
                         r_fields.append(json.dumps(v))

@@ -2,6 +2,7 @@ import pytest
 import gevent
 import os
 import sys
+from importlib import reload
 
 @pytest.fixture
 def app(testdbpool, testdata, logger):

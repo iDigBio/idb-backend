@@ -57,7 +57,7 @@ class DelimitedFile(object):
         self.lineCount = 0
         self.lineLength = None
 
-        if isinstance(fh, str) or isinstance(fh, unicode):
+        if isinstance(fh, str):
             self.name = fh
         else:
             self.name = fh.name

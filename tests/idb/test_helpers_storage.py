@@ -48,7 +48,7 @@ def test_download_md5_validation(store, existingkey, tmpdir):
 def test_file_upload_download(store, bucketname, tmpdir):
     k = store.upload(store.get_key('foobar', bucketname), __file__, content_type="x-foo/bar", public=False)
     localmd5 = calcFileHash(__file__)
-    assert k.md5 == localmd5
+    assert k.md5.decode('utf-8') == localmd5
 
     k2 = store.get_key('foobar', bucketname)
     assert k2.exists()

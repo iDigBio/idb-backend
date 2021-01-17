@@ -8,27 +8,23 @@ iDigBio server and backend code for data ingestion and data API.
 
 ### System Dependencies
 
-Currently this project only works in python2.7 and is not compatible with Python 3.
-
-The following library packages will need to be installed to run the api:
-
-In Ubuntu 16.04:
-
-    apt-get install python2.7-dev libblas-dev liblapack-dev \
-      libatlas-base-dev gfortran libgdal-dev libpq-dev libgeos-c1v5 \
-      libsystemd-dev
+#### Python 3 instructions:
 
 In Ubuntu 18.04:
 
-    apt install python-dev libblas-dev liblapack-dev \
+    apt install python3-dev libblas-dev liblapack-dev \
       libatlas-base-dev gfortran libgdal-dev libpq-dev libgeos-c1v5 \
       libsystemd-dev
 
 For Ingestion and Development, the following are also needed:
 
-In Ubuntu 16.04, 18.04:
+In 18.04:
 
-    apt-get install libxml2 libxslt1-dev ffmpeg fonts-dejavu-core libfreetype6-dev python-systemd
+    apt install libxml2 libxslt1-dev ffmpeg fonts-dejavu-core libfreetype6-dev python-systemd
+
+#### Python 2.7 instructions:
+
+This version of idb-backend will not work under Python 2.
 
 
 ### Package installation
@@ -90,6 +86,8 @@ celery to a background worker.
 
 You probably want to run in a virtual environment.   You may wish to disable the pip cache
 to verify package builds are working properly.
+
+*in progress for Python 3...*
 
 ```bash
 $ virtualenv -p python2.7 .venv

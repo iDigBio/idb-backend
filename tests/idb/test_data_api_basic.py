@@ -17,7 +17,7 @@ def test_app_db(client):
 def test_version(client):
     r = client.get(url_for('version'))
     assert r.status_code == 200
-    assert r.data == idb.__version__
+    assert str(r.data, "utf-8") == idb.__version__
 
 
 @pytest.mark.readonly

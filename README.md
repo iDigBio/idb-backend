@@ -106,13 +106,21 @@ It is possible in the future that this project will be runnable using "Open in c
 
 ### Testing Dependencies
 
-Some idb-backend tests depend on external resources, such as a database or Elasticsearch.
+Some idb-backend tests depend on external resources, such as a local test postgres database or the production Elasticsearch cluster.
 
-A local postgresql DB named `test_idigbio` with user/pass `test` / `test` must exist for many of the tests to run.  Note: The data in the DB will be destroyed during the testing.
+* Database tests will be SKIPPED if the local postgres test database is not available.
 
-Database tests will be SKIPPED if the database is not available.
+* Tests that depend on Elasticsearch will FAIL if the Elasticsearch cluster cannot be reached (fail very slowly in fact), or if there is some other failure.
 
-Tests that depend on Elasticsearch will FAIL if the computer running the tests cannot reach the Elasticsearch cluster (fail very slowly in fact), or if there is some other failure.
+The local postgresql 9.5 DB is named `test_idigbio` with user/pass `test` / `test`.
+
+Note: The data in the db with that name will be destroyed during testing.
+
+A temporary instance of postgres running in docker will suffice:
+
+```
+$ docker run --rm --name postgres_test_idigbio --network host -e POSTGRES_PASSWORD=test -e POSTGRES_USER=test -e POSTGRES_DB=test_idigbio -d postgres:9.5
+```
 
 ### Running tests
 

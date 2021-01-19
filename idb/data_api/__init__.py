@@ -85,7 +85,7 @@ def run_server(info, host, port, reload, debugger, eager_loading, debug, wsgi):
 
     elif wsgi == 'gevent':
         from gevent.pool import Pool
-        from gevent.wsgi import WSGIServer
+        from gevent.pywsgi import WSGIServer
         from idb.helpers.logging import idblogger
         from requestlogger import WSGILogger, ApacheFormatter
         logger = idblogger.getChild('api')

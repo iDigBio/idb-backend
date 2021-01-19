@@ -1,19 +1,17 @@
-import os
+from os import path
 import re
 import sys
 from setuptools import setup, find_packages
 
-from codecs import open
-
 def read(*paths):
     """Build a file path from *paths* and return the contents."""
-    with open(os.path.join(*paths), 'r', 'utf-8') as f:
+    with open(path.join(*paths), 'r', encoding='utf-8') as f:
         return f.read()
 
 readme = read('README.md')
 
 version = re.search(r'^__version__\s*=\s*[\'"]([^\'"]*)[\'"]',
-                    read(os.path.join(os.path.dirname(__file__), 'idb/__init__.py')), re.MULTILINE).group(1)
+                    read(path.join(path.dirname(__file__), 'idb/__init__.py')), re.MULTILINE).group(1)
 
 # Abort if not on Python 3 since we know the codebase does not support it.
 if sys.version_info < (3,0):

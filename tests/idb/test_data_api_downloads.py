@@ -6,7 +6,8 @@ import json
 
 import gevent
 import udatetime
-from udatetime.rfc3339 import from_rfc3339_string
+from udatetime import from_string
+
 import pytest
 from flask import url_for
 
@@ -75,7 +76,11 @@ def setupredis(client, tid=None, task_status=None, download_url=None, error=None
         redisdata['download_url'] = download_url
     if error:
         redisdata['error'] = error
-    client.hmset(rtkey, redisdata)
+    # hmset creates redis a hash key b'downloader:ab219ed4-78fc-4433-8ea1-c350fb47b645'
+    # that contains all of the key value pairs from redisdata as bytes such as:
+    #   b'created':b'2021-01-19T14:14:46.528067+00:00',
+    #   b'task_status':b'SUCCESS'
+    client.hmset(rtkey, redisdata) 
     client.expire(rtkey, timedelta(hours=1))
     if link:
         rqhk = DOWNLOADER_TASK_PREFIX + redisdata['hash']
@@ -91,8 +96,8 @@ def test_status_complete_task(client, fakeredcli):
     assert resp.json['download_url'] == "http://example.com"
     assert resp.json['complete'] is True
     assert resp.json['task_status'] == 'SUCCESS'
-    assert from_rfc3339_string(resp.json['created'])
-    assert from_rfc3339_string(resp.json['expires'])
+    assert from_string(resp.json['created'])
+    assert from_string(resp.json['expires'])
     assert 'error' not in resp.json
 
 
@@ -103,8 +108,8 @@ def test_status_pending_task(client, fakeredcli, fakeresult):
     assert resp.status_code == 200
     assert resp.json['task_status'] == "PENDING"
     assert resp.json['complete'] is False
-    assert from_rfc3339_string(resp.json['created'])
-    assert from_rfc3339_string(resp.json['expires'])
+    assert from_string(resp.json['created'])
+    assert from_string(resp.json['expires'])
     assert 'download_url' not in resp.json
     assert 'error' not in resp.json
 
@@ -118,8 +123,8 @@ def test_status_pending_now_success(client, fakeredcli, fakeresult):
     assert resp.json['download_url'] == "http://foo/bar"
     assert resp.json['complete'] is True
     assert resp.json['task_status'] == 'SUCCESS'
-    assert from_rfc3339_string(resp.json['created'])
-    assert from_rfc3339_string(resp.json['expires'])
+    assert from_string(resp.json['created'])
+    assert from_string(resp.json['expires'])
     assert 'error' not in resp.json
 
 
@@ -132,8 +137,8 @@ def test_status_pending_now_failure(client, fakeredcli, fakeresult):
     assert resp.json['error'] == "woot"
     assert resp.json['complete'] is True
     assert resp.json['task_status'] == 'FAILURE'
-    assert from_rfc3339_string(resp.json['created'])
-    assert from_rfc3339_string(resp.json['expires'])
+    assert from_string(resp.json['created'])
+    assert from_string(resp.json['expires'])
     assert 'download_url' not in resp.json
     gevent.wait()
     assert tid != fakeredcli.get(DOWNLOADER_TASK_PREFIX + resp.json['hash']), \
@@ -150,8 +155,8 @@ def test_status_pending_now_failure_already_unlinked(client, fakeredcli, fakeres
     assert resp.json['error'] == "woot"
     assert resp.json['complete'] is True
     assert resp.json['task_status'] == 'FAILURE'
-    assert from_rfc3339_string(resp.json['created'])
-    assert from_rfc3339_string(resp.json['expires'])
+    assert from_string(resp.json['created'])
+    assert from_string(resp.json['expires'])
     assert 'download_url' not in resp.json
     assert "woot" == fakeredcli.get(DOWNLOADER_TASK_PREFIX + "foobar")
 
@@ -167,11 +172,12 @@ def test_initialization(client, fakeredcli, fakeresult):
     assert 'status_url' in resp.json
     tid = resp.json['status_url'].split('/')[-1]
     data = fakeredcli.hgetall(DOWNLOADER_TASK_PREFIX + tid)
+    # At this point, data contains keys that are bytes aka data[b'query']
     assert data
     assert len(data) != 0
-    assert data['query']
-    assert data['hash']
-    assert data['created']
+    assert data[b'query']
+    assert data[b'hash']
+    assert data[b'created']
 
 
 def test_initialization_repeated_request(client, fakeredcli, fakeresult):

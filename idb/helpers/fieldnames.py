@@ -58,6 +58,7 @@ types = {
     "http://rs.tdwg.org/dwc/terms/Occurrence": { "shortname": "dwc:Occurrence" },
     "http://rs.tdwg.org/dwc/terms/ResourceRelationship": { "shortname": "dwc:ResourceRelationship" },
     "http://rs.tdwg.org/dwc/terms/Taxon": {"shortname": "dwc:Taxon"},
+    "http://rs.tdwg.org/chrono/terms/ChronometricAge": {"shortname": "chrono:ChronometricAge"},
     "http://zooarchnet.org/dwc/terms/ChronometricDate": {"shortname": "zan:ChronometricDate"},
     "http://zooarchnet.org/dwc/terms/ChronometricAge": {"shortname": "zan:ChronometricAge"}
 }

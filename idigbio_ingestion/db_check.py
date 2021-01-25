@@ -544,6 +544,7 @@ def metadataToSummaryJSON(rsid, metadata, writeFile=True, doStats=True):
         if writeFile:
             with AtomicFile(rsid + ".summary.json", "wb") as jf:
                 json.dump(summary, jf, indent=2)
+                jf.write(os.linesep)
         return summary
     
 
@@ -575,8 +576,10 @@ def metadataToSummaryJSON(rsid, metadata, writeFile=True, doStats=True):
     if writeFile:
         with AtomicFile(rsid + ".summary.json", "wb") as jf:
             json.dump(summary, jf, indent=2)
+            jf.write(os.linesep)
         with AtomicFile(rsid + ".metadata.json", "wb") as jf:
             json.dump(metadata, jf, indent=2)
+            jf.write(os.linesep)
     else:
         return summary
 

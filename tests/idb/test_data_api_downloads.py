@@ -22,7 +22,7 @@ logger = idblogger.getChild('test.api.downloads')
 @pytest.fixture()
 def fakeredcli(request):
     import fakeredis
-    fsr = fakeredis.FakeStrictRedis()
+    fsr = fakeredis.FakeStrictRedis(decode_responses=True)
     v2_download.get_redis_conn = lambda: fsr
     request.addfinalizer(fsr.flushall)
     return fsr
@@ -91,6 +91,7 @@ def setupredis(client, tid=None, task_status=None, download_url=None, error=None
 
 def test_status_complete_task(client, fakeredcli):
     tid = setupredis(fakeredcli, task_status="SUCCESS", download_url="http://example.com")
+    # client is Flask client!
     resp = client.get(url_for('idb.data_api.v2_download.status', tid=tid))
     assert resp.status_code == 200
     assert resp.json['download_url'] == "http://example.com"
@@ -175,9 +176,9 @@ def test_initialization(client, fakeredcli, fakeresult):
     # At this point, data contains keys that are bytes aka data[b'query']
     assert data
     assert len(data) != 0
-    assert data[b'query']
-    assert data[b'hash']
-    assert data[b'created']
+    assert data['query']
+    assert data['hash']
+    assert data['created']
 
 
 def test_initialization_repeated_request(client, fakeredcli, fakeresult):

@@ -107,6 +107,8 @@ def get_task_status(tid):
     rconn = get_redis_conn()
     rtkey = DOWNLOADER_TASK_PREFIX + tid
     try:
+        # In python3, redis returns bytes by default for both keynames and data.
+        # See important change in get_redis_conn().
         tdata = rconn.hgetall(rtkey)
         if len(tdata) == 0:
             return None

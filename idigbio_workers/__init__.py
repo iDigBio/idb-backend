@@ -26,7 +26,13 @@ def get_redis_connection_params():
 
 def get_redis_conn():
     import redis
-    return redis.StrictRedis(**get_redis_connection_params())
+    # In python3, redis returns bytes for "everything" by default (both keynames and data).
+    # Adding decode_responses=True should force each field name and contents to be a
+    # string (instead of bytes) so our string-based comparisons continue to work.
+    # e.g. redis_response["status_url"] vs redis_response[b"status_url"]
+    # Setting decode_responses fixed the test suite but leaving this comment here
+    # as a marker in case production behavior differs.
+    return redis.StrictRedis(**get_redis_connection_params(), decode_responses=True)
 
 
 @app.task()

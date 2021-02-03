@@ -29,6 +29,6 @@ from idigbio_ingestion.lib.eml import parseEml
 
 
 def test_intellectual_rights(eml_filename, expected_license, emlpathdir):
-    emlfile = emlpathdir.join(eml_filename).open()
-    parsed_eml = parseEml('id_placeholder_test_suite', emlfile.read())
+    emlfilename = emlpathdir.join(eml_filename)
+    parsed_eml = parseEml('id_placeholder_test_suite', emlfilename)
     assert parsed_eml['data_rights'] == expected_license

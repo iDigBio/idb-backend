@@ -936,11 +936,11 @@ def grabAll(t, d):
     # r.update(geoshape_fill(t, d, r))
 
     r["flags"] = setFlags(r)
-    for k in r.keys():
+    for k in list(r):
         if k.startswith("flag_"):
             r["flags"].append("_".join(k.split("_")[1:]))
             del r[k]
-    for k in d.keys():
+    for k in list(d):
         if k.startswith("flag_"):
             r["flags"].append("_".join(k.split("_")[1:]))
     r["dqs"] = score(t, r)

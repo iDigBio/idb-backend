@@ -57,7 +57,7 @@ def objectHasher(hash_type, data, sort_arrays=False, sort_keys=True):
     elif isinstance(data, int) or isinstance(data, float):
         s = str(data)
     elif isinstance(data, dict):
-        ks = data.keys()
+        ks = list(data.keys())
         if sort_keys:
             ks.sort()
 

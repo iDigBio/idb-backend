@@ -87,20 +87,37 @@ celery to a background worker.
 You probably want to run in a virtual environment.   You may wish to disable the pip cache
 to verify package builds are working properly.
 
-*in progress for Python 3...*
+
+### Python 3
 
 ```bash
-$ virtualenv -p python2.7 .venv
+
+$ python --version
+Python 2.7.17
+
+$ python3 -m virtualenv -p python3 .venv
+Already using interpreter /usr/bin/python3
+Using base prefix '/usr'
+New python executable in /tmp/venvtest/.venv/bin/python3
+Also creating executable in /tmp/venvtest/.venv/bin/python
+Installing setuptools, pkg_resources, pip, wheel...done.
 
 $ source .venv/bin/activate
 
 $ python --version
-Python 2.7.17
+Python 3.6.9
 
 $ pip --no-cache-dir install -e .
 
 $ pip --no-cache-dir install -r requirements.txt
 ```
+
+### Python 2 (obsolete)
+
+This project is no longer compatible with Python 2.
+
+
+### Develop in Container
 
 It is possible in the future that this project will be runnable using "Open in container" features of Microsoft Visual Studio Code (aka vscode or just `code`).
 

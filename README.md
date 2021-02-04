@@ -104,104 +104,13 @@ $ pip --no-cache-dir install -r requirements.txt
 
 It is possible in the future that this project will be runnable using "Open in container" features of Microsoft Visual Studio Code (aka vscode or just `code`).
 
-### Testing Dependencies
 
-Some idb-backend tests depend on external resources, such as a local test postgres database or the production Elasticsearch cluster.
-
-* Database tests will be SKIPPED if the local postgres test database is not available.
-
-* Tests that depend on Elasticsearch will FAIL if the Elasticsearch cluster cannot be reached (fail very slowly in fact), or if there is some other failure.
-
-The local postgresql 9.5 DB is named `test_idigbio` with user/pass `test` / `test`.
-
-Note: The data in the db with that name will be destroyed during testing.
-
-A temporary instance of postgres running in docker will suffice:
-
-```
-$ docker run --rm --name postgres_test_idigbio --network host -e POSTGRES_PASSWORD=test -e POSTGRES_USER=test -e POSTGRES_DB=test_idigbio -d postgres:9.5
-```
-
-### Running tests
+### Running the Test Suite
 
 The test suite can be run by executing `py.test` (or `pytest`).
 
-However due to the dependencies mentioned above, you may wish to run the database in docker each time.  The sleep is needed to allow postgres time to start accepting connections.
+See the [README.md in the `tests` subdirectory](tests/README.md) for more information.
 
-    docker run --rm --name postgres_test_idigbio --network host \
-      -e POSTGRES_PASSWORD=test -e POSTGRES_USER=test -e POSTGRES_DB=test_idigbio  \
-      -d postgres:9.5 && \
-      sleep 5; \
-      py.test ; \
-      docker stop postgres_test_idigbio
-        
-
-To exclude a single set of tests that are failing (or Seg Faulting!), add the `--deselect` option to the pytest command:
-
-    py.test --deselect=tests/idigbio_ingestion/mediaing/test_derivatives.py
-
-To find out why tests are being Skipped, add the `-rxs` options.
-
-A "what the heck is going on with the tests and skip the one that is Seg Faulting" example command:
-
-    docker run --rm --name postgres_test_idigbio --network host  \
-      -e POSTGRES_PASSWORD=test -e POSTGRES_USER=test -e POSTGRES_DB=test_idigbio \
-      -d postgres:9.5 && \
-      sleep 5; \
-      py.test -rxs --deselect=tests/idigbio_ingestion/mediaing/test_derivatives.py ; \
-      docker stop postgres_test_idigbio
-
-### Create a local postgres DB
-
-The recommended approach is to run postgres via docker (see above).
-
-If you have a full installation of postgres running locally, the db can be manually created with: 
-
-    createuser -l -e test -P
-    createdb -l 'en_US.UTF-8' -E UTF8 -O test -e test_idigbio;
-
-    # The schema obj is still owned by the user of the above
-    # statement, not the owner 'test'. Drop it so it will be recreated
-    # by the script appropriately
-    psql -c "DROP SCHEMA public CASCADE;" test_idigbio
+There are a number of important dependencies noted there.
 
 
-### Schema
-
-The live production db schema is copied into `tests/data/schema.sql` by periodically running this command:
-
-    pg_dump --host c18node8.acis.ufl.edu --username idigbio \
-        --format plain --schema-only --schema=public \
-        --clean --if-exists \
-        --no-owner --no-privileges --no-tablespaces --no-unlogged-table-data \
-        --file tests/data/schema.sql \
-        idb_api_prod
-
-Except not yet because there are lots of differences between the existing file and one created by running that command (due to fixes for https://wiki.postgresql.org/wiki/A_Guide_to_CVE-2018-1058:_Protect_Your_Search_Path).
-
-
-### Data
-
-A trimmed down set of data has been manually curated to support the test suite. It is provided in `tests/data/testdata.sql`
-
-The full dump / original was created with something like:
-
-    pg_dump --port 5432 --host c18node8.acis.ufl.edu --username idigbio \
-      --format plain --data-only --encoding UTF8 \
-      --inserts --column-inserts --no-privileges --no-tablespaces \
-      --verbose --no-unlogged-table-data  \
-      --exclude-table-data=ceph_server_files \
-      --file tests/data/testdata.sql idb_api_prod
-
-Such a dump is huge and un-usable and un-editable by normal means. It is not clear how the dump was transformed / curated into its current state.
-
-If running the dump again, consider adding multiple `--exclude-table-data=TABLE` for some of the bigger tables that are not materially relevant to test suite such as:
-
-```plaintext
-annotations
-data
-corrections
-ceph_server_files
-```
-
-We likely need to find a new way to refresh the test dataset.

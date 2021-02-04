@@ -1,7 +1,7 @@
 sudo: required
 dist: xenial
 language: python
-python: 2.7 
+python: 3.6.9 
 services:
 - docker
 - postgresql

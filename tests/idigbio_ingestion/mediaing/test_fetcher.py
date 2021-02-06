@@ -11,10 +11,10 @@ from idb.postgres_backend import apidbpool
 def test_continuous(mocker, caplog):
     def get_items(ignores=[], prefix=None):
         items = [
-            fetcher.FetchItem('http://prefix.1/1', 'images', 'image/jpg'),
-            fetcher.FetchItem('http://prefix.2/2', 'images', 'image/jpg'),
-            fetcher.FetchItem('http://prefix.2/2', 'images', 'image/jpg'),
-            fetcher.FetchItem('http://prefix.2/2', 'images', 'image/jpg'),
+            fetcher.FetchItem('http://prefix.a/0', 'images', 'image/jpg'),
+            fetcher.FetchItem('http://prefix.b/0', 'images', 'image/jpg'),
+            fetcher.FetchItem('http://prefix.c/0', 'images', 'image/jpg'),
+            fetcher.FetchItem('http://prefix.c/1', 'images', 'image/jpg'),
         ]
         return [i for i in items if i.prefix not in ignores]
     mocker.patch.object(fetcher, 'get_items', side_effect=get_items)
@@ -24,6 +24,7 @@ def test_continuous(mocker, caplog):
 
     assert fetcher.get_items.call_count == 2
     msg = "Starting subprocess for"
+    # Should get one subprocess for each url prefix (aka "protocol://domain name/") above
     assert len([r for r in caplog.records if r.msg.startswith(msg)]) == 3
 
 

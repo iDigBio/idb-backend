@@ -18,7 +18,8 @@ def valid_auth_header(mocker):
     mocker.patch.object(idb_flask_authn, 'check_auth', return_value=True)
     uuid = "872733a2-67a3-4c54-aa76-862735a5f334"
     key = "3846c98586668822ba6d5cb69caeb4c6"
-    return ('Authorization', 'Basic ' + base64.b64encode("{}:{}".format(uuid, key)))
+    authstring = base64.b64encode(bytes(f"{uuid}:{key}", 'utf-8')).decode('utf-8')
+    return ('Authorization', 'Basic ' + authstring)
 
 
 @pytest.fixture()

@@ -9,12 +9,8 @@ logger = idblogger.getChild('eml')
 def getElement(root,name):
     return root.find(name)
 
-def parseEml(id, emlText):
-    "Returns a dictionary of the supplied emlText"
-
-    # dump the full eml/xml for debugging
-    #logger.debug(emlText)
-
+def parseEml(id, emlFilename):
+    "Returns a dictionary of fields from the eml file"
 
     # If the target eml document is not XML, the eml object will not be created due to XMLSyntaxError or other
     # pyquery exception.  This is known to occur when a link to eml results in a 404 error page containing HTML.
@@ -22,7 +18,7 @@ def parseEml(id, emlText):
     # It is possible we could trap this ahead of time by checking the raw emlText for key xml features
     # or HTML document features.
 
-    eml = pq(emlText, parser='xml')
+    eml = pq(filename=emlFilename, parser='xml')
 
     ### The eml().txt() function returns an empty string instead of None if the location does not exist in the eml
     ### (if there is "no text node" according to release notes https://pypi.python.org/pypi/pyquery)
@@ -155,8 +151,7 @@ def parseEml(id, emlText):
 def main():
     import sys
     import json
-    with open(sys.argv[1],"rb") as inf:
-        print (json.dumps(parseEml("testid",inf.read())))
+    print (json.dumps(parseEml("testid",sys.argv[1])))
 
 
 if __name__ == '__main__':

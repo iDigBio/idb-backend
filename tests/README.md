@@ -118,6 +118,22 @@ A temporary instance of postgres running in docker will suffice:
 $ docker run --rm --name postgres_test_idigbio --network host -e POSTGRES_PASSWORD=test -e POSTGRES_USER=test -e POSTGRES_DB=test_idigbio -d postgres:9.5
 ```
 
+### WIP: run Elasticsearch in local docker the same way we run postgres
+
+Depending on a live cluster for running tests is problematic for a number of reasons, including inconsistent behavior of test runs (see github issue https://github.com/iDigBio/idb-backend/issues/129).
+
+Consider running elasticsearch the same way we run postrgres...
+
+```
+$ docker pull docker.elastic.co/elasticsearch/elasticsearch:5.5.3
+$ docker run -p 9200:9200 -p 9300:9300 -e "discovery.type=single-node" docker.elastic.co/elasticsearch/elasticsearch:5.5.3
+```
+
+To do:
+
+1. Have tests connect to localhost instead of the ES cluster that exists in CONFIG.
+2. possibly pre-load a bunch of data / index.
+3. possibly have that pre-loaded docker image available in docker-library
 
 ## Running All Tests
 

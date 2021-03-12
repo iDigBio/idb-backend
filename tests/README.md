@@ -89,3 +89,33 @@ test_data_exists.py::test_pngpath_is_usable PASSED
 ```
 
 More on pytest at https://docs.pytest.org/en/latest/usage.html
+
+## Code Coverage
+
+To track code coverage while running test suite:
+
+```
+$ coverage run -m pytest
+```
+
+To view the coverage report:
+
+```
+$ coverage report
+Name                                                Stmts   Miss  Cover
+-----------------------------------------------------------------------
+idb/__init__.py                                         1      0   100%
+idb/annotations/__init__.py                             0      0   100%
+idb/annotations/apply.py                               21     21     0%
+idb/annotations/epandda_fetcher.py                     29     29     0%
+idb/annotations/loader.py                              30     30     0%
+idb/blacklists/__init__.py                              0      0   100%
+idb/blacklists/derivatives.py                           1      0   100%
+idb/cli.py                                             19      7    63%
+idb/clibase.py                                         60     28    53%
+idb/config.py                                          37      1    97%
+idb/corrections/__init__.py                             0      0   100%
+idb/corrections/loader.py                              30     30     0%
+idb/corrections/record_corrector.py                    79     79     0%
+...
+```

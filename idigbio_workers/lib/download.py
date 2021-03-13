@@ -5,6 +5,7 @@ import logging
 import zipfile
 import os
 import datetime
+import itertools
 
 from collections import Counter, namedtuple
 
@@ -275,10 +276,6 @@ def make_file(t, query, raw=False, tabs=False, fields=None,
 
         es = get_connection()
         mapping = es.indices.get_mapping(index=indexName, doc_type=t)
-
-        #FIXME
-        # Can't get the zeroeth element out of a dictionary anymore.
-        # https://stackoverflow.com/questions/17431638/get-typeerror-dict-values-object-does-not-support-indexing-when-using-python
         mapping_root = mapping.values()[0]["mappings"][t]["properties"]
         if raw:
             mapping_root = mapping_root["data"]["properties"]
@@ -462,7 +459,7 @@ def generate_files(core_type="records", core_source="indexterms", record_query=N
         zipfilename = filename + ".zip"
         with zipfile.ZipFile(zipfilename, 'w', zipfile.ZIP_DEFLATED, True) as expzip:
             meta_files = []
-            for fa in filter(None, files):
+            for fa in itertools.ifilter(None, files):
                 expzip.write(fa.filename, fa.archivename)
                 os.unlink(fa.filename)
                 if fa.meta_block is not None:

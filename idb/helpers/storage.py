@@ -102,7 +102,7 @@ class IDigBioStorage(object):
             pass
         elif hasattr(fobj, 'open'):
             fobj = fobj.open('rb')
-        elif isinstance(fobj, str):
+        elif isinstance(fobj, basestring):
             fobj = open(fobj, 'rb')
         elif not all(hasattr(fobj, a) for a in ('seek', 'tell', 'read')):
             raise ValueError("Unknown fobj type:", fobj)

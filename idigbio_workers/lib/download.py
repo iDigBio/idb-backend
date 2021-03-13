@@ -56,7 +56,7 @@ def write_citation_file(dl_id, t, query, recordsets):
     now = datetime.datetime.now()
     rs_string = "\n".join(rs_strings) + "\n"
 
-    with AtomicFile(filename, "w") as citefile:
+    with AtomicFile(filename, "wb") as citefile:
         # 0: Current Year
         # 1: Query Text
         # 2: Total Number of Records

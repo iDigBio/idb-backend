@@ -55,7 +55,7 @@ def download():
             if isinstance(o[k], list):
                 o[k] = o[k][0]
 
-            if isinstance(o[k], str):
+            if isinstance(o[k], basestring):
                 try:
                     params[k] = json.loads(o[k])
                 except ValueError:

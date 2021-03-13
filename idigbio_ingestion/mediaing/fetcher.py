@@ -6,7 +6,7 @@ import re
 import signal
 from collections import Counter
 from datetime import datetime
-from io import StringIO
+from cStringIO import StringIO
 
 import requests
 import gevent.pool

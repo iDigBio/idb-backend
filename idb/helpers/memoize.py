@@ -75,7 +75,7 @@ def _memoize_nargs_pickle(fn):
 def memoized(unhashable="pickle"):
     "Decorator to memoize a function."
     def getfn(fn):
-        if fn.__code__.co_argcount == 0:
+        if fn.func_code.co_argcount == 0:
             memo = _memoize_0args(fn)
         elif unhashable == "call":
             memo = _memoize_nargs_callthru(fn)

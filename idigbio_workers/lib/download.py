@@ -276,6 +276,9 @@ def make_file(t, query, raw=False, tabs=False, fields=None,
         es = get_connection()
         mapping = es.indices.get_mapping(index=indexName, doc_type=t)
 
+        #FIXME
+        # Can't get the zeroeth element out of a dictionary anymore.
+        # https://stackoverflow.com/questions/17431638/get-typeerror-dict-values-object-does-not-support-indexing-when-using-python
         mapping_root = mapping.values()[0]["mappings"][t]["properties"]
         if raw:
             mapping_root = mapping_root["data"]["properties"]

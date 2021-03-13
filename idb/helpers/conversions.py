@@ -1,4 +1,4 @@
-from __future__ import absolute_import, print_function
+from __future__ import absolute_import
 import dateutil.parser
 import re
 import traceback
@@ -991,7 +991,7 @@ def main():
                 continue
             break
 
-    print ("records ready")
+    print "records ready"
 
     interations = 1
 
@@ -1009,7 +1009,7 @@ def main():
             total_time += (t2 - t1).total_seconds()
             count += 1
 
-    print (count, total_time, total_time / count)
+    print count, total_time, total_time / count
 
     # t = sys.argv[1]
     # u = sys.argv[2]

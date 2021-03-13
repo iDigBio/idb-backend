@@ -17,7 +17,7 @@ class TermNotFoundExcpetion(Exception):
 
 
 def isString(v):
-    return isinstance(v, str)
+    return isinstance(v, str) or isinstance(v, unicode)
 
 
 def existsFilter(k):

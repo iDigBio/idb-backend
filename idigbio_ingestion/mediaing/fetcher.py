@@ -6,7 +6,7 @@ import re
 import signal
 from collections import Counter
 from datetime import datetime
-from io import StringIO
+from cStringIO import StringIO
 
 import requests
 import gevent.pool
@@ -113,12 +113,11 @@ def process_list(fetchitems, forprefix=''):
         uploadpool = gevent.pool.Pool(8)
         items = fetchrpool.imap_unordered(lambda fi: fi.get_media(), fetchitems, maxsize=10)
         items = uploadpool.imap_unordered(lambda fi: fi.upload_to_storage(store), items, maxsize=10)
-        items = map(FetchItem.cleanup, items)
+        items = itertools.imap(FetchItem.cleanup, items)
         items = update_db_status(items)
         items = count_result_types(items, forprefix=forprefix)
         return ilen(items)  # consume the generator
-
-    except:
+    except StandardError:
         logger.exception("Unhandled error forprefix:%s", forprefix)
         raise
 
@@ -274,7 +273,7 @@ class FetchItem(object):
             if self.ok:
                 logger.info("Success!  %s", self.url)
             return self
-        except:
+        except StandardError:
             self.status_code = Status.UNHANDLED_FAILURE
             logger.exception("Unhandled error processing: %s", self.url)
             return self
@@ -288,7 +287,7 @@ class FetchItem(object):
             self.reason = str(mii)
             self.status_code = Status.UNREQUESTABLE
         except ConnectionError as connectione:
-            self.reason = str(connectione.errno) + "{0}".format(connectione)
+            self.reason = "{0} {1}".format(connectione.errno, connectione.message)
             self.status_code = Status.CONNECTION_ERROR
         else:
             try:
@@ -450,7 +449,7 @@ class TropicosItem(FetchItem):
                                  self.url, self.sleep_retry, self.retries)
                     sleep(self.sleep_retry)
                     self.sleep_retry *= 1.5
-        except:
+        except StandardError:
             self.status_code = Status.UNHANDLED_FAILURE
             logger.exception("Unhandled %s", self.url)
         return self

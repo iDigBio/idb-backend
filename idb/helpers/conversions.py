@@ -1,4 +1,4 @@
-from __future__ import absolute_import, print_function
+from __future__ import absolute_import
 import dateutil.parser
 import re
 import traceback
@@ -277,7 +277,7 @@ def getfield(f, d, t="text"):
         if t == "list":
             return [x.lower().strip() for x in d[f]]
         else:
-            if isinstance(d[f], str) or isinstance(d[f], str):
+            if isinstance(d[f], str) or isinstance(d[f], unicode):
                 return d[f].lower().strip()
             else:
                 return d[f]
@@ -291,7 +291,7 @@ def verbatimGrabber(t, d):
         r[f[0]] = getfield(f[1], d, t=f[2])
     return r
 
-gfn = re.compile(r"([+-]?[0-9]+(?:[,][0-9]{3})*(?:[\.][0-9]*)?)")
+gfn = re.compile("([+-]?[0-9]+(?:[,][0-9]{3})*(?:[\.][0-9]*)?)")
 
 
 def grabFirstNumber(f):
@@ -307,7 +307,7 @@ def grabFirstNumber(f):
         pass
     return n
 
-mangler = re.compile(r"[\W]+")
+mangler = re.compile("[\W]+")
 
 
 def mangleString(s):
@@ -315,7 +315,7 @@ def mangleString(s):
 
 
 uuid_re = re.compile(
-    r"([a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12})")
+    "([a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12})")
 
 
 def grabFirstUUID(f):
@@ -375,7 +375,7 @@ def intGrabber(t, d):
     for f in ef[t]:
         fv = getfield(f[1], d)
         if fv is not None:
-            if isinstance(fv, str):
+            if isinstance(fv, (str, unicode)):
                 try:
                     n = grabFirstNumber(fv)
                     if n is not None:
@@ -812,7 +812,7 @@ def collect_common_names(t, d):
         return {}
 
 
-genbank_ids = re.compile(r"[a-zA-Z]{1,2}\-?_?\d{5,6}")
+genbank_ids = re.compile("[a-zA-Z]{1,2}\-?_?\d{5,6}")
 
 def collect_genbank_sequences(t, d):
     if t == "records":
@@ -991,7 +991,7 @@ def main():
                 continue
             break
 
-    print ("records ready")
+    print "records ready"
 
     interations = 1
 
@@ -1009,7 +1009,7 @@ def main():
             total_time += (t2 - t1).total_seconds()
             count += 1
 
-    print (count, total_time, total_time / count)
+    print count, total_time, total_time / count
 
     # t = sys.argv[1]
     # u = sys.argv[2]

@@ -5,6 +5,7 @@ import logging
 import zipfile
 import os
 import datetime
+import itertools
 
 from collections import Counter, namedtuple
 
@@ -56,7 +57,7 @@ def write_citation_file(dl_id, t, query, recordsets):
     now = datetime.datetime.now()
     rs_string = "\n".join(rs_strings) + "\n"
 
-    with AtomicFile(filename, "w") as citefile:
+    with AtomicFile(filename, "wb") as citefile:
         # 0: Current Year
         # 1: Query Text
         # 2: Total Number of Records
@@ -209,7 +210,7 @@ def query_to_csv(outf, t, body, header_fields, fields, id_field, raw, tabs, id_f
             for k in fields:
                 v = get_source_value(r["_source"],k)
                 if v is not None:
-                    if isinstance(v, str):
+                    if isinstance(v, str) or isinstance(v, unicode):
                         r_fields.append(v)
                     else:
                         r_fields.append(json.dumps(v))
@@ -275,8 +276,7 @@ def make_file(t, query, raw=False, tabs=False, fields=None,
 
         es = get_connection()
         mapping = es.indices.get_mapping(index=indexName, doc_type=t)
-
-        mapping_root = next(iter(mapping.values()))["mappings"][t]["properties"]
+        mapping_root = mapping.values()[0]["mappings"][t]["properties"]
         if raw:
             mapping_root = mapping_root["data"]["properties"]
 
@@ -459,7 +459,7 @@ def generate_files(core_type="records", core_source="indexterms", record_query=N
         zipfilename = filename + ".zip"
         with zipfile.ZipFile(zipfilename, 'w', zipfile.ZIP_DEFLATED, True) as expzip:
             meta_files = []
-            for fa in filter(None, files):
+            for fa in itertools.ifilter(None, files):
                 expzip.write(fa.filename, fa.archivename)
                 os.unlink(fa.filename)
                 if fa.meta_block is not None:

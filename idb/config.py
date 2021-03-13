@@ -33,7 +33,7 @@ def update_environment(env):
         globals()[k] = v
 
 def load_config_file(p):
-    with open(p, "r") as conf:
+    with open(p, "rb") as conf:
         logger.debug("Reading config from %r", p)
         json_config = json.load(conf)
         config.update(json_config)

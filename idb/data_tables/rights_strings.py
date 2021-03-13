@@ -1,4 +1,3 @@
-from __future__ import print_function
 import re
 import traceback
 
@@ -222,7 +221,7 @@ def pick_license(s, debug=False):
         return manual_assignment[s]
 
     rights_regex = re.compile(
-        r"((?:by(?:.?nc)?(?:.?sa)?(?:.?nd)?)|cc0|zero|(?:public.?domain)).?(\d\.\d)?", re.I)
+        "((?:by(?:.?nc)?(?:.?sa)?(?:.?nd)?)|cc0|zero|(?:public.?domain)).?(\d\.\d)?", re.I)
     strip_special = re.compile('[^0-9a-zA-Z]+')
     picked = None
     order = -1
@@ -231,7 +230,7 @@ def pick_license(s, debug=False):
             r = strip_special.sub("", m[0]).upper()
             v = m[-1]
             if debug:
-                print (r, v, rights_order.index(r), order, picked)
+                print r, v, rights_order.index(r), order, picked
             if rights_order.index(r) > order:
                 if r in ["CC0", "ZERO", "PUBLICDOMAIN"]:
                     picked = rights_strings[r]
@@ -242,7 +241,7 @@ def pick_license(s, debug=False):
             else:
                 pass
             if debug:
-                print (r, v, rights_order.index(r), order, picked)
+                print r, v, rights_order.index(r), order, picked
         except:
             traceback.print_exc()
     return picked
@@ -257,6 +256,6 @@ def main():
         picked = pick_license(s)
         if acceptable_licenses_trans[s] != picked:
             # print s, acceptable_licenses_trans[s], picked
-            print()
-            print (s, acceptable_licenses_trans[s])
+            print
+            print s, acceptable_licenses_trans[s]
             pick_license(s, debug=True)

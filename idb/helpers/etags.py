@@ -52,7 +52,7 @@ def objectHasher(hash_type, data, sort_arrays=False, sort_keys=True):
             sa.sort()
         s = "".join(sa)
 
-    elif isinstance(data, str) or isinstance(data, str):
+    elif isinstance(data, str) or isinstance(data, unicode):
         s = data
     elif isinstance(data, int) or isinstance(data, float):
         s = str(data)

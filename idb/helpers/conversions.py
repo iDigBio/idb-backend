@@ -277,7 +277,7 @@ def getfield(f, d, t="text"):
         if t == "list":
             return [x.lower().strip() for x in d[f]]
         else:
-            if isinstance(d[f], str) or isinstance(d[f], str):
+            if isinstance(d[f], str) or isinstance(d[f], unicode):
                 return d[f].lower().strip()
             else:
                 return d[f]
@@ -375,7 +375,7 @@ def intGrabber(t, d):
     for f in ef[t]:
         fv = getfield(f[1], d)
         if fv is not None:
-            if isinstance(fv, str):
+            if isinstance(fv, (str, unicode)):
                 try:
                     n = grabFirstNumber(fv)
                     if n is not None:

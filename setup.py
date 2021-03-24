@@ -80,7 +80,7 @@ setup(
             pillow_package,
             'lxml',
             'chardet',
-            'pyquery==1.2',
+            'pyquery==1.2.17',
         ],
         'test': [
             'pytest>=3.0',

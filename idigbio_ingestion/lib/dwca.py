@@ -10,7 +10,8 @@ from idb.helpers.fieldnames import namespaces
 from .xmlDictTools import xml2d
 
 FNF_ERROR = "File {0} not present in archive."
-DWC_SCHEMA_URL = "http://rs.tdwg.org/dwc/text/tdwg_dwc_text.xsd"
+DWC_SCHEMA_URL = "https://dwc.tdwg.org/text/tdwg_dwc_text.xsd"
+
 
 def archiveFile(archive,name):
     metaname = name

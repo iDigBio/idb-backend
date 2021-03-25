@@ -3,6 +3,8 @@ from lxml import etree
 from collections import deque
 import traceback
 import shutil
+import requests
+from cStringIO import StringIO
 
 from idb.helpers.logging import idblogger, getLogger
 from .delimited import DelimitedFile
@@ -53,10 +55,12 @@ class Dwca(object):
         meta_filename = self.path + "/" + archiveFile(self.archive,"meta.xml")
         try:
             schema_parser = etree.XMLParser(no_network=False)
+            r = requests.get(DWC_SCHEMA_URL)
+            r_file_like_object = StringIO(r.content)
+            parsed = etree.parse(r_file_like_object, schema_parser)
+            schema = etree.XMLSchema(parsed)
 
-            schema = etree.XMLSchema(etree.parse(DWC_SCHEMA_URL, parser=schema_parser))
             parser = etree.XMLParser(schema=schema, no_network=False)
-
             with open(meta_filename,'r') as meta:
                 try:
                     root = etree.parse(meta, parser=parser).getroot()

@@ -22,7 +22,7 @@ class TestSetFlags(unittest.TestCase):
         self.assertEqual(['geopoint_similar_coord'], conversions.setFlags({'geopoint': [-38, 38]}))
 
     def test_set_flags_returns_list_for_dict_case_2(self):
-        self.assertEqual(['geopoint_similar_coord', 'geopoint_0_coord'], conversions.setFlags({'geopoint': [0, 0]}))
+        self.assertEqual(sorted(['geopoint_similar_coord', 'geopoint_0_coord']), sorted(conversions.setFlags({'geopoint': [0, 0]})))
 
     def test_set_flags_returns_list_for_dict_case_3(self):
         self.assertEqual(['datecollected_bounds'], conversions.setFlags({'datecollected': datetime.date(1000,1,2)}))

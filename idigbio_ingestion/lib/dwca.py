@@ -52,7 +52,6 @@ class Dwca(object):
         meta_filename = self.path + "/" + archiveFile(self.archive,"meta.xml")
         try:
             schema_parser = etree.XMLParser(no_network=False)
-            # wut is going on. see https://redmine.idigbio.org/issues/3042
             schema = etree.XMLSchema(etree.parse(DWC_SCHEMA_URL, parser=schema_parser))
             parser = etree.XMLParser(schema=schema, no_network=False)
 
@@ -63,8 +62,6 @@ class Dwca(object):
                     self.logger.info("Schema validation failed against '%s', continuing unvalidated.", DWC_SCHEMA_URL)
                     self.logger.debug(traceback.format_exc())
                     meta.seek(0)
-                    # print meta.read()
-                    # meta.seek(0)
                     root = etree.parse(meta).getroot()
         except:
             self.logger.info("Failed to fetch schema '%s', continuing unvalidated.", DWC_SCHEMA_URL)
@@ -195,7 +192,6 @@ class DwcaRecordFile(DelimitedFile):
                     self.logger.error("Duplicate field index ignored {0}".format(str(fld)))
             if '#default' in fld:
                 self.defaults[term] = fld['#default']
-        # print self.defaults
 
         super(DwcaRecordFile,self).__init__(
             fh,encoding=encoding,delimiter=fieldsplit,fieldenc=fieldenc,header=fields,rowtype=rowtype,

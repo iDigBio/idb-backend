@@ -170,7 +170,6 @@ class DwcaRecordFile(DelimitedFile):
 
         rowtype = filedict["#rowType"]
         encoding = filedict.get("#encoding", "UTF-8")
-        linesplit = filedict["#linesTerminatedBy"].decode('string_escape')
         fieldsplit = filedict["#fieldsTerminatedBy"].decode('string_escape')
         fieldenc = filedict["#fieldsEnclosedBy"].decode('string_escape')
         ignoreheader = int(filedict.get("#ignoreHeaderLines","0"))

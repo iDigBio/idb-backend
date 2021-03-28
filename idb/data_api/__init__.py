@@ -90,7 +90,7 @@ def run_server(info, host, port, reload, debugger, eager_loading, debug, wsgi):
         from requestlogger import WSGILogger, ApacheFormatter
         logger = idblogger.getChild('api')
 
-        from werkzeug.contrib.fixers import ProxyFix
+        from werkzeug.middleware.proxy_fix import ProxyFix
         logger.info("gevent server @ http://%s:%s/ ENV=%s", host, port, config.ENV)
         app = info.load_app()
         app = WSGILogger(app, [], ApacheFormatter())

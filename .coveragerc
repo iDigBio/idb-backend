@@ -1,0 +1,18 @@
+# This config file is used by coverage.py (and supposedly pytest-cov, although it does not seem to).
+
+# The protip for generating a coverage report on idb-backend is to
+# change into the top level of idb-backend and then run:
+#
+# $ coverage run -m pytest
+#
+# which will use this config file to access the sources listed below.
+#
+# To view the coverage report, run:
+#
+# $ coverage report
+
+[run]
+source = 
+    ./idb
+    ./idigbio_ingestion
+    ./idigbio_workers

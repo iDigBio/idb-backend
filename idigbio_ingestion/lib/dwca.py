@@ -4,7 +4,6 @@ from collections import deque
 import traceback
 import shutil
 import requests
-from cStringIO import StringIO
 
 from idb.helpers.logging import idblogger, getLogger
 from .delimited import DelimitedFile

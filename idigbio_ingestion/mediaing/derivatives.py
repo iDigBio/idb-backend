@@ -55,13 +55,12 @@ def main(buckets, procs=2):
         buckets = ('images', 'sounds')
     objects = objects_for_buckets(buckets)
 
-
     t1 = datetime.now()
     logger.info("Checking derivatives for %d objects", len(objects))
 
     if procs > 1:
         apidbpool.closeall()
-        pool = gipcpool.Pool(procs)
+        pool = gipcpool.Pool(size=procs)
         c = ilen(pool.imap_unordered(process_objects, grouper(objects, 1000)))
         logger.debug("Finished %d subprocesses", c)
     else:

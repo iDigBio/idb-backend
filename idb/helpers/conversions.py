@@ -466,12 +466,19 @@ def geoGrabber(t, d):
                 # convert datum to a more canonical representation (no
                 # whitespace, all uppercase)
                 source_datum = mangleString(datum_val)
-
                 try:
-                    destination_datum = "WGS84"
-                    transformer = pyproj.Transformer.from_crs(source_datum, destination_datum)
-                    transformer.transform(r["geopoint"][0], r["geopoint"][1])
+                    # source projection
+                    p1 = pyproj.Proj(proj="latlon", datum=source_datum)
+
+                    # destination projection
+                    p2 = pyproj.Proj(proj="latlon", datum="WGS84")
+
+                    # do the transform
+                    # (lon, lat)
+                    r["geopoint"] = pyproj.transform(
+                        p1, p2, r["geopoint"][0], r["geopoint"][1])
                 except:
+                    # traceback.print_exc()
                     # create an error flag on projection creation exception (invalid source datum)
                     # or on transform exception (point out of bounds for source
                     # projection)

@@ -4,6 +4,7 @@ from collections import deque
 import traceback
 import shutil
 import requests
+from io import BytesIO
 
 from idb.helpers.logging import idblogger, getLogger
 from .delimited import DelimitedFile
@@ -55,7 +56,7 @@ class Dwca(object):
         try:
             schema_parser = etree.XMLParser(no_network=False)
             r = requests.get(DWC_SCHEMA_URL)
-            r_file_like_object = StringIO(r.content)
+            r_file_like_object = BytesIO(r.content)
             parsed = etree.parse(r_file_like_object, schema_parser)
             schema = etree.XMLSchema(parsed)
 

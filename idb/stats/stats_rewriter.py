@@ -121,13 +121,13 @@ def resume_reindex(client, source_index, target_index, query=None, target_client
                 if h["_id"] in target_docs:
                     stats["skip"] += 1
                 else:
-                    print h
+                    print (h)
                     target_client.index(index=target_index,doc_type=h["_type"],body=h["_source"])                    
                     stats["done"] += 1
                     target_docs.add(h["_id"])
 
                 if stats["docs"] % 10000 == 0:
-                    print stats.most_common()                    
+                    print (stats.most_common())
 
 
             logger.info(stats.most_common())

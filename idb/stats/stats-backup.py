@@ -72,7 +72,7 @@ with zipfile.ZipFile(path_prefix+".zip","a",zipfile.ZIP_DEFLATED,True) as z:
             "scroll": "5m",
             "query": q_body
         }
-        print t
+        print (t)
         count = 0
         skip = 0
         for r in elasticsearch.helpers.scan(es,**q):
@@ -97,5 +97,5 @@ with zipfile.ZipFile(path_prefix+".zip","a",zipfile.ZIP_DEFLATED,True) as z:
                 z.writestr(fn,json.dumps(r["_source"]))
 
             if count % 10000 == 0:
-                print count,skip
-        print count,skip
+                print (count,skip)
+        print (count,skip)

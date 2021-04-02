@@ -216,3 +216,4 @@ def get_unescaped_fieldsTerminatedBy(filedict):
 
 def get_unescaped_fieldsEnclosedBy(filedict):
     return filedict["#fieldsEnclosedBy"].decode('string_escape')
+

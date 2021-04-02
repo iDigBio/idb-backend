@@ -174,8 +174,8 @@ class DwcaRecordFile(DelimitedFile):
         rowtype = filedict["#rowType"]
         encoding = filedict.get("#encoding", "UTF-8")
         linesplit = filedict["#linesTerminatedBy"].decode('string_escape')
-        fieldsplit = filedict["#fieldsTerminatedBy"].decode('string_escape')
-        fieldenc = filedict["#fieldsEnclosedBy"].decode('string_escape')
+        fieldsplit = get_unescaped_fieldsTerminatedBy(filedict)
+        fieldenc = get_unescaped_fieldsEnclosedBy(filedict)
         ignoreheader = int(filedict.get("#ignoreHeaderLines","0"))
 
         self.defaults = {}
@@ -208,8 +208,8 @@ class DwcaRecordFile(DelimitedFile):
             self._reader.next()
             ignoreheader -= 1
 
-    def readline(self,size=None):
-        lineDict = {}
-        lineDict.update(self.defaults)
-        lineDict.update(super(DwcaRecordFile,self).readline(size))
-        return lineDict
+def get_unescaped_fieldsTerminatedBy(filedict):
+    return filedict["#fieldsTerminatedBy"].decode('string_escape')
+
+def get_unescaped_fieldsEnclosedBy(filedict):
+    return filedict["#fieldsEnclosedBy"].decode('string_escape')

@@ -208,7 +208,6 @@ class DwcaRecordFile(DelimitedFile):
             self._reader.next()
             ignoreheader -= 1
 
-
 def get_unescaped_linesTerminatedBy(filedict):
     return filedict["#linesTerminatedBy"].decode('string_escape')
 
@@ -217,3 +216,4 @@ def get_unescaped_fieldsTerminatedBy(filedict):
 
 def get_unescaped_fieldsEnclosedBy(filedict):
     return filedict["#fieldsEnclosedBy"].decode('string_escape')
+

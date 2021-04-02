@@ -213,7 +213,7 @@ def work(t):
                 elif cand_rank in taxon_rank.mapping:
                     rank = taxon_rank.mapping[cand_rank]
                 else:
-                    print ("unkown rank:", cand_rank)
+                    print ("unknown rank:", cand_rank)
 
             if rank is None:
                 if r["dwc:scientificName"].endswith(" sp.") or r["dwc:scientificName"].endswith(" sp"):

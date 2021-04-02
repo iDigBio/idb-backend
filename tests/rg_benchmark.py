@@ -5,7 +5,7 @@ from idb.helpers.rg import ReverseGeocoder
 
 t = datetime.datetime.now()
 rg = ReverseGeocoder()
-print "INIT Time", (datetime.datetime.now() - t).total_seconds()*1000
+print("INIT Time", (datetime.datetime.now() - t).total_seconds()*1000)
 
 x = []
 
@@ -38,5 +38,5 @@ mx = times[-1]
 sm = sum(times)
 av = sm/len(times)
 
-print mn, q1, q2, q3, mx
-print sm, av, iqr, p95, p99
+print(mn, q1, q2, q3, mx)
+print(sm, av, iqr, p95, p99)

@@ -206,9 +206,3 @@ class DwcaRecordFile(DelimitedFile):
         while ignoreheader > 0:
             self._reader.next()
             ignoreheader -= 1
-
-    def readline(self,size=None):
-        lineDict = {}
-        lineDict.update(self.defaults)
-        lineDict.update(super(DwcaRecordFile,self).readline(size))
-        return lineDict

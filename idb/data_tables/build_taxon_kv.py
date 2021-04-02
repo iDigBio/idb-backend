@@ -213,7 +213,7 @@ def work(t):
                 elif cand_rank in taxon_rank.mapping:
                     rank = taxon_rank.mapping[cand_rank]
                 else:
-                    print "unkown rank:", cand_rank
+                    print ("unkown rank:", cand_rank)
 
             if rank is None:
                 if r["dwc:scientificName"].endswith(" sp.") or r["dwc:scientificName"].endswith(" sp"):
@@ -245,7 +245,7 @@ def work(t):
             }
             match, score = fuzzy_wuzzy_string_new(r["dwc:genus"], rank="genus", should=should)
         else:
-            print r
+            print (r)
             return (etag, "failout", (None, None), -1, etags[etag])
 
         if match is not None:

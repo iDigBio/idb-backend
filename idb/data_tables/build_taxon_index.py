@@ -1,3 +1,4 @@
+from __future__ import print_function
 import os
 from collections import Counter
 
@@ -65,7 +66,6 @@ def get_data(path_to_checklist):
 
                 for er in e:
                     cid = er.get("coreid")
-                    #print e.rowtype, cid, rid
                     if cid is not None:
                         cid = int(cid)
                         if cid > rid:
@@ -85,9 +85,9 @@ def get_data(path_to_checklist):
             del r["id"]
             yield ("taxonnames",r)
         if rts["rows"] % 10000 == 0:
-            print rts.most_common()
+            print (rts.most_common())
 
-    print rts.most_common()
+    print (rts.most_common())
 
 def main():
     # for r in get_data(os.path.expanduser("~/Downloads/backbone-current-sorted.zip")):

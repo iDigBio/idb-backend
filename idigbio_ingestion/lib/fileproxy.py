@@ -117,7 +117,7 @@ def main():
         except:
             traceback.print_exc()
             x = inf.dump()
-            print len(x), x
+            print (len(x), x)
 
 if __name__ == "__main__":
     main()

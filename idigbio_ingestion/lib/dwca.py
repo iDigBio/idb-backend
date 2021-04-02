@@ -3,6 +3,8 @@ from lxml import etree
 from collections import deque
 import traceback
 import shutil
+import requests
+from io import BytesIO
 
 from idb.helpers.logging import idblogger, getLogger
 from .delimited import DelimitedFile
@@ -10,7 +12,8 @@ from idb.helpers.fieldnames import namespaces
 from .xmlDictTools import xml2d
 
 FNF_ERROR = "File {0} not present in archive."
-DWC_SCHEMA_URL = "http://rs.tdwg.org/dwc/text/tdwg_dwc_text.xsd"
+DWC_SCHEMA_URL = "https://dwc.tdwg.org/text/tdwg_dwc_text.xsd"
+
 
 def archiveFile(archive,name):
     metaname = name
@@ -52,9 +55,12 @@ class Dwca(object):
         meta_filename = self.path + "/" + archiveFile(self.archive,"meta.xml")
         try:
             schema_parser = etree.XMLParser(no_network=False)
-            schema = etree.XMLSchema(etree.parse(DWC_SCHEMA_URL, parser=schema_parser))
-            parser = etree.XMLParser(schema=schema, no_network=False)
+            r = requests.get(DWC_SCHEMA_URL)
+            r_file_like_object = BytesIO(r.content)
+            parsed = etree.parse(r_file_like_object, schema_parser)
+            schema = etree.XMLSchema(parsed)
 
+            parser = etree.XMLParser(schema=schema, no_network=False)
             with open(meta_filename,'r') as meta:
                 try:
                     root = etree.parse(meta, parser=parser).getroot()

@@ -65,7 +65,7 @@ def get_data(path_to_checklist):
             #         fail += 1
         except:
             traceback.print_exc()
-            print r
+            print (r)
 
     # print len(names), len(needs_name)
     # total_miss = 0
@@ -125,4 +125,4 @@ def main():
     for dr in get_data(os.path.expanduser("~/Downloads/backbone-current-sorted.zip")):
         count += 1
         # print dr
-    print count
+    print (count)

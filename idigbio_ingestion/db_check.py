@@ -595,7 +595,7 @@ def main(rsid, ingest=False):
         try:
             name, mime = get_file(rsid)
         except:
-            rlogger.debug("Exception in get_file")
+            rlogger.error("Exception in get_file, most likely caused by a storage or database connection issue")
             # construct a dummy metadata record with no filemd5 so we can later write a summary file.
             metadata = {
                 "name": rsid,

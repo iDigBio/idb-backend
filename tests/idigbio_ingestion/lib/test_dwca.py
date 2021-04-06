@@ -1,7 +1,8 @@
 import pytest
 from copy import deepcopy
-from idigbio_ingestion.lib.dwca import get_unescaped_string
-
+from idigbio_ingestion.lib.dwca import get_unescaped_fieldsEnclosedBy
+from idigbio_ingestion.lib.dwca import get_unescaped_fieldsTerminatedBy
+from idigbio_ingestion.lib.dwca import get_unescaped_linesTerminatedBy
 
 
 # sample extracted during processing of recordset c38b867b-05f3-4733-802e-d8d2d3324f84
@@ -44,13 +45,13 @@ def filedict_fieldsTerminatedBy_tab():
     return filedict
 
 def test_get_unescaped_linesTerminatedBy_from_filedict():
-    assert(get_unescaped_string(FILEDICT_BASE["#linesTerminatedBy"]) == '\n')
+    assert(get_unescaped_linesTerminatedBy(FILEDICT_BASE) == '\n')
 
 def test_get_unescaped_fieldsTerminatedBy_from_filedict(filedict_fieldsTerminatedBy_tab):
-    assert(get_unescaped_string(filedict_fieldsTerminatedBy_tab["#fieldsTerminatedBy"]) == '\t')
+    assert(get_unescaped_fieldsTerminatedBy(filedict_fieldsTerminatedBy_tab) == '\t')
 
 def test_get_unescaped_fieldsEnclosedBy_from_filedict(filedict_fieldsEnclosedBy_escapeddoublequotes):
-    assert(get_unescaped_string(filedict_fieldsEnclosedBy_escapeddoublequotes["#fieldsEnclosedBy"]) == '"')
+    assert(get_unescaped_fieldsEnclosedBy(filedict_fieldsEnclosedBy_escapeddoublequotes) == '"')
 
 
 @pytest.fixture

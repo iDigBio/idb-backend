@@ -216,6 +216,11 @@ class DwcaRecordFile(DelimitedFile):
         return self.readline()
 
 
-def get_unescaped_string(escaped_string):
-    return escaped_string.encode().decode('unicode_escape')
+def get_unescaped_linesTerminatedBy(filedict):
+    return filedict["#linesTerminatedBy"].encode().decode('unicode_escape')
 
+def get_unescaped_fieldsTerminatedBy(filedict):
+    return filedict["#fieldsTerminatedBy"].encode().decode('unicode_escape')
+
+def get_unescaped_fieldsEnclosedBy(filedict):
+    return filedict["#fieldsEnclosedBy"].encode().decode('unicode_escape')

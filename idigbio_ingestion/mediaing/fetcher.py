@@ -287,8 +287,8 @@ class FetchItem(object):
         except (MissingSchema, InvalidSchema, InvalidURL) as mii:
             self.reason = str(mii)
             self.status_code = Status.UNREQUESTABLE
-        except ConnectionError as connectione:
-            self.reason = str(connectione.errno) + "{0}".format(connectione)
+        except ConnectionError as connection_error:
+            self.reason = str(connection_error.errno) + "{0}".format(connection_error)
             self.status_code = Status.CONNECTION_ERROR
         else:
             try:

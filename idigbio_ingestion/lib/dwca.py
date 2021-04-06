@@ -204,9 +204,17 @@ class DwcaRecordFile(DelimitedFile):
             fh,encoding=encoding,delimiter=fieldsplit,fieldenc=fieldenc,header=fields,rowtype=rowtype,
             logname=self.logger.name)
 
+        # the purpose of this is just to skip the header line
         while ignoreheader > 0:
-            self._reader.next()
+            next(self._reader)
             ignoreheader -= 1
+
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        return next(self._reader)
+
 
 def get_unescaped_linesTerminatedBy(filedict):
     return filedict["#linesTerminatedBy"].encode().decode('unicode_escape')

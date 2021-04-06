@@ -26,8 +26,6 @@ from idigbio_ingestion.lib.eml import parseEml
         ("vertnet_sui_verts.xml", "CC0"), # cc zero and vertnet norms
         #("usgs_pwrc_northamerican_bees", "No license, assume Public Domain"), # this is an html file that should not parse, currently raising an untrapped Exception
 ])
-
-
 def test_intellectual_rights(eml_filename, expected_license, emlpathdir):
     emlfilename = emlpathdir.join(eml_filename)
     parsed_eml = parseEml('id_placeholder_test_suite', emlfilename)

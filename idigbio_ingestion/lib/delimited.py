@@ -84,7 +84,7 @@ class DelimitedFile(object):
                 cn = get_canonical_name(v)
                 t[cn[1]] += 1
         else:
-            headerline = self._reader.next()
+            headerline = next(self._reader)
             self.lineLength = len(headerline)
             self.fields = {}
             for k, v in enumerate(headerline):
@@ -110,6 +110,9 @@ class DelimitedFile(object):
         """
         return self
 
+    def __next__(self):
+        return self.readline()
+
     def close(self):
         """
             Closes the internally maintained filehandle
@@ -131,7 +134,7 @@ class DelimitedFile(object):
             try:
                 lineDict = {}
                 # self.filehandle.snap()
-                lineArr = self._reader.next()
+                lineArr = next(self._reader)
 
                 self.lineCount += 1
                 if self.lineLength is None:

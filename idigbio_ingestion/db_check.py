@@ -392,8 +392,8 @@ def process_subfile(rf, rsid, rs_uuid_etag, rs_id_uuid, ingest=False, db=None):
         seen_ids.update(ids_to_add)
         seen_uuids.update(uuids_to_add)
 
-    eu_set = existing_etags.viewkeys()
-    nu_set = seen_uuids.viewkeys()
+    eu_set = existing_etags.keys()
+    nu_set = seen_uuids.keys()
 
     deletes = len(eu_set - nu_set)
 

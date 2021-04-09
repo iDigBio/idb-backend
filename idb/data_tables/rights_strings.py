@@ -1,4 +1,6 @@
 from __future__ import print_function
+import pprint
+
 import re
 import traceback
 
@@ -70,8 +72,8 @@ acceptable_licenses_trans = {
     "CC BY-NC (Attribution-NonCommercial)": "CC4 BY-NC",
     "CC BY-NC (Attribution-Non-Commercial)": "CC4 BY-NC",
     "CC BY (Attribution)": "CC4 BY",
-    "Creative Commons Attribution Non Commercial (CC-BY-NC) 4.0 License" : "CC4 BY-NC",
-    "Public Domain (CC0 1.0)" : "CC0",
+    "Creative Commons Attribution Non Commercial (CC-BY-NC) 4.0 License": "CC4 BY-NC",
+    "Public Domain (CC0 1.0)": "CC0",
     "CC0 1.0 (Public-domain)": "CC0",
     "Public Domain": "Public Domain",
     "License for specimen data: Public Domain (https://creativecommons.org/publicdomain/zero/1.0/). License for media, including photographs and images of specimens: CC BY-NC-SA 3.0 License (http://creativecommons.org/licenses/by-nc-sa/3.0/us/). Users of the data are encouraged to acknowledge the source of the data if any of these records or media are used for publications, analyses, reports, or on web sites. The provider of the data, and its staff, are not responsible for damages, injury or loss due to the use of these data. Fitness of use must be determined by the user of the data.": "CC0",
@@ -253,10 +255,20 @@ def get_rights_attributes(s):
 
 
 def main():
-    for s in acceptable_licenses_trans:
-        picked = pick_license(s)
-        if acceptable_licenses_trans[s] != picked:
-            # print s, acceptable_licenses_trans[s], picked
-            print()
-            print (s, acceptable_licenses_trans[s])
-            pick_license(s, debug=True)
+    # TODO: Consider making this into a test.
+    # for s in acceptable_licenses_trans:
+    #     picked = pick_license(s)
+    #     if acceptable_licenses_trans[s] != picked:
+    #         # print s, acceptable_licenses_trans[s], picked
+    #         print
+    #         print s, acceptable_licenses_trans[s]
+    #         pick_license(s, debug=True)
+
+    pp = pprint.PrettyPrinter()
+
+    pp.pprint("*licenses*")
+    pp.pprint(licenses)
+
+    print()
+    pp.pprint("*acceptable_licenses_trans*")
+    pp.pprint(acceptable_licenses_trans)

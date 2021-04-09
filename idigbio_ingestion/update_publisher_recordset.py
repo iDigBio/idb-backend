@@ -436,8 +436,7 @@ def harvest_eml(r, db):
             u, _, _ = db.get_uuid(r["recordids"])
         logger.debug("Using recordset UUID: {0}".format(u))
         desc = {}
-        with open(fname,"rb") as inf:
-            desc = parseEml(r["recordids"][0], inf.read())
+        desc = parseEml(r["recordids"][0], fname)
         desc["ingest"] = r["ingest"]
         desc["link"] = r["file_link"]
         desc["eml_link"] = r["eml_link"]

@@ -20,8 +20,8 @@ def parseEml(id, emlFilename):
 
     eml = pq(filename=emlFilename, parser='xml')
 
-    ### The eml().txt() function returns an empty string instead of None if the location does not exist in the eml
-    ### (if there is "no text node" according to release notes https://pypi.python.org/pypi/pyquery)
+    # The eml().txt() function returns an empty string instead of None if the location does not exist in the eml
+    # (if there is "no text node" according to release notes https://pypi.python.org/pypi/pyquery)
 
     collection = {}
     collection["id"] = id
@@ -31,23 +31,23 @@ def parseEml(id, emlFilename):
     rlu = getElement(eml.root.getroot(),".//resourceLogoUrl")
     if rlu is not None:
         collection["logo_url"] = rlu.text
-    
+
     collection["collection_name"] = eml("dataset > title").text()
 
     # Go until we find the first non-zero-length string (should be a collection description),
     collection_description_blob = ""
     for possible_collection_description in [
-        'dataset > abstract > para', 
-        'symbiota > collection > abstract > para', 
-        'additionalMetadata > metadata > abstract > para',
-        # Catch all... might literally catch any other desc text anywhere in the document.
-        'abstract > para'
-        ]:
+            'dataset > abstract > para',
+            'symbiota > collection > abstract > para',
+            'additionalMetadata > metadata > abstract > para',
+            # Catch all... might literally catch any other desc text anywhere in the document.
+            'abstract > para'
+            ]:
         collection_description_blob += eml.find(possible_collection_description).text()
         if len(collection_description_blob) > 0:
             break
     collection["collection_description"] = collection_description_blob
-    
+
     iwa = getElement(eml.root.getroot(),"additionalMetadata/metadata/symbiota/collection/onlineUrl")
     if iwa is not None:
         collection["institution_web_address"] = iwa.text
@@ -121,7 +121,7 @@ def parseEml(id, emlFilename):
                         else:
                             seen_emails.append(contact["email"])
                     elif ccc.tag == "positionName":
-                        contact["role"] = ccc.text                    
+                        contact["role"] = ccc.text
             else:
                 if cc.text != "":
                     if cc.tag == "individualName":
@@ -141,7 +141,6 @@ def parseEml(id, emlFilename):
         if len(contact.keys()) > 0:
             collection["contacts"].append(contact)
 
-    # collection["contacts"] = [{ "name": clm.groups()[0], "email": clm.groups()[1] + "@" + clm.groups()[2]}]
     collection["other_guids"] = []
     for g in eml("alternateidentifier"):
         collection["other_guids"].append(g.text)
@@ -151,7 +150,7 @@ def parseEml(id, emlFilename):
 def main():
     import sys
     import json
-    print (json.dumps(parseEml("testid",sys.argv[1])))
+    print(json.dumps(parseEml("testid",sys.argv[1])))
 
 
 if __name__ == '__main__':

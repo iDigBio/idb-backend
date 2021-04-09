@@ -272,3 +272,4 @@ def main():
     print()
     pp.pprint("*acceptable_licenses_trans*")
     pp.pprint(acceptable_licenses_trans)
+

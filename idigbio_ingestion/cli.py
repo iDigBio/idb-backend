@@ -10,7 +10,7 @@ from idb.helpers.logging import fnlogged
 from .mediaing import cli as mcli  # noqa ignore=F401
 
 @cli.command(name="update-publisher-recordset",
-             help="")
+             help="Scan publishers RSS feeds, download new artifacts, and update database")
 @fnlogged
 def update_publisher_recordset():
     from idigbio_ingestion.update_publisher_recordset import main

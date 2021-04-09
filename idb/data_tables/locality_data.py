@@ -1,4 +1,6 @@
 # -*- coding: utf-8
+from __future__ import print_function
+import pprint
 
 iso_two_to_three = {
     "AF": "AFG",
@@ -2488,10 +2490,21 @@ implied_parent = {
 }
 
 def main():
-    for k,v in kl["continent"].iteritems():
-        if v not in real_continents and v != "None":
-            print k,v
 
-    for k,v in kl["country"].iteritems():
-        if v not in iso_countries and v != "None":
-            print k,v
+    # TODO: Consider making this into a test.
+    # for k,v in kl["continent"].iteritems():
+    #     if v not in real_continents and v != "None":
+    #         print k,v
+
+    # for k,v in kl["country"].iteritems():
+    #     if v not in iso_countries and v != "None":
+    #         print k,v
+
+    pp = pprint.PrettyPrinter()
+
+    for each in globals():
+        if not each.startswith("_"):
+            if isinstance(globals()[each], set) or isinstance(globals()[each], dict):
+                print(each.join("**"))
+                pp.pprint(globals()[each])
+                print()

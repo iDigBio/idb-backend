@@ -9,7 +9,7 @@ from shapely.prepared import prep
 from .memoize import memoized
 
 
-pattern = re.compile('[\W_]+')
+pattern = re.compile(r'[\W_]+')
 
 class ReverseGeocoder(object):
 

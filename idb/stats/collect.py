@@ -113,7 +113,7 @@ def collect_stats(collect_datetime, es=None):
 
     recordset_stats = defaultdict(new_stats_dict)
 
-    # print date_min, date_max
+
     sql = """SELECT * FROM stats
              LEFT JOIN queries on stats.query_id=queries.id
              WHERE date > %s AND date < %s

@@ -276,7 +276,7 @@ def process_subfile(rf, rsid, rs_uuid_etag, rs_id_uuid, ingest=False, db=None):
                 u, parent, deleted = db.get_uuid([i for _,_,i in idents])
                 if parent is not None:
                     if parent != rsid:
-                        if config.IDB_EXTRA_SERIOUS_DEBUG == 'yes':                       
+                        if config.IDB_EXTRA_SERIOUS_DEBUG == 'yes':
                             rlogger.debug("******")
                             rlogger.debug("u: {0}".format(u))
                             rlogger.debug("parent: {0}".format(parent))
@@ -359,7 +359,7 @@ def process_subfile(rf, rsid, rs_uuid_etag, rs_id_uuid, ingest=False, db=None):
                         db_uuid = db_r["uuid"]
 
                     if db_uuid is None:
-                        # We probably need to do something other than raise this RecordException for this since 
+                        # We probably need to do something other than raise this RecordException for this since
                         # ac:associatedSpecimenReference is not required to be in *this* file / system.
                         # Can we find a different identifier?
                         raise RecordException("Record (idents: [{0}]) contains ac:associatedSpecimenReference '{1}' that does not relate to an existing identifier.".format(ref_uuid, idents))
@@ -545,7 +545,7 @@ def metadataToSummaryJSON(rsid, metadata, writeFile=True, doStats=True):
             with AtomicFile(rsid + ".summary.json", "w") as jf:
                 json.dump(summary, jf, indent=2)
         return summary
-    
+
 
     csv_line_count = 0
     no_recordid_count = 0

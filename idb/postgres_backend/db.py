@@ -77,7 +77,7 @@ class PostgresDB(object):
     """ + \
         __join_uuids_etags_latest_version + \
         __join_uuids_identifiers + \
-        __join_uuids_siblings 
+        __join_uuids_siblings
 
     __columns_master_query = """ SELECT
             uuids.id as uuid,

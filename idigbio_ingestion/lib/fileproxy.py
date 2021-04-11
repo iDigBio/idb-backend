@@ -21,7 +21,7 @@
 
 class FileProxy(object):
     """
-       The main FileProxy class, behaves just like a file object, with three additions: 
+       The main FileProxy class, behaves just like a file object, with three additions:
          * dump() is added to return a string context of all bytes read since the last snapshot.
          * snap() is added to take a snapshot of the number of bytes read so far.
          * next() and read() are modified to capture the number of bytes read from the file.
@@ -42,12 +42,12 @@ class FileProxy(object):
         save = self.__file.tell()
         self.__file.seek(max(self.__snapshot - self.__add, 0))
         s = self.__file.read(self.__read_chars - self.__snapshot + (self.__add * 2))
-        self.__file.seek(save) 
+        self.__file.seek(save)
         return s
 
     def close(self):
         return self.__file.close()
-   
+
     def flush(self):
         return self.__file.flush()
 
@@ -69,7 +69,7 @@ class FileProxy(object):
 
     def readline(self,size=None):
         return self.__file.readline(size)
- 
+
     def readlines(self,sizehint=None):
         return self.__file.readlines(sizehint)
 

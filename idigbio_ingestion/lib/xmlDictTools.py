@@ -92,7 +92,7 @@ def d2xml(d):
     def _d2xml(d, p):
         for k,v in d.items():
             if k.startswith("#"):
-               p.set(k[1:],v)
+                p.set(k[1:],v)
             elif isinstance(v,dict):
                 node = etree.SubElement(p, k)
                 _d2xml(v, node)

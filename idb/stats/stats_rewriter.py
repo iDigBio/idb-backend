@@ -57,7 +57,7 @@ def resume_reindex(client, source_index, target_index, query=None, target_client
         size=5000
     ):
         target_docs.add(h['_id'])
-    logger.info("Skip list build: {} docs".format(len(target_docs)))    
+    logger.info("Skip list build: {} docs".format(len(target_docs)))
 
     base_num = 0
     end_num = 48
@@ -122,7 +122,7 @@ def resume_reindex(client, source_index, target_index, query=None, target_client
                     stats["skip"] += 1
                 else:
                     print (h)
-                    target_client.index(index=target_index,doc_type=h["_type"],body=h["_source"])                    
+                    target_client.index(index=target_index,doc_type=h["_type"],body=h["_source"])
                     stats["done"] += 1
                     target_docs.add(h["_id"])
 
@@ -330,12 +330,12 @@ es = Elasticsearch([
 # m = es.indices.get_mapping(index=source_index,doc_type="api,digest,fields,search")
 
 # m[source_index]["mappings"]["api"]["properties"]["recordset_id"] ={
-#   "type": "string", 
+#   "type": "string",
 #   "analyzer": "keyword"
 # }
 
 # m[source_index]["mappings"]["digest"]["properties"]["recordset_id"] ={
-#   "type": "string", 
+#   "type": "string",
 #   "analyzer": "keyword"
 # }
 
@@ -374,12 +374,12 @@ target_index = "stats-2.6.0"
 #             del dk[t]["properties"][k]
 
 # m[source_index]["mappings"]["api"]["properties"]["recordset_id"] ={
-#   "type": "string", 
+#   "type": "string",
 #   "analyzer": "keyword"
 # }
 
 # m[source_index]["mappings"]["digest"]["properties"]["recordset_id"] ={
-#   "type": "string", 
+#   "type": "string",
 #   "analyzer": "keyword"
 # }
 
@@ -398,7 +398,7 @@ target_index = "stats-2.6.0"
 #                             data["keys"][t][re_map[k]] = data["keys"][t][k]
 #                         else:
 #                             data["keys"][t][re_map[k]] += data["keys"][t][k]
-#                         del data["keys"][t][k]    
+#                         del data["keys"][t][k]
 #     return (action, data)
 
 recordsets = [

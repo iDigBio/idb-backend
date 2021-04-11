@@ -292,7 +292,7 @@ def get_taxon_from_index():
         etag = objectHasher("sha256", r["_source"]["data"], sort_arrays=True)
         stats["count"] += 1
         if etag not in etags:
-            stats["precount"] += 1            
+            stats["precount"] += 1
             try:
                 yield (etag,r["_source"]["data"])
             except KeyError as e:

@@ -389,6 +389,6 @@ def main():
         print (json.dumps(list(new_accept_set), indent=4))
 
 
-    
+
 if __name__ == '__main__':
     main()

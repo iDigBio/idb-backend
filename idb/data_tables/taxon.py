@@ -122,7 +122,6 @@ def get_sources():
 
 def main():
     count = 0
-    for dr in get_data(os.path.expanduser("~/Downloads/backbone-current-sorted.zip")):
+    for _ in get_data(os.path.expanduser("~/Downloads/backbone-current-sorted.zip")):
         count += 1
-        # print dr
     print (count)

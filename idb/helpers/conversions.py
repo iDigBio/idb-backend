@@ -801,7 +801,7 @@ def collect_common_names(t, d):
         if dcn is not None:
             cns.append(dcn)
 
-        for vn in vns:
+        for _ in vns:
             if d.get("dwc:vernacularname") is not None:
                 cns.append(d.get("dwc:vernacularname"))
 

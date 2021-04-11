@@ -111,7 +111,7 @@ def main():
     with FileProxy(open("test.csv", "rb")) as inf:
         try:
             cr = csv.reader(inf)
-            for l in cr:
+            for _ in cr:
                 pass
                 inf.snap()
         except:

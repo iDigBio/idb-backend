@@ -99,7 +99,7 @@ def main(poolsize=50, limit=5000):
         objects = get_all_objects(limit)
         check_results = p.imap_unordered(check_object, objects)
         check_results = log_counts(check_results)
-        for cr in check_results:
+        for _ in check_results:
             pass
     except KeyboardInterrupt:
         p.kill()

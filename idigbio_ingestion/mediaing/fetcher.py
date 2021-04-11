@@ -37,7 +37,7 @@ LAST_CHECK_INTERVAL = '1 month'
 USER_AGENT = 'iDigBio Media Ingestor (idigbio@acis.ufl.edu https://www.idigbio.org/wiki/index.php/Media_Ingestor)'
 logger.info("Started fetcher with User Agent string: '{0}'".format(USER_AGENT))
 
-PREFIX_RE = re.compile('^https?://[^/]*[/?]')
+PREFIX_RE = re.compile(r'^https?://[^/]*[/?]')
 
 
 def once(prefix=None, ignores=IGNORE_PREFIXES):

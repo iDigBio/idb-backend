@@ -16,7 +16,7 @@ def first(iterable, key=None, default=None):
 def ilen(iterable):
     "Traverse (possibly consuming) an iterable to count its length"
     count = 0
-    for _ in iterable:
+    for e in iterable:
         count += 1
     return count
 

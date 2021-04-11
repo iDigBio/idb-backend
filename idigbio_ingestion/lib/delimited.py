@@ -196,6 +196,6 @@ class DelimitedFile(object):
             Returns all lines in the file. Cheats off readline.
         """
         lines = []
-        for _ in self:
+        for line in self:
             lines.append(self.readline())
         return lines

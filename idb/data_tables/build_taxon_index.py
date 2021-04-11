@@ -92,7 +92,7 @@ def get_data(path_to_checklist):
 def main():
     # for r in get_data(os.path.expanduser("~/Downloads/backbone-current-sorted.zip")):
     #     pass
-    for _ in bulk_index(get_data(os.path.expanduser("~/Downloads/backbone-current-sorted.zip"))):
+    for r in bulk_index(get_data(os.path.expanduser("~/Downloads/backbone-current-sorted.zip"))):
         pass
 
 

@@ -206,7 +206,7 @@ class DwcaRecordFile(DelimitedFile):
 
         # the purpose of this is to skip any header rows
         while ignoreheader > 0:
-            _ = self.readline()
+            next_line = self.readline()
             ignoreheader -= 1
 
     def __iter__(self):

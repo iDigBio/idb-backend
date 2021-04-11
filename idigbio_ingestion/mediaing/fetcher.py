@@ -227,7 +227,7 @@ class FetchItem(object):
     #: Number of concurrent connections allowed
     FETCHER_COUNT = 2
 
-    #: Can http connections be reuesed?
+    #: Allow or disallow http connections be re-used
     REUSE_CONN = True
 
     #: class (static) variable for the session to use

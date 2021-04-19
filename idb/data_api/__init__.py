@@ -74,8 +74,9 @@ def run_server(info, host, port, reload, debugger, eager_loading, debug, wsgi):
             # import path because the app was loaded through a callback then
             # we won't print anything.
             if info.app_import_path is not None:
-                print("Werkzeug server @ http://{0}:{1}/ ENV={2}".format(host, port, config.ENV),
-                      file=sys.stderr)
+                # logger is not started yet.
+                startup_msg = "Werkzeug server @ http://{0}:{1}/ ENV={2}".format(host, port, config.ENV)
+                print(startup_msg, file=sys.stderr)
             if info.debug is not None:
                 print(' * Forcing debug %s' % (info.debug and 'on' or 'off'))
 
@@ -91,7 +92,11 @@ def run_server(info, host, port, reload, debugger, eager_loading, debug, wsgi):
         logger = idblogger.getChild('api')
 
         from werkzeug.middleware.proxy_fix import ProxyFix
-        logger.info("gevent server @ http://%s:%s/ ENV=%s", host, port, config.ENV)
+        startup_msg = "gevent server @ http://{0}:{1}/ ENV={2}".format(host, port, config.ENV)
+        if logger.level < 1: # more severe than logging.INFO, so we need to print it
+            print(startup_msg, file=sys.stderr)
+        else:
+            logger.info(startup_msg)
         app = info.load_app()
         app = WSGILogger(app, [], ApacheFormatter())
         app.logger = logger.getChild('r')

@@ -27,7 +27,7 @@ TIMELESS_FORMAT = u"%(levelname)-5.5s %(name)s\u10fb %(message)s"
 LOGBOOK_FORMAT_STRING = u'{record.time:%Y-%m-%d %H:%M:%S.%f} {record.level_name:<5.5} ' \
                         u'{record.channel}\u10fb {record.message}'
 
-#: Libaries used whos logs should be at a higher level.
+#: Libaries used whose logs should be at a higher level.
 LIBRARY_LOGGERS = ('boto', 'requests', 'urllib3', 'elasticsearch', 'shapely', 'gipc')
 
 

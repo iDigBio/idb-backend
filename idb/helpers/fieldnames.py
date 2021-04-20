@@ -43,6 +43,7 @@ types map the namespace URI to a Compact URI / CURIE
 '''
 types = {
     "http://purl.org/NET/aec/associatedTaxa": {"shortname": "aec:associatedTaxa"},
+    "http://rs.iobis.org/obis/terms/ExtendedMeasurementOrFact": {"shortname": "obis:ExtendedMeasurementOrFact"},
     "http://rs.gbif.org/terms/1.0/Identifier": {"shortname": "gbif:Identifier"},
     "http://rs.gbif.org/terms/1.0/Image":  { "shortname": "dwc:Multimedia"},
     "http://rs.gbif.org/terms/1.0/Multimedia": { "shortname": "dwc:Multimedia"},

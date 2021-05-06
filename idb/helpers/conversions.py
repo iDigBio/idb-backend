@@ -447,7 +447,8 @@ def geoGrabber(t, d):
                 r["geopoint"] = None
                 r["flag_geopoint_bounds"] = True
                 return r
-
+            # geopoint_bounds flag set here also
+            # longitude must in the range -180 to 180
             if not (-180 <= lon <= 180):
                 r["geopoint"] = None
                 r["flag_geopoint_bounds"] = True

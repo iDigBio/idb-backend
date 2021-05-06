@@ -432,7 +432,8 @@ def geoGrabber(t, d):
 
             latexp = getExponent(lat_val)
             lonexp = getExponent(lon_val)
-
+            # geopoint_pre_flip flag set here
+            # if latitude and longitude fall in ranges below, swap them 
             if (
                 (-180 <= lat < -90 or 90 < lat <= 180) and
                 (-90 <= lon <= 90)

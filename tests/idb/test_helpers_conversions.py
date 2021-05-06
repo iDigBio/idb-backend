@@ -13,6 +13,15 @@ class TestGetExponent(unittest.TestCase):
         for i,exp in enumerate(exponents):
             self.assertEqual(i, conversions.getExponent(exp))
 
+class TestCheckBounds(unittest.TestCase):
+    def test_check_bounds(self):
+        bad_past_date = datetime.datetime(1500, 1, 1, tzinfo=pytz.utc)
+        bad_future_date = datetime.datetime.now(pytz.utc) + datetime.timedelta(100)
+        good_past_date = datetime.datetime(1700, 12, 12, tzinfo=pytz.utc)
+        self.assertEqual(True, conversions.checkBounds(bad_past_date))
+        self.assertEqual(True, conversions.checkBounds(bad_future_date))
+        self.assertEqual(False, conversions.checkBounds(good_past_date))
+
 
 class TestSetFlags(unittest.TestCase):
     def test_set_flags(self):

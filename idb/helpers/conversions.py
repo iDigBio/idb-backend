@@ -440,7 +440,9 @@ def geoGrabber(t, d):
             ):
                 lat, lon = lon, lat
                 r["flag_geopoint_pre_flip"] = True
-
+            # geopoint_bounds flag set here
+            # latitude must be in the range -90 to 90
+            # -90 corresponds to South Pole, 90 North Pole
             if not (-90 <= lat <= 90):
                 r["geopoint"] = None
                 r["flag_geopoint_bounds"] = True

@@ -223,6 +223,15 @@ for t in fields:
 
 
 def checkBounds(x):
+    """
+      Checks whether a supplied date is within the agreed timeframe. 
+      iDigBio only accepts data from 1700-01-02 UTC to now (when ingestion runs.)
+      x: datetime.datetime
+      Returns
+      -------
+      bool
+        Indicates whether the date is allowed.
+    """
     lowerBound = datetime.datetime(1700, 1, 2, tzinfo=pytz.utc)
     upperBound = datetime.datetime.now(pytz.utc)
     if isinstance(x, datetime.datetime):

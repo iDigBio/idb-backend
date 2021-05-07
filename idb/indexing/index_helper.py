@@ -12,6 +12,11 @@ logger = idblogger.getChild('index_helper')
 # PYTHON3_WARNING
 from urlparse import urlparse
 
+
+# A problematic field name is "http://rs.iobis.org/obis/terms/measurementTypeID" inside
+# the "obis:ExtendedMeasurementOrFact".
+UNINDEXABLE_OBJECTS = ["obis:ExtendedMeasurementOrFact"]
+
 def index_record(ei, rc, typ, r, do_index=True):
     """
     Index a single database record.
@@ -51,8 +56,8 @@ def index_record(ei, rc, typ, r, do_index=True):
         g = grabAll(typ, d)
         i = prepForEs(typ, g)
 
-        # Remove fieldnames with dots in them
-        # to fix an issue converting to ES 2.3+
+        # Fixup problematic field names due to limitations of Elasticsearch.
+        # For example, dots in fieldnames.
         for k in r["data"]:
             if "." in k:
                 if k in types:
@@ -67,11 +72,18 @@ def index_record(ei, rc, typ, r, do_index=True):
                     suffix = urldata.path.split("/")[-1]
                     r["data"][prefix + ":" + suffix] = r["data"][k]
                     d["flag_data_" + prefix + "_" + suffix + "_munge"] = True
+            if k in UNINDEXABLE_OBJECTS:
+                # inventing a new flag for each field we are truncating
+                new_flag = "_".join(["flag", "idigbio", k.replace(":","_").lower(), "truncated"])
+                d[new_flag] = True
+                # truncate the troublesome object to prevent Elasticsearch mapper_parsing_exception
+                d[k] = {}
+                r["data"][k] = {}
 
         i["data"] = r["data"]
         i["indexData"] = d
 
-        if config.IDB_EXTRA_SERIOUS_DEBUG == 'yes': # dummy comment because github
+        if config.IDB_EXTRA_SERIOUS_DEBUG == 'yes':
             logger.debug("Index record: %s with approx. %s bytes of data.", i["uuid"], len(repr(i)))
             logger.debug("Data: %s", repr(i))
 

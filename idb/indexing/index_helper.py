@@ -74,7 +74,7 @@ def index_record(ei, rc, typ, r, do_index=True):
                     d["flag_data_" + prefix + "_" + suffix + "_munge"] = True
             if k in UNINDEXABLE_OBJECTS:
                 # inventing a new flag for each field we are truncating
-                new_flag = "_".join(["flag", "idigbio", k.replace(":","_").lower(), "removed"])
+                new_flag = "_".join(["flag", "idigbio", k.replace(":","_").lower(), "truncated"])
                 d[new_flag] = True
                 # truncate the troublesome object to prevent Elasticsearch mapper_parsing_exception
                 d[k] = {}

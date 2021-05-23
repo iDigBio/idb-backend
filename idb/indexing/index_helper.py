@@ -9,7 +9,13 @@ from idb.helpers.fieldnames import types
 from idb.helpers.logging import idblogger
 logger = idblogger.getChild('index_helper')
 
-from urllib.parse import urlparse
+# PYTHON3_WARNING
+from urlparse import urlparse
+
+
+# A problematic field name is "http://rs.iobis.org/obis/terms/measurementTypeID" inside
+# the "obis:ExtendedMeasurementOrFact".
+UNINDEXABLE_OBJECTS = ["obis:ExtendedMeasurementOrFact", "chrono:ChronometricAge"]
 
 def index_record(ei, rc, typ, r, do_index=True):
     """

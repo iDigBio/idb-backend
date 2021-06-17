@@ -43,6 +43,7 @@ types map the namespace URI to a Compact URI / CURIE
 '''
 types = {
     "http://purl.org/NET/aec/associatedTaxa": {"shortname": "aec:associatedTaxa"},
+    "http://rs.iobis.org/obis/terms/ExtendedMeasurementOrFact": {"shortname": "obis:ExtendedMeasurementOrFact"},
     "http://rs.gbif.org/terms/1.0/Identifier": {"shortname": "gbif:Identifier"},
     "http://rs.gbif.org/terms/1.0/Image":  { "shortname": "dwc:Multimedia"},
     "http://rs.gbif.org/terms/1.0/Multimedia": { "shortname": "dwc:Multimedia"},
@@ -58,6 +59,7 @@ types = {
     "http://rs.tdwg.org/dwc/terms/Occurrence": { "shortname": "dwc:Occurrence" },
     "http://rs.tdwg.org/dwc/terms/ResourceRelationship": { "shortname": "dwc:ResourceRelationship" },
     "http://rs.tdwg.org/dwc/terms/Taxon": {"shortname": "dwc:Taxon"},
+    "http://rs.tdwg.org/chrono/terms/ChronometricAge": {"shortname": "chrono:ChronometricAge"},
     "http://zooarchnet.org/dwc/terms/ChronometricDate": {"shortname": "zan:ChronometricDate"},
     "http://zooarchnet.org/dwc/terms/ChronometricAge": {"shortname": "zan:ChronometricAge"}
 }

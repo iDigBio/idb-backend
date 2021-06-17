@@ -22,9 +22,10 @@ script:
   -e "IDB_STORAGE_SECRET_KEY=${SECRET_KEY}"
   -e "IDB_STORAGE_HOST=localhost:9000"
   $BUILDING
-  pytest --pguser=postgres --pgpass="" tests/idb
+  pytest -p no:cacheprovider --pguser=postgres --pgpass="" tests/idb
 
 after_success:
+# upload new docker images
 - docker login --username="$DOCKER_USERNAME" --password="$DOCKER_PASSWORD"
 deploy:
   - provider: script

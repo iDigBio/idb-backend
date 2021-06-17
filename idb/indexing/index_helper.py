@@ -1,27 +1,35 @@
 from __future__ import absolute_import
 from idb.helpers.conversions import grabAll
 from idb.postgres_backend.db import tombstone_etag
+from idb import config
 
 from .indexer import prepForEs
 from idb.helpers.fieldnames import types
 
+from idb.helpers.logging import idblogger
+logger = idblogger.getChild('index_helper')
+
 # PYTHON3_WARNING
 from urlparse import urlparse
 
+
+# A problematic field name is "http://rs.iobis.org/obis/terms/measurementTypeID" inside
+# the "obis:ExtendedMeasurementOrFact".
+UNINDEXABLE_OBJECTS = ["obis:ExtendedMeasurementOrFact", "chrono:ChronometricAge"]
+
 def index_record(ei, rc, typ, r, do_index=True):
     """
-    Summary goes here.
+    Index a single database record.
 
     Parameters
     ----------
-    ei : ?
-        TBD
-    rc : ?
-        TBD
-    typ : ?
-        TBD
-    do_index : ?
-        TBD
+    ei : ElasticSearchIndexer
+    rc : RecordCorrector
+    typ : string
+        A type such as 'publishers', 'recordsets', 'mediarecords', 'records'
+    r : the record data object
+    do_index : boolean
+        Actually update the index or not.
     """
     if r["etag"] == tombstone_etag:
         i = {
@@ -48,8 +56,8 @@ def index_record(ei, rc, typ, r, do_index=True):
         g = grabAll(typ, d)
         i = prepForEs(typ, g)
 
-        # Remove fieldnames with dots in them
-        # to fix an issue converting to ES 2.3+
+        # Fixup problematic field names due to limitations of Elasticsearch.
+        # For example, dots in fieldnames.
         for k in r["data"]:
             if "." in k:
                 if k in types:
@@ -64,9 +72,20 @@ def index_record(ei, rc, typ, r, do_index=True):
                     suffix = urldata.path.split("/")[-1]
                     r["data"][prefix + ":" + suffix] = r["data"][k]
                     d["flag_data_" + prefix + "_" + suffix + "_munge"] = True
+            if k in UNINDEXABLE_OBJECTS:
+                # inventing a new flag for each field we are truncating
+                new_flag = "_".join(["flag", "idigbio", k.replace(":","_").lower(), "truncated"])
+                d[new_flag] = True
+                # truncate the troublesome object to prevent Elasticsearch mapper_parsing_exception
+                d[k] = {}
+                r["data"][k] = {}
 
         i["data"] = r["data"]
         i["indexData"] = d
+
+        if config.IDB_EXTRA_SERIOUS_DEBUG == 'yes':
+            logger.debug("Index record: %s with approx. %s bytes of data.", i["uuid"], len(repr(i)))
+            logger.debug("Data: %s", repr(i))
 
         if do_index:
             ei.index(typ, i)

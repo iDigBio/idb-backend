@@ -15,7 +15,7 @@ from idb.helpers.logging import fnlogged
 
 from idb import (data_api, indexing, stats)  # noqa
 
-@cli.group()
+@cli.group(help="Output data tables used interally by idb-backend.")
 def datatables():
     pass
 
@@ -32,8 +32,9 @@ def locality_data():
     from idb.data_tables.locality_data import main
     main()
 
-@datatables.command(name="taxon")
-@fnlogged
-def taxon():
-    from idb.data_tables.taxon import main
-    main()
+### "taxon" has no useful output at the moment.
+# @datatables.command(name="taxon")
+# @fnlogged
+# def taxon():
+#     from idb.data_tables.taxon import main
+#     main()

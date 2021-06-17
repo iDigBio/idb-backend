@@ -3,6 +3,8 @@ from lxml import etree
 from collections import deque
 import traceback
 import shutil
+import requests
+from cStringIO import StringIO
 
 from idb.helpers.logging import idblogger, getLogger
 from .delimited import DelimitedFile
@@ -10,7 +12,8 @@ from idb.helpers.fieldnames import namespaces
 from .xmlDictTools import xml2d
 
 FNF_ERROR = "File {0} not present in archive."
-DWC_SCHEMA_URL = "http://rs.tdwg.org/dwc/text/tdwg_dwc_text.xsd"
+DWC_SCHEMA_URL = "https://dwc.tdwg.org/text/tdwg_dwc_text.xsd"
+
 
 def archiveFile(archive,name):
     metaname = name
@@ -52,10 +55,12 @@ class Dwca(object):
         meta_filename = self.path + "/" + archiveFile(self.archive,"meta.xml")
         try:
             schema_parser = etree.XMLParser(no_network=False)
-            # wut is going on. see https://redmine.idigbio.org/issues/3042
-            schema = etree.XMLSchema(etree.parse(DWC_SCHEMA_URL, parser=schema_parser))
-            parser = etree.XMLParser(schema=schema, no_network=False)
+            r = requests.get(DWC_SCHEMA_URL)
+            r_file_like_object = StringIO(r.content)
+            parsed = etree.parse(r_file_like_object, schema_parser)
+            schema = etree.XMLSchema(parsed)
 
+            parser = etree.XMLParser(schema=schema, no_network=False)
             with open(meta_filename,'r') as meta:
                 try:
                     root = etree.parse(meta, parser=parser).getroot()
@@ -63,8 +68,6 @@ class Dwca(object):
                     self.logger.info("Schema validation failed against '%s', continuing unvalidated.", DWC_SCHEMA_URL)
                     self.logger.debug(traceback.format_exc())
                     meta.seek(0)
-                    # print meta.read()
-                    # meta.seek(0)
                     root = etree.parse(meta).getroot()
         except:
             self.logger.info("Failed to fetch schema '%s', continuing unvalidated.", DWC_SCHEMA_URL)
@@ -170,9 +173,9 @@ class DwcaRecordFile(DelimitedFile):
 
         rowtype = filedict["#rowType"]
         encoding = filedict.get("#encoding", "UTF-8")
-        linesplit = filedict["#linesTerminatedBy"].decode('string_escape')
-        fieldsplit = filedict["#fieldsTerminatedBy"].decode('string_escape')
-        fieldenc = filedict["#fieldsEnclosedBy"].decode('string_escape')
+        linesplit = get_unescaped_linesTerminatedBy(filedict)
+        fieldsplit = get_unescaped_fieldsTerminatedBy(filedict)
+        fieldenc = get_unescaped_fieldsEnclosedBy(filedict)
         ignoreheader = int(filedict.get("#ignoreHeaderLines","0"))
 
         self.defaults = {}
@@ -196,7 +199,6 @@ class DwcaRecordFile(DelimitedFile):
                     self.logger.error("Duplicate field index ignored {0}".format(str(fld)))
             if '#default' in fld:
                 self.defaults[term] = fld['#default']
-        # print self.defaults
 
         super(DwcaRecordFile,self).__init__(
             fh,encoding=encoding,delimiter=fieldsplit,fieldenc=fieldenc,header=fields,rowtype=rowtype,
@@ -206,8 +208,12 @@ class DwcaRecordFile(DelimitedFile):
             self._reader.next()
             ignoreheader -= 1
 
-    def readline(self,size=None):
-        lineDict = {}
-        lineDict.update(self.defaults)
-        lineDict.update(super(DwcaRecordFile,self).readline(size))
-        return lineDict
+def get_unescaped_linesTerminatedBy(filedict):
+    return filedict["#linesTerminatedBy"].decode('string_escape')
+
+def get_unescaped_fieldsTerminatedBy(filedict):
+    return filedict["#fieldsTerminatedBy"].decode('string_escape')
+
+def get_unescaped_fieldsEnclosedBy(filedict):
+    return filedict["#fieldsEnclosedBy"].decode('string_escape')
+

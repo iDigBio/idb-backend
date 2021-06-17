@@ -20,7 +20,7 @@ from idb.helpers.logging import fnlogged
               default=True,
               help="Enable/disable the record corrector, Default: enabled")
 @click.option('--types', '-t',
-              # TODO: this should porbably be `idb.helpers.conversions.fields.keys()`
+              # TODO: this should probably be `idb.helpers.conversions.fields.keys()`
               type=click.Choice([
                   'publishers', 'recordsets', 'mediarecords', 'records']),
               multiple=True)
@@ -39,6 +39,14 @@ def cli(ctx, index, corrections, types, indexname):
     if indexname is None:
         indexname = config.config["elasticsearch"]["indexname"]
     serverlist = config.config["elasticsearch"]["servers"]
+
+    if config.ENV == 'dev':
+        logger.info("Enabling dev configuration")
+        indexname = "dev-local"
+        serverlist = [
+            "localhost"
+        ]
+
 
     if config.ENV == 'beta':
         logger.info("Enabling beta configuration")

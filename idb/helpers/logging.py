@@ -46,7 +46,9 @@ def configure_app_log(verbose, logfile=None, journal=False):
         0: logging.WARNING,
         1: logging.INFO,
         2: logging.DEBUG,
-        3: 0
+        3: logging.DEBUG,
+        4: logging.DEBUG,
+        5: logging.DEBUG
     }
     if verbose is None:
         verbose = 0
@@ -88,10 +90,10 @@ def configure(logger=idblogger,
     handlers = []
     if filename:
         handlers.append(
-            add_file_handler(logger=logger, filename=filename, logdir=logdir, level=file_level))
+            add_file_handler(logger=logger, filename=filename, logdir=logdir, level=file_level)) # file_level different than normal level?
     if stderr_level:
         handlers.append(
-            add_stderr_handler(logger=logger, level=stderr_level)
+            add_stderr_handler(logger=logger, level=stderr_level)  # where does stderr play into this?  is *this* where extra in console is coming from?
         )
     return handlers
 
@@ -133,7 +135,7 @@ def add_stderr_handler(logger=logging.root, level=logging.INFO):
         logger.setLevel(level)
     se = logging.StreamHandler()
     se.setLevel(level)
-    se.setFormatter(logging.Formatter(PRECISE_FORMAT, datefmt=TIME_FORMAT))
+    se.setFormatter(logging.Formatter(PRECISE_FORMAT, datefmt=DATETIME_FORMAT))
     logger.addHandler(se)
     return se
 

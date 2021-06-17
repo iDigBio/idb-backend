@@ -1,9 +1,9 @@
 import os
 import re
+import sys
 from setuptools import setup, find_packages
 
 from codecs import open
-
 
 def read(*paths):
     """Build a file path from *paths* and return the contents."""
@@ -14,6 +14,20 @@ readme = read('README.md')
 
 version = re.search(r'^__version__\s*=\s*[\'"]([^\'"]*)[\'"]',
                     read(os.path.join(os.path.dirname(__file__), 'idb/__init__.py')), re.MULTILINE).group(1)
+
+# Abort if on Python 3 since we know the codebase does not support it.
+if sys.version_info >= (3,0):
+    sys.exit("idb-backend: Python 3 is not supported. Consider passing '-p python2.7' when creating the venv.")
+
+# Pillow-SIMD causes segfault on newer Python 2.
+# We do not yet support Python 3.
+# Only install Pillow-SIMD where it is known to work, otherwise
+# install Pillow.
+# (see https://github.com/iDigBio/idb-backend/issues/92)
+if sys.version_info >= (2,7,15):
+    pillow_package = "pillow>=3.4,<=5.1.1"
+else:
+    pillow_package = "pillow-simd>=3.4,<=5.1.1"
 
 setup(
     name='idb-backend',
@@ -32,11 +46,12 @@ setup(
         'redis>=2.9.1, <3.0.0',
         'python-dateutil>=2.2, <3.0',
         'udatetime>=0.0.13',
-        'elasticsearch>=2.3, <3',
+        'elasticsearch>=5, <6',
         'pyproj>=1.9.3',
         'pytz>=2016.10',
-        'requests>=2.4.0',
-        'pycrypto',
+        'requests==2.20.0',
+        'urllib3<1.25,>=1.21.1',
+	'pycrypto',
         'flask>=0.11.0, <1.0.0',
         'Flask-UUID',
         'Flask-CORS',
@@ -60,13 +75,12 @@ setup(
         'jsonlines>=1.1.3',
     ],
     extras_require={
-        'journal': ['systemd-python>=230'],
         'ingestion': [
             'pydub==0.16.5',
-            'pillow-simd>=3.4,<=5.1.1',
+            pillow_package,
             'lxml',
             'chardet',
-            'pyquery>=1.2',
+            'pyquery==1.2.17',
         ],
         'test': [
             'pytest>=3.0',

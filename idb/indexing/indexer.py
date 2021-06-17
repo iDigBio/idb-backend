@@ -10,10 +10,7 @@ from idb.helpers.logging import idblogger
 from idb.helpers.conversions import fields, custom_mappings
 
 local_tz = timezone('US/Eastern')
-logger = idblogger.getChild('indexing')
-
-# Try using smaller batches.
-INDEX_CHUNK_SIZE = 1000
+logger = idblogger.getChild('indexer')
 
 def get_connection(**kwargs):
     """
@@ -25,10 +22,10 @@ def get_connection(**kwargs):
         An elasticsearch connection object
     """
     kwargs.setdefault('hosts', config.config["elasticsearch"]["servers"])
-    kwargs.setdefault('retry_on_timeout', True)  # this isn't valid until >=1.3
+    kwargs.setdefault('retry_on_timeout', True)
     kwargs.setdefault('sniff_on_start', False)
-    kwargs.setdefault('sniff_on_connection_fail', False)
-    kwargs.setdefault('max_retries', 10)
+    kwargs.setdefault('sniff_on_connection_fail', True)
+    kwargs.setdefault('max_retries', 5)
     kwargs.setdefault('timeout', 30)
     return elasticsearch.Elasticsearch(**kwargs)
 
@@ -54,8 +51,8 @@ def prepForEs(t, i):
 
     Parameters
     ----------
-    t : tbd
-        The tbd description
+    t : string
+        A type such as 'publishers', 'recordsets', 'mediarecords', 'records'
     i : TBD
         The tbd description
 
@@ -88,20 +85,63 @@ def prepForEs(t, i):
 
 class ElasticSearchIndexer(object):
     """
-    This should have a docstring.
-
-    Attributes
-    ----------
-    ?
+    The Elasticsearch object for managing a connection to the search cluster
+    and contains the idigbio indexing methods.
     """
 
     def __init__(self, indexName, types,
                  commitCount=100000, disableRefresh=True,
                  serverlist=["localhost"]):
-        logger.info("Initializing ElasticSearchIndexer(%r, %r)", indexName, types)
+        logger.info("Initializing ElasticSearchIndexer(%r, %r, First cluster node: %r)", indexName, types, serverlist[0])
         self.es = get_connection(hosts=serverlist)
+
+        # verify connectivity to cluster
+        try:
+            self.es.ping()
+        except:
+            logger.error("Connection failed to cluster. First cluster node: %s", serverlist[0])
+            raise SystemExit
+
         self.indexName = get_indexname(indexName)
         self.types = types
+        self.BASECONFIG = {}
+
+        # If in dev environment we are probably using single node elasticsearch
+        # on a local machine.  Use single node es config.
+        if config.ENV == 'dev':
+            self.INDEX_CREATE_SETTINGS = {
+                "settings" : {
+                    "index" : {
+                        "number_of_shards" : 1,
+                        "number_of_replicas" : 0
+                    }
+                }
+            }
+        else:
+            self.INDEX_CREATE_SETTINGS = {
+                "settings" : {
+                    "index" : {
+                        "number_of_shards" : config.ES_INDEX_NUMBER_OF_SHARDS,
+                        "number_of_replicas" : config.ES_INDEX_NUMBER_OF_REPLICAS
+                    }
+                }
+            }
+
+        # Create index only if:
+        #     1. it does not exist, and 
+        #     2. we have the environment variable set to permit index creation.
+        self.ALLOW_INDEX_CREATION = True if config.ES_ALLOW_INDEX_CREATION == "yes" else False
+        if not self.ALLOW_INDEX_CREATION and not self.es.indices.exists(index=self.indexName):
+            logger.info("Index '%s' not found.  If you wish to create it, set ES_ALLOW_INDEX_CREATION=yes environment variable.", self.indexName)
+            raise SystemExit
+        if self.ALLOW_INDEX_CREATION and not self.es.indices.exists(index=self.indexName):
+            logger.info("Creating index: '%s'", self.indexName)
+            self.__create_index()
+        if self.es.indices.exists(index=self.indexName):
+            logger.info("Found index '%s'", self.indexName)
+
+        # We POST the mappings every time an indexer object is created
+        # regardless of actual indexing operation we are going to do.
         for t in self.types:
             self.esMapping(t)
 
@@ -109,6 +149,9 @@ class ElasticSearchIndexer(object):
         self.indexedCount = 0
         self.disableRefresh = disableRefresh
 
+        # This is a performance setting so newly indexed documents are not necessarily
+        # visible in the index immediately.
+        # See close() which sets refresh_interval again.
         if disableRefresh:
             self.es.indices.put_settings(index=self.indexName, body={
                 "index": {
@@ -116,13 +159,22 @@ class ElasticSearchIndexer(object):
                 }
             })
 
+    def __create_index(self):
+        """
+        Create an index with appropriate shard count and replicas for the cluster.
+        """
+        # create(index, body=None, params=None, headers=None)
+        res = self.es.indices.create(index=self.indexName, body=self.INDEX_CREATE_SETTINGS)
+        logger.info("Create new Index: %s - %s", self.indexName, res)
+
     def esMapping(self, t):
         """
-        Puts a mapping (?) into es
+        Puts field mappings into Elasticsearch.
 
         Parameters
         ----------
-        t : TBD
+        t : string
+            A type such as 'publishers', 'recordsets', 'mediarecords', 'records'
 
         """
 
@@ -163,14 +215,14 @@ class ElasticSearchIndexer(object):
                 "type": "records"
             }
         res = self.es.indices.put_mapping(index=self.indexName, doc_type=t, body={t: m})
-        logger.debug("Built mapping for %s: %s", t, res)
+        logger.info("Built mapping for %s: %s", t, res)
 
     def index(self, t, i):
         """
         Parameters
         ----------
         t : string
-            A type such as "mediarecords" or "records"
+            A type such as 'publishers', 'recordsets', 'mediarecords', 'records'
         i : TBD
             something
         """
@@ -186,12 +238,22 @@ class ElasticSearchIndexer(object):
 
     def optimize(self):
         """
-        Runs the es optimize command with the proper number of segments.
+        Do Nothing.
+
+        Previously ran the es optimize command with the proper number of segments.
+
+        What the heck are the proper number of segments?
+
+        This never returned properly.  In later version of Elasticsearch,
+        optimize has been replaced with the "merge" API.
+
+        We can bring this back if it serves a useful purpose.
 
         TODO: max_num_segments probably needs to be more configurable
         """
         logger.info("Running index optimization on %r", self.indexName)
-        self.es.indices.optimize(index=self.indexName, max_num_segments=5)
+        logger.info("Skipping index optimization / index merge.")
+        # self.es.indices.optimize(index=self.indexName, max_num_segments=5)
 
     def bulk_formater(self, tups):
         """
@@ -205,6 +267,9 @@ class ElasticSearchIndexer(object):
                 "_id": i["uuid"],
                 "_source": i,
             }
+
+            if config.IDB_EXTRA_SERIOUS_DEBUG == 'yes':
+                logger.debug("Formatted for bulk: %s", meta["_id"])
             if i.get("delete", False):
                 meta["_op_type"] = "delete"
                 del meta["_source"]
@@ -228,12 +293,13 @@ class ElasticSearchIndexer(object):
         Needs more info here.
         """
         return elasticsearch.helpers.streaming_bulk(
-            self.es, self.bulk_formater(tups), chunk_size=INDEX_CHUNK_SIZE)
+            self.es, self.bulk_formater(tups), chunk_size=config.ES_INDEX_CHUNK_SIZE, max_chunk_bytes=1048576)
 
     def close(self):
         """
         Finishes index processing.
         """
+        # This will allow newly-indexed documents to appear.
         if self.disableRefresh:
             self.es.indices.put_settings(index=self.indexName, body={
                 "index": {

@@ -8,13 +8,18 @@
 	//"context": "..",
 
 	// Update the 'dockerFile' property if you aren't using the standard 'Dockerfile' filename.
-	"dockerFile": "Dockerfile",
-
+	//"dockerFile": "Dockerfile",
+	"dockerComposeFile": "docker-compose.yml",
+	"service": "idb-backend",
+	// We have an image!
+	//  But we want to customize it a little, so use the Dockerfile intead.
+	// "image" : "idigbio/docker-library.base-idb-backend:latest",
+	
 	// Set *default* container specific settings.json values on container create.
 	"settings": { 
 		"terminal.integrated.shell.linux": "/bin/bash"
 		// "python.pythonPath": "/usr/local/bin/python",
-		// "python.linting.enabled": true,
+		"python.linting.enabled": true,
 		// "python.linting.pylintEnabled": true,
 		// "python.formatting.autopep8Path": "/usr/local/py-utils/bin/autopep8",
 		// "python.formatting.blackPath": "/usr/local/py-utils/bin/black",
@@ -34,10 +39,15 @@
 	],
 
 	// Use 'postCreateCommand' to run commands after the container is created.
-	"postCreateCommand": "pip install -r requirements.txt"
+	"postCreateCommand": "pip install -r requirements.txt",
 
 	// Uncomment to use the Docker CLI from inside the container. See https://aka.ms/vscode-remote/samples/docker-in-docker.
 	// "mounts": [ "source=/var/run/docker.sock,target=/var/run/docker.sock,type=bind" ],
+
+	// This will mount the .devcontainer/idigbio.json into the workspace at the top level directory "." and at "~/" to ensure
+	// the local dev idigbio.json config values are used inside the dev container.  Bind mount paths must be absolute.
+	"mounts": ["source=${localWorkspaceFolder}/.devcontainer/idigbio.json,target=/workspaces/idb-backend/idigbio.json,type=bind",
+		"source=${localWorkspaceFolder}/.devcontainer/idigbio.json,target=/root/idigbio.json,type=bind"]
 
 	// Uncomment to connect as a non-root user. See https://aka.ms/vscode-remote/containers/non-root.
 	// "remoteUser": "vscode"

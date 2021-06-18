@@ -301,7 +301,7 @@ def process_subfile(rf, rsid, rs_uuid_etag, rs_id_uuid, ingest=False, db=None):
                 else:
                     if config.IDB_EXTRA_SERIOUS_DEBUG == 'yes':
                         rlogger.debug("Setting sibling for '{0}'".format(u))
-                    db.set_record(u, typ[:-1], rsid, r, ids_to_add.keys(), siblings)
+                    db.set_record(u, typ[:-1], rsid, r, [*ids_to_add.keys()], siblings)
                     ingestions += 1
             elif ingest and deleted:
                 db.undelete_item(u)
@@ -392,8 +392,8 @@ def process_subfile(rf, rsid, rs_uuid_etag, rs_id_uuid, ingest=False, db=None):
         seen_ids.update(ids_to_add)
         seen_uuids.update(uuids_to_add)
 
-    eu_set = existing_etags.keys()
-    nu_set = seen_uuids.keys()
+    eu_set = set(existing_etags.keys())
+    nu_set = set(seen_uuids.keys())
 
     deletes = len(eu_set - nu_set)
 

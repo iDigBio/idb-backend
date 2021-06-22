@@ -118,6 +118,18 @@ def collect_stats(collect_datetime, es=None):
              LEFT JOIN queries on stats.query_id=queries.id
              WHERE date > %s AND date < %s
     """
+    logger.debug("min is %s, max is %s, query is: %s" % (date_min, date_max, sql))
+
+    filename = "telem-output-structures-%s.log" % (datetime.now().strftime("%Y-%m-%d-%H-%M-%S"))
+    tracefilename = "trace-log-%s.log" % (datetime.now().strftime("%Y-%m-%d-%H-%M-%S"))
+
+    # collects the raw objects we're sending to ES
+    output_fh = open(filename, 'w')
+    
+    trace_fh = open(tracefilename, 'w')
+
+    trace_fh.write("doingquery and looping through results...")
+
     for r in statsdbpool.fetchiter(sql, (date_min, date_max), cursor_factory=DictCursor):
         record_type = r["record_type"]
         stats_type = r["type"]
@@ -177,8 +189,18 @@ def collect_stats(collect_datetime, es=None):
                         "geo": json.loads(k),
                         "count": recordset_stats[recordset_key][record_type][stat_type]["geocodes"][k]
                     })
+<<<<<<< HEAD
 
         es.index(index=indexName, doc_type=typeName, body=recordset_data)
+=======
+        trace_fh.write("writing recordset_data to ES: \n")
+        output_fh.write(json.dumps(recordset_data))
+        trace_fh.write(json.dumps(recordset_data))
+        
+        es.index(index=indexName, doc_type=typeName, body=recordset_data)
+    
+    logger.info("end of script")
+>>>>>>> d5e4775 ([skip travis-ci] re-enable the push of stats into elastic by default)
 
 
 def api_stats(es=None):

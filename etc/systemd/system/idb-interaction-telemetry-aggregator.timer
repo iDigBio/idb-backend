@@ -1,0 +1,9 @@
+[Unit]
+Description="daily timer for idb-interaction-stats-aggregator"
+
+[Timer]
+OnCalendar=*-*-* 9:00:00
+Persistent=true
+
+[Install]
+WantedBy=timers.target

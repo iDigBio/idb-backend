@@ -1,0 +1,82 @@
+{
+	"<recordset_uuid>": {
+		"records": {
+			"download": {
+				"count": 0,
+				"items": {},
+				"total": 0,
+				"geocodes": {},
+				"queries": {}
+			},
+			"seen": {
+				"count": 0,
+				"items": {},
+				"total": 0,
+				"geocodes": {},
+				"queries": {}
+			},
+			"search": {
+				"count": 0,
+				"items": {},
+				"total": 0,
+				"geocodes": {},
+				"queries": {}
+			},
+			"mapping": {
+				"count": 0,
+				"items": {},
+				"total": 0,
+				"geocodes": {},
+				"queries": {}
+			},
+			"view": {
+				"count": 1,
+				"items": {
+					"<record_uuid>": 1
+				},
+				"total": 1,
+				"geocodes": {
+					"{}": 1
+				},
+				"queries": {}
+			}
+		},
+		"mediarecords": {
+			"download": {
+				"count": 0,
+				"items": {},
+				"total": 0,
+				"geocodes": {},
+				"queries": {}
+			},
+			"seen": {
+				"count": 0,
+				"items": {},
+				"total": 0,
+				"geocodes": {},
+				"queries": {}
+			},
+			"search": {
+				"count": 0,
+				"items": {},
+				"total": 0,
+				"geocodes": {},
+				"queries": {}
+			},
+			"mapping": {
+				"count": 0,
+				"items": {},
+				"total": 0,
+				"geocodes": {},
+				"queries": {}
+			},
+			"view": {
+				"count": 0,
+				"items": {},
+				"total": 0,
+				"geocodes": {},
+				"queries": {}
+			}
+		}
+	}
+}

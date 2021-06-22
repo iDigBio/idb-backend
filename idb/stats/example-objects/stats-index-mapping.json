@@ -1,0 +1,571 @@
+{
+	"typeName": {
+		"properties": {
+			"records": {
+				"properties": {
+					"download": {
+						"properties": {
+							"count": {
+								"type": "double"
+							},
+							"items": {
+								"properties": {
+									"count": {
+										"type": "double"
+									},
+									"term": {
+										"type": "string",
+										"analyzer": "keyword"
+									}
+								}
+							},
+							"total": {
+								"type": "double"
+							},
+							"geocodes": {
+								"properties": {
+									"count": {
+										"type": "double"
+									},
+									"geo": {
+										"properties": {
+											"country": {
+												"type": "string",
+												"analyzer": "keyword"
+											},
+											"region": {
+												"type": "string",
+												"analyzer": "keyword"
+											},
+											"city": {
+												"type": "string",
+												"analyzer": "keyword"
+											}
+										}
+									}
+								}
+							},
+							"queries": {
+								"properties": {
+									"count": {
+										"type": "double"
+									},
+									"term": {
+										"type": "string",
+										"analyzer": "keyword"
+									}
+								}
+							}
+						}
+					},
+					"seen": {
+						"properties": {
+							"count": {
+								"type": "double"
+							},
+							"items": {
+								"properties": {
+									"count": {
+										"type": "double"
+									},
+									"term": {
+										"type": "string",
+										"analyzer": "keyword"
+									}
+								}
+							},
+							"total": {
+								"type": "double"
+							},
+							"geocodes": {
+								"properties": {
+									"count": {
+										"type": "double"
+									},
+									"geo": {
+										"properties": {
+											"country": {
+												"type": "string",
+												"analyzer": "keyword"
+											},
+											"region": {
+												"type": "string",
+												"analyzer": "keyword"
+											},
+											"city": {
+												"type": "string",
+												"analyzer": "keyword"
+											}
+										}
+									}
+								}
+							},
+							"queries": {
+								"properties": {
+									"count": {
+										"type": "double"
+									},
+									"term": {
+										"type": "string",
+										"analyzer": "keyword"
+									}
+								}
+							}
+						}
+					},
+					"search": {
+						"properties": {
+							"count": {
+								"type": "double"
+							},
+							"items": {
+								"properties": {
+									"count": {
+										"type": "double"
+									},
+									"term": {
+										"type": "string",
+										"analyzer": "keyword"
+									}
+								}
+							},
+							"total": {
+								"type": "double"
+							},
+							"geocodes": {
+								"properties": {
+									"count": {
+										"type": "double"
+									},
+									"geo": {
+										"properties": {
+											"country": {
+												"type": "string",
+												"analyzer": "keyword"
+											},
+											"region": {
+												"type": "string",
+												"analyzer": "keyword"
+											},
+											"city": {
+												"type": "string",
+												"analyzer": "keyword"
+											}
+										}
+									}
+								}
+							},
+							"queries": {
+								"properties": {
+									"count": {
+										"type": "double"
+									},
+									"term": {
+										"type": "string",
+										"analyzer": "keyword"
+									}
+								}
+							}
+						}
+					},
+					"mapping": {
+						"properties": {
+							"count": {
+								"type": "double"
+							},
+							"items": {
+								"properties": {
+									"count": {
+										"type": "double"
+									},
+									"term": {
+										"type": "string",
+										"analyzer": "keyword"
+									}
+								}
+							},
+							"total": {
+								"type": "double"
+							},
+							"geocodes": {
+								"properties": {
+									"count": {
+										"type": "double"
+									},
+									"geo": {
+										"properties": {
+											"country": {
+												"type": "string",
+												"analyzer": "keyword"
+											},
+											"region": {
+												"type": "string",
+												"analyzer": "keyword"
+											},
+											"city": {
+												"type": "string",
+												"analyzer": "keyword"
+											}
+										}
+									}
+								}
+							},
+							"queries": {
+								"properties": {
+									"count": {
+										"type": "double"
+									},
+									"term": {
+										"type": "string",
+										"analyzer": "keyword"
+									}
+								}
+							}
+						}
+					},
+					"view": {
+						"properties": {
+							"count": {
+								"type": "double"
+							},
+							"items": {
+								"properties": {
+									"count": {
+										"type": "double"
+									},
+									"term": {
+										"type": "string",
+										"analyzer": "keyword"
+									}
+								}
+							},
+							"total": {
+								"type": "double"
+							},
+							"geocodes": {
+								"properties": {
+									"count": {
+										"type": "double"
+									},
+									"geo": {
+										"properties": {
+											"country": {
+												"type": "string",
+												"analyzer": "keyword"
+											},
+											"region": {
+												"type": "string",
+												"analyzer": "keyword"
+											},
+											"city": {
+												"type": "string",
+												"analyzer": "keyword"
+											}
+										}
+									}
+								}
+							},
+							"queries": {
+								"properties": {
+									"count": {
+										"type": "double"
+									},
+									"term": {
+										"type": "string",
+										"analyzer": "keyword"
+									}
+								}
+							}
+						}
+					}
+				}
+			},
+			"mediarecords": {
+				"properties": {
+					"download": {
+						"properties": {
+							"count": {
+								"type": "double"
+							},
+							"items": {
+								"properties": {
+									"count": {
+										"type": "double"
+									},
+									"term": {
+										"type": "string",
+										"analyzer": "keyword"
+									}
+								}
+							},
+							"total": {
+								"type": "double"
+							},
+							"geocodes": {
+								"properties": {
+									"count": {
+										"type": "double"
+									},
+									"geo": {
+										"properties": {
+											"country": {
+												"type": "string",
+												"analyzer": "keyword"
+											},
+											"region": {
+												"type": "string",
+												"analyzer": "keyword"
+											},
+											"city": {
+												"type": "string",
+												"analyzer": "keyword"
+											}
+										}
+									}
+								}
+							},
+							"queries": {
+								"properties": {
+									"count": {
+										"type": "double"
+									},
+									"term": {
+										"type": "string",
+										"analyzer": "keyword"
+									}
+								}
+							}
+						}
+					},
+					"seen": {
+						"properties": {
+							"count": {
+								"type": "double"
+							},
+							"items": {
+								"properties": {
+									"count": {
+										"type": "double"
+									},
+									"term": {
+										"type": "string",
+										"analyzer": "keyword"
+									}
+								}
+							},
+							"total": {
+								"type": "double"
+							},
+							"geocodes": {
+								"properties": {
+									"count": {
+										"type": "double"
+									},
+									"geo": {
+										"properties": {
+											"country": {
+												"type": "string",
+												"analyzer": "keyword"
+											},
+											"region": {
+												"type": "string",
+												"analyzer": "keyword"
+											},
+											"city": {
+												"type": "string",
+												"analyzer": "keyword"
+											}
+										}
+									}
+								}
+							},
+							"queries": {
+								"properties": {
+									"count": {
+										"type": "double"
+									},
+									"term": {
+										"type": "string",
+										"analyzer": "keyword"
+									}
+								}
+							}
+						}
+					},
+					"search": {
+						"properties": {
+							"count": {
+								"type": "double"
+							},
+							"items": {
+								"properties": {
+									"count": {
+										"type": "double"
+									},
+									"term": {
+										"type": "string",
+										"analyzer": "keyword"
+									}
+								}
+							},
+							"total": {
+								"type": "double"
+							},
+							"geocodes": {
+								"properties": {
+									"count": {
+										"type": "double"
+									},
+									"geo": {
+										"properties": {
+											"country": {
+												"type": "string",
+												"analyzer": "keyword"
+											},
+											"region": {
+												"type": "string",
+												"analyzer": "keyword"
+											},
+											"city": {
+												"type": "string",
+												"analyzer": "keyword"
+											}
+										}
+									}
+								}
+							},
+							"queries": {
+								"properties": {
+									"count": {
+										"type": "double"
+									},
+									"term": {
+										"type": "string",
+										"analyzer": "keyword"
+									}
+								}
+							}
+						}
+					},
+					"mapping": {
+						"properties": {
+							"count": {
+								"type": "double"
+							},
+							"items": {
+								"properties": {
+									"count": {
+										"type": "double"
+									},
+									"term": {
+										"type": "string",
+										"analyzer": "keyword"
+									}
+								}
+							},
+							"total": {
+								"type": "double"
+							},
+							"geocodes": {
+								"properties": {
+									"count": {
+										"type": "double"
+									},
+									"geo": {
+										"properties": {
+											"country": {
+												"type": "string",
+												"analyzer": "keyword"
+											},
+											"region": {
+												"type": "string",
+												"analyzer": "keyword"
+											},
+											"city": {
+												"type": "string",
+												"analyzer": "keyword"
+											}
+										}
+									}
+								}
+							},
+							"queries": {
+								"properties": {
+									"count": {
+										"type": "double"
+									},
+									"term": {
+										"type": "string",
+										"analyzer": "keyword"
+									}
+								}
+							}
+						}
+					},
+					"view": {
+						"properties": {
+							"count": {
+								"type": "double"
+							},
+							"items": {
+								"properties": {
+									"count": {
+										"type": "double"
+									},
+									"term": {
+										"type": "string",
+										"analyzer": "keyword"
+									}
+								}
+							},
+							"total": {
+								"type": "double"
+							},
+							"geocodes": {
+								"properties": {
+									"count": {
+										"type": "double"
+									},
+									"geo": {
+										"properties": {
+											"country": {
+												"type": "string",
+												"analyzer": "keyword"
+											},
+											"region": {
+												"type": "string",
+												"analyzer": "keyword"
+											},
+											"city": {
+												"type": "string",
+												"analyzer": "keyword"
+											}
+										}
+									}
+								}
+							},
+							"queries": {
+								"properties": {
+									"count": {
+										"type": "double"
+									},
+									"term": {
+										"type": "string",
+										"analyzer": "keyword"
+									}
+								}
+							}
+						}
+					}
+				}
+			},
+			"harvest_date": {
+				"type": "date"
+			},
+			"recordset_id": {
+				"type": "string",
+				"analyzer": "keyword"
+			}
+		}
+	}
+}

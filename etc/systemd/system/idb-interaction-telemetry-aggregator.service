@@ -1,0 +1,12 @@
+# https://redmine.idigbio.org/projects/infrastructure/wiki/Portal_and_api_stats_overview
+
+[Unit]
+Description="Runs `idb-collect-stats` (telemetry stats aggregator) via non-root user and virtualenv"
+
+[Service]
+Type=oneshot
+User=stats
+Environment=LANG=en_US.UTF-8
+
+# the virtualenv is "baked in" and does not need to be activated first
+ExecStart=/home/stats/.virtualenvs/idb-backend/bin/python /home/stats/.virtualenvs/idb-backend/bin/idb --journal -v collect-stats

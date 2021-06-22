@@ -119,8 +119,8 @@ def collect_stats(collect_datetime, es=None):
     """
     logger.debug("min is %s, max is %s, query is: %s" % (date_min, date_max, sql))
 
-    filename = "telem-output-structures-%s" % (datetime.now().strftime("%Y-%m-%d-%H-%M-%S"))
-    tracefilename = "trace-log-%s" % (datetime.now().strftime("%Y-%m-%d-%H-%M-%S"))
+    filename = "telem-output-structures-%s.log" % (datetime.now().strftime("%Y-%m-%d-%H-%M-%S"))
+    tracefilename = "trace-log-%s.log" % (datetime.now().strftime("%Y-%m-%d-%H-%M-%S"))
 
     # collects the raw objects we're sending to ES
     output_fh = open(filename, 'w')
@@ -218,7 +218,7 @@ def collect_stats(collect_datetime, es=None):
         output_fh.write(json.dumps(recordset_data))
         trace_fh.write(json.dumps(recordset_data))
         
-        #es.index(index=indexName, doc_type=typeName, body=recordset_data)
+        es.index(index=indexName, doc_type=typeName, body=recordset_data)
     
     logger.info("end of script")
 

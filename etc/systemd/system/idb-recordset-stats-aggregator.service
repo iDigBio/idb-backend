@@ -9,4 +9,4 @@ User=stats
 Environment=LANG=en_US.UTF-8
 
 # the virtualenv is "baked in" and does not need to be activated first
-ExecStart=/home/stats/.virtualenvs/idb-backend/bin/python /home/stats/.virtualenvs/idb-backend/bin/idb --journal -vv api-stats
+ExecStart=/home/stats/.virtualenvs/idb-backend/bin/python /home/stats/.virtualenvs/idb-backend/bin/idb --journal -vv --config /etc/idigbio/idigbio-recordset-stats-aggregator-overrides.json api-stats

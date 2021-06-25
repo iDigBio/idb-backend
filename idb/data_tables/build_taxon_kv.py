@@ -62,7 +62,7 @@ def run_query(q, cache_string, log_score=True):
     #search_cache[cache_string] = None
     if best_response is not None:
         if log_score:
-            score_stats[round(best_response["_score"], 1)] += 1  # noqa
+            score_stats[round(best_response["_score"], 1)] += 1  # pylint: disable=round-builtin
 
         # Reject low quality matches
         # Disable fixed cutoff here, moving to loader script and using first quartile

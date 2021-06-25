@@ -24,7 +24,7 @@ def get_data():
 
     to_insert = []
     for k in vds:
-        for v, o in vds[k].iteritems():
+        for v, o in iter(vds[k].items()):
             if "dwc:country" in o and o["dwc:country"] in vds["dwc:country"]:
                 o.update(vds["dwc:country"][o["dwc:country"]])
             to_insert.append((dict([[k, v]]), o, "data_dictionaries_1", True))

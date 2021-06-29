@@ -39,11 +39,6 @@ updates everything) and include all dependencies:
 
     pip install -r requirements.txt
 
-To setup persistent tasks and cron tasks
-
-    systemctl link $PWD/etc/systemd/system/*
-    systemctl enable --now $(grep -l Install $PWD/etc/systemd/system/*)
-
 
 For partial installation (without extra components) you can just run
 
@@ -54,6 +49,23 @@ The available extra components are:
  * `ingestion`:  the extra librs for running ingestion
  * `test`: the extra libs for testing
 
+### Persistent Services
+
+To setup all persistent services and timers (aka tasks and crons):
+
+    systemctl link $PWD/etc/systemd/system/*
+
+    systemctl enable --now $(grep -l Install $PWD/etc/systemd/system/*)
+
+To setup only a subset, for example the "ingestion" services:
+
+    systemctl link $PWD/etc/systemd/system/idigbio-ingestion-*
+
+And then enable the servivces as needed.
+
+    systemctl list-units idigbio-*
+
+    systemctl enable <service>
 
 ### Docker Image
 

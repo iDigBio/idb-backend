@@ -4,6 +4,7 @@ Description=iDigBio mediaing fetcher
 [Service]
 Type=simple
 Environment=LANG=en_US.UTF-8
+User=idigbio-ingestion
 Environment=IDB_STORAGE_HOST=s2.idigbio.org
 PassEnvironment=IDB_STORAGE_HOST
 ExecStart=/usr/local/bin/idigbio-ingestion \

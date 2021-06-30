@@ -51,21 +51,73 @@ The available extra components are:
 
 ### Persistent Services
 
-To setup all persistent services and timers (aka tasks and crons):
+#### data api
 
-    systemctl link $PWD/etc/systemd/system/*
+The data API is currently the only way external to the database to view previous versions of resources (e.g. v1 of a record that has been updated multiple times).
 
-    systemctl enable --now $(grep -l Install $PWD/etc/systemd/system/*)
+The service unit file is `idigbio-data-api.service`.
 
-To setup only a subset, for example the "ingestion" services:
+#### stats aggregator
 
-    systemctl link $PWD/etc/systemd/system/idigbio-ingestion-*
+Stats of various type are aggregated by this service.  More info is available in [the stats readme](stats/readme.md).
 
-And then enable the servivces as needed.
+#### data ingestion services
 
-    systemctl list-units idigbio-*
+The ingestion services are configured to run as a user named `idigbio-ingestion`.  If this user does not exist on the system it must be created.  It is suggested to use a home directory `/home/idigbio-ingestion`.
+
+
+1. Install the `virtualenv` system package (and the Dependencies listed above if not already installed):
+
+   apt install virtualenv
+
+   apt install python-dev libblas-dev liblapack-dev \
+      libatlas-base-dev gfortran libgdal-dev libpq-dev libgeos-c1v5 \
+      libsystemd-dev \
+      libxml2 libxslt1-dev ffmpeg fonts-dejavu-core libfreetype6-dev python-systemd
+
+2. Become the idigbio-ingestion user (via `su - idigbio-ingestion`), and clone this repo:
+
+    git clone https://github.com/iDigBio/idb-backend.git
+
+3. Set up the python virtual environment:
+
+
+    cd idb-backend
+
+    virtualenv -p python2.7 .venv
+
+    source .venv/bin/activate
+
+    python --version
+
+    pip --no-cache-dir install -e .
+
+    pip --no-cache-dir install -r requirements.txt
+
+    deactivate
+
+
+From this point, software inside the virtual environment (including python, pip, py.test, etc.) can be run by referencing the path to the binary inside the environment.
+
+    ./venv/bin/pip freeze
+
+4. configure idb-backend config
+
+Place a valid `idigbio.json` in the `idigbio-ingestion` home directory.
+
+
+5. Setup the ingestion-related services, by linking systemd to the unit files included in the repo.
+
+    systemctl link /home/idigbio-ingestion/etc/systemd/system/idigbio-ingestion-*
+
+6. Enable the services as needed.
+
+    systemctl list-units idigbio-ingestion-*
 
     systemctl enable <service>
+
+
+To update the code used by the services, change to the `idigbio-ingestion` user and `git pull`.  Restart services as needed.
 
 ### Docker Image
 

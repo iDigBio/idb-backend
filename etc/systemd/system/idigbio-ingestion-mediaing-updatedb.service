@@ -1,4 +1,7 @@
 [Unit]
+# I believe this is no longer needed.  We successfully ingested media without this service running.
+# I could be wrong though.  - Dan
+
 Description="Runs the `idigbio-ingestion mediaing updatedb` daily task"
 
 [Service]

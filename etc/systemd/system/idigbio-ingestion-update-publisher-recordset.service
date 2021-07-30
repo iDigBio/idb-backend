@@ -5,4 +5,8 @@ Description="Runs `idigbio-ingestion update-publisher-recordset`"
 Type=oneshot
 Environment=LANG=en_US.UTF-8
 User=idigbio-ingestion
-ExecStart=/usr/local/bin/idigbio-ingestion --journal -v update-publisher-recordset
+Group=idigbio-ingestion
+Environment=IDB_STORAGE_HOST=s2.idigbio.org
+PassEnvironment=IDB_STORAGE_HOST
+WorkingDirectory=/home/idigbio-ingestion/work_dir
+ExecStart=/home/idigbio-ingestion/idb-backend/venv/bin/idigbio-ingestion --journal -v update-publisher-recordset

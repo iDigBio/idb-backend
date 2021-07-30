@@ -1,4 +1,6 @@
 [Unit]
+# Is this still needed?  Once media appliance is no longer in use anywhere? - Dan
+
 Description="Runs the `idigbio-ingestion mediaing updatedb` daily task"
 
 [Service]

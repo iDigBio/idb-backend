@@ -68,12 +68,14 @@ The ingestion services are configured to run as a user named `idigbio-ingestion`
 
 1. Install the `virtualenv` system package (and the Dependencies listed above if not already installed):
 
-   apt install virtualenv
+```
+apt install virtualenv
 
-   apt install python-dev libblas-dev liblapack-dev \
-      libatlas-base-dev gfortran libgdal-dev libpq-dev libgeos-c1v5 \
-      libsystemd-dev \
-      libxml2 libxslt1-dev ffmpeg fonts-dejavu-core libfreetype6-dev python-systemd
+apt install python-dev libblas-dev liblapack-dev \
+    libatlas-base-dev gfortran libgdal-dev libpq-dev libgeos-c1v5 \
+    libsystemd-dev \
+    libxml2 libxslt1-dev ffmpeg fonts-dejavu-core libfreetype6-dev python-systemd
+```
 
 2. Become the idigbio-ingestion user (via `su - idigbio-ingestion`), and clone this repo:
 
@@ -81,21 +83,15 @@ The ingestion services are configured to run as a user named `idigbio-ingestion`
 
 3. Set up the python virtual environment:
 
-
-    cd idb-backend
-
-    virtualenv -p python2.7 .venv
-
-    source .venv/bin/activate
-
-    python --version
-
-    pip --no-cache-dir install -e .
-
-    pip --no-cache-dir install -r requirements.txt
-
-    deactivate
-
+```
+cd idb-backend
+virtualenv -p python2.7 .venv
+source .venv/bin/activate
+python --version
+pip --no-cache-dir install -e .
+pip --no-cache-dir install -r requirements.txt
+deactivate
+```
 
 From this point, software inside the virtual environment (including python, pip, py.test, etc.) can be run by referencing the path to the binary inside the environment.
 
@@ -108,6 +104,8 @@ Place a valid `idigbio.json` in the `idigbio-ingestion` home directory.
 
 5. Setup the ingestion-related services, by linking systemd to the unit files included in the repo.
 
+*Note:* All of the following `systemctl` commands will need to be run by root or a user with sudo permission. 
+
     systemctl link /home/idigbio-ingestion/etc/systemd/system/idigbio-ingestion-*
 
 6. Enable the services as needed.
@@ -116,8 +114,27 @@ Place a valid `idigbio.json` in the `idigbio-ingestion` home directory.
 
     systemctl enable <service>
 
+The recommended services to enable and start:
 
-To update the code used by the services, change to the `idigbio-ingestion` user and `git pull`.  Restart services as needed.
+    idigbio-ingestion-update-publisher-recordset.timer
+
+    idigbio-ingestion-mediaing-get-media.service
+
+    idigbio-ingestion-derivatives.timer
+
+
+The timers kick off "oneshot" services that run once and complete and need to be triggered again so the timer handles this.
+
+The get-media service (aka the "fetcher") has its own built-in loop to run continuously.
+
+
+7. To update the code used by the services, change to the `idigbio-ingestion` user's checkout of this repo and `git pull`.   Then as root or a user with sudo permissions, execute:
+
+    systemctl daemon-reload
+
+and restart the relevant services with 
+
+    systemctl restart <service>
 
 ### Docker Image
 

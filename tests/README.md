@@ -108,6 +108,14 @@ Some idb-backend tests depend on external resources, such as a local test postgr
 
 * Tests that depend on Elasticsearch will FAIL if the Elasticsearch cluster cannot be reached (fail very slowly in fact), or if there is some other failure.
 
+Due to network access control it might be necessary to use ssh port forwarding.
+
+```
+# replace ELASTICSEARCH_CLUSTER_NODE_IP, USER, SSH_HOST with real values.
+$ ssh -nNT -L 9200:ELASTICSEARCH_CLUSTER_NODE_IP:9200  USER@SSH_HOST
+```
+
+
 The local postgresql 9.5 DB is named `test_idigbio` with user/pass `test` / `test`.
 
 Note: The data in the db with that name will be destroyed during testing.

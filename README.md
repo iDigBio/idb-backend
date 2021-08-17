@@ -151,6 +151,16 @@ no need to set the `PYTHONPATH`.
 In any invocation an `idigbio.json` must be present in either `$PWD`,
 `$HOME`, or `/etc/idigbio`.
 
+For convenience we can create links to the virtual environment entrypoints in `/usr/local/bin/` so we do not need to activate the virtual environment explicitly or use the full path.
+
+```
+$ sudo ln -s /home/idigbio-ingestion/idb-backend/venv/bin/idb  /usr/local/bin/idb
+$ ls -la /usr/local/bin/idb
+lrwxrwxrwx 1 root root 48 Aug 16 20:23 /usr/local/bin/idb -> /home/idigbio-ingestion/idb-backend/venv/bin/idb
+$ sudo ln -s /home/idigbio-ingestion/idb-backend/venv/bin/idigbio-ingestion  /usr/local/bin/idigbio-ingestion
+$ ls -la /usr/local/bin/idigbio-ingestion
+lrwxrwxrwx 1 root root 62 Aug 16 20:24 /usr/local/bin/idigbio-ingestion -> /home/idigbio-ingestion/idb-backend/venv/bin/idigbio-ingestion
+```
 ### Data API
 
 This serves the `api.idigbio.org` interface

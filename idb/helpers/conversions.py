@@ -831,6 +831,15 @@ def collect_genbank_sequences(t, d):
 
 
 def fixBOR(t, r):
+    """
+    basisOfRecord - https://dwc.tdwg.org/list/#dwc_basisOfRecord
+    Recommended best practice is to use the standard label of one of the Darwin Core classes.
+    Examples: PreservedSpecimen, FossilSpecimen, LivingSpecimen, MaterialSample, Event, HumanObservation, 
+              MachineObservation, Taxon, Occurrence, MaterialCitation
+    
+    But looks like we are expecting lower-case versions of those terms here.
+    """
+    # 
     if filled("basisofrecord", r):
         if "preserved" in r["basisofrecord"]:
             r["basisofrecord"] = "preservedspecimen"

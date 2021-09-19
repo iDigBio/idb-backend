@@ -831,6 +831,19 @@ def collect_genbank_sequences(t, d):
 
 
 def fixBOR(t, r):
+    """
+    basisOfRecord - https://dwc.tdwg.org/list/#dwc_basisOfRecord
+    Recommended best practice is to use the standard label of one of the Darwin Core classes.
+    Examples: PreservedSpecimen, FossilSpecimen, LivingSpecimen, MaterialSample, Event, HumanObservation,
+              MachineObservation, Taxon, Occurrence, MaterialCitation
+
+    This function just performs basic check to see if values supplied are likely in the controlled
+    vocabulary.  For example, we would not allow 'Exsiccati' or 'FieldBook' 'Plants of Colorado' just to
+    name a few.
+
+    These comparisons using lowercased version seem to work, even though supplied values generally
+    match the class name in the standard.  e.g. To find PreservedSpecimen we look for "preserved".
+    """
     if filled("basisofrecord", r):
         if "preserved" in r["basisofrecord"]:
             r["basisofrecord"] = "preservedspecimen"
@@ -838,12 +851,16 @@ def fixBOR(t, r):
             r["basisofrecord"] = "fossilspecimen"
         elif "living" in r["basisofrecord"]:
             r["basisofrecord"] = "livingspecimen"
+        elif "material" in r["basisofrecord"]:
+            r["basisofrecord"] = "materialsample"
         elif "specimen" in r["basisofrecord"]:
             r["basisofrecord"] = "preservedspecimen"
         elif "machine" in r["basisofrecord"] and "observation" in r["basisofrecord"]:
             r["basisofrecord"] = "machineobservation"
         elif "observation" in r["basisofrecord"]:
             r["basisofrecord"] = "humanobservation"
+        elif "occurrence" in r["basisofrecord"]:
+            r["basisofrecord"] = "occurrence"
         else:
             r["basisofrecord"] = None
             r["flag_dwc_basisofrecord_removed"] = True

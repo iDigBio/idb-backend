@@ -293,7 +293,12 @@ class ElasticSearchIndexer(object):
         Needs more info here.
         """
         return elasticsearch.helpers.streaming_bulk(
-            self.es, self.bulk_formater(tups), chunk_size=config.ES_INDEX_CHUNK_SIZE, max_chunk_bytes=1048576)
+            self.es,
+            self.bulk_formater(tups),
+            chunk_size=config.ES_INDEX_CHUNK_SIZE,
+            max_chunk_bytes=1048576,
+            raise_on_error=False,
+            raise_on_exception=False)
 
     def close(self):
         """

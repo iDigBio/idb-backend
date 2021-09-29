@@ -309,6 +309,7 @@ def consume(ei, rc, iter_func, no_index=False):
                 pass
         else:
             for ok, item in ei.bulk_index(index_record_tuples):
+                # Is there a way to try/except the iterator to prevent Exceptions from being fatal?
                 pass
         gc.collect()
 

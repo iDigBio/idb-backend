@@ -110,25 +110,31 @@ class ElasticSearchIndexer(object):
         # on a local machine.  Use single node es config.
         if config.ENV == 'dev':
             self.INDEX_CREATE_SETTINGS = {
-                "settings" : {
-                    "index" : {
-                        "number_of_shards" : 1,
-                        "number_of_replicas" : 0
+                "settings": {
+                    "index": {
+                        "number_of_shards": 1,
+                        "number_of_replicas": 0
                     }
                 }
             }
         else:
+            # Number of index shards is set to the real config value here, but for
+            # performance reasons immediately after creating a new empty index
+            # (where presumably the next step is to do bulk index operations),
+            # set a few additional index settings suitable for bulk indexing.
+            # We later set these to the appropriate config values after indexing completion.
             self.INDEX_CREATE_SETTINGS = {
-                "settings" : {
-                    "index" : {
-                        "number_of_shards" : config.ES_INDEX_NUMBER_OF_SHARDS,
-                        "number_of_replicas" : config.ES_INDEX_NUMBER_OF_REPLICAS
+                "settings": {
+                    "index": {
+                        "number_of_shards": config.ES_INDEX_NUMBER_OF_SHARDS,
+                        "number_of_replicas": 0,
+                        "refresh_interval": "-1"
                     }
                 }
             }
 
         # Create index only if:
-        #     1. it does not exist, and 
+        #     1. if does not exist, and:
         #     2. we have the environment variable set to permit index creation.
         self.ALLOW_INDEX_CREATION = True if config.ES_ALLOW_INDEX_CREATION == "yes" else False
         if not self.ALLOW_INDEX_CREATION and not self.es.indices.exists(index=self.indexName):
@@ -137,6 +143,7 @@ class ElasticSearchIndexer(object):
         if self.ALLOW_INDEX_CREATION and not self.es.indices.exists(index=self.indexName):
             logger.info("Creating index: '%s'", self.indexName)
             self.__create_index()
+            logger.info("Index prepared for bulk operations.")
         if self.es.indices.exists(index=self.indexName):
             logger.info("Found index '%s'", self.indexName)
 
@@ -161,7 +168,7 @@ class ElasticSearchIndexer(object):
 
     def __create_index(self):
         """
-        Create an index with appropriate shard count and replicas for the cluster.
+        Create an index with appropriate shard count for the cluster.
         """
         # create(index, body=None, params=None, headers=None)
         res = self.es.indices.create(index=self.indexName, body=self.INDEX_CREATE_SETTINGS)
@@ -238,21 +245,26 @@ class ElasticSearchIndexer(object):
 
     def optimize(self):
         """
-        Do Nothing.
-
-        Previously ran the es optimize command with the proper number of segments.
-
-        What the heck are the proper number of segments?
+        Previously ran the es optimize command with some number of segments.
 
         This never returned properly.  In later version of Elasticsearch,
         optimize has been replaced with the "merge" API.
 
         We can bring this back if it serves a useful purpose.
 
-        TODO: max_num_segments probably needs to be more configurable
+        We co-opt this function to reset indexing settings to appropriate
+        service values (as opposed to bulk indexing values).
         """
-        logger.info("Running index optimization on %r", self.indexName)
-        logger.info("Skipping index optimization / index merge.")
+        logger.info("Skipping forced index optimization / index merge.")
+
+        logger.info("Putting index settings...")
+        self.es.indices.put_settings(index=self.indexName, body={
+            "index": {
+                "refresh_interval": config.ES_INDEX_REFRESH_INTERVAL,
+                "number_of_replicas": config.ES_INDEX_NUMBER_OF_REPLICAS
+            }
+        })
+        # TODO: max_num_segments needs to be in config if we resurrect this.
         # self.es.indices.optimize(index=self.indexName, max_num_segments=5)
 
     def bulk_formater(self, tups):
@@ -304,14 +316,9 @@ class ElasticSearchIndexer(object):
         """
         Finishes index processing.
         """
-        # This will allow newly-indexed documents to appear.
-        if self.disableRefresh:
-            self.es.indices.put_settings(index=self.indexName, body={
-                "index": {
-                    "refresh_interval": "1s"
-                }
-            })
         self.optimize()
+        logger.info("Finished index operations on %r", self.indexName)
+
 
     def query_for_one(self, uuid, doc_type, source=False):
         """

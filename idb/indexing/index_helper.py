@@ -42,8 +42,8 @@ def index_record(ei, rc, typ, r, do_index=True):
                 i["records"] = sibs.get('record', [])
         return (typ, i)
     else:
-        # d : corrected_dict, ck : corrected_keys
-        d, ck = rc.correct_record(r["data"])
+        # d : corrected_dict, _ : corrected_keys
+        d, _ = rc.correct_record(r["data"])
 
         d.update({
             "idigbio:uuid": r["uuid"],

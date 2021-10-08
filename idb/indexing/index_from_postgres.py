@@ -265,35 +265,26 @@ def resume(ei, rc, also_delete=False, no_index=False):
     # Create a partial application to add in the keyword argument
     f = functools.partial(type_yield_resume, also_delete=also_delete)
     consume(ei, rc, f, no_index=no_index)
-
+    ei.optimize()
 
 def full(ei, rc, no_index=False):
     logger.info("Begin 'full' indexing...")
     consume(ei, rc, type_yield, no_index=no_index)
-
+    ei.optimize()
 
 def incremental(ei, rc, no_index=False):
     consume(ei, rc, type_yield_modified, no_index=no_index)
-    try:
-        ei.optimize()
-    except:
-        pass
+    ei.optimize()
 
 def query(ei, rc, query, no_index=False):
     f = functools.partial(queryIter, query)
     consume(ei, rc, f, no_index=no_index)
-    try:
-        ei.optimize()
-    except:
-        pass
+    ei.optimize()
 
 def uuids(ei, rc, uuid_l, no_index=False, children=False):
     f = functools.partial(uuidsIter, uuid_l, children=children)
     consume(ei, rc, f, no_index=no_index)
-    try:
-        ei.optimize()
-    except:
-        pass
+    ei.optimize()
 
 def consume(ei, rc, iter_func, no_index=False):
     for typ in ei.types:

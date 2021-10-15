@@ -75,6 +75,9 @@ def cli(ctx, index, corrections, types, indexname):
 @click.pass_obj
 @fnlogged
 def continuous(params):
+    """
+    Do not use, probably does not work.
+    """
     from .index_from_postgres import continuous_incremental
     for k in params:
         params[k] = params[k]()
@@ -85,13 +88,16 @@ def continuous(params):
 @click.pass_obj
 @fnlogged
 def incremental(params):
+    """
+    Do not use, probably does not work.
+    """
     from .index_from_postgres import incremental
     for k in params:
         params[k] = params[k]()
     incremental(**params)
 
 
-@cli.command(help="Index data matching ES query")
+@cli.command(help="Index data matching an ES query")
 @click.argument('query')
 @click.pass_obj
 @fnlogged
@@ -134,6 +140,9 @@ def uuids(params, children, uuid):
 @click.pass_obj
 @fnlogged
 def resume(params):
+    """
+    Does this work?  Might be nice if it does.
+    """
     from .index_from_postgres import resume
     for k in params:
         params[k] = params[k]()
@@ -144,6 +153,9 @@ def resume(params):
 @click.pass_obj
 @fnlogged
 def full(params):
+    """
+    This builds a new full index.
+    """
     from .index_from_postgres import full
     for k in params:
         params[k] = params[k]()
@@ -154,6 +166,9 @@ def full(params):
 @click.pass_obj
 @fnlogged
 def delete(params):
+    """
+    This might not work.
+    """
     from .index_from_postgres import delete
     for k in params:
         params[k] = params[k]()
@@ -164,6 +179,9 @@ def delete(params):
 @click.pass_obj
 @fnlogged
 def check(params):
+    """
+    This is the standard index run for the ingestion process on an existing index.
+    """
     from .index_from_postgres import resume
     for k in params:
         params[k] = params[k]()

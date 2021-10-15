@@ -133,8 +133,8 @@ class ElasticSearchIndexer(object):
                 }
             }
 
-        # Create index only if:
-        #     1. if does not exist, and:
+        # Create index only when:
+        #     1. it does not already exist, and:
         #     2. we have the environment variable set to permit index creation.
         self.ALLOW_INDEX_CREATION = True if config.ES_ALLOW_INDEX_CREATION == "yes" else False
         if not self.ALLOW_INDEX_CREATION and not self.es.indices.exists(index=self.indexName):

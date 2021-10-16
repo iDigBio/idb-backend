@@ -216,4 +216,3 @@ The test suite can be run by executing `py.test` (or `pytest`).
 See the [README.md in the `tests` subdirectory](tests/README.md) for more information.
 
 There are a number of important dependencies noted there.
-

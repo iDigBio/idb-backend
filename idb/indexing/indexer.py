@@ -118,17 +118,12 @@ class ElasticSearchIndexer(object):
                 }
             }
         else:
-            # Number of index shards is set to the real config value here, but for
-            # performance reasons immediately after creating a new empty index
-            # (where presumably the next step is to do bulk index operations),
-            # set a few additional index settings suitable for bulk indexing.
-            # We later set these to the appropriate config values after indexing completion.
             self.INDEX_CREATE_SETTINGS = {
                 "settings": {
                     "index": {
                         "number_of_shards": config.ES_INDEX_NUMBER_OF_SHARDS,
-                        "number_of_replicas": 0,
-                        "refresh_interval": "-1"
+                        "number_of_replicas": config.ES_INDEX_NUMBER_OF_REPLICAS,
+                        "refresh_interval": config.ES_INDEX_REFRESH_INTERVAL
                     }
                 }
             }
@@ -158,7 +153,9 @@ class ElasticSearchIndexer(object):
 
         # This is a performance setting so newly indexed documents are not necessarily
         # visible in the index immediately.
-        # See close() which sets refresh_interval again.
+        # Experimentally, this does not seem to make a difference in our environment.
+        # See close() which sets refresh_interval again (although TODO: close() might not
+        # be called as expected)
         if disableRefresh:
             self.es.indices.put_settings(index=self.indexName, body={
                 "index": {

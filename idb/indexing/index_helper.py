@@ -61,14 +61,22 @@ def index_record(ei, rc, typ, r, do_index=True):
         # For example, dots in fieldnames.
         for k in r["data"]:
             if "." in k:
+                if config.IDB_EXTRA_SERIOUS_DEBUG == 'yes':
+                    logger.debug("type: '{0}'".format(k))
                 if k in types:
                     r["data"][types[k]["shortname"]] = r["data"][k]
                     del r["data"][k]
                 else:
                     # If it has a dot, we're assuming its URL-like
                     urldata = urlparse(k)
-                    # Prefix = primary domain component i.e gbif of gbif.org
-                    prefix = urldata.hostname.split()[-2]
+                    try:
+                        # Prefix = primary domain component i.e gbif of gbif.org
+                        prefix = urldata.hostname.split()[-2]
+                    except IndexError:
+                        # Not Actually URL-like, bad assumption!
+                        logger.error("Could not parse type from: '{0}', '{1}'".format(urldata, k))
+                        # this still needs to be fatal at this point since we don't know what to do
+                        raise
                     # Suffix = last component of path
                     suffix = urldata.path.split("/")[-1]
                     r["data"][prefix + ":" + suffix] = r["data"][k]

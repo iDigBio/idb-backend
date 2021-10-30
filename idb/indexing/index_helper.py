@@ -67,14 +67,15 @@ def index_record(ei, rc, typ, r, do_index=True):
                     r["data"][types[k]["shortname"]] = r["data"][k]
                     del r["data"][k]
                 else:
-                    # If it has a dot, we're assuming its URL-like
+                    # If it has a dot, we're assuming it is URL-like and we need
+                    # to convert to non-dotted similar name.
                     urldata = urlparse(k)
                     try:
                         # Prefix = primary domain component i.e gbif of gbif.org
-                        prefix = urldata.hostname.split()[-2]
+                        prefix = urldata.hostname.split('.')[-2]
                     except IndexError:
                         # Not Actually URL-like, bad assumption!
-                        logger.error("Could not parse type from: '{0}', '{1}'".format(urldata, k))
+                        logger.error("Could not parse from: '{0}', '{1}'".format(urldata, k))
                         # this still needs to be fatal at this point since we don't know what to do
                         raise
                     # Suffix = last component of path

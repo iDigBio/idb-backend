@@ -59,7 +59,7 @@ def index_record(ei, rc, typ, r, do_index=True):
 
         # Fixup problematic field names due to limitations of Elasticsearch.
         # For example, dots in fieldnames.
-        for k in r["data"]:
+        for k in r["data"].keys():
             if "." in k:
                 if config.IDB_EXTRA_SERIOUS_DEBUG == 'yes':
                     logger.debug("type: '{0}'".format(k))

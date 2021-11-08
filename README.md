@@ -120,8 +120,9 @@ The recommended services to enable and start:
 
     idigbio-ingestion-mediaing-get-media.service
 
-    idigbio-ingestion-derivatives.timer
+    idigbio-ingestion-mediaing-updatedb.timer
 
+    idigbio-ingestion-derivatives.timer
 
 The timers kick off "oneshot" services that run once and complete and need to be triggered again so the timer handles this.
 

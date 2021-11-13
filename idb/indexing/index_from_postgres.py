@@ -300,10 +300,6 @@ def consume(ei, rc, iter_func, no_index=False):
                 pass
         else:
             for ok, item in ei.bulk_index(index_record_tuples):
-                # Is there a way to try/except the iterator to prevent Exceptions from being fatal?
-                # Let's try!
-                #
-                # pass
                 if not ok:
                     logger.warning('Failed during bulk index index: {0} '.format(item))
         # We should never need to call gc manually.  Can we drop this?  Especially

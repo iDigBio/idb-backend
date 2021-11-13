@@ -301,9 +301,14 @@ def consume(ei, rc, iter_func, no_index=False):
         else:
             for ok, item in ei.bulk_index(index_record_tuples):
                 # Is there a way to try/except the iterator to prevent Exceptions from being fatal?
-                pass
-        gc.collect()
-
+                # Let's try!
+                #
+                # pass
+                if not ok:
+                    logger.warning('Failed during bulk index index: {0} '.format(item))
+        # We should never need to call gc manually.  Can we drop this?  Especially
+        # since we no longer ever use continuous mode.
+        gc.collect() 
 
 def continuous_incremental(ei, rc, no_index=False):
     while True:

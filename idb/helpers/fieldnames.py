@@ -18,6 +18,7 @@ namespaces = {
     "http://iptc.org/std/Iptc4xmpExt/2008-02-29/": "Iptc4xmpExt",
     "http://portal.idigbio.org/terms/": "idigbio",
     "http://symbiota.org/terms/": "symbiota",
+    "https://symbiota.org/terms/": "symbiota",
     "http://portal.idigbio.org/terms/inhs/": "inhs",
     "http://www.w3.org/2003/01/geo/wgs84_pos#": "wgs84_pos",
     "http://rs.gbif.org/terms/1.0/": "gbif",

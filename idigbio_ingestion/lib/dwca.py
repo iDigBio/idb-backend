@@ -192,6 +192,7 @@ class DwcaRecordFile(DelimitedFile):
                 if term.startswith(ns):
                     term = term.replace(ns,namespaces[ns]+":")
                     break
+            self.logger.debug("************* term = '{0}".format(term))
             if '#index' in fld:
                 if int(fld['#index']) not in fields:
                     fields[int(fld['#index'])] = term

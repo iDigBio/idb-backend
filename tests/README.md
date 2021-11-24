@@ -134,8 +134,10 @@ Consider running elasticsearch the same way we run postrgres...
 
 ```
 $ docker pull docker.elastic.co/elasticsearch/elasticsearch:5.5.3
-$ docker run -p 9200:9200 -p 9300:9300 -e "discovery.type=single-node" docker.elastic.co/elasticsearch/elasticsearch:5.5.3
+$ docker run -p 9200:9200 -p 9300:9300 -e "discovery.type=single-node" -e "xpack.security.enabled=false" docker.elastic.co/elasticsearch/elasticsearch:5.5.3
 ```
+
+One challenge is the test suite expects mappings, etc. to be present.
 
 To do:
 

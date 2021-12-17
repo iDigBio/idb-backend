@@ -106,7 +106,6 @@ https://www.idigbio.org/wiki/index.php/Data_Ingestion_Report
 
 (login required)
 https://www.idigbio.org/redmine/projects/data-mobilization/issues
-https://github.com/vertnet/tasks
 
 '''
 

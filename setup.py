@@ -79,7 +79,7 @@ setup(
             'pydub==0.16.5',
             pillow_package,
             'lxml',
-            'chardet',
+            'chardet==3.0.4',
             'pyquery==1.2.17',
         ],
         'test': [

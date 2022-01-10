@@ -5,6 +5,8 @@ from collections import defaultdict
 
 '''
 Namespaces differentiate the sources of terms / definitions.
+When we encounter a new term from a new namespace, the namespace should be
+added here.
 '''
 
 namespaces = {
@@ -45,7 +47,7 @@ namespaces_rev["Iptc4xmpExt"] = "http://iptc.org/std/Iptc4xmpExt/2008-02-29/"
 
 '''
 This "types" data structure holds all of the known Extensions.
-The namespace URI is mapped to a Compact URI / CURIE.
+The term URI is mapped to a Compact URI / CURIE.
 All extensions used in any darwin core archive that we process must exist here.
 '''
 types = {

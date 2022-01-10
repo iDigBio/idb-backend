@@ -4,7 +4,9 @@ import string
 from collections import defaultdict
 
 '''
-The namespaces are ...
+Namespaces differentiate the sources of terms / definitions.
+When we encounter a new term from a new namespace, the namespace should be
+added here.
 '''
 
 namespaces = {
@@ -28,7 +30,11 @@ namespaces = {
     "http://ns.adobe.com/exif/1.0/": "exif",
     "http://purl.org/NET/aec/NET/aec/": "aec",
     "http://purl.org/NET/aec/": "aec",
-    "http://zooarchnet.org/dwc/terms/": "zan"
+    "http://zooarchnet.org/dwc/terms/": "zan",
+    "http://rs.ala.org.au/terms/1.0/": "ala",
+    "http://rs.tdwg.org/abcd/terms/": "abcd",
+    "http://hiscom.chah.org.au/hispid/terms/": "hispid",
+    "http://data.ggbn.org/schemas/ggbn/terms/": "ggbn"
 }
 
 namespaces_rev = {v:k for k, v in namespaces.items()}
@@ -40,7 +46,9 @@ namespaces_rev["aec"] = "http://purl.org/NET/aec/"
 namespaces_rev["Iptc4xmpExt"] = "http://iptc.org/std/Iptc4xmpExt/2008-02-29/"
 
 '''
-types map the namespace URI to a Compact URI / CURIE
+This "types" data structure holds all of the known Extensions.
+The namespace URI is mapped to a Compact URI / CURIE.
+All extensions used in any darwin core archive that we process must exist here.
 '''
 types = {
     "http://purl.org/NET/aec/associatedTaxa": {"shortname": "aec:associatedTaxa"},
@@ -66,7 +74,8 @@ types = {
 }
 
 '''
-The translate_dict is used to...
+The translate_dict is used by get_canonical_name() to map "similar" field names to the canonical
+name for the field.
 '''
 translate_dict = {
     "ac:accessURI": ["ac:accessURI", "dwc:Multimedia"],

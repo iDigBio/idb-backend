@@ -570,9 +570,6 @@ def metadataToSummaryJSON(rsid, metadata, writeFile=True, doStats=True):
     summary["duplicate_occurence_count"] = duplicate_record_count
     summary["dublicate_occurence_ids"] = duplicate_id_count
 
-    if doStats:
-        stats.index(doc_type='digest', body=summary)
-
     if writeFile:
         with AtomicFile(rsid + ".summary.json", "wb") as jf:
             json.dump(summary, jf, indent=2)
@@ -580,8 +577,11 @@ def metadataToSummaryJSON(rsid, metadata, writeFile=True, doStats=True):
         with AtomicFile(rsid + ".metadata.json", "wb") as jf:
             json.dump(metadata, jf, indent=2)
             jf.write(os.linesep)
-    else:
-        return summary
+    
+    if doStats:
+        stats.index(doc_type='digest', body=summary)
+    
+    return summary
 
 
 def main(rsid, ingest=False):

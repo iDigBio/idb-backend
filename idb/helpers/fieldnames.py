@@ -47,7 +47,7 @@ namespaces_rev["Iptc4xmpExt"] = "http://iptc.org/std/Iptc4xmpExt/2008-02-29/"
 
 '''
 This "types" data structure holds all of the known Extensions.
-The term URI is mapped to a Compact URI / CURIE.
+The namespace URI is mapped to a Compact URI / CURIE.
 All extensions used in any darwin core archive that we process must exist here.
 '''
 types = {

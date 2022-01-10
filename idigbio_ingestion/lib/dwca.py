@@ -187,11 +187,27 @@ class DwcaRecordFile(DelimitedFile):
             # drop any extra quote characters
             term = fld['#term'].replace("\"","")
 
-            # map xmp namespaces into short code form (xxx:fieldName), longest namespaces first
+            # Map fieldnames that contain a namespace to a CURIE form that includes the
+            # shortened namespace alias and the term name (namespace:term).
+            # e.g.   dwc:basisOfRecord
+            # Sort by longest namespaces first
+            ns_found = False
             for ns in sorted(namespaces.keys(),key=lambda x: len(x), reverse=True):
                 if term.startswith(ns):
+                    ns_found = True
                     term = term.replace(ns,namespaces[ns]+":")
                     break
+            
+            if not ns_found:
+                self.logger.warning("Term '{0}' does not belong to a known namespace.".format(term))
+                if "." in term:
+                    # Due to downstream limitations of Elasticsearch, do not allow fieldnames containing dots.
+                    # If we encounter a new field containing dots it usually means the namespace
+                    # needs to be added to fieldnames.py.
+                    self.logger.fatal("Term '{0}' contains a dot '.' which is not allowed in field names.".format(term))
+                    raise Exception("Term '{0}' contains a dot '.' which is not allowed in field names.".format(term))
+
+            self.logger.debug("Using term = '{0}'".format(term))
             if '#index' in fld:
                 if int(fld['#index']) not in fields:
                     fields[int(fld['#index'])] = term

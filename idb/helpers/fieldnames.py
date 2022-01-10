@@ -34,7 +34,9 @@ namespaces = {
     "http://rs.ala.org.au/terms/1.0/": "ala",
     "http://rs.tdwg.org/abcd/terms/": "abcd",
     "http://hiscom.chah.org.au/hispid/terms/": "hispid",
-    "http://data.ggbn.org/schemas/ggbn/terms/": "ggbn"
+    "http://data.ggbn.org/schemas/ggbn/terms/": "ggbn",
+    "http://rs.iobis.org/obis/terms/": "obis",
+    "http://rs.tdwg.org/chrono/terms/": "chrono"
 }
 
 namespaces_rev = {v:k for k, v in namespaces.items()}

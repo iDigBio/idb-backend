@@ -26,7 +26,7 @@ WIDTHS = {
 
 # Some really large images starting to come from some data providers. Reduce
 # the pool size to keep from running the workflow machine out of memory.
-POOLSIZE = 25
+POOLSIZE = 10
 DTYPES = ('thumbnail', 'fullsize', 'webview')
 
 logger = idblogger.getChild('deriv')

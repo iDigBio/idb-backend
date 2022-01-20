@@ -105,7 +105,7 @@ https://www.idigbio.org/portal/publishers?merged=1
 https://www.idigbio.org/wiki/index.php/Data_Ingestion_Report
 
 (login required)
-https://www.idigbio.org/redmine/projects/data-mobilization/issues
+https://redmine.idigbio.org/projects/data-mobilization-and-ingestion-including-via-symbiota-support-hub
 
 '''
 

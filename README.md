@@ -120,13 +120,13 @@ The recommended services to enable and start:
 
     idigbio-ingestion-mediaing-get-media.service
 
-    idigbio-ingestion-mediaing-updatedb.timer
-
     idigbio-ingestion-derivatives.timer
 
 The timers kick off "oneshot" services that run once and complete and need to be triggered again so the timer handles this.
 
 The get-media service (aka the "fetcher") has its own built-in loop to run continuously.
+
+The idigbio-ingestion-mediaing-updatedb.timer can be set up to run a `daily` job but we currently do not have enough memory to perform indexing on the same machine where this service is running. Therefore we no longer start this service and instead run it manually with every data ingestion.
 
 
 7. To update the code used by the services, change to the `idigbio-ingestion` user's checkout of this repo and `git pull`.   Then as root or a user with sudo permissions, execute:

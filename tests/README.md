@@ -141,11 +141,16 @@ One challenge is the test suite expects mappings, etc. to be present.
 
 The ES 5.x image requires HTTP basic auth credentials.  For example, to use curl with basic auth supply them via `-u` with the default username and password:
 
-To do:
+```
+$ curl -u elastic:changeme http://localhost:9200/_cat/indices
+```
 
-1. Have tests connect to localhost instead of the ES cluster that exists in CONFIG.
-2. possibly pre-load a bunch of data / index.
-3. possibly have that pre-loaded docker image available in docker-library
+TODO:
+
+1. Change default password when running container
+2. Have tests connect to localhost instead of the ES cluster that exists in CONFIG.
+3. possibly pre-load a bunch of data / index.
+4. possibly have that pre-loaded docker image available in docker-library
 
 ## Running All Tests
 

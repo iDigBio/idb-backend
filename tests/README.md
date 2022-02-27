@@ -139,6 +139,8 @@ $ docker run -p 9200:9200 -p 9300:9300 -e "discovery.type=single-node" -e "xpack
 
 One challenge is the test suite expects mappings, etc. to be present.
 
+The ES 5.x image requires HTTP basic auth credentials.  For example, to use curl with basic auth supply them via `-u` with the default username and password:
+
 To do:
 
 1. Have tests connect to localhost instead of the ES cluster that exists in CONFIG.

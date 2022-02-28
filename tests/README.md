@@ -128,11 +128,18 @@ $ docker pull docker.elastic.co/elasticsearch/elasticsearch:5.5.3
 $ docker run -p 9200:9200 -p 9300:9300 -e "discovery.type=single-node" docker.elastic.co/elasticsearch/elasticsearch:5.5.3
 ```
 
-To do:
+The ES 5.x image requires HTTP basic auth credentials.  For example, to use curl with basic auth supply them via `-u` with the default username and password:
 
-1. Have tests connect to localhost instead of the ES cluster that exists in CONFIG.
-2. possibly pre-load a bunch of data / index.
-3. possibly have that pre-loaded docker image available in docker-library
+```
+$ curl -u elastic:changeme http://localhost:9200/_cat/indices
+```
+
+TODO:
+
+1. Change default password when running container
+2. Have tests connect to localhost instead of the ES cluster that exists in CONFIG.
+3. possibly pre-load a bunch of data / index.
+4. possibly have that pre-loaded docker image available in docker-library
 
 ## Running All Tests
 

@@ -29,7 +29,7 @@ def get_redis_connection_params():
 def get_redis_conn():
     import redis
     redis_conn_params = get_redis_connection_params()
-    logger.info('redis connection params: {0}'.format(redis_conn_params))
+    logger.info('Connecting to redis with the following params: {0}'.format(redis_conn_params))
     return redis.StrictRedis(**redis_conn_params)
 
 

@@ -4,10 +4,8 @@ import socket
 from celery import Celery
 from celery.result import AsyncResult  # noqa
 from idb import config, __version__
-from idb.helpers.logging import idblogger
-from idb.helpers.memoize import memoized
 
-logger = idblogger.getChild('worker')
+from idb.helpers.memoize import memoized
 
 env = config.ENV
 
@@ -28,9 +26,7 @@ def get_redis_connection_params():
 
 def get_redis_conn():
     import redis
-    redis_conn_params = get_redis_connection_params()
-    logger.info('Connecting to redis with the following params: {0}'.format(redis_conn_params))
-    return redis.StrictRedis(**redis_conn_params)
+    return redis.StrictRedis(**get_redis_connection_params())
 
 
 @app.task()

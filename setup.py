@@ -51,7 +51,7 @@ setup(
         'pytz>=2016.10',
         'requests==2.20.0',
         'urllib3<1.25,>=1.21.1',
-	'pycrypto',
+        'pycrypto',
         'flask>=0.11.0, <1.0.0',
         'Flask-UUID',
         'Flask-CORS',

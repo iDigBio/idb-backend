@@ -128,11 +128,23 @@ $ docker pull docker.elastic.co/elasticsearch/elasticsearch:5.5.3
 $ docker run -p 9200:9200 -p 9300:9300 -e "discovery.type=single-node" docker.elastic.co/elasticsearch/elasticsearch:5.5.3
 ```
 
+The test `idigbio-test` index needs to be created before the test suite will complete.  There are a number of ways to do this but easiest is to set this environment variable before running the test suite:
+
+```
+$ export ES_ALLOW_INDEX_CREATION=yes
+```
+
+
 The ES 5.x image requires HTTP basic auth credentials.  For example, to use curl with basic auth supply them via `-u` with the default username and password:
 
 ```
 $ curl -u elastic:changeme http://localhost:9200/_cat/indices
 ```
+
+But we do not have the capability to use credentials in this codebase.
+
+
+
 
 TODO:
 
@@ -140,6 +152,10 @@ TODO:
 2. Have tests connect to localhost instead of the ES cluster that exists in CONFIG.
 3. possibly pre-load a bunch of data / index.
 4. possibly have that pre-loaded docker image available in docker-library
+
+Note: Docker image `docker.elastic.co/elasticsearch/elasticsearch:7.17.0` does not require auth.
+
+The codebase is not compatible with ES 7 though.
 
 ## Running All Tests
 

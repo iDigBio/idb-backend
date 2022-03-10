@@ -275,7 +275,7 @@ def make_file(t, query, raw=False, tabs=False, fields=None,
             exclude_from_fields = ["id", "coreid"]
 
         es = get_connection()
-        mapping = es.indices.get_mapping(index=indexName, doc_type=t)
+        mapping = es.indices.get_mapping(index=indexName, doc_type=t, include_type_name=True)
         mapping_root = mapping.values()[0]["mappings"][t]["properties"]
         if raw:
             mapping_root = mapping_root["data"]["properties"]

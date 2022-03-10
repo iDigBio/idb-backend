@@ -189,12 +189,12 @@ class ElasticSearchIndexer(object):
         for f in fields[t]:
             if f[2] == "text":
                 m["properties"][f[0]] = {
-                    "type": "string", "analyzer": "keyword"}
+                    "type": "text", "analyzer": "keyword"}
             elif f[2] == "longtext":
-                m["properties"][f[0]] = {"type": "string"}
+                m["properties"][f[0]] = {"type": "text"}
             elif f[2] == "list":
                 m["properties"][f[0]] = {
-                    "type": "string", "analyzer": "keyword"}
+                    "type": "text", "analyzer": "keyword"}
             elif f[2] == "float":
                 m["properties"][f[0]] = {"type": "float"}
             elif f[2] == "boolean":
@@ -218,7 +218,9 @@ class ElasticSearchIndexer(object):
             m["_parent"] = {
                 "type": "records"
             }
-        res = self.es.indices.put_mapping(index=self.indexName, doc_type=t, body={t: m})
+
+        # Do we need to check for ES version before deciding whether to use include_type_name?
+        res = self.es.indices.put_mapping(index=self.indexName, doc_type=t, body={t: m}, include_type_name=True)
         logger.info("Built mapping for %s: %s", t, res)
 
     def index(self, t, i):

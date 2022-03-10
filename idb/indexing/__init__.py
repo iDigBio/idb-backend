@@ -186,3 +186,17 @@ def check(params):
     for k in params:
         params[k] = params[k]()
     resume(also_delete=True, **params)
+
+
+@cli.command(help="PUT mappings only and then exit")
+@click.pass_obj
+@fnlogged
+def mappings(params):
+    """
+    We currently put the ES mappings whenever we initialize the connection to Elasticsearch.
+    This option will not attempt any actual indexing but will put the mappings into the index.
+    """
+    for k in params:
+        params[k] = params[k]()
+    from .index_from_postgres import mappings_only
+    mappings_only(**params)

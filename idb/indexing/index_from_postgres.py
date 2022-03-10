@@ -286,6 +286,9 @@ def uuids(ei, rc, uuid_l, no_index=False, children=False):
     consume(ei, rc, f, no_index=no_index)
     ei.optimize()
 
+def mappings_only(ei):
+    ei.optimze()
+
 def consume(ei, rc, iter_func, no_index=False):
     for typ in ei.types:
         # Construct a version of index record that can be just called with the

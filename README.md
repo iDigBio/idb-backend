@@ -88,7 +88,7 @@ This package can also be run as a [celery worker]; this is used by the
 data api that launches some tasks (most notably download building) via
 celery to a background worker.
 
-    celery worker --app=idigbio_workers -l WARNING
+    celery worker --app=idigbio_workers -l INFO
 
 [celery worker]: http://docs.celeryproject.org/en/latest/userguide/workers.html
 

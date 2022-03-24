@@ -45,6 +45,7 @@ def once(prefix=None, ignores=IGNORE_PREFIXES):
     logger.info("mediaing - run once mode")
     fetchitems = get_items(prefix=prefix)
     groups = group_by_prefix(fetchitems)
+    # pylint: dict.values referenced when not iterating (dict-values-not-iterating)
     procs = start_all_procs(groups).values()
     fetchitems = None
     groups = None
@@ -111,6 +112,7 @@ def process_list(fetchitems, forprefix=''):
         fetchrpool = gevent.pool.Pool(get_fetcher_count(forprefix))
         uploadpool = gevent.pool.Pool(8)
         items = fetchrpool.imap_unordered(lambda fi: fi.get_media(), fetchitems, maxsize=10)
+        # pylint: map built-in referenced when not iterating (map-builtin-not-iterating)
         items = uploadpool.imap_unordered(lambda fi: fi.upload_to_storage(store), items, maxsize=10)
         items = map(FetchItem.cleanup, items)
         items = update_db_status(items)

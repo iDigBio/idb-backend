@@ -80,7 +80,17 @@ def id_func(portal_url, e):
             portal_url, e["collid"])
 
     if id is not None:
-        # Strip trailing version info from ipt ids
+        # Strip trailing version info from IPT ids. For example, if the RSS feed 
+        # contains:
+        #  <guid isPermaLink="false">88d5d94e-f762-11e1-a439-00145eb45e9a/v2.68</guid>
+        # we want to keep only the guid portion which stays the same for this entry
+        # over time.
+        #
+        # TODO:
+        # The python invalid escape sequence warning triggered by the following regex
+        # due to the backslash _should_ be fixable by using a raw string instead. 
+        #  r'^(.*)...'
+        # Not changing yet because we have zero code coverage here. 
         m = re.search('^(.*)/v[0-9]*(\.)?[0-9]*$', id)
         if m is not None:
             id = m.group(1)

@@ -46,6 +46,7 @@ def check_object(mo, store=STORE):
         k = store.get_key(mo.keyname, mo.bucketname)
         return CheckResult(mo, k.exists())
     except S3ResponseError as e:
+        # WARNING: Exception.message removed in Python 3 (exception-message-attribute)
         return CheckResult(mo, e.message)
     except:
         logger.exception("Failed on %s", mo.etag)

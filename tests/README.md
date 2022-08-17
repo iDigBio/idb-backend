@@ -1,4 +1,67 @@
-## tests
+# Testing
+
+## Quick Start
+
+To run the full test suite after a fresh clone and `cd idb-backend` into the project:
+
+1. (Only needed if not on the same network as the ES cluster) Port-forward a connection thru the workflow node.
+
+Run this in a separate terminal.  Replace `ELASTICSEARCH_CLUSTER_NODE_IP`, `USER`, and `SSH_HOST` with real values. 
+`ELASTICSEARCH_CLUSTER_NODE_IP` can be any node in the ES cluster (In the "servers" section of a valid `idigbio.json` config file).
+
+```
+$ ssh -nNT -L 9200:ELASTICSEARCH_CLUSTER_NODE_IP:9200  USER@SSH_HOST
+```
+
+2. (Only needed if not on the same network as the ES cluster) Copy and modify an idigbio.json to put in the project directory.
+
+Copy a valid `idigbio.json` into the project folder so we can trick Elasticsearch client to use our port forwarding from above. Replace the entries under "server" with "localhost".
+
+```
+$ cp ~/idigbio.json idigbio.json
+$ vi idigbio.json
+...
+```
+
+That section should look like the following when finished:
+
+```
+        "servers": [
+            "localhost:9200"
+        ]
+```
+
+
+3. Run a local postgres database.
+
+```
+$ docker run --rm --name postgres_test_idigbio --network host -e POSTGRES_PASSWORD=test -e POSTGRES_USER=test -e POSTGRES_DB=test_idigbio -d postgres:11
+```
+
+4. Set up a virtual environment and install dependencies.
+
+```
+$ virtualenv -p python2.7 venv
+$ source venv/bin/activate
+$ pip install -r requirements.txt
+$ pip install -e .
+```
+
+The "servers" section contains a list of all of the nodes in the elasticsearch cluster.
+
+
+5. Run the test suite!
+
+Adding verbose option will make it easier to track down any initial problems.
+
+``` 
+$ py.test -v
+...
+
+==== 227 passed, 2 skipped, 1 xfailed, 47 warnings in 125.64 seconds ====
+```
+
+## tests layout and examples
 
 The current convention for idb-backend is that tests will live
 in a separate directory tree but will mimic the codebase structure.
@@ -102,19 +165,19 @@ Some idb-backend tests depend on external resources, such as a local test postgr
 Due to network access control it might be necessary to use ssh port forwarding.
 
 ```
-# replace ELASTICSEARCH_CLUSTER_NODE_IP, USER, SSH_HOST with real values.
+# replace ELASTICSEARCH_CLUSTER_NODE_IP, USER, SSH_HOST with real values. ELASTICSEARCH_CLUSTER_NODE_IP can be any node in the ES cluster.
 $ ssh -nNT -L 9200:ELASTICSEARCH_CLUSTER_NODE_IP:9200  USER@SSH_HOST
 ```
 
 
-The local postgresql 9.5 DB is named `test_idigbio` with user/pass `test` / `test`.
+The local postgresql DB is named `test_idigbio` with user/pass `test` / `test`.
 
 Note: The data in the db with that name will be destroyed during testing.
 
 A temporary instance of postgres running in docker will suffice:
 
 ```
-$ docker run --rm --name postgres_test_idigbio --network host -e POSTGRES_PASSWORD=test -e POSTGRES_USER=test -e POSTGRES_DB=test_idigbio -d postgres:9.5
+$ docker run --rm --name postgres_test_idigbio --network host -e POSTGRES_PASSWORD=test -e POSTGRES_USER=test -e POSTGRES_DB=test_idigbio -d postgres:11
 ```
 
 ### WIP: run Elasticsearch in local docker the same way we run postgres

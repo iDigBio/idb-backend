@@ -15,7 +15,7 @@ $ ssh -nNT -L 9200:ELASTICSEARCH_CLUSTER_NODE_IP:9200  USER@SSH_HOST
 
 2. (Only needed if not on the same network as the ES cluster) Copy and modify an idigbio.json to put in the project directory.
 
-Copy a valid `idigbio.json` into the project folder so we can trick Elasticsearch client to use our port forwarding from above. Replace the entries under "server" with "localhost".
+Copy a valid `idigbio.json` into the project folder so we can trick Elasticsearch client to use our port forwarding from above. Replace the entries under "servers" with a single "localhost" entry.
 
 ```
 $ cp ~/idigbio.json idigbio.json
@@ -46,8 +46,6 @@ $ source venv/bin/activate
 $ pip install -r requirements.txt
 $ pip install -e .
 ```
-
-The "servers" section contains a list of all of the nodes in the elasticsearch cluster.
 
 
 5. Run the test suite!

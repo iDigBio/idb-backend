@@ -1,3 +1,5 @@
+from __future__ import print_function
+
 from pyquery import PyQuery as pq
 
 from idb.data_tables.rights_strings import acceptable_licenses_trans
@@ -155,7 +157,7 @@ def main():
     import sys
     import json
     with open(sys.argv[1],"rb") as inf:
-        print json.dumps(parseEml("testid",inf.read()))
+        print (json.dumps(parseEml("testid",inf.read())))
 
 
 if __name__ == '__main__':

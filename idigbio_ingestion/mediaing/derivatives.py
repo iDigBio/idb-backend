@@ -173,7 +173,7 @@ def generate_all(item):
         return None
     # catch PIL.Image.DecompressionBombError and other exceptions here
     except Exception as e:
-        logger.error("%s caused Exception: %s", item.etag, e.message)
+        logger.error("%s caused Exception: %s", item.etag, format(e.args))
         return None
 
 

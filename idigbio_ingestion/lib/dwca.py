@@ -1,3 +1,4 @@
+from __future__ import print_function
 import zipfile
 from lxml import etree
 from collections import deque

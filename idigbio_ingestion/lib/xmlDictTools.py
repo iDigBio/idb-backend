@@ -2,6 +2,7 @@
 # Create python xml structures compatible with
 # http://search.cpan.org/~grantm/XML-Simple-2.18/lib/XML/Simple.pm
 
+from __future__ import print_function
 from lxml import etree
 from itertools import groupby
 

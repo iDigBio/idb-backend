@@ -19,8 +19,6 @@
 
 """
 
-from __future__ import print_function
-
 class FileProxy(object):
     """
        The main FileProxy class, behaves just like a file object, with three additions: 
@@ -119,7 +117,7 @@ def main():
         except:
             traceback.print_exc()
             x = inf.dump()
-            print (len(x), x)
+            print len(x), x
 
 if __name__ == "__main__":
     main()

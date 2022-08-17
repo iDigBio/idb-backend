@@ -1,4 +1,3 @@
-from __future__ import print_function
 import requests
 import json
 
@@ -39,7 +38,7 @@ def main3():
 def main2():
     for r in PostgresDB().get_type_list("recordset", limit=None):
         try:
-            print (r["uuid"])
+            print r["uuid"]
         except:
             traceback.print_exc()
 
@@ -49,7 +48,7 @@ def main1():
     o = r.json()
 
     for rs in o["items"]:
-        print (rs["uuid"])
+        print rs["uuid"]
 
 if __name__ == '__main__':
     main3()

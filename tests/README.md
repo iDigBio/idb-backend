@@ -48,7 +48,6 @@ $ pip install -e .
 ```
 
 
-
 5. Run the test suite!
 
 Adding verbose option will make it easier to track down any initial problems.

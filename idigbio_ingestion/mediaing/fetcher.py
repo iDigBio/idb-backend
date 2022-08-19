@@ -37,6 +37,7 @@ LAST_CHECK_INTERVAL = '1 month'
 # TODO: Add idb __version__ to this string?
 USER_AGENT = 'iDigBio Media Ingestor (idigbio@acis.ufl.edu https://www.idigbio.org/wiki/index.php/Media_Ingestor)'
 logger.info("Started fetcher with User Agent string: '{0}'".format(USER_AGENT))
+logger.info("Ignoring urls that start with the following prefixes: {0}".format(IGNORE_PREFIXES))
 
 PREFIX_RE = re.compile('^https?://[^/]*[/?]')
 

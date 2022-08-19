@@ -7,7 +7,8 @@ IGNORE_PREFIXES = [
     "http://api.idigbio.org/v1/recordsets/",
     "https://api.idigbio.org/v2/media/",
     "http://api.idigbio.org/v2/media/",
-    "http://www.tropicos.org/"
+    "http://www.tropicos.org/",
+    "http://n2t.net/ark:/65665/" # Smithsonian
 ]
 
 

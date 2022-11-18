@@ -33,7 +33,10 @@ MEDIA_QUERY_BASE={
                 "hasSpecimen": True
             }
         }
-    ]}}}
+    ]}}
+    #,
+    #"fields": ["recordsets"]
+    }
 
 # 100k is max result size (count/hits) configured in our Elasticsearch
 #SIZE=100000
@@ -88,8 +91,13 @@ for etag_prefix in ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "a", "b", 
     QUERY = copy.deepcopy(MEDIA_QUERY_BASE)
     QUERY["query"]["bool"]["must"][0]["wildcard"]["accessuri"] = QUERY["query"]["bool"]["must"][0]["wildcard"]["accessuri"] + etag_prefix + "*"
     #print (QUERY)
-    resp = es.search(index="idigbio", _source_include=["recordsets"], size=SIZE, body=QUERY)
-
+    #resp = es.search(index="idigbio", _source_include=["recordsets"], size=SIZE, body=QUERY)
+    resp = es.search(
+        index="idigbio",
+        _source_include=["recordset","records"],
+        size=SIZE,
+        body=QUERY
+    )
     for each in resp["hits"]["hits"]:
         print(each)
         #recordsets_referencing_media.add(each["recordsets"][0])

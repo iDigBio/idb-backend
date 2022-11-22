@@ -46,7 +46,7 @@ def upload_download_file_to_ceph(filename):
     s = IDigBioStorage()
     keyname, bucket = os.path.basename(filename), "idigbio-downloads"
     fkey = s.upload(s.get_key(keyname, bucket), filename, content_type='application/zip', public=True)
-    return "http://s.idigbio.org/idigbio-downloads/" + fkey.name
+    return "https://s.idigbio.org/idigbio-downloads/" + fkey.name
 
 
 def normalize_params(params):

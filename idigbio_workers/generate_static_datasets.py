@@ -29,14 +29,14 @@ def upload_download_file_to_ceph(s, dsname):
         socket.setdefaulttimeout(300)
         fkey.copy("idigbio-static-downloads", dsname, preserve_acl=True)
 
-    return "http://s.idigbio.org/idigbio-static-downloads/" + keyname
+    return "https://s.idigbio.org/idigbio-static-downloads/" + keyname
 
 def upload_eml_file_to_ceph(s, tid, eml):
     fkey = s.get_key(tid + ".eml","idigbio-static-downloads")
     fkey.set_contents_from_string(eml)
     fkey.set_metadata('Content-Type', 'application/xml')
     fkey.make_public()
-    return "http://s.idigbio.org/idigbio-static-downloads/" + tid + ".eml"
+    return "https://s.idigbio.org/idigbio-static-downloads/" + tid + ".eml"
 
 
 def main():

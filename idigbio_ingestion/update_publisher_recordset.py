@@ -338,7 +338,11 @@ def _do_rss(rsscontents, r, db, recordsets, existing_recordsets, file_links):
     feed = feedparser.parse(rsscontents)
     if feed.bozo:
         logger.warn("Bozo detected, feed is not well-formed.")
- 
+    if feed.get("feed"):
+        if feed.get("feed").get("newlocation"):
+            logger.warn("RSS REDIRECT detected. This publisher needs to be updated. Existing RSS location: '{0}' New RSS location: '{1}'".format(
+                r['rss_url'],feed["feed"]["newlocation"]))
+            return
 
     
     logger.debug("Found {0} entries in feed to process.".format(len(feed)))  # should this be  'len(feed.entries)' ?

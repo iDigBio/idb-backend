@@ -336,9 +336,15 @@ def _do_rss(rsscontents, r, db, recordsets, existing_recordsets, file_links):
 
     logger.debug("Start parsing results of %s", r['rss_url'])
     feed = feedparser.parse(rsscontents)
-    # check bozo bit here
-    # https://pythonhosted.org/feedparser/bozo.html#advanced-bozo
+    if feed.bozo:
+        logger.warn("Bozo detected, feed is not well-formed.")
+    if feed.get("feed"):
+        if feed.get("feed").get("newlocation"):
+            logger.warn("RSS REDIRECT detected. This publisher needs to be updated. Existing RSS location: '{0}' New RSS location: '{1}'".format(
+                r['rss_url'],feed["feed"]["newlocation"]))
+            return
 
+    
     logger.debug("Found {0} entries in feed to process.".format(len(feed)))  # should this be  'len(feed.entries)' ?
     pub_uuid = r["uuid"]
     if pub_uuid is None:

@@ -28,6 +28,10 @@ if sys.version_info >= (2,7,15):
 else:
     pillow_package = "pillow-simd>=3.4,<=5.1.1"
 
+    # setup_requires=["cffi>=1.0.0"],
+    # cffi_modules=["package/foo_build.py:ffibuilder"],
+    # install_requires=["cffi>=1.0.0"],
+
 setup(
     name='idb-backend',
     version=version,
@@ -39,6 +43,7 @@ setup(
     author_email='idigbio@acis.ufl.edu',
     packages=find_packages(exclude=['tests*']),
     setup_requires=['pytest-runner'],
+    #    setup_requires=["pytest-runner","cffi>=1.0.0"],
     install_requires=[
         'idigbio>=0.8.2',
         'psycopg2-binary>=2.8.3',
@@ -63,7 +68,7 @@ setup(
         'shapely',
         'celery[redis]>=4.0, <4.3',
         'boto>=2.39.0, <3.0.0',
-        'fiona',
+        'fiona~=1.8',
         'python-magic>=0.4.11, <=0.5.0',
         'feedparser>=5.2.0',
         'click>=6.3, <7.0',
@@ -72,19 +77,23 @@ setup(
         'path.py>=10.0.0, <11',
         'wsgi-request-logger>=0.4.6',
         'jsonlines>=1.1.3',
+        'wheel',
+        'itsdangerous==2.0.1',
+        'jinja2<3.1.0',
+        'werkzeug==2.0.3'
     ],
     extras_require={
         'ingestion': [
             'pydub==0.16.5',
             pillow_package,
             'lxml',
-            'chardet',
+            'chardet~=3.0',
             'pyquery>=1.2',
         ],
         'test': [
-            'pytest>=3.0',
+            'pytest~=4.0',
             'pytest-cov',
-            'pytest-flask',
+            'pytest-flask~=0.15',
             'pytest-mock==1.13.0',
             'fakeredis',
         ]

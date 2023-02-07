@@ -12,7 +12,7 @@ iDigBio server and backend code for data ingestion and data API.
 
 In Ubuntu 18.04:
 
-    apt install python3-dev libblas-dev liblapack-dev \
+    apt install python3-dev python3-all-dev libblas-dev liblapack-dev \
       libatlas-base-dev gfortran libgdal-dev libpq-dev libgeos-c1v5 \
       libsystemd-dev
 

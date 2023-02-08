@@ -879,34 +879,6 @@ def fixBOR(t, r):
             r["flag_dwc_basisofrecord_removed"] = True
             r["flag_dwc_basisofrecord_invalid"] = True
 
-        # Disable based on feedback from John W. and Joanna
-        # if r["basisofrecord"] == "preservedspecimen":
-        #     paleo_terms = [
-        #         "bed",
-        #         "group",
-        #         "member",
-        #         "formation",
-        #         "lowestbiostratigraphiczone",
-        #         "lithostratigraphicterms",
-        #         "earliestperiodorlowestsystem",
-        #         "earliesteraorlowesterathem",
-        #         "earliestepochorlowestseries",
-        #         "earliestageorloweststage",
-        #         "latesteraorhighesterathem",
-        #         "latestepochorhighestseries",
-        #         "latestageorhigheststage",
-        #         "latestperiodorhighestsystem",
-        #     ]
-
-        #     for f in paleo_terms:
-        #         if filled(f,r):
-        #             r["flag_dwc_basisofrecord_paleo_conflict"] = True
-        #             r["flag_dwc_basisofrecord_replaced"] = True
-        #             r["basisofrecord"] = "fossilspecimen"
-        #             break
-    else:
-        r["flag_dwc_basisofrecord_invalid"] = True
-
 def fix_taxon_rank(t, r):
     if filled("taxonrank", r):
         if r["taxonrank"] in taxon_rank.mapping:

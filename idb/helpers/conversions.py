@@ -844,74 +844,50 @@ def fixBOR(t, r):
     These comparisons using lowercased version seem to work, even though supplied values generally
     match the class name in the standard.  e.g. To find PreservedSpecimen we look for "preserved".
     """
-    if filled("basisofrecord", r):
-        if "preserved" in r["basisofrecord"]:
-            r["basisofrecord"] = "preservedspecimen"
-        elif "fossil" in r["basisofrecord"]:
-            r["basisofrecord"] = "fossilspecimen"
-        elif "living" in r["basisofrecord"]:
-            r["basisofrecord"] = "livingspecimen"
-        elif "material" in r["basisofrecord"]:
-            r["basisofrecord"] = "materialsample"
-        elif "specimen" in r["basisofrecord"]:
-            r["basisofrecord"] = "preservedspecimen"
-        elif "machine" in r["basisofrecord"] and "observation" in r["basisofrecord"]:
-            r["basisofrecord"] = "machineobservation"
-        elif "observation" in r["basisofrecord"]:
-            r["basisofrecord"] = "humanobservation"
-        elif "occurrence" in r["basisofrecord"]:
-            r["basisofrecord"] = "occurrence"
+    if t == "records":
+        if filled("basisofrecord", r):
+            if "preserved" in r["basisofrecord"]:
+                r["basisofrecord"] = "preservedspecimen"
+            elif "fossil" in r["basisofrecord"]:
+                r["basisofrecord"] = "fossilspecimen"
+            elif "living" in r["basisofrecord"]:
+                r["basisofrecord"] = "livingspecimen"
+            elif "material" in r["basisofrecord"]:
+                r["basisofrecord"] = "materialsample"
+            elif "specimen" in r["basisofrecord"]:
+                r["basisofrecord"] = "preservedspecimen"
+            elif "machine" in r["basisofrecord"] and "observation" in r["basisofrecord"]:
+                r["basisofrecord"] = "machineobservation"
+            elif "observation" in r["basisofrecord"]:
+                r["basisofrecord"] = "humanobservation"
+            elif "occurrence" in r["basisofrecord"]:
+                r["basisofrecord"] = "occurrence"
+            else:
+                r["basisofrecord"] = None
+                r["flag_dwc_basisofrecord_removed"] = True
+                r["flag_dwc_basisofrecord_invalid"] = True
         else:
-            r["basisofrecord"] = None
-            r["flag_dwc_basisofrecord_removed"] = True
             r["flag_dwc_basisofrecord_invalid"] = True
 
-        # Disable based on feedback from John W. and Joanna
-        # if r["basisofrecord"] == "preservedspecimen":
-        #     paleo_terms = [
-        #         "bed",
-        #         "group",
-        #         "member",
-        #         "formation",
-        #         "lowestbiostratigraphiczone",
-        #         "lithostratigraphicterms",
-        #         "earliestperiodorlowestsystem",
-        #         "earliesteraorlowesterathem",
-        #         "earliestepochorlowestseries",
-        #         "earliestageorloweststage",
-        #         "latesteraorhighesterathem",
-        #         "latestepochorhighestseries",
-        #         "latestageorhigheststage",
-        #         "latestperiodorhighestsystem",
-        #     ]
-
-        #     for f in paleo_terms:
-        #         if filled(f,r):
-        #             r["flag_dwc_basisofrecord_paleo_conflict"] = True
-        #             r["flag_dwc_basisofrecord_replaced"] = True
-        #             r["basisofrecord"] = "fossilspecimen"
-        #             break
-    else:
-        r["flag_dwc_basisofrecord_invalid"] = True
-
 def fix_taxon_rank(t, r):
-    if filled("taxonrank", r):
-        if r["taxonrank"] in taxon_rank.mapping:
-            if taxon_rank.mapping[r["taxonrank"]] is None:
+    if t == "records":
+        if filled("taxonrank", r):
+            if r["taxonrank"] in taxon_rank.mapping:
+                if taxon_rank.mapping[r["taxonrank"]] is None:
+                    r["taxonrank"] = None
+                    r["flag_dwc_taxonrank_removed"] = True
+                    r["flag_dwc_taxonrank_invalid"] = True
+                elif r["taxonrank"] != taxon_rank.mapping[r["taxonrank"]]:
+                    r["taxonrank"] = taxon_rank.mapping[r["taxonrank"]]
+                    r["flag_dwc_taxonrank_replaced"] = True
+                else:
+                    pass  # Taxon Rank is in the mapping as an identity.
+            elif r["taxonrank"] not in taxon_rank.acceptable:
                 r["taxonrank"] = None
                 r["flag_dwc_taxonrank_removed"] = True
                 r["flag_dwc_taxonrank_invalid"] = True
-            elif r["taxonrank"] != taxon_rank.mapping[r["taxonrank"]]:
-                r["taxonrank"] = taxon_rank.mapping[r["taxonrank"]]
-                r["flag_dwc_taxonrank_replaced"] = True
             else:
-                pass  # Taxon Rank is in the mapping as an identity.
-        elif r["taxonrank"] not in taxon_rank.acceptable:
-            r["taxonrank"] = None
-            r["flag_dwc_taxonrank_removed"] = True
-            r["flag_dwc_taxonrank_invalid"] = True
-        else:
-            pass  # Taxon Rank is Acceptable, but not mapped
+                pass  # Taxon Rank is Acceptable, but not mapped
 
 # Step, count, ms, ms/count     action
 # rc 1000 354.179 0.354179      record corrector
@@ -945,6 +921,7 @@ def grabAll(t, d):
     r.update(collect_genbank_sequences(t,d))
     # Done with non-dependant fields.
 
+
     gs_sn_crossfill(t, r)
     fixBOR(t, r)
     fix_taxon_rank(t, r)
@@ -961,7 +938,6 @@ def grabAll(t, d):
         if k.startswith("flag_"):
             r["flags"].append("_".join(k.split("_")[1:]))
     r["dqs"] = score(t, r)
-
     return r
 
 

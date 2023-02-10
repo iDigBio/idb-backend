@@ -264,7 +264,7 @@ class TestScientificNameFiller(unittest.TestCase):
 
 
 class TestGrabAll(unittest.TestCase):
-    def test_grab_all(self):
+    def test_grab_all_on_record(self):
         r = {
             "idigbio:uuid": "0000012b-9bb8-42f4-ad3b-c958cb22ae45",
             "idigbio:etag": "cb7d64ec3aef36fa4dec6a028b818e331a67aacc",
@@ -387,6 +387,49 @@ class TestGrabAll(unittest.TestCase):
         self.assertEqual(output['hasImage'], True)
         self.assertEqual(output['hasMedia'], True)
 
+    def test_grab_all_on_mediarecord(self):
+        r = {
+                "uuid": "256098cf-723d-4633-a827-7fbf60a103ec",
+                "type": "mediarecords",
+                "etag": "5da26d3ee501516557689e55e1b1dd6c195414a2",
+                "data": {
+                    "dcterms:type": "StillImage",
+                    "ac:providerManagedID": "urn:uuid:21943c26-e2d2-49d8-8626-18f1d5eeb56d",
+                    "ac:subtype": "Photograph",
+                    "ac:metadataLanguage": "en",
+                    "xmpRights:UsageTerms": "CC BY-NC-SA (Attribution-NonCommercial-ShareAlike)",
+                    "ac:thumbnailAccessURI": "https://bryophyteportal.org/imglib/storage/srp/bryophytes/SRP-B-0000/SRP-B-0000026_tn.jpg",
+                    "dcterms:format": "image/jpeg",
+                    "ac:goodQualityAccessURI": "https://bryophyteportal.org/imglib/storage/srp/bryophytes/SRP-B-0000/SRP-B-0000026.JPG",
+                    "coreid": "2212837",
+                    "dcterms:identifier": "https://bryophyteportal.org/imglib/storage/srp/bryophytes/SRP-B-0000/SRP-B-0000026_lg.jpg",
+                    "xmpRights:Owner": "Boise State University Lichen Herbarium (SRP)",
+                    "dcterms:rights": "http://creativecommons.org/licenses/by-nc/3.0/",
+                    "ac:accessURI": "https://bryophyteportal.org/imglib/storage/srp/bryophytes/SRP-B-0000/SRP-B-0000026_lg.jpg",
+                    "xmp:MetadataDate": "2013-06-05 23:10:50",
+                    "ac:associatedSpecimenReference": "https://bryophyteportal.org/portal/collections/individual/index.php?occid=2212837"
+                }
+            }
+        d = copy.deepcopy(r["data"])
+        output = conversions.grabAll("mediarecords", d)
+        self.assertListEqual([],output['flags'])
+        self.assertGreaterEqual(output['dqs'], 0.0)
+        self.assertLessEqual(output['dqs'], 1.0)
+
+    def test_grab_all_on_publisher(self):
+        r = {
+                        "auto_publish": "false",
+                        "base_url": "null",
+                        "name": "FCC Tardigrades Darwin Core Archive rss feed",
+                        "publisher_type": "rss",
+                        "recordsets": {},
+                        "rss_url": "https://mywaterbears.org/portal/content/dwca/rss.xml"
+                    }
+
+        output = conversions.grabAll("publishers", r)
+        self.assertListEqual([],output['flags'])
+        self.assertGreaterEqual(output['dqs'], 0.0)
+        self.assertLessEqual(output['dqs'], 1.0)
 
 class TestGetfield(unittest.TestCase):
     def test_getfield(self):

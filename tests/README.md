@@ -116,14 +116,14 @@ $ ssh -nNT -L 9200:ELASTICSEARCH_CLUSTER_NODE_IP:9200  USER@SSH_HOST
 ```
 
 
-The local postgresql 9.5 DB is named `test_idigbio` with user/pass `test` / `test`.
+The local postgresql DB is named `test_idigbio` with user/pass `test` / `test`.
 
 Note: The data in the db with that name will be destroyed during testing.
 
 A temporary instance of postgres running in docker will suffice:
 
 ```
-$ docker run --rm --name postgres_test_idigbio --network host -e POSTGRES_PASSWORD=test -e POSTGRES_USER=test -e POSTGRES_DB=test_idigbio -d postgres:9.5
+$ docker run --rm --name postgres_test_idigbio --network host -e POSTGRES_PASSWORD=test -e POSTGRES_USER=test -e POSTGRES_DB=test_idigbio -d postgres:11
 ```
 
 ### WIP: run Elasticsearch in local docker the same way we run postgres

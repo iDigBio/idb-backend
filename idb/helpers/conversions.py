@@ -934,8 +934,7 @@ def grabAll(t, d):
     r.update(collect_genbank_sequences(t,d))
     # Done with non-dependant fields.
 
-    # Only do corrections and set flags on specimen records!
-    #if t == "records":
+
     gs_sn_crossfill(t, r)
     fixBOR(t, r)
     fix_taxon_rank(t, r)
@@ -952,7 +951,6 @@ def grabAll(t, d):
         if k.startswith("flag_"):
             r["flags"].append("_".join(k.split("_")[1:]))
     r["dqs"] = score(t, r)
-
     return r
 
 

@@ -422,6 +422,8 @@ class TestGrabAll(unittest.TestCase):
         d = copy.deepcopy(r["data"])
         output = conversions.grabAll("mediarecords", d)
         self.assertListEqual([],output['flags'])
+        self.assertGreaterEqual(output['dqs'], 0.0)
+        self.assertLessEqual(output['dqs'], 1.0)
 
     def test_grab_all_on_publisher(self):
         r = {
@@ -435,7 +437,8 @@ class TestGrabAll(unittest.TestCase):
 
         output = conversions.grabAll("publishers", r)
         self.assertListEqual([],output['flags'])
-
+        self.assertGreaterEqual(output['dqs'], 0.0)
+        self.assertLessEqual(output['dqs'], 1.0)
 
 class TestGetfield(unittest.TestCase):
     def test_getfield(self):

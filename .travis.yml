@@ -26,6 +26,7 @@ script:
 
 after_success:
 # upload new docker images
+- echo "Trying docker loging for username: $DOCKER_USERNAME"
 - docker login --username="$DOCKER_USERNAME" --password="$DOCKER_PASSWORD"
 deploy:
   - provider: script

@@ -1,0 +1,14 @@
+version: "3.8"
+
+services:
+  idb-backend:
+    image: idb-base
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: bash -c "tail -f /dev/null"
+    environment:
+      ENV: dev
+    volumes:
+      - ..:/opt/idb-backend
+      - ./idigbio.json:/etc/idigbio/idigbio.json

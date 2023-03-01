@@ -68,7 +68,7 @@ setup(
         'shapely',
         'celery[redis]>=4.0, <4.3',
         'boto>=2.39.0, <3.0.0',
-        'fiona~=1.8',
+        'fiona==1.8.20',
         'python-magic>=0.4.11, <=0.5.0',
         'feedparser>=5.2.0',
         'click>=6.3, <7.0',

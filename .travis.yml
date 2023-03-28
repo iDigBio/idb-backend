@@ -7,6 +7,15 @@ services:
 - postgresql
 addons:
   postgresql: "14"
+  apt:
+    packages:
+    - postgresql-14
+    - postgresql-client-14
+env:
+  global:
+  - PGPORT=5433
+  - PGUSER=travis
+
 git:
   depth: 1
 

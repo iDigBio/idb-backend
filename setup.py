@@ -62,7 +62,8 @@ setup(
         'coverage',
         'numpy',
         'scipy',
-        'gevent==1.3.0',
+        'gevent==1.3.4',
+        'greenlet==0.4.13',
         'gipc>=0.6.0, <0.7.0',
         'unicodecsv>=0.14.1, < 0.15.0',
         'shapely',
@@ -96,7 +97,6 @@ setup(
             'pytest-flask~=0.15',
             'pytest-mock==1.13.0',
             'fakeredis',
-            'greenlet==2.0.2'
         ]
     },
     tests_require=['idb-backend[test]'],

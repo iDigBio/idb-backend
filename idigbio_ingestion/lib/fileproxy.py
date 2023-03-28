@@ -57,8 +57,8 @@ class FileProxy(object):
     def isatty(self):
         return self.__file.isatty()
 
-    def next(self):
-        x = self.__file.next()
+    def __next__(self):
+        x = next(self.__file)
         self.__read_chars += len(x)
         return x
 
@@ -117,7 +117,7 @@ def main():
         except:
             traceback.print_exc()
             x = inf.dump()
-            print (len(x), x)
+            print((len(x), x))
 
 if __name__ == "__main__":
     main()

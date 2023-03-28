@@ -192,7 +192,7 @@ class DwcaRecordFile(DelimitedFile):
             # e.g.   dwc:basisOfRecord
             # Sort by longest namespaces first
             ns_found = False
-            for ns in sorted(namespaces.keys(),key=lambda x: len(x), reverse=True):
+            for ns in sorted(list(namespaces.keys()),key=lambda x: len(x), reverse=True):
                 if term.startswith(ns):
                     ns_found = True
                     term = term.replace(ns,namespaces[ns]+":")

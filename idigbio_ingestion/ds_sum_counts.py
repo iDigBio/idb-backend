@@ -1,8 +1,8 @@
 """New version of ds_sum_counts that generates both summary and suspects
 
 """
-from __future__ import division, absolute_import
-from __future__ import print_function
+
+
 
 import json
 import os
@@ -38,16 +38,16 @@ def read_all_files(base):
 
 
 def write_header(fp):
-    fp.write(u",".join(header))
-    fp.write(u"\n")
+    fp.write(",".join(header))
+    fp.write("\n")
 
 def write_row(fp, row, k=None):
     if k is None:
         k = row['filename']
 
     values = [str(row.get(fld, 0)) for fld in fields]
-    fp.write(k + u"," + u",".join(values))
-    fp.write(u"\n")
+    fp.write(k + "," + ",".join(values))
+    fp.write("\n")
 
 
 def is_row_suspect(row):

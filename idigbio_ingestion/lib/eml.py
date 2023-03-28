@@ -1,4 +1,4 @@
-from __future__ import print_function
+
 from pyquery import PyQuery as pq
 
 from idb.data_tables.rights_strings import acceptable_licenses_trans
@@ -138,7 +138,7 @@ def parseEml(id, emlFilename):
                             seen_emails.append(contact["email"])
                     elif cc.tag == "positionName":
                         contact["role"] = cc.text
-        if len(contact.keys()) > 0:
+        if len(list(contact.keys())) > 0:
             collection["contacts"].append(contact)
 
     collection["other_guids"] = []

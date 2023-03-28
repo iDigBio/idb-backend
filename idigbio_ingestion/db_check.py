@@ -1,4 +1,4 @@
-from __future__ import absolute_import, print_function
+
 import datetime
 import functools
 import json
@@ -30,7 +30,7 @@ from idigbio_ingestion.lib.dwca import Dwca
 from idigbio_ingestion.lib.delimited import DelimitedFile
 
 
-bad_chars = u"\ufeff"
+bad_chars = "\ufeff"
 bad_char_re = re.compile("[%s]" % re.escape(bad_chars))
 
 logger = idblogger.getChild("db-check")
@@ -301,11 +301,11 @@ def process_subfile(rf, rsid, rs_uuid_etag, rs_id_uuid, ingest=False, db=None):
                 else:
                     if config.IDB_EXTRA_SERIOUS_DEBUG == 'yes':
                         rlogger.debug("Setting sibling for '{0}'".format(u))
-                    db.set_record(u, typ[:-1], rsid, r, [*ids_to_add.keys()], siblings)
+                    db.set_record(u, typ[:-1], rsid, r, [*list(ids_to_add.keys())], siblings)
                     ingestions += 1
             elif ingest and deleted:
                 db.undelete_item(u)
-                db.set_record(u, typ[:-1], rsid, r, ids_to_add.keys(), siblings)
+                db.set_record(u, typ[:-1], rsid, r, list(ids_to_add.keys()), siblings)
                 resurrections += 1
 
 
@@ -551,7 +551,7 @@ def metadataToSummaryJSON(rsid, metadata, writeFile=True, doStats=True):
     no_recordid_count = 0
     duplicate_record_count = 0
     duplicate_id_count = 0
-    for t in metadata["counts"].values():
+    for t in list(metadata["counts"].values()):
         csv_line_count += t["total_line_count"]
         no_recordid_count += t["no_recordid_count"]
         duplicate_record_count += t["duplicate_record_count"]
@@ -668,7 +668,7 @@ def launch_child(rsid, ingest):
         # Close any logging filehandlers on root, leave alone any
         # other stream handlers (e.g. stderr) this way main can set up
         # its own filehandler to `$RSID.db_check.log`
-        for fh in filter(lambda h: isinstance(h, logging.FileHandler), logging.root.handlers):
+        for fh in [h for h in logging.root.handlers if isinstance(h, logging.FileHandler)]:
             logging.root.removeHandler(fh)
             fh.close()
 

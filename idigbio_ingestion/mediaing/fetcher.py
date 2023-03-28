@@ -1,4 +1,4 @@
-from __future__ import division, absolute_import, print_function
+
 
 import logging
 import itertools
@@ -46,7 +46,7 @@ def once(prefix=None, ignores=IGNORE_PREFIXES):
     fetchitems = get_items(prefix=prefix)
     groups = group_by_prefix(fetchitems)
     # pylint: dict.values referenced when not iterating (dict-values-not-iterating)
-    procs = start_all_procs(groups).values()
+    procs = list(start_all_procs(groups).values())
     fetchitems = None
     groups = None
     logger.debug("%d procs started, waiting...", len(procs))
@@ -82,7 +82,7 @@ def continuous(prefix=None, looptime=3600):
         logger.debug("Loop top")
         t1 = datetime.now()
         ignores = set(IGNORE_PREFIXES)
-        for pf, proc in running.items():
+        for pf, proc in list(running.items()):
             if proc.exitcode is not None:
                 del running[pf]
                 lvl = logging.CRITICAL if proc.exitcode != 0 else logging.DEBUG
@@ -114,7 +114,7 @@ def process_list(fetchitems, forprefix=''):
         items = fetchrpool.imap_unordered(lambda fi: fi.get_media(), fetchitems, maxsize=10)
         # pylint: map built-in referenced when not iterating (map-builtin-not-iterating)
         items = uploadpool.imap_unordered(lambda fi: fi.upload_to_storage(store), items, maxsize=10)
-        items = map(FetchItem.cleanup, items)
+        items = list(map(FetchItem.cleanup, items))
         items = update_db_status(items)
         items = count_result_types(items, forprefix=forprefix)
         return ilen(items)  # consume the generator

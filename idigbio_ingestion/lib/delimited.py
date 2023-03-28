@@ -32,7 +32,7 @@ class LineLengthException(Exception):
 
 def flag_unicode_error(e):
     bad_chars = "".join([hex(ord(c)) for c in e.object[e.start:e.end]])
-    return (u"DECODEERROR:" + bad_chars, e.end)
+    return ("DECODEERROR:" + bad_chars, e.end)
 
 codecs.register_error("flag_error", flag_unicode_error)
 
@@ -80,7 +80,7 @@ class DelimitedFile(object):
         t = defaultdict(int)
         if header is not None:
             self.fields = header
-            for k, v in header.items():
+            for k, v in list(header.items()):
                 cn = get_canonical_name(v)
                 t[cn[1]] += 1
         else:
@@ -94,7 +94,7 @@ class DelimitedFile(object):
                     self.fields[k] = cn[0]
 
         if self.rowtype is None:
-            items = t.items()
+            items = list(t.items())
             items.sort(key=lambda item: (item[1], item[0]), reverse=True)
             self.rowtype = items[0][0]
             self.logger.info("Setting row type to %s", self.rowtype)
@@ -119,7 +119,7 @@ class DelimitedFile(object):
         """
         self.filehandle.close()
 
-    def next(self):
+    def __next__(self):
         """
             Returns the next line in the record file, used for iteration
         """

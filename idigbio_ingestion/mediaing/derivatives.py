@@ -1,5 +1,5 @@
-from __future__ import division, absolute_import
-from __future__ import print_function
+
+
 
 from io import BytesIO
 
@@ -84,7 +84,7 @@ def process_objects(objects):
         ci = get_keys(o)
         gr = generate_all(ci)
         return upload_all(gr)
-    results = pool.imap_unordered(one, filter(None, objects))
+    results = pool.imap_unordered(one, [_f for _f in objects if _f])
     results = count_results(results, update_freq=100)
     etags = ((gr.etag,) for gr in results if gr)
     count = apidbpool.executemany(
@@ -150,7 +150,7 @@ def get_keys(obj):
     etag, bucket = obj.etag, obj.bucket
     etag = str(etag)
     s = get_store()
-    bucketbase = u"idigbio-{0}-{1}".format(bucket, config.ENV)
+    bucketbase = "idigbio-{0}-{1}".format(bucket, config.ENV)
     mediakey = s.get_key(etag, bucketbase)
     keys = [s.get_key(etag + ".jpg", bucketbase + '-' + dtype) for dtype in DTYPES]
     return CheckItem(etag, bucket, mediakey, keys)
@@ -177,7 +177,7 @@ def generate_all(item):
 
 
     try:
-        items = map(lambda k: build_deriv(item, img, k), item.keys)
+        items = [build_deriv(item, img, k) for k in item.keys]
         return GenerateResult(item.etag, list(items))
     except BadImageError as bie:
         logger.error("%s: %s", item.etag, bie.message)

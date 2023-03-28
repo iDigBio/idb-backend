@@ -1,4 +1,4 @@
-from __future__ import division, absolute_import, print_function
+
 
 from psycopg2.extensions import cursor
 
@@ -108,7 +108,7 @@ def write_urls_to_db(to_insert, to_update):
     with apidbpool.cursor(autocommit=True) as cur:
         cur.executemany(
             "INSERT INTO media (url,type,mime) VALUES (%s,%s,%s)",
-            ((k, v[0], v[1]) for k,v in to_insert.items()))
+            ((k, v[0], v[1]) for k,v in list(to_insert.items())))
         inserted = cur.rowcount
         cur.executemany(
             "UPDATE media SET type=%s, mime=%s, last_status=NULL, last_check=NULL WHERE url=%s",

@@ -90,7 +90,7 @@ def d2xml(d):
     @return:  A etree Root element
     """
     def _d2xml(d, p):
-        for k,v in d.items():
+        for k,v in list(d.items()):
             if k.startswith("#"):
                 p.set(k[1:],v)
             elif isinstance(v,dict):
@@ -109,7 +109,7 @@ def d2xml(d):
     if '!namespaces' in d:
         nsmap = d['!namespaces']
         del d['!namespaces']
-    k,v = d.items()[0]
+    k,v = list(d.items())[0]
     if nsmap:
         d['!namespaces'] = nsmap
     node = etree.Element(k, nsmap=nsmap)
@@ -129,7 +129,7 @@ if __name__=="__main__":
     # print Z
     # assert X == Z
 
-    from StringIO import StringIO
+    from io import StringIO
     x = etree.parse(StringIO("""<cap><test>
             <a>A</a>
             <!-- test tester -->
@@ -144,7 +144,7 @@ if __name__=="__main__":
             <c>C</c>
         </test></cap>
     """))
-    print(xml2d(x.getroot()))
+    print((xml2d(x.getroot())))
     test2 = """<?xml version="1.0" encoding="UTF-8"?>
     <archive xmlns="http://rs.tdwg.org/dwc/text/">
         <core encoding="UTF-8" fieldsTerminatedBy="," linesTerminatedBy="\n" fieldsEnclosedBy='"' ignoreHeaderLines="1" rowType="http://rs.tdwg.org/dwc/terms/Occurrence">
@@ -267,4 +267,4 @@ if __name__=="__main__":
     </archive>
     """
     x = etree.parse(StringIO(test2))
-    print(xml2d(x.getroot()))
+    print((xml2d(x.getroot())))

@@ -1,5 +1,5 @@
 FROM python:3.8.10
-# since python:3.6 is based on "Debian GNU/Linux 10 (buster)"
+# python:3.6 and later are based on "Debian GNU/Linux"
 RUN apt-get update && apt-get install -y --no-install-recommends \
     gfortran \
     libatlas-base-dev \

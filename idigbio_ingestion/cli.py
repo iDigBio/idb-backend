@@ -1,5 +1,5 @@
-from __future__ import division, absolute_import
-from __future__ import print_function
+
+
 
 import click
 import json
@@ -33,7 +33,7 @@ def manual_update_recordset_from_file(rsid, file):
 @click.argument("rsid", type=click.UUID)
 @fnlogged
 def db_check(rsid):
-    rsid = u'{0}'.format(rsid)
+    rsid = '{0}'.format(rsid)
     from idigbio_ingestion.db_check import main
     main(rsid, )
 
@@ -75,7 +75,7 @@ def db_check_all(since):
 @click.argument("rsid", type=click.UUID)
 @fnlogged
 def ingest(rsid):
-    rsid = u'{0}'.format(rsid)
+    rsid = '{0}'.format(rsid)
     from idigbio_ingestion.db_check import main
     main(rsid, ingest=True)
 

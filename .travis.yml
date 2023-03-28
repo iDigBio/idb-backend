@@ -16,6 +16,10 @@ env:
   - PGPORT=5433
   - PGUSER=travis
 
+before_install:
+  - apt install postgresql-common
+  - sh /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh
+
 git:
   depth: 1
 

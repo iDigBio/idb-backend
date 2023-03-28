@@ -1,10 +1,10 @@
 sudo: required
-dist: xenial
+dist: focal
 language: python
 python: 3.8.10
 services:
 - docker
-- postgresql
+#- postgresql
 addons:
   postgresql: "14"
   apt:

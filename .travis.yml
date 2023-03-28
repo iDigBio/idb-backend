@@ -4,21 +4,16 @@ language: python
 python: 3.8.10
 services:
 - docker
-#- postgresql
 addons:
-  postgresql: "14"
+  postgresql: "11"
   apt:
     packages:
-    - postgresql-14
-    - postgresql-client-14
+    - postgresql-11
+    - postgresql-client-11
 env:
   global:
   - PGPORT=5433
   - PGUSER=travis
-
-before_install:
-  - apt install postgresql-common
-  - sh /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh
 
 git:
   depth: 1
@@ -35,7 +30,7 @@ script:
   -e "IDB_STORAGE_SECRET_KEY=${SECRET_KEY}"
   -e "IDB_STORAGE_HOST=localhost:9000"
   $BUILDING
-  pytest -p no:cacheprovider --pguser=postgres --pgpass="" tests/idb
+  pytest -p no:cacheprovider --pguser=travis --pgpass="" tests/idb
 
 after_success:
 # upload new docker images

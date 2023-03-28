@@ -11,7 +11,7 @@ git:
   depth: 1
 
 install:
-- docker build -t $BUILDING .
+- travis_wait 20 docker build -t $BUILDING .
 - psql -U postgres -c 'create database test_idigbio;'
 - psql -U postgres -c "DROP SCHEMA public CASCADE;" test_idigbio
 - docker run -d --net host --name minio-test -e "MINIO_ACCESS_KEY=${ACCESS_KEY}" -e "MINIO_SECRET_KEY=${SECRET_KEY=}"  minio/minio:RELEASE.2017-07-24T18-27-35Z server /export

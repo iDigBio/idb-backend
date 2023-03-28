@@ -85,7 +85,7 @@ setup(
     extras_require={
         'ingestion': [
             'pydub==0.16.5',
-            pillow_package,
+            'Pillow==6.1.0',
             'lxml',
             'chardet~=3.0',
             'pyquery>=1.2',

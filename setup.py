@@ -96,6 +96,7 @@ setup(
             'pytest-flask~=0.15',
             'pytest-mock==1.13.0',
             'fakeredis',
+            'greenlet==2.0.2'
         ]
     },
     tests_require=['idb-backend[test]'],

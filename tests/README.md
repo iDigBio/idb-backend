@@ -123,7 +123,7 @@ Note: The data in the db with that name will be destroyed during testing.
 A temporary instance of postgres running in docker will suffice:
 
 ```
-$ docker run --rm --name postgres_test_idigbio --network host -e POSTGRES_PASSWORD=test -e POSTGRES_USER=test -e POSTGRES_DB=test_idigbio -d postgres:11
+$ docker run --rm --name postgres_test_idigbio --network host -e POSTGRES_PASSWORD=test -e POSTGRES_USER=test -e POSTGRES_DB=test_idigbio -d postgres:14
 ```
 
 ### WIP: run Elasticsearch in local docker the same way we run postgres
@@ -158,7 +158,7 @@ Due to the dependencies mentioned above, you may wish to run the database in doc
 
     docker run --rm --name postgres_test_idigbio --network host \
       -e POSTGRES_PASSWORD=test -e POSTGRES_USER=test -e POSTGRES_DB=test_idigbio  \
-      -d postgres:9.5 && \
+      -d postgres:14 && \
       sleep 5; \
       py.test ; \
       docker stop postgres_test_idigbio

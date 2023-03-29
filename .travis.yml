@@ -1,19 +1,24 @@
 sudo: required
-dist: xenial
+dist: focal
 language: python
-python: 2.7 
+python: 2.7
 services:
 - docker
-- postgresql
 addons:
-  postgresql: "9.5"
+  postgresql: "12"
+  apt:
+    packages:
+    - postgresql-12
+    - postgresql-client-12
+
 git:
-  depth: 10
+  depth: 1
 
 install:
 - docker build -t $BUILDING .
-- psql -U postgres -c 'create database test_idigbio;'
-- psql -U postgres -c "DROP SCHEMA public CASCADE;" test_idigbio
+- echo "docker build complete!"
+- psql -U travis -c 'create database test_idigbio;'
+- psql -U travis -c "DROP SCHEMA public CASCADE;" test_idigbio
 - docker run -d --net host --name minio-test -e "MINIO_ACCESS_KEY=${ACCESS_KEY}" -e "MINIO_SECRET_KEY=${SECRET_KEY=}"  minio/minio:RELEASE.2017-07-24T18-27-35Z server /export
 
 script:
@@ -22,11 +27,11 @@ script:
   -e "IDB_STORAGE_SECRET_KEY=${SECRET_KEY}"
   -e "IDB_STORAGE_HOST=localhost:9000"
   $BUILDING
-  pytest -p no:cacheprovider --pguser=postgres --pgpass="" tests/idb
+  pytest -p no:cacheprovider --pguser=travis --pgpass="" tests/idb
 
 after_success:
 # upload new docker images
-- docker login --username="${DOCKER_USERNAME}" --password="${DOCKER_PASSWORD}"
+- docker login --username="$DOCKER_USERNAME" --password="$DOCKER_PASSWORD"
 deploy:
   - provider: script
     script: docker tag $BUILDING $DOCKER_IMAGE:$TRAVIS_TAG; docker push $DOCKER_IMAGE:$TRAVIS_TAG
@@ -42,6 +47,8 @@ env:
   - BUILDING=$DOCKER_IMAGE:$TRAVIS_COMMIT
   - ACCESS_KEY="testAccessKey"
   - SECRET_KEY="testSecretKey"
+  - PGPORT=5433
+  - PGUSER=travis
 notifications:
   slack:
     secure: "GVJcqmhKww+74MaAKiSPIf2oPxEFp0PoYHzdzL0xw5xd62OiJkrcdzOsiZ5DQxLlgU+MgWrxcxJmunMXOUvR7gt1V1WjuvYsmJ6+bC4/AU81Qr0z5BDANZRX7O8yA/WLvPyE5hsJQWAyBL0NFvkKbxzw/qKlaaoh+uUXI2FLA+LMq6kuW1BYyQuFsoX/14842ppRETrxK5uVAft7c+Egh68Tet5xO5lry3bBFZ0F75Jg5nuzgAgq3OcOe8Luo8FuekX75tBjT0hBNSM+Kn9LOPx25O6tRfivCJn1quOPNSNhet8zbeYecnSevW49VLtWi34fLX6rIsPcvGZg1Z5q1MjvxqDtuIEnhLBeR/8+hK+dLu6MP0YGcG4jBELEH13WlkmJJcH1X+DmRLK1tkgwWhJlW1RJ/QHPoqsMKMNFxS4aDenFGiYXSvv7skX8pr+i2QW1j55V6AU55OCvhsrgyHwFXlA+1ItU5geCVvmLscg8RXF7HuTrZrN/UxLjDVPAjY4rHS2ccZx1g3vo+K0OWafKk6yOi9J7rfwT+OGCMGv3Q57i1ShDIHvmfzfJmsjhtRCvKowwUrw2/Udean/ncdcRLvTTv0Xn+ioxnWAyvWo7UMdXj7YeHvp4bT9pY2eSjfHjB6Fe7S3vWC5zzLc0BDYouxkysv+j0EvP1vx84t4="

@@ -1,19 +1,15 @@
 sudo: required
-dist: focal
+dist: jammy
 language: python
 python: 3.8.10
 services:
 - docker
 addons:
-  postgresql: "12"
+  postgresql: "14"
   apt:
     packages:
-    - postgresql-12
-    - postgresql-client-12
-env:
-  global:
-  - PGPORT=5433
-  - PGUSER=travis
+    - postgresql-14
+    - postgresql-client-14
 
 git:
   depth: 1
@@ -50,6 +46,8 @@ env:
   - BUILDING=$DOCKER_IMAGE:$TRAVIS_COMMIT
   - ACCESS_KEY="testAccessKey"
   - SECRET_KEY="testSecretKey"
+  - PGPORT=5433
+  - PGUSER=travis
 notifications:
   slack:
     secure: "GVJcqmhKww+74MaAKiSPIf2oPxEFp0PoYHzdzL0xw5xd62OiJkrcdzOsiZ5DQxLlgU+MgWrxcxJmunMXOUvR7gt1V1WjuvYsmJ6+bC4/AU81Qr0z5BDANZRX7O8yA/WLvPyE5hsJQWAyBL0NFvkKbxzw/qKlaaoh+uUXI2FLA+LMq6kuW1BYyQuFsoX/14842ppRETrxK5uVAft7c+Egh68Tet5xO5lry3bBFZ0F75Jg5nuzgAgq3OcOe8Luo8FuekX75tBjT0hBNSM+Kn9LOPx25O6tRfivCJn1quOPNSNhet8zbeYecnSevW49VLtWi34fLX6rIsPcvGZg1Z5q1MjvxqDtuIEnhLBeR/8+hK+dLu6MP0YGcG4jBELEH13WlkmJJcH1X+DmRLK1tkgwWhJlW1RJ/QHPoqsMKMNFxS4aDenFGiYXSvv7skX8pr+i2QW1j55V6AU55OCvhsrgyHwFXlA+1ItU5geCVvmLscg8RXF7HuTrZrN/UxLjDVPAjY4rHS2ccZx1g3vo+K0OWafKk6yOi9J7rfwT+OGCMGv3Q57i1ShDIHvmfzfJmsjhtRCvKowwUrw2/Udean/ncdcRLvTTv0Xn+ioxnWAyvWo7UMdXj7YeHvp4bT9pY2eSjfHjB6Fe7S3vWC5zzLc0BDYouxkysv+j0EvP1vx84t4="

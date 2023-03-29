@@ -1,15 +1,15 @@
 sudo: required
-dist: jammy
+dist: focal
 language: python
 python: 3.8.10
 services:
 - docker
 addons:
-  postgresql: "14"
+  postgresql: "12"
   apt:
     packages:
-    - postgresql-14
-    - postgresql-client-14
+    - postgresql-12
+    - postgresql-client-12
 
 git:
   depth: 1

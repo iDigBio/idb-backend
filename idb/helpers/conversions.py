@@ -223,7 +223,7 @@ for t in fields:
 
 
 def checkBounds(x):
-    lowerBound = datetime.datetime(1700, 1, 2, tzinfo=pytz.utc)
+    lowerBound = datetime.datetime(1500, 1, 2, tzinfo=pytz.utc)
     upperBound = datetime.datetime.now(pytz.utc)
     if isinstance(x, datetime.datetime):
         return x < lowerBound or x > upperBound

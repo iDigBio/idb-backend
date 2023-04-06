@@ -25,14 +25,18 @@ from idb.helpers.logging import fnlogged
                   'publishers', 'recordsets', 'mediarecords', 'records']),
               multiple=True)
 @click.option('--indexname')
+@click.option('--gbif/--no-gbif',
+              default=False,
+              help="Use GBIF Java record correction (instead of Python)")
 @click.pass_context
 @fnlogged
-def cli(ctx, index, corrections, types, indexname):
+def cli(ctx, index, corrections, types, indexname, gbif):
     from idb.helpers.logging import idblogger
     logger = idblogger.getChild('indexing')
     from idb import config
     from .indexer import ElasticSearchIndexer
     from idb.corrections.record_corrector import RecordCorrector
+    from idb.corrections.gbif_java_record_corrector import GbifJavaRecordCorrector
 
     if not types:
         types = config.config["elasticsearch"]["types"]
@@ -66,7 +70,7 @@ def cli(ctx, index, corrections, types, indexname):
     # function
     ctx.obj = {
         'ei': lambda: ElasticSearchIndexer(indexname, types, serverlist=serverlist),
-        'rc': lambda: RecordCorrector(reload=corrections),
+        'rc': lambda: GbifJavaRecordCorrector() if gbif else RecordCorrector(reload=corrections),
         'no_index': lambda: not index
     }
 

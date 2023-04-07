@@ -73,6 +73,7 @@ setup(
         'path.py>=10.0.0, <11',
         'wsgi-request-logger>=0.4.6',
         'jsonlines>=1.1.3',
+        'py4j==0.10.9.7',
     ],
     extras_require={
         'ingestion': [

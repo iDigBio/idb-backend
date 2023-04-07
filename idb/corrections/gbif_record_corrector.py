@@ -9,7 +9,7 @@ class GbifJavaRecordCorrector(object):
         # Find out right away if the Py4J gateway isn't running.
         try:
             jvm = self.gateway.jvm
-            print("JVM started: JRE version " + jvm.System.getProperty("jvm.version"))
+            print("JVM started: JRE version " + jvm.System.getProperty("jvm.version", "unknown"))
         except:
             print("Error connecting to Py4J gateway, is it running?")
             raise

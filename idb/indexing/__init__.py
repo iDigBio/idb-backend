@@ -36,7 +36,7 @@ def cli(ctx, index, corrections, types, indexname, gbif):
     from idb import config
     from .indexer import ElasticSearchIndexer
     from idb.corrections.record_corrector import RecordCorrector
-    from idb.corrections.gbif_java_record_corrector import GbifJavaRecordCorrector
+    from idb.corrections.gbif_record_corrector import GbifJavaRecordCorrector
 
     if not types:
         types = config.config["elasticsearch"]["types"]

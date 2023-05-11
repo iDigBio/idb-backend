@@ -308,8 +308,8 @@ class FetchItem(object):
     def get_session(cls):
         if not cls.session:
             cls.session = s = requests.Session()
-            # http://urllib3.readthedocs.io/en/latest/helpers.html#module-urllib3.util.retry
-            retry = requests.adapters.Retry(total=10, connect=2, read=3, backoff_factor=5)
+            # https://urllib3.readthedocs.io/en/1.24.3/reference/urllib3.util.html
+            retry = requests.adapters.Retry(total=3, connect=2, read=2, backoff_factor=5)
 
             adapter = requests.adapters.HTTPAdapter(
                 max_retries=retry, pool_block=True, pool_maxsize=cls.FETCHER_COUNT)

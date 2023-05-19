@@ -109,8 +109,9 @@ def get_feed(rss_url):
     """
 
     feedtest = None
+    user_agent = "iDigBio Update Publisher Recordset Service (idigbio@acis.ufl.edu https://www.idigbio.org/wiki/index.php/CYWG_iDigBio_DwC-A_Pull_Ingestion)"
     try:
-        feedtest = requests.get(rss_url, timeout=10)
+        feedtest = requests.get(rss_url, timeout=10, headers = {'user-agent': user_agent})
         feedtest.raise_for_status()
     except requests.exceptions.SSLError:
         logger.warning("requests.exceptions.SSLError occurred on %s", rss_url)

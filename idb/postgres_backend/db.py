@@ -7,7 +7,7 @@ import sys
 import itertools
 
 from datetime import datetime
-from io import StringIO
+from io import BytesIO
 
 from psycopg2.extras import DictCursor, NamedTupleCursor
 from psycopg2.extensions import cursor
@@ -684,7 +684,7 @@ class MediaObject(object):
 
     @classmethod
     def frombuff(cls, buff, **attrs):
-        return cls.fromobj(StringIO(buff), **attrs)
+        return cls.fromobj(BytesIO(buff), **attrs)
 
     @classmethod
     def fromobj(cls, obj, **attrs):

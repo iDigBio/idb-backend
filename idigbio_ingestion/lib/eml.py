@@ -113,36 +113,40 @@ def parseEml(id, emlText):
             cch = list(pq(cc).children())
             if len(cch) > 0:
                 for ccc in cch:
+                    text_content = ccc.text
+                    if text_content is None or text_content == "":
+                        continue
                     if ccc.tag == "individualName":
-                        contact["first_name"] = ccc.text
+                        contact["first_name"] = text_content
                     elif ccc.tag == "givenName":
-                        contact["first_name"] = ccc.text
+                        contact["first_name"] = text_content
                     elif ccc.tag == "surName":
-                        contact["last_name"] = ccc.text
+                        contact["last_name"] = text_content
                     elif ccc.tag == "electronicMailAddress":
-                        contact["email"] = ccc.text
+                        contact["email"] = text_content
                         if contact["email"] in seen_emails:
                             continue
                         else:
                             seen_emails.append(contact["email"])
                     elif ccc.tag == "positionName":
-                        contact["role"] = ccc.text                    
+                        contact["role"] = text_content
             else:
-                if cc.text != "":
+                text_content = cc.text
+                if text_content is not None and text_content != "":
                     if cc.tag == "individualName":
-                        contact["first_name"] = cc.text
+                        contact["first_name"] = text_content
                     elif cc.tag == "givenName":
-                        contact["first_name"] = cc.text
+                        contact["first_name"] = text_content
                     elif cc.tag == "surName":
-                        contact["last_name"] = cc.text
+                        contact["last_name"] = text_content
                     elif cc.tag == "electronicMailAddress":
-                        contact["email"] = cc.text
+                        contact["email"] = text_content
                         if contact["email"] in seen_emails:
                             continue
                         else:
                             seen_emails.append(contact["email"])
                     elif cc.tag == "positionName":
-                        contact["role"] = cc.text
+                        contact["role"] = text_content
         if len(contact.keys()) > 0:
             collection["contacts"].append(contact)
 

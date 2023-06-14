@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<eml:eml xmlns:eml="eml://ecoinformatics.org/eml-2.1.1"
+         xmlns:dc="http://purl.org/dc/terms/"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="eml://ecoinformatics.org/eml-2.1.1 http://rs.gbif.org/schema/eml-gbif-profile/1.0.1/eml.xsd"
+         packageId="3d08b608-d472-40d9-98a5-ea69320754f9"
+         system="https://symbiota.org"
+         scope="system"
+         xml:lang="eng">
+  <dataset>
+    <alternateIdentifier>https://midwestherbaria.org/portal/collections/misc/collprofiles.php?collid=477</alternateIdentifier>
+    <title xml:lang="eng">Loyola University Chicago Herbarium</title>
+    <creator id="e8f09edd-49eb-4eb1-a5b4-053458f9e26f">
+      <organizationName>Consortium of Midwest Herbaria</organizationName>
+      <electronicMailAddress>seinetAdmin@asu.edu</electronicMailAddress>
+      <onlineUrl>https://midwestherbaria.org/portal/index.php</onlineUrl>
+    </creator>
+    <metadataProvider>
+      <organizationName>Consortium of Midwest Herbaria</organizationName>
+      <electronicMailAddress>seinetAdmin@asu.edu</electronicMailAddress>
+      <onlineUrl>https://midwestherbaria.org/portal/index.php</onlineUrl>
+    </metadataProvider>
+    <pubDate>2023-05-01</pubDate>
+    <language>eng</language>
+    <abstract>
+      <para>Four thousand dried, mounted specimens, mainly from Minnesota and Illinois, including wetland collections from Cedar Creek Natural History Area (University of Minnesota), Boundary Waters Canoe Area Wilderness (Jitterbug Lake, post blowdown, pre-fire), Glacial Park (McHenry County, IL), Loyola University Retreat and Ecology Campus (McHenry County, IL), as well as student contributions &amp;ndash; emphasis on wetland plants, vascular plants</para>
+    </abstract>
+    <contact>
+      <organizationName>Loyola University Chicago Herbarium</organizationName>
+      <electronicMailAddress>rlammer@luc.edu</electronicMailAddress>
+      <onlineUrl>https://www.luc.edu/biology/index.shtml</onlineUrl>
+    </contact>
+    <associatedParty>
+      <individualName>
+        <surName>Roberta Lammers-Campbell</surName>
+        <givenName/>
+      </individualName>
+      <electronicMailAddress>rlammer@luc.edu</electronicMailAddress>
+      <role>contentProvider</role>
+    </associatedParty>
+    <intellectualRights>
+      <para>To the extent possible under law, the publisher has waived all rights to these data and has dedicated them to the <ulink url="http://creativecommons.org/licenses/by-nc/4.0/"><citetitle/></ulink></para>
+    </intellectualRights>
+  </dataset>
+  <additionalMetadata>
+    <metadata>
+      <symbiota id="e8f09edd-49eb-4eb1-a5b4-053458f9e26f">
+        <dateStamp>2023-05-01T10:56:05-07:00</dateStamp>
+        <citation identifier="86a6ea06-6605-4dad-9e32-d9aa7e46e90c">Consortium of Midwest Herbaria - 86a6ea06-6605-4dad-9e32-d9aa7e46e90c</citation>
+        <physical>
+          <characterEncoding>UTF-8</characterEncoding>
+          <dataFormat>
+            <externallyDefinedFormat>
+              <formatName>Darwin Core Archive</formatName>
+            </externallyDefinedFormat>
+          </dataFormat>
+        </physical>
+        <collection identifier="a997ab27-48ad-42e2-8ecd-058929fc8dac" id="477">
+          <alternateIdentifier>https://midwestherbaria.org/portal/collections/misc/collprofiles.php?collid=477</alternateIdentifier>
+          <parentCollectionIdentifier>LUC</parentCollectionIdentifier>
+          <collectionIdentifier/>
+          <collectionName>Loyola University Chicago Herbarium</collectionName>
+          <resourceLogoUrl>https://swbiodiversity.org/seinet/content/collicon/luc.jpg</resourceLogoUrl>
+          <onlineUrl>https://www.luc.edu/biology/index.shtml</onlineUrl>
+          <intellectualRights>http://creativecommons.org/licenses/by-nc/4.0/</intellectualRights>
+          <associatedParty>
+            <individualName>
+              <surName>Roberta Lammers-Campbell</surName>
+              <givenName/>
+            </individualName>
+            <electronicMailAddress>rlammer@luc.edu</electronicMailAddress>
+          </associatedParty>
+          <abstract>
+            <para>&lt;p&gt;Four thousand dried, mounted specimens, mainly from Minnesota and Illinois, including wetland collections from Cedar Creek Natural History Area (University of Minnesota), Boundary Waters Canoe Area Wilderness (Jitterbug Lake, post blowdown, pre-fire), Glacial Park (McHenry County, IL), Loyola University Retreat and Ecology Campus (McHenry County, IL), as well as student contributions &amp;ndash; emphasis on wetland plants, vascular plants&lt;/p&gt;</para>
+          </abstract>
+        </collection>
+      </symbiota>
+    </metadata>
+  </additionalMetadata>
+</eml:eml>

@@ -32,3 +32,11 @@ def test_intellectual_rights(eml_filename, expected_license, emlpathdir):
     emlfile = emlpathdir.join(eml_filename).open()
     parsed_eml = parseEml('id_placeholder_test_suite', emlfile.read())
     assert parsed_eml['data_rights'] == expected_license
+
+def test_empty_givenname(emlpathdir):
+    emlfile = emlpathdir.join('LUC_DwC-A.eml.xml').open()
+    parsed_eml = parseEml('id_givenname_test_eml', emlfile.read())
+    assert len(parsed_eml['contacts']) > 0
+    for contact in parsed_eml['contacts']:
+        if 'first_name' in contact:
+            assert contact['first_name'] is not None, 'Contact first_name is None'

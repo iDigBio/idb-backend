@@ -36,7 +36,7 @@ indexName = get_indexname()
 # 3: Access Datetime
 # 4: Number of recordsets
 # 5: List of recordset IDs and counts
-citation_format = """http://www.idigbio.org/portal ({0}),
+citation_format = """https://www.idigbio.org/portal ({0}),
 Query: {1},
 {2} records, accessed on {3},
 contributed by {4} Recordsets, Recordset identifiers:
@@ -49,7 +49,7 @@ def write_citation_file(dl_id, t, query, recordsets):
     total_recs = 0
     total_rs = len(recordsets.keys())
     for rs, rsc in sorted([(rs, recordsets[rs]) for rs in recordsets], key=lambda x: x[1], reverse=True):
-        rs_strings.append("http://www.idigbio.org/portal/recordsets/{0} ({1} records)".format(rs, rsc))
+        rs_strings.append("https://www.idigbio.org/portal/recordsets/{0} ({1} records)".format(rs, rsc))
         total_recs += rsc
     if total_recs == 0:
         return None

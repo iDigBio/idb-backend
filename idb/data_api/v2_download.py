@@ -2,6 +2,7 @@ from __future__ import division, absolute_import, print_function
 
 import json
 import gevent
+import string
 import udatetime
 from datetime import timedelta
 
@@ -125,13 +126,14 @@ def get_task_status(tid):
             tdata['task_status'] = ar.status
             tdata["complete"] = ar.ready()
             if ar.ready():
+                tmp_url_str = string.replace(ar.result,"http:", "https:")
                 rconn.hset(rtkey, "task_status", ar.status)
                 if ar.successful():
-                    tdata["download_url"] = ar.result
-                    rconn.hset(rtkey, "download_url", ar.result)
+                    tdata["download_url"] = tmp_url_str
+                    rconn.hset(rtkey, "download_url", tmp_url_str)
                 elif ar.failed():
-                    tdata["error"] = str(ar.result)
-                    rconn.hset(rtkey, "error", str(ar.result))
+                    tdata["error"] = str(tmp_url_str)
+                    rconn.hset(rtkey, "error", str(tmp_url_str))
                     gevent.spawn(dissociate_query_hash, tid, tdata)
     except Exception as e:
         logger.exception("Failed getting status of download %s", tid)

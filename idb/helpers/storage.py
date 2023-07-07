@@ -83,7 +83,7 @@ class IDigBioStorage(object):
         if secure:
             return "https://{0}/{1}/{2}".format(self.host, bucket_name, key_name)
         else:
-            return "http://{0}/{1}/{2}".format(self.host, bucket_name, key_name)
+            return "https://{0}/{1}/{2}".format(self.host, bucket_name, key_name)
 
     MAX_CHUNK_SIZE = 1024 ** 3  # 1GiB
 

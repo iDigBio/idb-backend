@@ -126,14 +126,17 @@ def get_task_status(tid):
             tdata['task_status'] = ar.status
             tdata["complete"] = ar.ready()
             if ar.ready():
-                tmp_url_str = string.replace(ar.result,"http:", "https:")
+                if isinstance(ar.result, basestring):
+                    tmp_url = string.replace(ar.result,"http:", "https:")
+                else:
+                    tmp_url = ar.result
                 rconn.hset(rtkey, "task_status", ar.status)
                 if ar.successful():
-                    tdata["download_url"] = tmp_url_str
-                    rconn.hset(rtkey, "download_url", tmp_url_str)
+                    tdata["download_url"] = tmp_url
+                    rconn.hset(rtkey, "download_url", tmp_url)
                 elif ar.failed():
-                    tdata["error"] = str(tmp_url_str)
-                    rconn.hset(rtkey, "error", str(tmp_url_str))
+                    tdata["error"] = str(tmp_url)
+                    rconn.hset(rtkey, "error", str(tmp_url))
                     gevent.spawn(dissociate_query_hash, tid, tdata)
     except Exception as e:
         logger.exception("Failed getting status of download %s", tid)

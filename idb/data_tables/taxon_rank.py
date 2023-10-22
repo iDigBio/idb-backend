@@ -1,4 +1,6 @@
 # -*- coding: UTF-8 -*-
+from __future__ import print_function
+
 
 # http://rs.gbif.org/vocabulary/gbif/rank.xml
 acceptable = {
@@ -377,15 +379,15 @@ def main():
     o = r.json()
     for k in o["taxonrank"]:
         if k not in mapping:
-            print k, o["taxonrank"][k]
+            print(k, o["taxonrank"][k])
         elif mapping[k] is None:
             pass
         elif mapping[k] not in acceptable:
-            print k, mapping[k]
+            print(k, mapping[k])
             new_accept_set.add(mapping[k])
 
     if len(new_accept_set) > 0:
-        print json.dumps(list(new_accept_set), indent=4)
+        print(json.dumps(list(new_accept_set), indent=4))
 
 
     

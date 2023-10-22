@@ -76,8 +76,12 @@ def prepForEs(t, i):
         else:
             # Skip empty values
             try:
-                if len(i[f[0]]) > 0:
-                    value[f[0]] = i[f[0]]
+                if isinstance(i[f[0]], basestring):
+                    if(len(i[f[0]])) > 0:
+                        value[f[0]] = i[f[0]]
+                else:
+                    if len(str(i[f[0]])) > 0:
+                        value[f[0]] = i[f[0]]
             except:
                 value[f[0]] = i[f[0]]
     return value
@@ -322,7 +326,7 @@ class ElasticSearchIndexer(object):
         What is the point of this?
         """
         r = self.es.search(
-            index="idigbio",
+            index="idigbio-dev-local",
             doc_type=doc_type,
             _source=source,
             body={

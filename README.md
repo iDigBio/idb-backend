@@ -257,3 +257,11 @@ sudo apt install postgresql-client-14
 ```
 
 See https://www.postgresql.org/download/linux/ubuntu/ for more info.
+
+## Local Development
+
+This branch is created for local development where docker images can be run for ES, Redis, and MinIO along with a local Postgres installation or Postgres docker image. RAM usage has been reduced by using ripgrep. More information about ripgrep can be found here: https://github.com/BurntSushi/ripgrep/tree/master. Be sure to install it before running this:
+
+```
+sudo apt install ripgrep
+```

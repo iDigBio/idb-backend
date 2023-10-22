@@ -18,7 +18,6 @@ class RecordCorrector(object):
     corrections_file_written = False
     corrections_file = None
     keytups = None
-    window_size = 3200 * 1024 * 1024  # 3200MB
 
     def __init__(self, reload=True):
         if reload:

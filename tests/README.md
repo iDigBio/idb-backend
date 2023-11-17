@@ -204,6 +204,14 @@ $ curl -u elastic:changeme http://localhost:9200/_cat/indices
 
 But we do not have the capability to use credentials in this codebase.
 
+> **WARNING:**
+> The below instructions to disable elasticsearch security features are intended for development/testing convenience.
+> It is strongly recommended to keep security features enabled in production systems.
+
+Alternatively, elasticsearch can be configured to allow unrestricted anonymous access by disabling [`xpack.security`](https://www.elastic.co/guide/en/elasticsearch/reference/current/security-settings.html)<!-- accessed: 2023-11-17 -->.
+This can be done by adding adding an environment variable to the above docker-run command like so:  
+`-e "xpack.security.enabled=false"`
+
 
 
 

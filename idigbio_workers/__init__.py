@@ -35,6 +35,10 @@ else:
     from idb.helpers.logging import idblogger
     logger = idblogger.getChild('idigbio_workers_init')
 
+_APPLY_BROKER_URL_CORRECTIONS_IMMEDIATELY = not (IN_CELERY_WORKER_PROCESS or 'pytest' in sys.modules)
+#                                                                            ^~~~~~~~~~~~~~~~~~~~~~~
+# without this guard, pytest will attempt actual redis operations outside of fakeredis (and fail)
+
 env = config.ENV
 
 app = Celery('tasks')
@@ -68,7 +72,7 @@ def _correct_password_urlpart(app):
     app.conf['broker_url'] = as_url(*urlparts)
     if not keep_result_backend:
         app.conf['result_backend'] = app.conf['broker_url']
-if not IN_CELERY_WORKER_PROCESS:
+if _APPLY_BROKER_URL_CORRECTIONS_IMMEDIATELY:
     # If in celery worker, delay until logging is set up (called in handle_celery_after_setup_logger())
     # Has to be done as soon as possible, otherwise tasks may be passed an incorrect broker password.
     _correct_password_urlpart(app)
@@ -108,8 +112,8 @@ def get_redis_connection_params():
         logger.error('Redis connection ping error: %r', exc)
         raise
     return redis_params
-if not IN_CELERY_WORKER_PROCESS:
-    print(get_redis_connection_params())
+if _APPLY_BROKER_URL_CORRECTIONS_IMMEDIATELY:
+    _ = get_redis_connection_params()
 
 # This must be imported so it has a chance to register worker tasks.
 # If later doing app broker_url configuration changes at runtime,

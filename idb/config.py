@@ -56,6 +56,7 @@ IDB_STORAGE_HOST = os.environ.get('IDB_STORAGE_HOST', 's.idigbio.org')
 IDB_STORAGE_ACCESS_KEY = os.environ.get('IDB_STORAGE_ACCESS_KEY')
 IDB_STORAGE_SECRET_KEY = os.environ.get('IDB_STORAGE_SECRET_KEY')
 IDB_CRYPT_KEY = os.environ.get('IDB_CRYPT_KEY')
+IDB_REDIS_AUTH = os.environ.get('IDB_REDIS_AUTH')
 
 ES_ALLOW_INDEX_CREATION = os.environ.get('ES_ALLOW_INDEX_CREATION', 'no')
 ES_INDEX_CHUNK_SIZE = os.environ.get('ES_INDEX_CHUNK_SIZE', '500')

@@ -1,4 +1,6 @@
-broker_url = 'redis://idb-redis10-beta.acis.ufl.edu:6379/1'
+#NOTE: password supplied in broker_url is ignored;
+# in idigbio.json, set $.env.IDB_REDIS_AUTH instead.
+broker_url = 'redis://10.13.45.208:6379/1'
 broker_transport_options = {
     'fanout_prefix': True,
     'fanout_patterns': True,

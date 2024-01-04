@@ -115,7 +115,7 @@ def test_status_pending_now_success(client, fakeredcli, fakeresult):
     fakeresult.result = "http://foo/bar"
     resp = client.get(url_for('idb.data_api.v2_download.status', tid=tid))
     assert resp.status_code == 200
-    assert resp.json['download_url'] == "http://foo/bar"
+    assert resp.json['download_url'] == "https://foo/bar"
     assert resp.json['complete'] is True
     assert resp.json['task_status'] == 'SUCCESS'
     assert from_rfc3339_string(resp.json['created'])

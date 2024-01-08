@@ -229,7 +229,7 @@ def _do_rss_entry(entry, portal_url, db, recordsets, existing_recordsets, pub_uu
     if "published_parsed" in entry and entry["published_parsed"] is not None:
         date = struct_to_datetime(entry["published_parsed"])
         logger.debug('pub_date struct via published_parsed: {0}'.format(date.isoformat()))
-    elif "published" in entry and entry["published"] is not None:
+    elif "published" in entry and entry["published"] not in (None,''):
         date = dateutil.parser.parse(entry["published"])
         logger.debug('pub_date via dateutil: {0}'.format(date.isoformat()))
 

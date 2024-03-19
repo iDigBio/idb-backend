@@ -1,0 +1,148 @@
+{
+"$schema": "http://json-schema.org/draft-07/schema#",
+"$id": "/schemas/idigbio.schema.json",
+"properties": {
+  "redis": {
+    "title": "Redis database connection parameters",
+    "type": "object",
+    "description": "Redis database connection parameters: Used for Celery task distribution.\nNote: Redis authentication password is defined as an environment variable (see $.env.IDB_REDIS_AUTH)\nSee also:\n- Named Celery worker settings files in /idigbio_workers/config/ (as `broker_url`)\n- Python package source for 'redis' (v2.10.6), redis.Connection() __init__ parameters, available at: https://github.com/redis/redis-py/blob/03c12da10dcfd6b5fe88ccd43fccc5bcc2d067d3/redis/connection.py#L438",
+    "$comment": "2024-03-08: This property might be ignored in favour of above named Celery worker settings files. Remove from this JSON?"
+  },
+  "postgres": {
+    "title": "Postgres database connection parameters",
+    "type": "object",
+    "description": "Postgres database connection parameters: Used for data staging prior to Elasticsearch indexing. Default values seen at /idb/config.py.",
+    "$comment": "Other than our additions, the basic connection parameters are passed to `psycopg2.connect()` (which property descriptions were copied from)",
+    "properties": {
+      "host": {
+        "title": "Database host address",
+        "$ref": "#/$defs/network_host_address",
+        "description": "Database host address"
+      },
+      "port": {
+        "title": "Connection port number",
+        "type": "integer",
+        "description": "Connection port number",
+        "default": 5432
+      },
+      "user": {
+        "title": "User name used to authenticate",
+        "type": "string",
+        "description": "User name used to authenticate"
+      },
+      "password": {
+        "title": "Password used to authenticate",
+        "type": "string",
+        "description": "Password used to authenticate"
+      },
+      "db_prefix": {
+        "$comment": "Project addition",
+        "title": "Database name prefix",
+        "type": "string",
+        "description": "Database name prefix: Example: if db_prefix='aaa', then resulting database name is 'aaa_idigbio'"
+      },
+      "db_suffix": {
+        "$comment": "Project addition",
+        "title": "Database name suffix",
+        "type": "string",
+        "description": "Database name suffix: Example: if db_suffix='aaa', then resulting database name is 'idigbio_aaa'"
+      }
+    },
+    "additionalProperties": true
+  },
+  "elasticsearch": {
+    "title": "Elasticsearch database connection parameters",
+    "type": "object",
+    "description": "Elasticsearch database connection parameters: Indexes Postgres-staged data to be provided by search-api (a separate application). Default values seen at /idb/config.py.",
+    "properties": {
+      "types": {
+        "title": "Document types to use",
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Document types to use"
+      },
+      "indexname": {
+        "type": "string"
+      },
+      "servers": {
+        "title": "List of ES nodes to connect to",
+        "type": "array",
+        "items": {"$ref": "#/$defs/network_host_address__opt_port"},
+        "description": "List of ES nodes to connect to",
+        "examples": [
+          ["esnode1:9200", "esnode2:9200", "esnode3:9200"],
+          ["127.0.0.1:9200"]
+        ]
+      }
+    },
+    "additionalProperties": false
+  },
+  "env": {
+    "title": "Environment variables",
+    "type": "object",
+    "description": "Environment variables: All environment variables defined here will be used in application environment.\nFor undefined variables, defaults may be set at /idb/config.py.",
+    "$comment": "2024-03-08: The following environment variables might no longer be used? -- IDB_UUID IDB_APIKEY IDB_DBPASS IDB_CRYPT_KEY",
+    "properties": {
+      "ENV": {
+        "title": "Target environment",
+        "type": "string",
+        "enum": ["dev", "test", "beta", "prod"],
+        "description": "Target environment: Determines component default configuration, such as Elasticsearch sharding or the Celery worker settings file to use under /idigio_workers/config/."
+      },
+      "IDB_UUID": {
+        "title": "Data contributor identifier",
+        "$ref": "#/$defs/uuid",
+        "description": "Data contributor identifier: Used for tagging internally stored contributions with this application instance. Useful for troubleshooting an issue reported by a specific contributor."
+      },
+      "IDB_APIKEY": {
+        "title": "Data contributor API key",
+        "type": "string",
+        "description": "Data contributor API key, for authenticating with the provided `IDB_UUID`."
+      },
+      "IDB_REDIS_AUTH": {
+        "title": "Redis database authentication key",
+        "type": "string",
+        "description": "Redis authentication key: If omitted, Redis connection will be attempted without password."
+      },
+      "IDB_STORAGE_HOST": {
+        "title": "S3 storage host",
+        "$ref": "#/$defs/network_host_address__opt_port",
+        "description": "S3 storage host",
+        "examples": [
+          "127.0.0.1:9000",
+          "s.idigbio.org"
+        ]
+      },
+      "IDB_STORAGE_ACCESS_KEY": {
+        "title": "S3 storage access key ID",
+        "type": "string",
+        "description": "S3 storage access key ID"
+      },
+      "IDB_STORAGE_SECRET_KEY": {
+        "title": "S3 secret access key",
+        "type": "string",
+        "description": "S3 secret access key"
+      },
+      "IDB_CRYPT_KEY": {
+        "title": "Database encryption key",
+        "type": "string",
+        "description": "Database encryption key: Symmetric. Used in encrypting and decrypting sensitive data stored in database."
+      }
+    }
+  }
+},
+"$defs": {
+  "network_host_address": {
+    "type": "string",
+    "$comment": "Can either be a hostname (fully-qualified or not) or an IP address. Does not include a port."
+  },
+  "network_host_address__opt_port": {
+    "type": "string",
+    "$comment": "Can either be a hostname (fully-qualified or not) or an IP address. Can also include a port."
+  },
+  "uuid": {
+    "type": "string",
+    "pattern": "^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}$"
+  }
+}
+}

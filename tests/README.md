@@ -35,7 +35,11 @@ That section should look like the following when finished:
 3. Run a local postgres database.
 
 ```
-$ docker run --rm --name postgres_test_idigbio --network host -e POSTGRES_PASSWORD=test -e POSTGRES_USER=test -e POSTGRES_DB=test_idigbio -d postgres:11
+$ docker run --rm --name postgres_test_idigbio \
+    -p '127.0.0.1:5432:5432' \
+    -e POSTGRES_PASSWORD=test -e POSTGRES_USER=test -e POSTGRES_DB=test_idigbio \
+    postgres:11
+# optionally specify -d to run in background
 ```
 
 4. Set up a virtual environment and install dependencies.
@@ -219,8 +223,7 @@ TODO:
 
 1. Change default password when running container
 2. Have tests connect to localhost instead of the ES cluster that exists in CONFIG.
-3. possibly pre-load a bunch of data / index.
-4. possibly have that pre-loaded docker image available in docker-library
+3. possibly have that pre-loaded docker image available in docker-library
 
 Note: Docker image `docker.elastic.co/elasticsearch/elasticsearch:7.17.0` does not require auth.
 
@@ -241,9 +244,11 @@ Due to the dependencies mentioned above, you may wish to run the database in doc
 
 ## Local database
 
+### Postgres
+
 The recommended approach is to run postgres via docker (see above).
 
-### Create a local postgres DB
+#### Create a local postgres DB
 
 However, if you have a full installation of postgres running locally that you wish to use, the db can be manually created with: 
 
@@ -256,7 +261,7 @@ However, if you have a full installation of postgres running locally that you wi
     psql -c "DROP SCHEMA public CASCADE;" test_idigbio
 
 
-### Schema
+#### Schema
 
 The live production db schema is copied into `tests/data/schema.sql` by periodically running this command:
 
@@ -270,7 +275,7 @@ The live production db schema is copied into `tests/data/schema.sql` by periodic
 Except not yet because there are lots of differences between the existing file and one created by running that command (due to fixes for https://wiki.postgresql.org/wiki/A_Guide_to_CVE-2018-1058:_Protect_Your_Search_Path).
 
 
-### Data
+#### Data
 
 A trimmed down set of data has been manually curated to support the test suite. It is provided in `tests/data/testdata.sql`
 
@@ -296,6 +301,76 @@ ceph_server_files
 
 We likely need to find a new way to refresh the test dataset.
 
+### Elasticsearch
+
+> **NOTE:**
+> - Copies of generated files are provided in the '$/tests/data/' project sub-directory to support the test suite.
+>   Data export instructions are only useable by iDigBio staff; anyone else can simply run the "import to local" commands.
+> - Generated files prefixed with es2- are intended for use with Elasticsearch version 2.x databases.
+
+> **TIP:** Set the following shell variables to easily use the commands below:  
+> (both esnode_\* variables in format of "http[s]://hostname[:port]"; for example, "http://127.0.0.1:9200")
+> - **esnode_src** – Source Elasticsearch server
+> - **esnode_dst** – Destination Elasticsearch server
+> - **esidx** – Elasticsearch index name
+
+If running a local Elasticsearch instance, perform the following to create a minimal database copy:
+
+**Clone mappings/types:**
+
+```shell
+# export from existing
+curl "${esnode_src}/${esidx}/_mapping" | jq ".[\"${esidx}\"]" > es2-mappings.json
+
+# (ES5+) remove deprecated 'geo_point' type parameters {lat_lon, geohash, geohash_prefix}
+# e.g., from: { "type": "geo_point", "lat_lon": true, "geohash": true, "geohash_prefix": true },
+# to: { "type": "geo_point" }
+perl -0777 -pe 's/"type": "geo_point",\s*("(lat_lon|geohash(_prefix)?)": true,?\s*?){3}/"type": "geo_point"/' < es2-mappings.json > es-mappings.json
+
+# import into local
+curl -X PUT "${esnode_dst}/${esidx}?pretty" \
+  -H 'Content-Type: application/json' \
+  --data-binary '@es-mappings.json'
+```
+
+**Clone minimal data set:**
+
+```shell
+# export from existing
+curl "${esnode_src}/${esidx}/_search" \
+  -H 'Content-Type: application/json' -d '
+  {
+  "size": 2,
+  "query": { "bool": { "must": [
+    { "match": { "stateprovince": "florida" } },
+    { "match": { "genus": "acer" } }
+  ] } }
+  }' | jq -c '.hits.hits' > es-testdata.json
+
+# prepare data for ES _bulk operation:'
+# all records need a preceding action specified
+jq -c '.[] | ({"create": {"_id": ._id}}, ._source)' es-testdata.json > es-testdata-bulky.jsonl
+
+# import into local
+curl -X POST "${esnode_dst}/${esidx}/records/_bulk?pretty&refresh" \
+  -H 'Content-Type: application/json' \
+  --data-binary '@es-testdata-bulky.jsonl'
+```
+
+**Create index alias 'idigbio':**
+
+(Alias is used by idigbio-search-api)
+
+```shell
+rqbody="$(printf '
+{
+  "actions": [ { "add": {
+    "index": "%s",
+    "alias": "idigbio"
+  } } ]
+}' "${esidx}")"
+curl -X POST "${esnode_dst}/_aliases" -d "$rqbody"
+```
 
 ## Code Coverage
 

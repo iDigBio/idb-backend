@@ -56,6 +56,10 @@ hr = "==========================================================================
 print () 
 print (hr)
 print (feed_to_parse)
+
+if feed.bozo:
+    raise feed.bozo_exception
+
 if "title" in feed['feed']:
     print (feed['feed']['title'])
 else:

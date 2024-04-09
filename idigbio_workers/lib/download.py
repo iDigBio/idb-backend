@@ -4,8 +4,12 @@ import json
 import logging
 import zipfile
 import os
+import sys
 import datetime
 import itertools
+
+if sys.version_info >= (3, 5):
+    from typing import Optional
 
 from collections import Counter, namedtuple
 
@@ -254,6 +258,7 @@ FileArtifact = namedtuple("FileArtifact", ["filename", "archivename", "meta_bloc
 
 def make_file(t, query, raw=False, tabs=False, fields=None,
               core_type="records", core_source="indexterms", file_prefix="", final_filename=""):
+    # type: (...) -> Optional[FileArtifact]
     file_extension = ".tsv" if tabs else ".csv"
     final_filename = final_filename + file_extension
     core = t == core_type and raw == core_source == "raw"

@@ -44,7 +44,8 @@ namespaces = {
     "http://hiscom.chah.org.au/hispid/terms/": "hispid",
     "http://data.ggbn.org/schemas/ggbn/terms/": "ggbn",
     "http://rs.iobis.org/obis/terms/": "obis",
-    "http://rs.tdwg.org/chrono/terms/": "chrono"
+    "http://rs.tdwg.org/chrono/terms/": "chrono",
+    "http://gensc.org/ns/mixs/": "mixs", # Genomic Standards Consortium - Minimum Information about any (x) Sequence
 }
 
 namespaces_rev = {v:k for k, v in namespaces.items()}
@@ -61,6 +62,7 @@ The namespace URI is mapped to a Compact URI / CURIE.
 All extensions used in any darwin core archive that we process must exist here.
 '''
 types = {
+    "http://data.ggbn.org/schemas/ggbn/terms/MaterialSample": {"shortname": "ggbn:MaterialSample"},
     "http://purl.org/NET/aec/associatedTaxa": {"shortname": "aec:associatedTaxa"},
     "http://rs.iobis.org/obis/terms/ExtendedMeasurementOrFact": {"shortname": "obis:ExtendedMeasurementOrFact"},
     "http://rs.gbif.org/terms/1.0/Identifier": {"shortname": "gbif:Identifier"},

@@ -117,8 +117,8 @@ class IDigBioStorage(object):
             if md5:
                 md5 = key.get_md5_from_hexdigest(md5)
             self.retry_loop(lambda: key.set_contents_from_file(fobj, rewind=True, md5=md5))
-        if public:
-            self.retry_loop(key.make_public)
+        #if public:
+            #self.retry_loop(key.make_public)
         return key
 
     def _upload_multipart(self, k, fobj, size):

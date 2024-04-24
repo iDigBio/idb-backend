@@ -9,7 +9,7 @@ from collections import Counter, namedtuple
 import itertools
 
 from gevent.pool import Pool
-from PIL import Image
+from PIL import Image, ImageFile
 from boto.exception import BotoServerError, BotoClientError, S3DataError
 
 
@@ -25,11 +25,12 @@ WIDTHS = {
     'thumbnail': 260,
     'webview': 600
 }
-
+ImageFile.LOAD_TRUNCATED_IMAGES = True
 # Some really large images starting to come from some data providers. Reduce
 # the pool size to keep from running the workflow machine out of memory.
 POOLSIZE = 10
 DTYPES = ('thumbnail', 'fullsize', 'webview')
+
 
 logger = idblogger.getChild('deriv')
 
@@ -207,7 +208,8 @@ def upload_all(gr):
         return
     try:
         for item in gr.items:
-            IDigBioStorage.retry_loop(lambda: upload_item(item))
+            if item is not None:
+                IDigBioStorage.retry_loop(lambda: upload_item(item))
         return gr
     except (BotoServerError, BotoClientError):
         logger.exception("%s failed uploading derivatives", gr.etag)
@@ -219,16 +221,21 @@ def upload_item(item):
     key = item.key
     data = item.data
     if isinstance(item, CopyItem):
-        logger.debug("%s copying from bucket %s", key, data.bucket.name)
-        data.copy(dst_bucket=key.bucket,
+        if key.bucket.copy_key is not None:
+            logger.debug("%s copying from bucket %s", key, data.bucket.name)
+            s = get_store()
+            bucket = s.get_bucket(str(key.bucket.name))
+            if bucket is not None and bucket.copy_key is not None:
+                data.copy(dst_bucket=bucket,
                   dst_key=key.name,
                   metadata={'Content-Type': 'image/jpeg'})
+            
     else:
         # no key exists check here, that was done in build_deriv
         logger.debug("%s uploading", key)
         key.set_metadata('Content-Type', 'image/jpeg')
         key.set_contents_from_file(data)
-    key.make_public()
+    #key.make_public()
 
 
 def img_to_buffer(img, **kwargs):

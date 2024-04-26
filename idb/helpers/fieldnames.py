@@ -1,13 +1,21 @@
+# coding: utf-8
 from __future__ import division, absolute_import, print_function
 import json
 import string
+import sys
 from collections import defaultdict
+
+if sys.version_info >= (3, 5):
+    from typing import List
 
 '''
 Namespaces differentiate the sources of terms / definitions.
 When we encounter a new term from a new namespace, the namespace should be
 added here.
 '''
+
+NO_CLASS__UNKNOWN_FIELD = 'Unknown'
+"""Used in `get_canonical_name()`"""
 
 namespaces = {
     "http://rs.tdwg.org/dwc/terms/": "dwc",
@@ -36,7 +44,8 @@ namespaces = {
     "http://hiscom.chah.org.au/hispid/terms/": "hispid",
     "http://data.ggbn.org/schemas/ggbn/terms/": "ggbn",
     "http://rs.iobis.org/obis/terms/": "obis",
-    "http://rs.tdwg.org/chrono/terms/": "chrono"
+    "http://rs.tdwg.org/chrono/terms/": "chrono",
+    "http://gensc.org/ns/mixs/": "mixs", # Genomic Standards Consortium - Minimum Information about any (x) Sequence
 }
 
 namespaces_rev = {v:k for k, v in namespaces.items()}
@@ -53,6 +62,7 @@ The namespace URI is mapped to a Compact URI / CURIE.
 All extensions used in any darwin core archive that we process must exist here.
 '''
 types = {
+    "http://data.ggbn.org/schemas/ggbn/terms/MaterialSample": {"shortname": "ggbn:MaterialSample"},
     "http://purl.org/NET/aec/associatedTaxa": {"shortname": "aec:associatedTaxa"},
     "http://rs.iobis.org/obis/terms/ExtendedMeasurementOrFact": {"shortname": "obis:ExtendedMeasurementOrFact"},
     "http://rs.gbif.org/terms/1.0/Identifier": {"shortname": "gbif:Identifier"},
@@ -582,13 +592,43 @@ def get_types():
     return types
 
 def get_canonical_name(f):
+    # type: (str) -> List[str]
+    """Returns [canonicalized field name, class term].
+
+    Useful for mapping some providers' non-standard terms to a standard one.
+
+    Note that `f` will be stripped of all non-printable non-latin characters
+    before name lookup is performed.
+
+    Examples
+    ---
+    An already-canonical field name:
+
+    >>> get_canonical_name('dwc:verbatimElevation')
+    ['dwc:verbatimElevation', 'dwc:Occurrence']
+
+    A field name that needs canonicalization:
+
+    >>> get_canonical_name('MonthCollected')
+    ['dwc:month', 'dwc:Occurrence']
+
+    Invalid/Unregistered input:
+
+    >>> get_canonical_name('asdf:InvalidNonexistentField用語')
+    ['asdf:InvalidNonexistentField', 'Unknown']
+
+    If a term was wrongfully returned as invalid,
+    register the term in the `translate_dict` used by this function.
+    """
     # Remove all non-printable characters
-    f = filter(lambda x: x in string.printable, f)
+    # Output of filter() passed through str.join() to be python2/3-agnostic
+    # (python2: returns list (str in this case) / python3: returns iterator)
+    f = ''.join(filter(lambda x: x in string.printable, f))
     if f in translate_dict:
         return translate_dict[f]
     else:
         # logger.warn("Unmapped field: \"{0}\"".format(f.encode("utf8")))
-        return [f, "Unknown"]
+        return [f, NO_CLASS__UNKNOWN_FIELD]
 
 def print_sorted_dict():
     ks = translate_dict.keys()

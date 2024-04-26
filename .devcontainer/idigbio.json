@@ -1,4 +1,5 @@
 {
+  "$schema": "./idigbio.schema.json",
   "redis": {
     "host": "localhost",
     "port": 6379,

@@ -9,15 +9,26 @@ from idb.helpers.fieldnames import types
 from idb.helpers.logging import idblogger
 logger = idblogger.getChild('index_helper')
 
+import sys
 # PYTHON3_WARNING
 from urlparse import urlparse
 
+if sys.version_info >= (3, 5):
+    from typing import TYPE_CHECKING, Any, Dict, Optional, Tuple
+    IdbEsDocumentType = str
+    if TYPE_CHECKING:
+        from corrections.record_corrector import RecordCorrector
+        from idb.indexing.indexer import ElasticSearchIndexer
 
-# A problematic field name is "http://rs.iobis.org/obis/terms/measurementTypeID" inside
-# the "obis:ExtendedMeasurementOrFact".
-UNINDEXABLE_OBJECTS = ["obis:ExtendedMeasurementOrFact", "chrono:ChronometricAge"]
+
+# All extensions specified in list below will have cleared contents
+# (example value: ["obis:ExtendedMeasurementOrFact", "chrono:ChronometricAge"])
+# Intended for temporary exclusion of field values we might be having
+# difficulties parsing.
+UNINDEXABLE_OBJECTS = []
 
 def index_record(ei, rc, typ, r, do_index=True):
+    # type: (ElasticSearchIndexer, RecordCorrector, IdbEsDocumentType, Dict[str, Any], bool) -> Optional[Tuple[IdbEsDocumentType, Dict[str, Any]]]
     """
     Index a single database record.
 
@@ -26,7 +37,7 @@ def index_record(ei, rc, typ, r, do_index=True):
     ei : ElasticSearchIndexer
     rc : RecordCorrector
     typ : string
-        A type such as 'publishers', 'recordsets', 'mediarecords', 'records'
+        Elasticsearch document type such as 'publishers', 'recordsets', 'mediarecords', 'records'
     r : the record data object
     do_index : boolean
         Actually update the index or not.

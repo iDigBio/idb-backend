@@ -75,3 +75,46 @@ If fixed, a request to the root URL (e.g. http://127.0.0.1:9200/) should display
 "tagline" : "You Know, for Search"
 }
 ```
+
+### (runtime, ingestion) `idigbio-ingestion update-publisher-recordset`: S3ResponseError: S3ResponseError: 501 Not Implemented
+
+When running the above command:
+> ERROR idb.storage჻ Failed operation on storage, attempt 1/3  
+> Traceback (most recent call last):  
+> &emsp;File "/home/idigbio-ingestion/idb-backend/idb/helpers/storage.py", line 158, in retry_loop  
+> &emsp;&emsp;`return attemptfn()`  
+> &emsp;File "/usr/local/lib/python2.7/site-packages/boto/s3/key.py", line 639, in make_public  
+> &emsp;&emsp;`return self.bucket.set_canned_acl('public-read', self.name, headers)`  
+> &emsp;File "/usr/local/lib/python2.7/site-packages/boto/s3/bucket.py", line 909, in set_canned_acl  
+> &emsp;&emsp;`response.status, response.reason, body)`  
+> S3ResponseError: S3ResponseError: 501 Not Implemented  
+> ```xml
+> <?xml version="1.0" encoding="UTF-8"?>
+> <Error>
+> <Code>NotImplemented</Code>
+> <Message>A header you provided implies functionality that is not implemented ()</Message>
+> <BucketName>idigbio-datasets-dev</BucketName>
+> <Resource>/idigbio-datasets-dev/62c56d426f305f128ec10113d3df36f0</Resource>
+> <RequestId>17BF24A270F5E21B</RequestId>
+> <HostId>dd9025bab4ad464b049177c95eb6ebf374d3b3fd1af9251148b658df7ac2e3e8</HostId>
+> </Error>
+> ```
+
+### Cause
+
+Anonymous read access to S3 not allowed:
+missing public-read access control list (ACL)
+
+### Suggestion
+
+Set the bucket named in the return XML (for example, 'idigbio-datasets-dev' above) to allow public read access.
+
+If using MinIO, this can be done with the following steps:
+1. Log in to MinIO (default link: http://127.0.0.1:9001 )
+2. Go to bucket configuration page by clicking on 'Buckets' under the 'Administrator' section in the sidebar and selecting the problem bucket.
+3. View the 'Anonymous' tab to manage anonymous access and click &lsqb;Add Access Rule&rsqb;
+4. Use the following settings:  
+	&emsp;**Prefix:** `/`  
+	&emsp;**Access:** readonly  
+	and click &lsqb;Save&rsqb;
+5. Fix completed. Retry your `idigbio-ingestion` command.

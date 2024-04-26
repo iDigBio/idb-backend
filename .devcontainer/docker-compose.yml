@@ -14,9 +14,9 @@ services:
     ## Sample run command:
     ## $ docker run --name some-postgres -e POSTGRES_PASSWORD=mysecretpassword -d postgres
     container_name: dev-database
-    image: postgres:9.5
+    image: postgres:14.7 # in use as of 2024-02-02, changed from: 9.5
     ports:
-      - "5432:5432"
+      - "127.0.0.1:5432:5432"
     environment:
       POSTGRES_PASSWORD: ""
       POSTGRES_HOST_AUTH_METHOD: "trust"
@@ -28,8 +28,10 @@ services:
     container_name: dev-storage
     image: minio/minio
     ports:
-      - "9000:9000"
-    command: server /data
+      - "127.0.0.1:9000:9000"
+      - "127.0.0.1:9001:9001"
+    command: server /data --console-address ":9001"
+      # without --console-address, the web console interface will use a random port
 
   dev-elasticsearch:
     # elasticsearch is "You Know, for Search", backend to idigbio search API, target of "indexing" process
@@ -40,8 +42,8 @@ services:
     container_name: dev-elasticsearch
     image: docker.elastic.co/elasticsearch/elasticsearch:5.5.3
     ports:
-      - "9200:9200"
-      - "9300:9300"
+      - "127.0.0.1:9200:9200"
+      - "127.0.0.1:9300:9300"
     environment:
       discovery.type: "single-node"
 

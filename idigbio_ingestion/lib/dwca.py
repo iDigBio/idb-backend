@@ -6,6 +6,10 @@ import traceback
 import shutil
 import requests
 from cStringIO import StringIO
+import sys
+
+if sys.version_info >= (3, 5):
+    from typing import Any, Dict, List, Optional
 
 from idb.helpers.logging import idblogger, getLogger
 from .delimited import DelimitedFile
@@ -17,6 +21,12 @@ DWC_SCHEMA_URL = "https://dwc.tdwg.org/text/tdwg_dwc_text.xsd"
 
 
 def archiveFile(archive,name):
+    # type: (zipfile.ZipFile, str) -> str
+    """Within the given `archive`, returns the full path of the given file `name`.
+    
+    If not found or simply present at the zip file root,
+    returns `name`.
+    """
     metaname = name
     for f in archive.namelist():
         if f.endswith("/" + name):
@@ -32,7 +42,7 @@ class Dwca(object):
     archive = None
     metadata = None
     core = None
-    extensions = None
+    extensions = None # type: List[DwcaRecordFile]
 
     def __init__(self,name="dwca.zip",skipeml=False,logname=None):
         self.path = name.split(".")[0]
@@ -106,7 +116,8 @@ class Dwca(object):
                                                    self.path + "/" + extfile,
                                                    logname=self.logger.name))
                             except:
-                                traceback.print_exc()
+                                self.logger.error('Failed processing extension file (one of multiple locations) -- %s', extfile)
+                                self.logger.debug(traceback.format_exc())
                     else:
                         extfile = archiveFile(self.archive,x["files"]["location"])
                         try:
@@ -115,7 +126,8 @@ class Dwca(object):
                                                self.path + "/" + extfile,
                                                logname=self.logger.name))
                         except:
-                            pass
+                            self.logger.error('Failed processing extension file (one of multiple extensions) -- %s', extfile)
+                            self.logger.debug(traceback.format_exc())
             else:
                 extfile = archiveFile(self.archive,self.archdict["extension"]["files"]["location"])
                 self.extensions.append(
@@ -128,13 +140,26 @@ class Dwca(object):
 
 class DwcaRecordFile(DelimitedFile):
     """
-        Internal representation of a darwin core archive record data file.
+        Iterable. Internal representation of a darwin core archive record data file.
     """
+    # Iterable capability inherited from DelimitedFile
 
     def __init__(self,filedict,fh,logname=None):
+        # type: (Dict[str, Any], str, Optional[str]) -> None
         """
             Construct a DwcaRecordFile from a xml tree pointer to the <location> tag containing the data file name
             and a file handle or string pointing to the data file.
+
+            Parameters
+            ---
+            filedict : dict
+                dict representation of the Darwin Core metafile XML tree
+                as returned by `lib.xmlDictTools.xml2d()`,
+                specifically nodes <core> or <extension>
+                and their contents
+            fh : str
+                File path to this record file
+            logname : str, optional
         """
 
         # Avoid Setting attributes on self that conflict with attributes in DelimitedFile to enforce namespace separation

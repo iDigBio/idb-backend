@@ -6,6 +6,7 @@ from __future__ import division, absolute_import, print_function
 import cStringIO
 import math
 import os
+import sys
 import time
 
 import boto
@@ -15,6 +16,11 @@ from boto.exception import BotoServerError, BotoClientError, S3DataError
 from idb import config
 from idb.helpers.logging import idblogger
 from idb.postgres_backend.db import MediaObject
+
+if sys.version_info >= (3, 5):
+    import typing
+    if typing.TYPE_CHECKING:
+        import boto.s3.bucket
 
 logger = idblogger.getChild('storage')
 
@@ -58,10 +64,11 @@ class IDigBioStorage(object):
         logger.debug("Initialized IDigBioStorage connection (boto.connect_s3) to host '{0}:{1}'".format(
             self.boto_conn.host, self.boto_conn.port))
 
-    def get_bucket(self, bucket_name):
+    def get_bucket(self, bucket_name, validate=False):
+        # type: (str, bool) -> boto.s3.bucket.Bucket
         """Return a boto.s3.Bucket object for the requested bucket.
         """
-        return self.boto_conn.get_bucket(bucket_name, validate=False)
+        return self.boto_conn.get_bucket(bucket_name, validate)
 
     def get_key(self, key_name, bucket_name, bucket=None):
         """

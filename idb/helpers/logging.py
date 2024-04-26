@@ -13,6 +13,9 @@ import sys
 from datetime import datetime
 from click import ClickException
 
+if sys.version_info >= (3, 5):
+    from typing import Union
+
 idblogger = logging.getLogger('idb')
 
 DEFAULT_LOGDIR = u'/var/log/idb/'
@@ -32,6 +35,7 @@ LIBRARY_LOGGERS = ('boto', 'requests', 'urllib3', 'elasticsearch', 'shapely', 'g
 
 
 def getLogger(l):
+    # type: (Union[logging.Logger, str]) -> logging.Logger
     "Wrapper around logging.getLogger that returns the original if its already a logger"
     if hasattr(l, 'addHandler') and hasattr(l, 'setLevel'):
         return l

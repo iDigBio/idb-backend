@@ -82,10 +82,10 @@ for entry in feed.entries:
     # However, the id is embedded in the middle of the id url so human can pluck it out if needed.
 
 
-    print ("title:        ", get_title(entry))
-    print ("published:    ", get_pubDate(entry))
-    print ("id:           ", get_id(entry))
-    print ("dataset link: ", get_dataset_link(entry))
-    print ("eml link:     ", get_eml_link(entry))
+    print ("title:        ", get_title(entry).encode('utf-8').strip())
+    print ("published:    ", get_pubDate(entry).encode('utf-8').strip())
+    print ("id:           ", get_id(entry).encode('utf-8').strip())
+    print ("dataset link: ", get_dataset_link(entry).encode('utf-8').strip())
+    print ("eml link:     ", get_eml_link(entry).encode('utf-8').strip())
     print (hr)
 

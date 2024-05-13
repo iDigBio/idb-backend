@@ -565,7 +565,7 @@ def dateGrabber(t, d):
             # dates are more sensitivie to lower case then upper.
             fv = fv.upper()
             try:
-                x = dateutil.parser.parse(fv)
+                x = dateutil.parser.parse(fv, default=datetime.datetime(year=1, month=1, day=1))
                 if x.tzinfo is None:
                     x = x.replace(tzinfo=pytz.utc)
                 try:
@@ -588,15 +588,15 @@ def dateGrabber(t, d):
                 if month is not None:
                     if day is not None:
                         r["datecollected"] = dateutil.parser.parse(
-                            "{0}-{1}-{2}".format(year, month, day)).date()
+                            "{0}-{1}-{2}".format(year, month, day), default=datetime.datetime(year=1, month=1, day=1)).date()
                     elif sd_of_year is not None:
                         r["datecollected"] = (datetime.datetime(
                             year, 1, 1) + datetime.timedelta(locale.atoi(sd_of_year) - 1)).date()
                     else:
                         r["datecollected"] = dateutil.parser.parse(
-                            "{0}-{1}".format(year, month)).date()
+                            "{0}-{1}".format(year, month), default=datetime.datetime(year=1, month=1, day=1)).date()
                 else:
-                    r["datecollected"] = dateutil.parser.parse(year).date()
+                    r["datecollected"] = dateutil.parser.parse(year, default=datetime.datetime(year=1, month=1, day=1)).date()
             except:
                 pass
 

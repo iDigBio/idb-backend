@@ -273,32 +273,59 @@ class ElasticSearchIndexer(object):
         Bulk formats something.
         Needs more info here.
         """
-        for t, i in tups:
-            meta = {
-                "_index": self.indexName,
-                "_type": t,
-                "_id": i["uuid"],
-                "_source": i,
-            }
+        
+        itm = next(tups)
+        
+        if itm is not None:
+            for t, i in tups:
+                meta = {
+                    "_index": self.indexName,
+                    "_type": t,
+                    "_id": i["uuid"],
+                    "_source": i,
+                }
+
+                if config.IDB_EXTRA_SERIOUS_DEBUG == 'yes':
+                    logger.debug("Formatted for bulk: %s", meta["_id"])
+                if i.get("delete", False):
+                    meta["_op_type"] = "delete"
+                    del meta["_source"]
+
+                if t == "mediarecords":
+                    if i.get('delete', False):
+                        r = self.query_for_one(i["uuid"], doc_type=t)
+                        if r is None:
+                            continue   # Delete one that is already not in the index
+                        meta["_parent"] = r['_parent']
+                    elif "records" in i and len(i["records"]) > 0:
+                        meta["_parent"] = i["records"][0]
+                    else:
+                        meta["_parent"] = 0
+
+                yield meta
+            
+            itm = {
+                    "_index": self.indexName,
+                    "_type": t,
+                    "_id": i["uuid"],
+                    "_source": i,
+                }
 
             if config.IDB_EXTRA_SERIOUS_DEBUG == 'yes':
-                logger.debug("Formatted for bulk: %s", meta["_id"])
+                    logger.debug("Formatted for bulk: %s", itm["_id"])
             if i.get("delete", False):
-                meta["_op_type"] = "delete"
-                del meta["_source"]
+                itm["_op_type"] = "delete"
+                del itm["_source"]
 
             if t == "mediarecords":
                 if i.get('delete', False):
                     r = self.query_for_one(i["uuid"], doc_type=t)
-                    if r is None:
-                        continue   # Delete one that is already not in the index
-                    meta["_parent"] = r['_parent']
+                    if r is not None:
+                        itm["_parent"] = r['_parent']
                 elif "records" in i and len(i["records"]) > 0:
-                    meta["_parent"] = i["records"][0]
+                    itm["_parent"] = i["records"][0]
                 else:
-                    meta["_parent"] = 0
-
-            yield meta
+                    itm["_parent"] = 0
 
     def bulk_index(self, tups):
         """

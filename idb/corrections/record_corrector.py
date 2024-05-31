@@ -21,9 +21,17 @@ class RecordCorrector(object):
 
     def __init__(self, reload=True):
         if reload:
-            self.reload()
-            self.corrections_done = True
-            print ("keytups length: " + str(len(self.keytups)))
+            if self.corrections_done is False:
+                self.reload()
+                self.corrections_done = True
+                if self.keytups is None:
+                    self.keytups = set([(u'dwc:genus',),
+                                        (u'dwc:scientificname',),
+                                        (u'dwc:stateprovince',),
+                                        (u'dwc:continent',),
+                                        (u'dwc:country',),
+                                        (u'dwc:genus', u'dwc:specificepithet')])
+                print ("keytups length: " + str(len(self.keytups)))
         else:
             self.corrections = {}
             self.corrections_file = None
@@ -31,16 +39,16 @@ class RecordCorrector(object):
 
     def create_corrections_file(self):
         # Create the corrections file in the current directory
-        with open("collectionsKV.json", "w") as f:
-           pass  # This creates an empty fil
+        with open("correctionsKV.json", "w") as f:
+            pass  # This creates an empty fil
 
     def corrections_etag(self, etag):
         if self.corrections_file_written is True:
             return self.read_corrections_etag(etag)
         return {}
-    
+
     def read_corrections_etag(self, target_etag):
-        rg_command = ['rg', '-N', '--no-messages', target_etag, 'collectionsKV.json']
+        rg_command = ['rg', '-N', '--no-messages', target_etag, 'correctionsKV.json']
 
         try:
             process = subprocess.Popen(rg_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -72,26 +80,28 @@ class RecordCorrector(object):
                 print("Error running ripgrep: {0}".format(error))
         except Exception as e:
             print("Error: {0}".format(e))
-            
+
     def reload(self):
-        
+
         #todo: Check if the corrections file exists, and if it doesn't, create it
-        """ if not os.path.exists("collectionsKV.json"): """
-        sql = "select k::json,v::json from corrections"
-        self.keytups = set()
-        self.create_corrections_file()
-        # Open the corrections file in write mode to populate it
-        with open("collectionsKV.json", "w") as corrections_file:
-            for r in apidbpool.fetchiter(sql, name=str(uuid.uuid4()), cursor_factory=NamedTupleCursor):
-                uk = tuple(r.k.keys())
-                self.keytups.add(uk)
+        if not os.path.exists("correctionsKV.json"):
+            sql = "select k::json,v::json from corrections"
+            self.keytups = set()
+            self.create_corrections_file()
+            # Open the corrections file in write mode to populate it
+            with open("correctionsKV.json", "w") as corrections_file:
+                for r in apidbpool.fetchiter(sql, name=str(uuid.uuid4()), cursor_factory=NamedTupleCursor):
+                    uk = tuple(r.k.keys())
+                    self.keytups.add(uk)
 
-                etag = objectHasher("sha256", r.k)
+                    etag = objectHasher("sha256", r.k)
 
-                # Write the data to the corrections file
-                corrections_file.write(json.dumps({etag: r.v}) + '\n')
-                self.corrections_file_written = True
-        
+                    # Write the data to the corrections file
+                    corrections_file.write(json.dumps({etag: r.v}) + '\n')
+                    self.corrections_file_written = True
+        else:
+            self.corrections_file_written = True
+
         #todo: cache self.keytups
 
     def create_schema(self):
@@ -151,21 +161,20 @@ class RecordCorrector(object):
             if etag is not None:
                 self.corrections = self.corrections_etag(etag)
                 if self.corrections is not None:
-                # Correct the record.
+                    # Correct the record.
 
-                # If a correction would have replaced one of the protected kingdom values,
-                # apply a flag instead.
-                # print(t, self.corrections[etag])   # consider adding logging / debug lines instead
+                    # If a correction would have replaced one of the protected kingdom values,
+                    # apply a flag instead.
+                    # print(t, self.corrections[etag])   # consider adding logging / debug lines instead
 
-                
                     if (
                         "dwc:kingdom" in self.corrections[etag] and
                         "dwc:kingdom" in corrected_dict and
                         corrected_dict["dwc:kingdom"].lower() != self.corrections[etag]["dwc:kingdom"] and
                         corrected_dict["dwc:kingdom"].lower() in protected_kingdoms
                     ):
-                            corrected_dict["flag_dwc_kingdom_suspect"] = True
-                            continue
+                        corrected_dict["flag_dwc_kingdom_suspect"] = True
+                        continue
 
                     for k in self.corrections[etag].keys():
                         if k == "dwc:scientificname":

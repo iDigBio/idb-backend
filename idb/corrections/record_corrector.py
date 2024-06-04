@@ -7,7 +7,8 @@ import copy
 import subprocess
 import traceback
 import os
-
+import bsddb3
+import ast
 from idb.helpers.etags import objectHasher
 
 protected_kingdoms = ["animalia", "plantae", "fungi", "chromista", "protista", "protozoa"]
@@ -16,8 +17,12 @@ class RecordCorrector(object):
     corrections = None
     corrections_done = False
     corrections_file_written = False
+    corrections_bdb_exists = True
     corrections_file = None
     keytups = None
+    env_dir = None
+    db_env = None
+    db_handle = None
 
     def __init__(self, reload=True):
         if reload:
@@ -40,13 +45,54 @@ class RecordCorrector(object):
     def create_corrections_file(self):
         # Create the corrections file in the current directory
         with open("correctionsKV.json", "w") as f:
-            pass  # This creates an empty fil
+            pass  # This creates an empty file
 
+    def init_dbd(self):
+        self.env_dir = "./"
+        
+        self.db_env = bsddb3.db.DBEnv()
+        self.db_env.open(self.env_dir, bsddb3.db.DB_CREATE | bsddb3.db.DB_INIT_MPOOL)
+
+        self.db_handle = bsddb3.db.DB(self.db_env)
+        self.db_handle.open("/tmp/example.db", None, bsddb3.db.DB_HASH, bsddb3.db.DB_RDONLY)
+    
+    
+    def corrections_etag_bdb(self, etag):
+        if self.corrections_bdb_exists is True:
+            if self.env_dir is None:
+                self.init_dbd()
+                self.corrections_etag_bdb(etag)
+            else:
+                return self.read_corrections_etag_bdb(etag)
+        return None
+    
     def corrections_etag(self, etag):
         if self.corrections_file_written is True:
             return self.read_corrections_etag(etag)
         return {}
 
+    def read_corrections_etag_bdb(self, target_etag):
+        try:
+            output = self.db_handle.get(target_etag)
+            if output:
+                    # Split the output into lines
+                    lines = output.strip().split('\n')
+
+                    # Initialize an empty dictionary to store the merged JSON objects
+                    merged_json = {}
+
+                    for line in lines:
+                        # Parse each line as a JSON object
+                        data_dict = ast.literal_eval(line)
+                        merged_json[target_etag] = data_dict
+
+                    return merged_json
+            else:
+                return None
+        except bsddb3.db.DBNotFoundError as e:
+            print("Error: {0}".format(e))
+            raise
+    
     def read_corrections_etag(self, target_etag):
         rg_command = ['rg', '-N', '--no-messages', target_etag, 'correctionsKV.json']
 
@@ -159,7 +205,7 @@ class RecordCorrector(object):
         for t in sorted(self.keytups, key=len):
             etag = get_etag(t)
             if etag is not None:
-                self.corrections = self.corrections_etag(etag)
+                self.corrections = self.corrections_etag_bdb(etag)
                 if self.corrections is not None:
                     # Correct the record.
 
@@ -202,3 +248,9 @@ class RecordCorrector(object):
                             corrected_keys.add(k)
 
         return (corrected_dict,corrected_keys)
+
+    def close_dbd(self):
+        if self.db_handle is not None:
+            self.db_handle.close()
+        if self.db_env is not None:
+            self.db_env.close()

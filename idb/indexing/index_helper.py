@@ -101,3 +101,6 @@ def index_record(ei, rc, typ, r, do_index=True):
             ei.index(typ, i)
         else:
             return (typ, i)
+
+def close_dbd(rc):
+    rc.close_dbd()

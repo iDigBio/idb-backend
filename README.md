@@ -265,3 +265,6 @@ This branch is created for local development where docker images can be run for 
 ```
 sudo apt install ripgrep
 ```
+BerkeleyDB has been added to test locally running corrections against. Currently in scripts there is a scripts/dbdcorrections.py file which creates the database file from the previous JSON file created for RipGrep. This is BerkleyDB 5.3 (available for Ubuntu as libdb5.3 and libdb5.3-devel) along with the bsddb3 module: https://pypi.org/project/bsddb3/
+
+This version is the one available before it was moved from SleepyCat licensing and is just a further convenient step in analysis. Be sure to run the bdbcorrections script from the idb-backend folder so that the ___db.*, .swp, and .swo files are loaded.  

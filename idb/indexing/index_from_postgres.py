@@ -12,7 +12,7 @@ import logging
 import gevent
 
 from idb.postgres_backend import apidbpool, DictCursor
-from .index_helper import index_record
+from .index_helper import index_record, close_dbd
 from idb.helpers.signals import signalcm
 from idb.helpers.logging import idblogger, configure
 from idb.postgres_backend.db import tombstone_etag
@@ -235,6 +235,8 @@ def uuidsIter(uuid_l, ei, rc, typ, yield_record=False, children=False):
                 yield rec
             else:
                 yield index_record(ei, rc, typ, rec, do_index=False)
+        close_dbd(rc)
+        
 
 
 def delete(ei, rc, no_index=False):

@@ -49,6 +49,7 @@ def getrslogger(rsid):
 def mungeid(s):
     return bad_char_re.sub('', s).strip()
 
+
 identifier_fields = {
     "dwc:Occurrence": [
         ("idigbio:recordId", lambda r, rs: mungeid(r)),

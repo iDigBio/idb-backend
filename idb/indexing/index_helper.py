@@ -21,12 +21,11 @@ if sys.version_info >= (3, 5):
         from idb.indexing.indexer import ElasticSearchIndexer
 
 
-# All extensions specified in list below will have cleared contents.
+# All extensions specified in list below will have cleared contents
+# (example value: ["obis:ExtendedMeasurementOrFact", "chrono:ChronometricAge"])
 # Intended for temporary exclusion of field values we might be having
 # difficulties parsing.
-# A problematic field name is "http://rs.iobis.org/obis/terms/measurementTypeID" inside
-# the "obis:ExtendedMeasurementOrFact".
-UNINDEXABLE_OBJECTS = ["obis:ExtendedMeasurementOrFact", "chrono:ChronometricAge"]
+UNINDEXABLE_OBJECTS = []
 
 def index_record(ei, rc, typ, r, do_index=True):
     # type: (ElasticSearchIndexer, RecordCorrector, IdbEsDocumentType, Dict[str, Any], bool) -> Optional[Tuple[IdbEsDocumentType, Dict[str, Any]]]

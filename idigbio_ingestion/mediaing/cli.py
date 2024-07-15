@@ -42,14 +42,16 @@ def mediaing_get_media(mediaing_params, last_check_interval=None, continuous=Fal
 @mediaing.command(name="updatedb", help="Update the DB with new URLs")
 @click.option("--daily/--no-daily", default=False,
               help="Run in daily mode: only search for mediarecords in the last day.")
+@click.option("--since", default=None,
+              help="update since specified date")
 @click.pass_obj
 @fnlogged
-def mediaing_updatedb(mediaing_params, daily):
+def mediaing_updatedb(mediaing_params, daily, since):
     from idigbio_ingestion.mediaing import updatedb
     if daily:
-        updatedb.daily(prefix=mediaing_params['prefix'])
+        updatedb.daily(prefix=mediaing_params['prefix'],since=since)
     else:
-        updatedb.updatedb(prefix=mediaing_params['prefix'])
+        updatedb.updatedb(prefix=mediaing_params['prefix'],since=since)
 
 
 @cli.command(help="Generate derivatives in the specified buckets."

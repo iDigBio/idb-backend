@@ -342,6 +342,7 @@ def process_subfile(rf, rsid, rs_uuid_etag, rs_id_uuid, ingest=False, db=None):
                 ref_uuids_list = uuid_re.findall(r["ac:associatedSpecimenReference"])
                 for ref_uuid in ref_uuids_list:
                     # Check for internal idigbio_uuid reference
+                    ref_uuid = ref_uuid.lower()
                     db_r = db.get_item(ref_uuid)
                     db_uuid = None
                     if db_r is None:

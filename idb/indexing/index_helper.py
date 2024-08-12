@@ -61,8 +61,8 @@ def index_record(ei, rc, typ, r, do_index=True):
         # For example, dots in fieldnames.
         for k in r["data"].keys():
             if "." in k:
-                if config.IDB_EXTRA_SERIOUS_DEBUG == 'yes':
-                    logger.debug("type: '{0}'".format(k))
+                #if config.IDB_EXTRA_SERIOUS_DEBUG == 'yes':
+                logger.debug("type: '{0}'".format(k))
                 if k in types:
                     r["data"][types[k]["shortname"]] = r["data"][k]
                     del r["data"][k]
@@ -93,12 +93,13 @@ def index_record(ei, rc, typ, r, do_index=True):
         i["data"] = r["data"]
         i["indexData"] = d
 
-        if config.IDB_EXTRA_SERIOUS_DEBUG == 'yes':
-            logger.debug("Index record: %s with approx. %s bytes of data.", i["uuid"], len(repr(i)))
-            logger.debug("Data: %s", repr(i))
+        #if config.IDB_EXTRA_SERIOUS_DEBUG == 'yes':
+        """ logger.debug("Index record: %s with approx. %s bytes of data.", i["uuid"], len(repr(i)))
+        logger.debug("Data: %s", repr(i)) """
 
         if do_index:
             ei.index(typ, i)
+            #TODO: Index is now completed for this record. Need to update Recordset too?
         else:
             return (typ, i)
 

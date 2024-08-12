@@ -189,16 +189,37 @@ def type_yield_resume(ei, rc, typ, also_delete=False, yield_record=False):
         sql += " AND deleted=false"
     results = apidbpool.fetchiter(
         sql, (pg_typ,), named=True, cursor_factory=DictCursor)
-    for r in rate_logger(typ + " indexing", results):
-        es_etag = es_ids.get(r["uuid"])
-        pg_etag = r['etag']
-        if es_etag == pg_etag or (pg_etag == tombstone_etag and es_etag is None):
-            continue
+    
+    #Sort entries by parent recordset
+    results = sorted(results, key=lambda x: x['parent'])
+    
+    #Group entries by parent recordset
+    if(pg_typ == 'record'):
+        for key, group in itertools.groupby(results, lambda x: x['parent']):
+            print("Indexing recordset: {0}".format(key))
+            for r in group:
+                rate_logger(typ + " indexing", r)
+                es_etag = es_ids.get(r["uuid"])
+                pg_etag = r['etag']
+                if es_etag == pg_etag or (pg_etag == tombstone_etag and es_etag is None):
+                    continue
 
-        if yield_record:
-            yield r
-        else:
-            yield index_record(ei, rc, typ, r, do_index=False)
+                if yield_record:
+                    yield r
+                else:
+                    yield index_record(ei, rc, typ, r, do_index=False)
+            #TODO: update ES with index completion now()
+    else:
+        for r in rate_logger(typ + " indexing", results):
+            es_etag = es_ids.get(r["uuid"])
+            pg_etag = r['etag']
+            if es_etag == pg_etag or (pg_etag == tombstone_etag and es_etag is None):
+                continue
+
+            if yield_record:
+                yield r
+            else:
+                yield index_record(ei, rc, typ, r, do_index=False)
 
 
 def queryIter(query, ei, rc, typ, yield_record=False):
@@ -235,7 +256,7 @@ def uuidsIter(uuid_l, ei, rc, typ, yield_record=False, children=False):
                 yield rec
             else:
                 yield index_record(ei, rc, typ, rec, do_index=False)
-        close_dbd(rc)
+        
         
 
 
@@ -288,6 +309,7 @@ def uuids(ei, rc, uuid_l, no_index=False, children=False):
     f = functools.partial(uuidsIter, uuid_l, children=children)
     consume(ei, rc, f, no_index=no_index)
     ei.optimize()
+    close_dbd(rc)
 
 def mappings_only(ei):
     ei.optimze()
@@ -316,7 +338,8 @@ def consume(ei, rc, iter_func, no_index=False):
                         logger.warning('Failed during bulk index index: {0} '.format(item))
             # We should never need to call gc manually.  Can we drop this?  Especially
             # since we no longer ever use continuous mode.
-            # gc.collect() 
+            # gc.collect()
+            logger.info("I would have collected here..") 
 
 def continuous_incremental(ei, rc, no_index=False):
     while True:

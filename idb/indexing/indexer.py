@@ -4,7 +4,7 @@ from pytz import timezone
 
 import elasticsearch
 import elasticsearch.helpers
-
+import traceback
 from idb import config
 from idb.helpers.logging import idblogger
 from idb.helpers.conversions import fields, custom_mappings
@@ -304,29 +304,33 @@ class ElasticSearchIndexer(object):
 
                 yield meta
             
-            itm = {
-                    "_index": self.indexName,
-                    "_type": t,
-                    "_id": i["uuid"],
-                    "_source": i,
-                }
+            try:
+                itm = {
+                        "_index": self.indexName,
+                        "_type": t,
+                        "_id": i["uuid"],
+                        "_source": i,
+                    }
 
-            if config.IDB_EXTRA_SERIOUS_DEBUG == 'yes':
-                    logger.debug("Formatted for bulk: %s", itm["_id"])
-            if i.get("delete", False):
-                itm["_op_type"] = "delete"
-                del itm["_source"]
+                if config.IDB_EXTRA_SERIOUS_DEBUG == 'yes':
+                        logger.debug("Formatted for bulk: %s", itm["_id"])
+                if i.get("delete", False):
+                    itm["_op_type"] = "delete"
+                    del itm["_source"]
 
-            if t == "mediarecords":
-                if i.get('delete', False):
-                    r = self.query_for_one(i["uuid"], doc_type=t)
-                    if r is not None:
-                        itm["_parent"] = r['_parent']
-                elif "records" in i and len(i["records"]) > 0:
-                    itm["_parent"] = i["records"][0]
-                else:
-                    itm["_parent"] = 0
-
+                if t == "mediarecords":
+                    if i.get('delete', False):
+                        r = self.query_for_one(i["uuid"], doc_type=t)
+                        if r is not None:
+                            itm["_parent"] = r['_parent']
+                    elif "records" in i and len(i["records"]) > 0:
+                        itm["_parent"] = i["records"][0]
+                    else:
+                        itm["_parent"] = 0
+            except:
+                print ("Index not properly defined")
+                traceback.print_exc()
+    
     def bulk_index(self, tups):
         """
         Bulk indexes something.

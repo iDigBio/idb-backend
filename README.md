@@ -1,6 +1,6 @@
 # idb-backend
 
-[![Build Status](https://travis-ci.com/iDigBio/idb-backend.svg?branch=master)](https://travis-ci.com/iDigBio/idb-backend)
+[![Build Status](https://api.travis-ci.com/iDigBio/idb-backend.svg?branch=idb_dev_local)](https://app.travis-ci.com/github/iDigBio/idb-backend)
 
 iDigBio server and backend code for data ingestion and data API.
 

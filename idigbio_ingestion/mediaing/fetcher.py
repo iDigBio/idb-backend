@@ -230,6 +230,9 @@ class FetchItem(object):
     #: Can http connections be reuesed?
     REUSE_CONN = True
 
+    #: Delay (throttle) to add to each request
+    FETCH_DELAY = 0
+
     #: class (static) variable for the session to use
     session = None
 
@@ -268,6 +271,8 @@ class FetchItem(object):
 
     def get_media(self):
         "This calls get_media and handles all the failure scenarios"
+        # Trottle when FETCH_DELAY is set
+        sleep(self.FETCH_DELAY)
         try:
             self.fetch()
             self.validate()
@@ -478,3 +483,10 @@ class OldMediaApiItem(FetchItem):
 class ArctosItem(FetchItem):
     FETCHER_COUNT = 1
     REUSE_CONN = False
+    # 12s is slightly longer than the current (2023.09.09) value of crawl-delay in their robots.txt:
+    #
+    #     User-agent: *
+    #     crawl-delay: 10
+    #     ...
+    #
+    FETCH_DELAY = 12

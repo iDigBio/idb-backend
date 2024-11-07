@@ -1,11 +1,13 @@
 import os
 
 from corrections.loader import CorrectionsLoader
-
+from corrections.record_corrector import RecordCorrector
 from data_tables import locality, taxon, taxon_extended
 
 
 def main():
+    # RecordCorrector(reload=False).create_schema()
+
     c = CorrectionsLoader()
 
     # for s in locality.get_sources():

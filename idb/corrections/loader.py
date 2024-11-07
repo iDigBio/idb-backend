@@ -4,11 +4,21 @@ from idb.postgres_backend import apidbpool, DictCursor
 import json
 
 
+class TableNotFoundError(LookupError):
+    def __init__(self, table_name): # type: (str) -> None
+        self.tname = table_name
+    def __str__(self):
+        return 'SQL table not found: ' + repr(self.tname)
+
 class CorrectionsLoader(object):
     def __init__(self):
         self.conn = apidbpool.get()
         self.cursor = self.conn.cursor(cursor_factory=DictCursor)
         self.corrections = []
+
+        self.cursor.execute("SELECT EXISTS (SELECT * FROM information_schema.tables WHERE table_name='corrections');")
+        if not self.cursor.fetchone()[0]:
+            raise TableNotFoundError('corrections')
 
     def __enter__(self):
         self.cursor.execute("BEGIN")

@@ -56,11 +56,9 @@ class RecordCorrector(object):
                     )
                 """)
                 conn.commit()
-                try:
-                    cur.execute("CREATE INDEX corrections_source ON corrections (source)")
-                    conn.commit()
-                except:
-                    pass
+
+                cur.execute("CREATE INDEX corrections_source ON corrections (source)")
+                conn.commit()
 
     def correct_record(self, d):
         corrected_dict = copy.deepcopy(d)

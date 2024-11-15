@@ -9,6 +9,7 @@ import gc
 import math
 import signal
 import logging
+import sys
 
 from idb.postgres_backend import apidbpool, DictCursor
 from .index_helper import index_record
@@ -17,6 +18,32 @@ from idb.helpers.logging import idblogger, configure
 from idb.postgres_backend.db import tombstone_etag
 
 import elasticsearch.helpers
+
+if sys.version_info >= (3, 5):
+    from collections.abc import Callable, Iterable, Iterator, Mapping
+    from typing import TYPE_CHECKING, Any, Dict, Tuple, Optional, Union
+    from idb.helpers.types import IdbEsDocumentType, UuidStr
+    if TYPE_CHECKING:
+        from corrections.record_corrector import RecordCorrector
+        from idb.indexing.indexer import ElasticSearchIndexer
+
+    if sys.version_info >= (3, 8):
+        from typing import Protocol
+        class RecordToIndexIterator(Protocol):
+            def __call__(self,
+                    ei, # type: ElasticSearchIndexer
+                    rc, # type: RecordCorrector
+                    typ, # type: IdbEsDocumentType
+                    yield_record # type: bool
+                ): # type: (...) -> Iterator[Mapping[str, Any]] # type: ignore
+                # '# type: ignore' above to allow `pass` rather than `...`
+                # so this can be parsed (and ignored) by python2
+                pass
+    else:
+        RecordToIndexIterator = Callable[
+            [ElasticSearchIndexer, RecordCorrector, IdbEsDocumentType, bool],
+            Iterator[Mapping[str, Any]]
+        ]
 
 logger = idblogger.getChild('index_from_postgres')
 configure(logger=logger, stderr_level=logging.INFO)
@@ -220,14 +247,25 @@ def queryIter(query, ei, rc, typ, yield_record=False):
                 yield index_record(ei, rc, typ, rec, do_index=False)
 
 
-def uuidsIter(uuid_l, ei, rc, typ, yield_record=False, children=False):
+def uuidsIter(
+        uuid_l, # type: Iterable[UuidStr]
+        ei, # type: ElasticSearchIndexer
+        rc, # type: RecordCorrector
+        typ, # type: IdbEsDocumentType
+        yield_record=False,
+        children=False
+    ): # type: (...) -> Iterator[Union[tuple[IdbEsDocumentType, Dict[str, Any]], tuple]]
+    """
+    """
     for rid in uuid_l:
         if children:
             logger.debug("Selecting children of %s.", rid)
             sql = "SELECT * FROM idigbio_uuids_data WHERE parent=%s and type=%s"
         else:
             sql = "SELECT * FROM idigbio_uuids_data WHERE uuid=%s and type=%s"
-        params = (rid.strip(), typ[:-1])
+        params = (
+            rid.strip(),
+            typ[:-1]) # trim off 's' from IdbEsDocumentType
         results = apidbpool.fetchall(sql, params, cursor_factory=DictCursor)
         for rec in results:
             if yield_record:
@@ -286,22 +324,30 @@ def uuids(ei, rc, uuid_l, no_index=False, children=False):
     consume(ei, rc, f, no_index=no_index)
     ei.optimize()
 
-def mappings_only(ei):
-    ei.optimze()
+def mappings_only(
+        ei, # type: ElasticSearchIndexer
+        rc, # type: RecordCorrector
+        no_index # type: bool
+    ):
+    ei.optimize()
 
-def consume(ei, rc, iter_func, no_index=False):
+def consume(
+        ei, # type: ElasticSearchIndexer
+        rc, # type: RecordCorrector
+        iter_func, #type: RecordToIndexIterator
+        no_index=False
+    ):
+    """Convenience function that indexes records provided by ``iter_func``
+    """
     for typ in ei.types:
         # Construct a version of index record that can be just called with the
         # record
         index_func = functools.partial(index_record, ei, rc, typ, do_index=False)
 
         to_index = iter_func(ei, rc, typ, yield_record=True)
-        index_record_tuples = itertools.imap(index_func, to_index)
+        index_record_tuples = itertools.imap(index_func, to_index) # type: Iterator[Optional[Tuple[IdbEsDocumentType, Dict[str, Any]]]]
 
-        if no_index:
-            for _ in index_record_tuples:
-                pass
-        else:
+        if not no_index:
             for ok, item in ei.bulk_index(index_record_tuples):
                 if not ok:
                     logger.warning('Failed during bulk index index: {0} '.format(item))

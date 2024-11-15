@@ -7,6 +7,7 @@ import decimal
 import datetime
 import pytz
 import pyproj
+import sys
 from shapely import wkt
 from shapely.geometry import Polygon, mapping
 
@@ -17,6 +18,33 @@ from idb.data_tables import taxon_rank
 from .biodiversity_socket_connector import Biodiversity
 from .rg import get_country
 from .media_validation import get_default_bucket
+
+if sys.version_info >= (3, 5):
+    import typing
+    from typing import Dict, List, NamedTuple, Any, Optional, Union, TYPE_CHECKING
+    from idb.helpers.types import DwcTermValue, QualityFlagValue, IdbEsDocumentType, RecordData, UuidStr
+    if TYPE_CHECKING:
+        import _decimal
+
+    # consider replacing references with StrEnum for self-documentation
+    if sys.version_info >= (3, 8):
+        from typing import Literal
+        FieldType = Literal['float', 'longtext', 'text', 'point', 'list', 'custom', 'boolean', 'date', 'integer']
+        _IncludeInMax = Literal[0, 1]
+    else:
+        FieldType = str
+        _IncludeInMax = int
+
+    FieldSpecList = NamedTuple('FieldSpecList', [
+        ('indexname', str),
+        ('rawfield', str),
+        ('fieldtype', FieldType),
+        ('include_in_max', _IncludeInMax),
+        ('longname', Optional[str])])
+    FieldSpecList.__doc__ = '*List type, __not tuple.__*'
+    # only using this for type checking consumers of ``fields`` members
+else:
+    TYPE_CHECKING = False
 
 bioserv = Biodiversity()
 
@@ -29,7 +57,14 @@ PARENT_MAP = {
 
 locale.setlocale(locale.LC_ALL, '')
 
-# [indexname, rawfield, type, include_in_max]
+# consider replacing with typing.NamedTuples?
+# {IdbEsDocumentType: [
+#   indexname,
+#   rawfield,
+#   FieldType - expected data type of field; also used in generating Elasticsearch mapping,
+#   include_in_max - set to `1` to be included in 'dqs' (data quality scoring),
+#   longname,
+# ]}
 fields = {
     "records": [
         ["uuid", "idigbio:uuid", "text", 0, None],
@@ -183,7 +218,7 @@ fields = {
         ["logourl", "logo_url", "text", 0, "idigbio:logoUrl"],
         ["name", "collection_name", "text", 0, "dwc:datasetName"],
     ]
-}
+} # type: Dict[IdbEsDocumentType, List[FieldSpecList]]
 
 custom_mappings = {
     "recordsets": {
@@ -241,10 +276,25 @@ flags = {
 }
 
 
-def getExponent(fs):
+def getExponent(fs): # type: (_decimal._DecimalNew) -> int
+    """Returns number of decimal places needed to express the given number.
+    Integers **or invalid values** will return `0`.
+
+    Examples
+    ---
+    >>> getExponent('1.000')
+    3
+    >>> getExponent('-123')
+    0
+    >>> getExponent('NaN')
+    0
+    >>> getExponent(getExponent)
+    0
+    """
     try:
         d = decimal.Decimal(fs)
-        return -1 * d.as_tuple().exponent
+        e = d.as_tuple().exponent
+        return (-1 * e if isinstance(e, int) else 0)
     except:
         return 0
 
@@ -269,7 +319,23 @@ def score(t, d):
     return scorenum / maxscores[t]
 
 
-def getfield(f, d, t="text"):
+def getfield(
+        f, # type: str
+        d, # type: RecordData
+        t="text" # type: FieldType
+    ):
+    # type: (...) -> Optional[DwcTermValue]
+    """
+    :param f: field to search for
+    :param d: record data to search through
+    :param t: field type
+    :return: Field value(s).
+        If ``t`` is in ``('list','text')``, returned value(s) will be lowercased.
+
+        If any other type, value is returned as-is.
+
+        If not found, returns ``None``.
+    """
     fl = f.lower()
     if fl in d:
         f = fl
@@ -285,8 +351,9 @@ def getfield(f, d, t="text"):
         return None
 
 
-def verbatimGrabber(t, d):
-    r = {}
+def verbatimGrabber(t, d): # type: (IdbEsDocumentType, RecordData) -> dict[str, Optional[DwcTermValue]]
+    """Returns Elasticsearch index terms and values for document type ``t`` from given record data ``d``"""
+    r = {} # type: dict[str, Optional[DwcTermValue]]
     for f in fields[t]:
         r[f[0]] = getfield(f[1], d, t=f[2])
     return r
@@ -294,7 +361,46 @@ def verbatimGrabber(t, d):
 gfn = re.compile("([+-]?[0-9]+(?:[,][0-9]{3})*(?:[\.][0-9]*)?)")
 
 
-def grabFirstNumber(f):
+if TYPE_CHECKING:
+    @typing.overload
+    def grabFirstNumber(f): # type: (int) -> int
+        pass
+    @typing.overload
+    def grabFirstNumber(f): # type: (float) -> float
+        pass
+    @typing.overload
+    def grabFirstNumber(f): # type: (str) -> Union[None, str]
+        pass
+def grabFirstNumber(f): # type: (Union[int, float, str]) -> Union[int, float, str, None]
+    """ **Exceptions suppressed.**
+    Returns result of attempting to extract the first part of a numeric string ``f``.
+
+    If ``f`` is already a numeric data type, it is returned as-is.
+
+    Failures to parse, such as from supplying a string that has no number anywhere in it,
+    will return `None`.
+
+    Examples
+    ---
+    >>> grabFirstNumber(123)
+    123
+    >>> grabFirstNumber(123.456)
+    123.456
+
+    Note how numbers extracted from strings are returned as strings:
+
+    >>> grabFirstNumber('789abc123')
+    '789'
+    >>> grabFirstNumber('unrelated text | +9,876.54321 | -12345')
+    '+9,876.54321'
+
+    Invalid input returns `None`:
+
+    >>> grabFirstNumber('purely text content') is None
+    True
+    >>> grabFirstNumber(grabFirstNumber) is None
+    True
+    """
     n = None
     try:
         if isinstance(f, int) or isinstance(f, float):
@@ -307,10 +413,17 @@ def grabFirstNumber(f):
         pass
     return n
 
-mangler = re.compile("[\W]+")
+mangler = re.compile(r"[\W]+")
 
 
-def mangleString(s):
+def mangleString(s): # type: (str) -> str
+    """Returns given string ``s`` as only uppercased alphanumeric
+
+    Example
+    ---
+    >>> mangleString('AbC123!@ #aBc123!@# $~AsDf=-09')
+    'ABC123ABC123ASDF09'
+    """
     return mangler.sub('', s).upper()
 
 
@@ -318,7 +431,26 @@ uuid_re = re.compile(
     "([a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12})")
 
 
-def grabFirstUUID(f):
+def grabFirstUUID(f): # type: (str) -> Union[UuidStr, None]
+    """ **Exceptions suppressed.**
+    Returns result of attempting to extract the first occurrence of a
+    UUID string within ``f``.
+
+    Failures to parse, such as from supplying a string that has
+    no UUID anywhere within it, will return `None`.
+
+    Examples
+    ---
+    >>> grabFirstUUID('9df1b51d-2e42-499b-b341-4312d325258a')
+    '9df1b51d-2e42-499b-b341-4312d325258a'
+    >>> grabFirstUUID('not a uuid string') is None
+    True
+    >>> grabFirstUUID('unrelated text | C9E67AEC-d283-4efa-A33F-d77b93A13256 | 8af720aa-0015-4539-83a1-89b64ebe4022')
+    'C9E67AEC-d283-4efa-A33F-d77b93A13256'
+    >>> grabFirstUUID('random text that has something that looks like a uuid: '
+    ... + 'beefBEEFbeef-BEEF-beef-BEEF-BEEFbeefBEEFbeef')
+    'BEEFbeef-BEEF-beef-BEEF-BEEFbeefBEEF'
+    """
     n = None
     try:
         c = uuid_re.search(f)
@@ -329,8 +461,13 @@ def grabFirstUUID(f):
     return n
 
 
-def elevGrabber(t, d):
-    r = {}
+def elevGrabber(t, d): # type: (IdbEsDocumentType, RecordData) -> dict[str, Optional[float]]
+    """ **Exceptions suppressed.**
+    For only Elasticsearch document type ``t='records'``,
+    returns Elasticsearch terms from elevation-related DwC terms parsed as floats, if possible/applicable.
+    See ``ef`` in function definition for list of terms.
+    """
+    r = {} # type: dict[str, Optional[float]]
     ef = {
         "records": [
             ["minelevation", "dwc:minimumElevationInMeters"],
@@ -354,8 +491,12 @@ def elevGrabber(t, d):
     return r
 
 
-def intGrabber(t, d):
-    r = {}
+def intGrabber(t, d): # type: (IdbEsDocumentType, RecordData) -> dict[str, Optional[int]]
+    """ **Exceptions suppressed.**
+    Returns Elasticsearch terms from select DwC terms parsed as ints, if possible/applicable.
+    See ``ef`` in function definition for list of terms.
+    """
+    r = {} # type: dict[str, Optional[int]]
     ef = {
         "records": [
             ["version", "idigbio:version"],
@@ -391,8 +532,13 @@ def intGrabber(t, d):
     return r
 
 
-def floatGrabber(t, d):
-    r = {}
+def floatGrabber(t, d): # type: (IdbEsDocumentType, RecordData) -> dict[str, Optional[float]]
+    """ **Exceptions suppressed.**
+    For only Elasticsearch document type ``t='records'``,
+    returns Elasticsearch terms from select DwC terms parsed as floats, if possible/applicable.
+    See ``ef`` in function definition for list of terms.
+    """
+    r = {} # type: dict[str, Optional[float]]
     ef = {
         "records": [
             ("individualcount", "dwc:individualCount"),
@@ -419,8 +565,13 @@ def floatGrabber(t, d):
     return r
 
 
-def geoGrabber(t, d):
-    r = {}
+def geoGrabber(t, d): # type: (IdbEsDocumentType, RecordData) -> dict[str, Union[None, tuple[float,float], QualityFlagValue]]
+    """ **Exceptions may be suppressed.** *May set data quality issue flags in returned dict.*
+    If possible/applicable, returns dict with key 'geopoint',
+    possibly with set data quality issue flags.
+    See calls to ``getfield()`` in function definition for source DwC terms.
+    """
+    r = {} # type: dict[str, Union[None, tuple[float,float], QualityFlagValue]]
     # get the lat and lon values
     lat_val = getfield("dwc:decimalLatitude", d)
     lon_val = getfield("dwc:decimalLongitude", d)
@@ -541,8 +692,12 @@ def geoGrabber(t, d):
     return r
 
 
-def dateGrabber(t, d):
-    r = {}
+def dateGrabber(t, d): # type: (IdbEsDocumentType, RecordData) -> dict[str, Union[None, datetime.datetime, datetime._Date, int]]
+    """ **Exceptions suppressed.**
+    Returns Elasticsearch terms from select DwC terms parsed as date objects, if possible/applicable.
+    See ``df`` and calls to getfield() in function definition for source DwC terms.
+    """
+    r = {} # type: dict[str, Union[None, datetime.datetime, datetime._Date, int]]
     df = {
         "records": [
             ["datemodified", "idigbio:dateModified"],
@@ -906,8 +1061,8 @@ def fix_taxon_rank(t, r):
 # 12 1000 54.133 0.054133       d flag loop
 # 13 1000 15.618 0.015618       r["dqs"] = score(t, r)
 
-def grabAll(t, d):
-    r = verbatimGrabber(t, d)
+def grabAll(t, d): # type: (IdbEsDocumentType, RecordData) -> RecordData
+    r = verbatimGrabber(t, d) # type: dict[str, Union[None, str, list[str], float, tuple[float,float], datetime.datetime, datetime._Date]]
     r.update(elevGrabber(t, d))
     r.update(intGrabber(t, d))
     r.update(floatGrabber(t, d))

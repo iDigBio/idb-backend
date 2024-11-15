@@ -15,7 +15,7 @@ from urlparse import urlparse
 
 if sys.version_info >= (3, 5):
     from typing import TYPE_CHECKING, Any, Dict, Optional, Tuple
-    IdbEsDocumentType = str
+    from idb.helpers.types import IdbEsDocumentType
     if TYPE_CHECKING:
         from corrections.record_corrector import RecordCorrector
         from idb.indexing.indexer import ElasticSearchIndexer
@@ -31,6 +31,8 @@ def index_record(ei, rc, typ, r, do_index=True):
     # type: (ElasticSearchIndexer, RecordCorrector, IdbEsDocumentType, Dict[str, Any], bool) -> Optional[Tuple[IdbEsDocumentType, Dict[str, Any]]]
     """
     Index a single database record.
+    If ``do_index`` is `False`, will instead return the tuple
+    (``typ``, ?)
 
     Parameters
     ----------

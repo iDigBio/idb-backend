@@ -1,5 +1,6 @@
 from __future__ import division, absolute_import, print_function
 
+import sys
 from pytz import timezone
 
 import elasticsearch
@@ -9,10 +10,15 @@ from idb import config
 from idb.helpers.logging import idblogger
 from idb.helpers.conversions import fields, custom_mappings
 
+if sys.version_info >= (3, 5):
+    from collections.abc import Iterable, Iterator, Mapping
+    from typing import List, Any
+    from idb.helpers.types import EsBulkRequestDict, IdbEsDocumentType
+
 local_tz = timezone('US/Eastern')
 logger = idblogger.getChild('indexer')
 
-def get_connection(**kwargs):
+def get_connection(**kwargs): # type: (...) -> elasticsearch.Elasticsearch
     """
     Build connection to ElasticSearch based on json config overriding with specified kwargs
 
@@ -89,9 +95,13 @@ class ElasticSearchIndexer(object):
     and contains the idigbio indexing methods.
     """
 
-    def __init__(self, indexName, types,
-                 commitCount=100000, disableRefresh=True,
-                 serverlist=["localhost"]):
+    def __init__(self,
+            indexName, # type: str
+            types, # type: List[IdbEsDocumentType]
+            commitCount=100000,
+            disableRefresh=True,
+            serverlist=["localhost"] # type: List[str]
+        ):
         logger.info("Initializing ElasticSearchIndexer(%r, %r, First cluster node: %r)", indexName, types, serverlist[0])
         self.es = get_connection(hosts=serverlist)
 
@@ -171,7 +181,7 @@ class ElasticSearchIndexer(object):
         res = self.es.indices.create(index=self.indexName, body=self.INDEX_CREATE_SETTINGS)
         logger.info("Create new Index: %s - %s", self.indexName, res)
 
-    def esMapping(self, t):
+    def esMapping(self, t): # type: (IdbEsDocumentType) -> None
         """
         Puts field mappings into Elasticsearch.
 
@@ -221,7 +231,10 @@ class ElasticSearchIndexer(object):
         res = self.es.indices.put_mapping(index=self.indexName, doc_type=t, body={t: m})
         logger.info("Built mapping for %s: %s", t, res)
 
-    def index(self, t, i):
+    def index(self,
+            t, # type: IdbEsDocumentType
+            i
+        ):
         """
         Parameters
         ----------
@@ -264,10 +277,24 @@ class ElasticSearchIndexer(object):
         # TODO: max_num_segments needs to be in config if we resurrect this.
         # self.es.indices.optimize(index=self.indexName, max_num_segments=5)
 
-    def bulk_formater(self, tups):
-        """
-        Bulk formats something.
-        Needs more info here.
+    def bulk_formater(self, tups): # type: (Iterable[tuple[IdbEsDocumentType, Mapping[str, Any]]]) -> Iterator[EsBulkRequestDict]
+        """*Iterator.* For each provided Elasticsearch datum, yields an Elasticsearch _bulk action dict.
+
+        Also assigns a `_parent` for 'mediarecords' document types.
+
+        Parameters
+        ---
+        tups :
+            An iterable, where:
+            [0] = Elasticsearch document type, 
+            [1] = Elasticsearch document `_source` content
+
+        Yields
+        ---
+        EsBulkRequestDict
+            A constructed dict from the ``tups`` provided.
+            The iterator returned from this function is intended to be passed to
+            :py:meth:`elasticsearch.helpers.streaming_bulk()`.
         """
         for t, i in tups:
             meta = {
@@ -296,10 +323,11 @@ class ElasticSearchIndexer(object):
 
             yield meta
 
-    def bulk_index(self, tups):
-        """
-        Bulk indexes something.
-        Needs more info here.
+    def bulk_index(self, tups): # type: (Iterable[tuple[IdbEsDocumentType, Mapping[str, Any]]]) -> Iterator[tuple[bool, dict[Any, Any]]]
+        """*Iterator.* For each provided data record, yields the result of
+        attempting to bulk-stream it to Elasticsearch.
+
+        Also assigns a `_parent` for 'mediarecords' document types, if applicable.
         """
         return elasticsearch.helpers.streaming_bulk(
             self.es,

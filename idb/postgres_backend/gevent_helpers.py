@@ -3,6 +3,7 @@ import contextlib
 import uuid
 import sys
 
+import psycopg2._psycopg
 import psycopg2.extensions
 import psycopg2.pool
 
@@ -51,10 +52,10 @@ class GeventedConnPool(object):
         self.lock = gevent.lock.BoundedSemaphore(maxsize)
         self._connectargs = connectargs
 
-    def _connect(self):
+    def _connect(self): # type: () -> psycopg2._psycopg.connection
         return psycopg2.connect(**self._connectargs)
 
-    def get(self):
+    def get(self): # type: () -> psycopg2._psycopg.connection
         if self.closed:
             raise psycopg2.pool.PoolError("connection pool is closed")
         self.lock.acquire()

@@ -3,17 +3,36 @@ from idb.postgres_backend import apidbpool, NamedTupleCursor
 
 import uuid
 import copy
+import sys
 import traceback
 
 from idb.helpers.etags import objectHasher
 
+if sys.version_info >= (3, 5):
+    from typing import Dict, Set, Tuple, Optional
+    from idb.helpers.types import (
+        DwcTerm,
+        DwcTermOrQualityFlag,
+        DwcTermValue,
+        QualityFlagValue,
+        ETag,
+        RecordData,
+    )
+
 protected_kingdoms = ["animalia", "plantae", "fungi", "chromista", "protista", "protozoa"]
 
 class RecordCorrector(object):
-    corrections = None
-    keytups = None
+    corrections = None # type: Dict[ETag, RecordData]
+    keytups = None # type: Set[Tuple[DwcTermOrQualityFlag]]
+    """Set of tuples of DwC terms present in corrections table;
+    each tuple is an individual correction record _key_
+    """
 
     def __init__(self, reload=True):
+        """
+        :param reload: If ``True``, will call :py:meth:`.reload()`.
+            Otherwise, this instance will be created with no corrections information.
+        """
         if reload:
             self.reload()
         else:
@@ -22,12 +41,13 @@ class RecordCorrector(object):
 
 
     def reload(self):
+        """Loads database corrections table data into this instance"""
         sql = "select k::json,v::json from corrections"
         self.keytups = set()
 
         self.corrections = {}
         for r in apidbpool.fetchiter(sql, name=str(uuid.uuid4()), cursor_factory=NamedTupleCursor):
-            uk = tuple(r.k.keys())
+            uk = tuple(r.k.keys()) # type: Tuple[DwcTermOrQualityFlag]
             self.keytups.add(uk)
 
             etag = objectHasher("sha256", r.k)
@@ -61,13 +81,26 @@ class RecordCorrector(object):
                 conn.commit()
 
     def correct_record(self, d):
+        # type: (RecordData) -> Tuple[RecordData,  Set[DwcTermOrQualityFlag]]
+        """
+        :param d: Record data to correct
+        :return: Tuple: 
+            [0] = Corrected record data, 
+            [1] = DwC terms replaced or added in corrected record data
+        """
         corrected_dict = copy.deepcopy(d)
         corrected_keys = set()
 
         cd_keys = {k.lower(): k for k in corrected_dict.keys()}
 
         def get_etag(t):
-            temp_d = {}
+            # type: (Tuple[DwcTermOrQualityFlag]) -> Optional[ETag]
+            """Get ETag for supplied correction key ``t``.
+            Returns ``None`` if any DwC term within ``t`` is not present
+            in the original or correction-in-progress dict.
+            """
+
+            temp_d = {} # type: Dict[DwcTerm, DwcTermValue]
             for f in t:
                 f_real = cd_keys.get(f, f)
 
@@ -84,8 +117,12 @@ class RecordCorrector(object):
             etag = objectHasher("sha256", temp_d)
             return etag
 
+        #TODO#PERF# Are we re-sorting this thing every time we call this method?
         for t in sorted(self.keytups, key=len):
             etag = get_etag(t)
+            #TODO#PERF# etag might be None. Should we short-circuit with a None check
+            # rather than potentially checking if None is in self.corrections every time?
+            # (It should never be.)
             if etag in self.corrections:
                 # Correct the record.
 

@@ -8,7 +8,7 @@ from collections import defaultdict
 
 if sys.version_info >= (3, 5):
     from typing import Dict, Optional
-    DwcTerm = str
+    from idb.helpers.types import DwcTerm
 
 from idb.helpers.logging import idblogger, getLogger
 from idb.helpers.fieldnames import NO_CLASS__UNKNOWN_FIELD, get_canonical_name, types

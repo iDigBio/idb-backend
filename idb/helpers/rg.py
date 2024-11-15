@@ -2,14 +2,24 @@ from __future__ import absolute_import
 
 import re
 import os
+import sys
 import fiona
 from shapely.geometry import shape, Point
 from shapely.prepared import prep
 
 from .memoize import memoized
 
+if sys.version_info >= (3, 5):
+    import typing
+    from typing import TypedDict, Optional, Unpack, TYPE_CHECKING
+    if TYPE_CHECKING:
+        from shapely.prepared import PreparedGeometry
+else:
+    TYPE_CHECKING = False
 
-pattern = re.compile('[\W_]+')
+
+
+pattern = re.compile(r'[\W_]+')
 
 class ReverseGeocoder(object):
 
@@ -17,9 +27,9 @@ class ReverseGeocoder(object):
         path = shapefile
         if not path.startswith("/"):
             path = os.path.join(os.path.dirname(__file__),shapefile)
-        self.countries = {}
-        self.lat_box = [set() for i in range(0,181)]
-        self.lon_box = [set() for i in range(0,361)]
+        self.countries = {} # type: dict[str, PreparedGeometry]
+        self.lat_box = [set() for i in range(0,181)] # type: list[set[str]]
+        self.lon_box = [set() for i in range(0,361)] # type: list[set[str]]
 
         with fiona.open(path) as shp:
             for g in shp:
@@ -39,7 +49,8 @@ class ReverseGeocoder(object):
 
                         self.countries[k] = prep(geo_shp)
 
-    def get_country(self, lon, lat):
+    def get_country(self, lon, lat): # type: (float, float) -> Optional[str]
+        """Returns country code at specified coordinates, or possibly `None`"""
         if not (-90 <= lat <= 90) or not (-180 <= lon <= 180):
             return None
         p = Point(lon, lat)
@@ -57,17 +68,21 @@ def get_rg():
 
 @memoized()
 def get_rg_eez():
+    """Returns ReverseGeocoder instance loaded with world Exclusive Economic Zones"""
     return ReverseGeocoder(shapefile="data/EEZ_land_v2_201410.shp", cc_key="ISO_3digit")
 
 
-def get_country(lon, lat, **kwargs):
+if TYPE_CHECKING:
+    GetCountryKwargs = TypedDict('GetCountryKwargs', {'eez': bool})
+def get_country(lon, lat, **kwargs): # type: (float, float, Unpack[GetCountryKwargs]) -> Optional[str]
     """Use a ReverseGeocoder to lookup the country code.
 
     Args like ReverseGeocoder.get_country()
 
     Additional Keyword args:
 
-     * eez: boolean (Default: False). If set use the EEZ shapefiles
+     * eez: boolean (Default: False).
+       If set use the Exclusive Economic Zone shapefiles
 
     """
     eez = kwargs.pop('eez', False)

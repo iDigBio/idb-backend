@@ -6,7 +6,9 @@ import io
 from collections import defaultdict
 
 from idb.helpers.logging import idblogger, getLogger
-from idb.helpers.fieldnames import get_canonical_name, types
+from idb.helpers.fieldnames import NO_CLASS__UNKNOWN_FIELD, get_canonical_name, types
+#For POLYGON fields and others which are large
+csv.field_size_limit(sys.maxsize)
 
 class MissingFieldsException(Exception):
 

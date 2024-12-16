@@ -3,6 +3,7 @@ from __future__ import division, absolute_import, print_function
 from flask import current_app, Blueprint, jsonify, url_for, request
 
 from idb.helpers.cors import crossdomain
+from idb.helpers.storage import IDigBioStorage
 from .common import json_error, idbmodel
 
 
@@ -79,6 +80,17 @@ def subitem(t, u, st):
                   for v in l]
     r["itemCount"] = idbmodel.get_children_count(str(u), "".join(st[:-1]))
     return jsonify(r)
+
+@this_version.route('/file/<uuid:u>', methods=['GET', 'OPTIONS'])
+@crossdomain(origin="*")
+def file(u):
+
+    version = request.args.get("version")
+
+    fname = str(u)
+    f = idbmodel.fetch_file(str(u), fname, media_store=IDigBioStorage())
+
+    return f
 
 
 @this_version.route('/view/<string:t>/<uuid:u>', methods=['GET', 'OPTIONS'])

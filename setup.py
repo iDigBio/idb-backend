@@ -2,6 +2,8 @@ import os
 import re
 import sys
 from setuptools import setup, find_packages
+from setuptools.extension import Extension
+from Cython.Build import cythonize
 
 from codecs import open
 
@@ -29,6 +31,16 @@ if sys.version_info >= (2,7,15):
 else:
     pillow_package = "pillow-simd>=3.4,<=5.1.1"
 
+# Extension modules
+extensions = [
+    Extension("idb.cli", ["idb/cli.py"]),
+    Extension("idb.corrections.record_corrector", ["idb/corrections/record_corrector.py"]),
+    Extension("idb.indexing.index_from_postgres", ["idb/indexing/index_from_postgres.py"]),
+    Extension("idb.indexing.__init__", ["idb/indexing/__init__.py"]),
+    Extension("idb.helpers.etags", ["idb/helpers/etags.py"]),
+    Extension("idigbio_ingestion.cli", ["idigbio_ingestion/cli.py"]),
+]
+
 setup(
     name='idb-backend',
     version=version,
@@ -39,7 +51,8 @@ setup(
     author='ACIS iDigBio team',
     author_email='idigbio@acis.ufl.edu',
     packages=find_packages(exclude=['tests*']),
-    setup_requires=['pytest-runner'],
+    ext_modules=cythonize(extensions, compiler_directives={'always_allow_keywords': True}),
+    setup_requires=['pytest-runner','cython'],
     install_requires=[
         'idigbio>=0.8.2',
         'psycopg2-binary>=2.8.3',

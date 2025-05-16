@@ -2,7 +2,7 @@ from __future__ import absolute_import
 
 import re
 import os
-#import fiona
+import fiona
 from shapely.geometry import shape, Point
 from shapely.prepared import prep
 

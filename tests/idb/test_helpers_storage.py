@@ -4,14 +4,14 @@ import pytest
 from boto.exception import BotoServerError, BotoClientError, S3DataError
 
 from idb.helpers.etags import calcFileHash
-
+@pytest.mark.skip(reason="Actually writes to storage")
 @pytest.fixture()
 def store(request):
     from idb.helpers.storage import IDigBioStorage
     store = IDigBioStorage()
     return store
 
-
+@pytest.mark.skip(reason="Actually writes to storage")
 @pytest.fixture()
 def bucketname(store, request):
     "The bucket we're going to use for test uploads and downloads"
@@ -26,7 +26,7 @@ def bucketname(store, request):
     store.boto_conn.create_bucket(name)
     return name
 
-
+@pytest.mark.skip(reason="Actually writes to storage")
 @pytest.fixture()
 def existingkey(store, bucketname, pngpath):
     kn = calcFileHash(str(pngpath))
@@ -35,7 +35,7 @@ def existingkey(store, bucketname, pngpath):
     assert k.exists()
     return k
 
-
+@pytest.mark.skip(reason="Actually writes to storage")
 def test_download_md5_validation(store, existingkey, tmpdir):
     testfile = tmpdir / "roll"
     with pytest.raises(S3DataError):
@@ -44,7 +44,7 @@ def test_download_md5_validation(store, existingkey, tmpdir):
     store.get_contents_to_filename(existingkey, str(testfile), md5=existingkey.name)
 
 
-#@pytest.mark.skip(reason="Actually writes to storage")
+@pytest.mark.skip(reason="Actually writes to storage")
 def test_file_upload_download(store, bucketname, tmpdir):
     k = store.upload(store.get_key('foobar', bucketname), __file__, content_type="x-foo/bar", public=False)
     localmd5 = calcFileHash(__file__)
@@ -61,7 +61,7 @@ def test_file_upload_download(store, bucketname, tmpdir):
 
 
 
-#@pytest.mark.skip(reason="Actually writes to storage")
+@pytest.mark.skip(reason="Actually writes to storage")
 def test_largefile_upload(store, bucketname, tmpdir, monkeypatch):
     monkeypatch.setattr(store, 'MAX_CHUNK_SIZE', 16 * (1024 ** 2))
     keyname = 'largefile'

@@ -117,7 +117,7 @@ class IDigBioStorage(object):
             if md5:
                 md5 = key.get_md5_from_hexdigest(md5)
             headers = {"Expect": ""}
-            self.retry_loop(lambda: key.set_contents_from_file(fobj, rewind=True, md5=md5, validate=False, headers=headers))
+            self.retry_loop(lambda: key.set_contents_from_file(fobj, rewind=True, md5=md5, headers=headers))
         #if public:
             #self.retry_loop(key.make_public)
         return key

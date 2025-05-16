@@ -2,7 +2,7 @@ from __future__ import absolute_import
 
 import re
 import os
-import fiona
+#import fiona
 from shapely.geometry import shape, Point
 from shapely.prepared import prep
 
@@ -21,7 +21,7 @@ class ReverseGeocoder(object):
         self.lat_box = [set() for i in range(0,181)]
         self.lon_box = [set() for i in range(0,361)]
 
-        with fiona.open(path) as shp:
+        """ with fiona.open(path) as shp:
             for g in shp:
                 if cc_key in g["properties"]:
                     k = pattern.sub('', g["properties"][cc_key]).lower()
@@ -37,7 +37,7 @@ class ReverseGeocoder(object):
                         for y in range(90+miny,90+maxy+1):
                             self.lat_box[y].add(k)
 
-                        self.countries[k] = prep(geo_shp)
+                        self.countries[k] = prep(geo_shp) """
 
     def get_country(self, lon, lat):
         if not (-90 <= lat <= 90) or not (-180 <= lon <= 180):

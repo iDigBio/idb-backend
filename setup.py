@@ -2,8 +2,8 @@ import os
 import re
 import sys
 from setuptools import setup, find_packages
-#from setuptools.extension import Extension
-#from Cython.Build import cythonize
+from setuptools.extension import Extension
+from Cython.Build import cythonize
 
 from codecs import open
 
@@ -32,14 +32,15 @@ else:
     pillow_package = "pillow-simd>=3.4,<=5.1.1"
 
 # Extension modules
-#extensions = [
-#    Extension("idb.cli", ["idb/cli.py"]),
-#    Extension("idb.corrections.record_corrector", ["idb/corrections/record_corrector.py"]),
-#    Extension("idb.indexing.index_from_postgres", ["idb/indexing/index_from_postgres.py"]),
-#    Extension("idb.indexing.__init__", ["idb/indexing/__init__.py"]),
-#    Extension("idb.helpers.etags", ["idb/helpers/etags.py"]),
-#    Extension("idigbio_ingestion.cli", ["idigbio_ingestion/cli.py"]),
-#]
+extensions = [
+    Extension("idb.cli", ["idb/cli.py"]),
+    Extension("idb.corrections.record_corrector", ["idb/corrections/record_corrector.py"]),
+    Extension("idb.indexing.index_from_postgres", ["idb/indexing/index_from_postgres.py"]),
+    Extension("idb.indexing.__init__", ["idb/indexing/__init__.py"]),
+    Extension("idb.helpers.etags", ["idb/helpers/etags.py"]),
+    Extension("idigbio_ingestion.cli", ["idigbio_ingestion/cli.py"]),
+    Extension("idigbio_ingestion.db_check", ["idigbio_ingestion/db_check.py"]),
+]
 
 setup(
     name='idb-backend',
@@ -51,34 +52,35 @@ setup(
     author='ACIS iDigBio team',
     author_email='idigbio@acis.ufl.edu',
     packages=find_packages(exclude=['tests*']),
-    #ext_modules=cythonize(extensions, compiler_directives={'always_allow_keywords': True}),
-    #setup_requires=['pytest-runner','cython'],
-    setup_requires=['pytest-runner'],
+    ext_modules=cythonize(extensions, compiler_directives={'always_allow_keywords': True}),
+    setup_requires=['pytest-runner','cython'],
+    #setup_requires=['pytest-runner'],
     install_requires=[
+        'Cython<3.0',
         'idigbio>=0.8.2',
-        'psycopg2-binary>=2.8.3',
+        'psycopg2cffi>=2.9.0',
         'redis>=2.9.1, <3.0.0',
         'python-dateutil>=2.2, <3.0',
         'udatetime>=0.0.13',
         'elasticsearch>=5, <6',
-        'pyproj>=1.9.3',
+        'pyproj==1.9.3',
         'pytz>=2016.10',
         'requests==2.20.0',
         'urllib3<1.25,>=1.21.1',
-        'pycrypto',
+        'pycryptodome<4',
         'flask>=0.11.0, <1.0.0',
         'Flask-UUID',
         'Flask-CORS',
         'coverage',
         'numpy',
-        'scipy',
+ #       'scipy<=1.2.3',
         'gevent>=1.1.0, <1.2.0',
         'gipc>=0.6.0, <0.7.0',
         'unicodecsv>=0.14.1, < 0.15.0',
         'shapely',
         'celery[redis]>=4.0, <4.3',
         'boto>=2.39.0, <3.0.0',
-        'fiona',
+        'fiona<=1.8.22',
         'python-magic>=0.4.11, <=0.5.0',
         'feedparser>=5.2.0',
         'click>=6.3, <7.0',

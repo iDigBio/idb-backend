@@ -6,8 +6,12 @@ import logging
 import os
 import re
 import traceback
+import multiprocessing
 
 import magic
+
+from psycopg2cffi import compat
+compat.register()
 
 from atomicfile import AtomicFile
 from psycopg2 import DatabaseError
@@ -24,7 +28,7 @@ from idb.helpers import ilen
 from idb.helpers.etags import calcEtag, calcFileHash
 from idb.helpers.logging import idblogger, LoggingContext
 from idb.helpers.storage import IDigBioStorage
-from idb.helpers import gipcpool
+#from idb.helpers import gipcpool
 
 from idigbio_ingestion.lib.dwca import Dwca
 from idigbio_ingestion.lib.delimited import DelimitedFile
@@ -688,18 +692,31 @@ def allrsids(since=None, ingest=False):
     from .db_rsids import get_active_rsids
     rsids = get_active_rsids(since=since)
     logger.info("Checking %s recordsets", len(rsids))
-
     from .db_rsids import get_paused_rsids
     paused_recordsets = get_paused_rsids()
     logger.info("Paused recordsets: {0}, rsids: {1}".format(len(paused_recordsets),paused_recordsets))
-
-
     # Need to ensure all the connections are closed before multiprocessing forks
     apidbpool.closeall()
-
-    pool = gipcpool.Pool()
-    exitcodes = pool.imap_unordered(functools.partial(launch_child, ingest=ingest), rsids)
-    badcount = ilen(e for e in exitcodes if e != 0)
+    
+    # Create pool explicitly
+    pool = multiprocessing.Pool()  # no 'processes=' → one worker per core
+    try:
+        exitcodes = list(
+            pool.imap_unordered(
+                functools.partial(launch_child, ingest=ingest),
+                rsids
+            )
+        )
+        # Make sure to close and join the pool to ensure processes are cleaned up
+        pool.close()
+        pool.join()
+    except Exception as e:
+        # If an exception occurs, terminate the pool and re-raise
+        pool.terminate()
+        pool.join()
+        raise
+        
+    badcount = sum(1 for e in exitcodes if e != 0)  # Replacing ilen with a standard approach
     if badcount:
         logger.critical("%d children failed", badcount)
     from .ds_sum_counts import main as ds_sum_counts

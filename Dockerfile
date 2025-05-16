@@ -1,4 +1,4 @@
-FROM python:2.7
+FROM pypy:2
 RUN apt-get update && apt-get install -y --no-install-recommends \
     gfortran \
     libatlas-base-dev \
@@ -16,5 +16,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 COPY . /opt/idb-backend/
 WORKDIR /opt/idb-backend/
+RUN python -m ensurepip
+RUN python -mpip install -U pip wheel
+RUN python -mpip install pygments
+RUN pip install -U pip build setuptools
+RUN python -m build
 RUN pip --no-cache-dir install -e .[test]
 USER www-data

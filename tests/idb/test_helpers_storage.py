@@ -31,7 +31,7 @@ def bucketname(store, request):
 def existingkey(store, bucketname, pngpath):
     kn = calcFileHash(str(pngpath))
     k = store.get_key(kn, bucketname)
-    k.set_contents_from_filename(str(pngpath))
+    k.upload(k, str(pngpath), public=False)
     assert k.exists()
     return k
 

@@ -116,7 +116,8 @@ class IDigBioStorage(object):
         else:
             if md5:
                 md5 = key.get_md5_from_hexdigest(md5)
-            self.retry_loop(lambda: key.set_contents_from_file(fobj, rewind=True, md5=md5))
+            headers = {"Expect": ""}
+            self.retry_loop(lambda: key.set_contents_from_file(fobj, rewind=True, md5=md5, validate=False, headers=headers))
         #if public:
             #self.retry_loop(key.make_public)
         return key
@@ -125,14 +126,18 @@ class IDigBioStorage(object):
         chunk_count = int(math.ceil(size / self.MAX_CHUNK_SIZE))
         logger.debug("Starting upload to %r in %d chunks", k, chunk_count)
         try:
-            mp = k.bucket.initiate_multipart_upload(k.name)
+            # Old MinIO / moto versions time-out when they see ‘Expect: 100-Continue’
+            # or the Content-MD5/ETag handshake, so force headers + validate=False
+            common_headers = {"Expect": ""}
+            
+            mp = k.bucket.initiate_multipart_upload(k.name, headers=common_headers)
 
             def onepart(i):
                 logger.debug("Uploading part %d", i)
                 offset = i * self.MAX_CHUNK_SIZE
                 usize = min([self.MAX_CHUNK_SIZE, size - offset])
                 fobj.seek(offset)
-                mp.upload_part_from_file(fp=fobj, part_num=i + 1, size=usize)
+                mp.upload_part_from_file(fp=fobj, part_num=i + 1, size=usize, headers=common_headers)
                 logger.debug("Done part %d", i)
 
             for i in range(chunk_count):

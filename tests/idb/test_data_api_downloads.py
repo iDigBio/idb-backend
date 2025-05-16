@@ -6,7 +6,7 @@ import json
 
 import gevent
 import udatetime
-from udatetime import from_rfc3339_string
+from udatetime import from_string
 import pytest
 from flask import url_for
 
@@ -91,8 +91,8 @@ def test_status_complete_task(client, fakeredcli):
     assert resp.json['download_url'] == "http://example.com"
     assert resp.json['complete'] is True
     assert resp.json['task_status'] == 'SUCCESS'
-    assert from_rfc3339_string(resp.json['created'])
-    assert from_rfc3339_string(resp.json['expires'])
+    assert from_string(resp.json['created'])
+    assert from_string(resp.json['expires'])
     assert 'error' not in resp.json
 
 
@@ -103,8 +103,8 @@ def test_status_pending_task(client, fakeredcli, fakeresult):
     assert resp.status_code == 200
     assert resp.json['task_status'] == "PENDING"
     assert resp.json['complete'] is False
-    assert from_rfc3339_string(resp.json['created'])
-    assert from_rfc3339_string(resp.json['expires'])
+    assert from_string(resp.json['created'])
+    assert from_string(resp.json['expires'])
     assert 'download_url' not in resp.json
     assert 'error' not in resp.json
 
@@ -118,8 +118,8 @@ def test_status_pending_now_success(client, fakeredcli, fakeresult):
     assert resp.json['download_url'] == "http://foo/bar"
     assert resp.json['complete'] is True
     assert resp.json['task_status'] == 'SUCCESS'
-    assert from_rfc3339_string(resp.json['created'])
-    assert from_rfc3339_string(resp.json['expires'])
+    assert from_string(resp.json['created'])
+    assert from_string(resp.json['expires'])
     assert 'error' not in resp.json
 
 
@@ -132,8 +132,8 @@ def test_status_pending_now_failure(client, fakeredcli, fakeresult):
     assert resp.json['error'] == "woot"
     assert resp.json['complete'] is True
     assert resp.json['task_status'] == 'FAILURE'
-    assert from_rfc3339_string(resp.json['created'])
-    assert from_rfc3339_string(resp.json['expires'])
+    assert from_string(resp.json['created'])
+    assert from_string(resp.json['expires'])
     assert 'download_url' not in resp.json
     gevent.wait()
     assert tid != fakeredcli.get(DOWNLOADER_TASK_PREFIX + resp.json['hash']), \
@@ -150,8 +150,8 @@ def test_status_pending_now_failure_already_unlinked(client, fakeredcli, fakeres
     assert resp.json['error'] == "woot"
     assert resp.json['complete'] is True
     assert resp.json['task_status'] == 'FAILURE'
-    assert from_rfc3339_string(resp.json['created'])
-    assert from_rfc3339_string(resp.json['expires'])
+    assert from_string(resp.json['created'])
+    assert from_string(resp.json['expires'])
     assert 'download_url' not in resp.json
     assert "woot" == fakeredcli.get(DOWNLOADER_TASK_PREFIX + "foobar")
 

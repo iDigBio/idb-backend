@@ -93,13 +93,12 @@ setup(
         'jsonlines>=1.1.3',
         'py4j==0.10.9.7',
         'lxml==5.0.2',
-        'bsddb3==6.2.9',
-        "pillow-simd==6.2.2.post1"
+        'bsddb3==6.2.9'
     ],
     extras_require={
         'ingestion': [
             'pydub==0.16.5',
-            pillow_package,
+            #pillow_package,
             'lxml',
             'chardet==3.0.4',
             'pyquery==1.2.17',

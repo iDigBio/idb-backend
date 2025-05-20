@@ -4,6 +4,7 @@ requires = [
     "wheel",
     "Cython",
     "udatetime>=0.0.17",
+    "pillow-simd==6.2.2.post1",
 ]
 build-backend = "setuptools.build_meta"
 

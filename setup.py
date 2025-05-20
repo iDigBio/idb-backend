@@ -26,10 +26,10 @@ if sys.version_info >= (3,0):
 # Only install Pillow-SIMD where it is known to work, otherwise
 # install Pillow.
 # (see https://github.com/iDigBio/idb-backend/issues/92)
-if sys.version_info >= (2,7,15):
+""" if sys.version_info >= (2,7,15):
     pillow_package = "pillow>=3.4,<=5.1.1"
 else:
-    pillow_package = "pillow-simd>=3.4,<=5.1.1"
+    pillow_package = "pillow-simd>=3.4,<=5.1.1" """
 
 # Extension modules
 extensions = [
@@ -67,7 +67,7 @@ setup(
         'pyproj==1.9.3',
         'pytz>=2016.10',
         'requests==2.27.1',
-        'urllib3<1.26,>=1.21.1',
+        'urllib3==1.25.11',
         'pycryptodome<4',
         'flask>=0.11.0, <1.0.0',
         'Flask-UUID',
@@ -92,6 +92,9 @@ setup(
         'wsgi-request-logger>=0.4.6',
         'jsonlines>=1.1.3',
         'py4j==0.10.9.7',
+        'lxml==5.0.2',
+        'bsddb3==6.2.9',
+        "pillow-simd==6.2.2.post1"
     ],
     extras_require={
         'ingestion': [

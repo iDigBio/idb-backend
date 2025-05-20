@@ -10,7 +10,7 @@ from cStringIO import StringIO
 
 import requests
 import gevent.pool
-import gipc
+#import gipc
 from gevent import sleep
 from boto.exception import BotoServerError, BotoClientError
 from requests.exceptions import MissingSchema, InvalidSchema, InvalidURL, ConnectionError
@@ -28,6 +28,42 @@ from idb.postgres_backend.db import MediaObject, PostgresDB
 
 
 from idigbio_ingestion.mediaing import IGNORE_PREFIXES, Status
+
+import traceback
+from stackless import channel, tasklet, run as schedule_run
+
+class TaskletProc(object):
+    """
+    Very small stand-in for a gipc Process.
+    - Call .start(target, *args, **kw) to begin.
+    - .join() blocks until the tasklet finishes.
+    - .exitcode == 0 on success, 1 on uncaught exception.
+    """
+
+    def __init__(self, name=u"tasklet"):
+        self.name = name
+        self._done = channel()
+        self.exitcode = None
+        self._t = None
+
+    # --------------------------------------------------
+    # API similar to multiprocessing.Process
+    # --------------------------------------------------
+    def start(self, target, *args, **kw):
+        def _runner():
+            try:
+                rc = target(*args, **kw) or 0
+                self.exitcode = int(rc)
+            except BaseException:
+                traceback.print_exc()
+                self.exitcode = 1
+            finally:
+                self._done.send(None)          # notify joiners
+        self._t = tasklet(_runner)()
+
+    def join(self):
+        """Block until the tasklet finishes (acts like .join())."""
+        self._done.receive()
 
 
 logger = idblogger.getChild('mediaing')
@@ -59,20 +95,23 @@ def start_all_procs(groups, running=None):
     if running is None:
         running = {}
 
-    apidbpool.closeall()  # clean before proc fork
+    apidbpool.closeall()  # clean before “fork”
+
     for prefix, items in groups:
         if prefix in running:
             if prefix is None:
-                # We can't disambiguate if we don't have a prefix; just
-                # skip it until running[None] is empty again
-                pass
-            else:
-                logger.critical("Trying to start second process for prefix %r", prefix)
+                # cannot disambiguate if prefixless
                 continue
-        logger.debug("Starting subprocess for %s", prefix)
-        running[prefix] = gipc.start_process(
-            process_list, (items,), {'forprefix': prefix}, name="mediaing-{0}".format(prefix), daemon=False)
+            logger.critical("Trying to start second process for %r", prefix)
+            continue
+
+        proc = TaskletProc(name="mediaing-{}".format(prefix or "noprefix"))
+        logger.debug("Starting tasklet for %s", prefix)
+        proc.start(process_list, items, forprefix=prefix)  # note arg order
+        running[prefix] = proc
+
     return running
+
 
 
 def continuous(prefix=None, looptime=3600):

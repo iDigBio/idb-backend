@@ -199,7 +199,7 @@ class IDigBioStorage(object):
 
         The file is first written to *filename*.tmp; if MD5 verification
         fails the temp file is deleted and the original path is left
-        untouched – mirroring the legacy AtomicFile behaviour the tests
+        untouched - mirroring the legacy AtomicFile behaviour the tests
         expect.
         """
         temp_name = filename + '.tmp'

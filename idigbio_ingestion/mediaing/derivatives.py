@@ -10,7 +10,7 @@ import itertools
 
 from gevent.pool import Pool
 from PIL import Image, ImageFile
-from boto.exception import BotoServerError, BotoClientError, S3DataError
+from botocore.exceptions import ClientError
 
 
 from idb.helpers import first, gipcpool, ilen, grouper
@@ -167,7 +167,7 @@ def generate_all(item):
     try:
         buff = fetch_media(item.media)
         img = convert_media(item, buff)
-    except (BotoServerError, BotoClientError):
+    except (ClientError):
         return None
     except BadImageError as bie:
         logger.error("%s caused BadImageError: %s", item.etag, bie.message)
@@ -211,7 +211,7 @@ def upload_all(gr):
             if item is not None:
                 IDigBioStorage.retry_loop(lambda: upload_item(item))
         return gr
-    except (BotoServerError, BotoClientError):
+    except (ClientError):
         logger.exception("%s failed uploading derivatives", gr.etag)
     except Exception:
         logger.exception("%s Unexpected error", gr.etag)
@@ -262,17 +262,18 @@ def resize_image(img, deriv):
         return img
 
 
-def fetch_media(key):
+def fetch_media(obj):
+    """
+    Download the object into memory and verify its MD5/ETag.
+    """
     try:
-        return IDigBioStorage.get_contents_to_mem(key, md5=key.name)
-    except BotoServerError as e:
-        logger.error("%r failed downloading with %r %s %s", key, e.status, e.reason, key.name)
+        # obj.key is the object-name string
+        return IDigBioStorage.get_contents_to_mem(obj, md5=obj.key)
+    except ClientError as e:
+        logger.error("%r failed downloading (%s)", obj, e)
         raise
-    except S3DataError as e:
-        logger.error("%r failed downloading on md5 mismatch", key)
-        raise
-    except BotoClientError as e:
-        logger.exception("%r failed downloading because...")
+    except ValueError:                                # raised on MD5 mismatch
+        logger.error("%r failed downloading on md5 mismatch", obj)
         raise
 
 def convert_media(item, buff):

@@ -230,7 +230,7 @@ def upload():
         mo.insert_object(idbmodel)
     elif etag:
         mo = MediaObject.frometag(etag, idbmodel)
-        if not mo or not mo.get_key(IDigBioStorage()).exists():
+        if not mo or not mo.get_key(IDigBioStorage()):
             return json_error(404, "Unknown etag {0!r}".format(etag))
 
         mo.last_status = 200

@@ -1,8 +1,10 @@
 from __future__ import division, absolute_import, print_function
+import collections
 
 import logging
 import itertools
 import re
+from sched import scheduler
 import signal
 from collections import Counter
 from datetime import datetime
@@ -28,42 +30,72 @@ from idb.postgres_backend.db import MediaObject, PostgresDB
 
 
 from idigbio_ingestion.mediaing import IGNORE_PREFIXES, Status
-
+import threading
 import traceback
 from stackless import channel, tasklet, run as schedule_run
 
 class TaskletProc(object):
     """
-    Very small stand-in for a gipc Process.
-    - Call .start(target, *args, **kw) to begin.
-    - .join() blocks until the tasklet finishes.
-    - .exitcode == 0 on success, 1 on uncaught exception.
+    Process-like wrapper around a single stackless tasklet.
+    * Non-blocking start: returns immediately
+    * .exitcode becomes 0 on success, 1 on unhandled exception
+    * .join() spins the scheduler until the tasklet ends
     """
+    _alive = collections.deque()          # keep refs so tasklets aren't GC'd
 
     def __init__(self, name=u"tasklet"):
         self.name = name
-        self._done = channel()
+        self._task = None
         self.exitcode = None
-        self._t = None
+
+    def _runner(self, target, args, kwargs):
+        try:
+            rc = target(*args, **kwargs) or 0
+        except Exception:
+            traceback.print_exc()
+            rc = 1
+        self.exitcode = int(rc)
 
     # --------------------------------------------------
-    # API similar to multiprocessing.Process
+    def start(self, target, *args, **kwargs):
+        self._task = tasklet(self._runner)(target, args, kwargs)
+        TaskletProc._alive.append(self._task)   # prevent GC
+
+    def join(self):
+        while self.exitcode is None:
+            scheduler() 
+
+class ThreadProc(object):
+    """
+    Lightweight stand-in for gipc.Process:
+
+      * .start(target, *args, **kw)
+      * .join()
+      * .exitcode   (0 on success, 1 on uncaught exception, None while running)
+    """
+
+    def __init__(self, name=u"threadproc"):
+        self.name = name
+        self._t   = None
+        self.exitcode = None
+
     # --------------------------------------------------
     def start(self, target, *args, **kw):
         def _runner():
             try:
                 rc = target(*args, **kw) or 0
-                self.exitcode = int(rc)
-            except BaseException:
+            except Exception:
                 traceback.print_exc()
-                self.exitcode = 1
-            finally:
-                self._done.send(None)          # notify joiners
-        self._t = tasklet(_runner)()
+                rc = 1
+            self.exitcode = int(rc)
+
+        self._t = threading.Thread(target=_runner, name=self.name)
+        self._t.daemon = False               # mimic gipc default
+        self._t.start()
 
     def join(self):
-        """Block until the tasklet finishes (acts like .join())."""
-        self._done.receive()
+        if self._t is not None:
+            self._t.join()
 
 
 logger = idblogger.getChild('mediaing')
@@ -105,8 +137,9 @@ def start_all_procs(groups, running=None):
             logger.critical("Trying to start second process for %r", prefix)
             continue
 
-        proc = TaskletProc(name="mediaing-{}".format(prefix or "noprefix"))
-        logger.debug("Starting tasklet for %s", prefix)
+        #proc = TaskletProc(name="mediaing-{}".format(prefix or "noprefix"))
+        proc = ThreadProc(name="mediaing-{}".format(prefix or "noprefix"))
+        logger.debug("Starting subprocess for %s", prefix)
         proc.start(process_list, items, forprefix=prefix)  # note arg order
         running[prefix] = proc
 

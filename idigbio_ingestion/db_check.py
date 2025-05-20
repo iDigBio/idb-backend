@@ -17,7 +17,7 @@ from atomicfile import AtomicFile
 from psycopg2 import DatabaseError
 from psycopg2.extras import DictCursor
 
-from boto.exception import S3ResponseError, S3DataError
+from botocore.exceptions import ClientError
 
 
 from idb import stats
@@ -102,15 +102,29 @@ def idFromRR(r, rs=None):
 
 
 def get_file(rsid):
+    """
+    Ensure <rsid>.zip (or whatever) is present locally and return
+    (filename, detected_mime_type).
+
+    * Downloads via RecordSet.fetch_file() if the file is missing.
+    * Uses the new boto3-backed IDigBioStorage helper.
+    * Logs and re-raises on any S3/network/data-integrity problem.
+    """
     fname = rsid
     if not os.path.exists(fname):
         try:
-            RecordSet.fetch_file(rsid, fname, media_store=IDigBioStorage(), logger=logger.getChild(rsid))
-        except (S3ResponseError, S3DataError):
-            getrslogger(rsid).exception("failed fetching archive")
-            raise
+            RecordSet.fetch_file(
+                rsid,
+                fname,
+                media_store=IDigBioStorage(),
+                logger=logger.getChild(rsid),
+            )
+        except (ClientError, ValueError):          # ① network/S3 … ② MD5 mismatch
+            logger.exception("failed fetching archive")
+            raise                                   # propagate to caller
+
     mime = magic.from_file(fname, mime=True)
-    return (fname, mime)
+    return fname, mime
 
 
 def get_db_dicts(rsid):

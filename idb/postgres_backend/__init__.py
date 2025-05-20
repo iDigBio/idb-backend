@@ -1,6 +1,10 @@
 from __future__ import absolute_import
 import os
 import copy
+
+from psycopg2cffi import compat
+compat.register()
+
 import psycopg2
 import psycopg2.extensions
 

@@ -364,7 +364,7 @@ class ElasticSearchIndexer(object):
         What is the point of this?
         """
         r = self.es.search(
-            index="idigbio-dev-local",
+            index="idigbio",
             doc_type=doc_type,
             _source=source,
             body={

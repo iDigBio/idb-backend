@@ -9,6 +9,8 @@ from idb import config
 from idb.helpers.logging import idblogger
 from idb.helpers.conversions import fields, custom_mappings
 
+from elasticsearch.helpers import parallel_bulk
+
 local_tz = timezone('US/Eastern')
 logger = idblogger.getChild('indexer')
 
@@ -333,16 +335,21 @@ class ElasticSearchIndexer(object):
     
     def bulk_index(self, tups):
         """
-        Bulk indexes something.
-        Needs more info here.
+        Prepare docs → push to ES with internal thread-pool.
         """
-        return elasticsearch.helpers.streaming_bulk(
+        actions = self.bulk_formater(tups)   # yields dict/tuple primitives
+
+        # parallel_bulk uses a background queue and N worker threads;
+        # nothing is pickled and it saturates the network link.
+        return parallel_bulk(
             self.es,
-            self.bulk_formater(tups),
+            actions,
+            thread_count=4,                  # tune for I/O bandwidth
             chunk_size=config.ES_INDEX_CHUNK_SIZE,
             max_chunk_bytes=1048576,
             raise_on_error=False,
-            raise_on_exception=False)
+            raise_on_exception=False,
+        )
 
     def close(self):
         """

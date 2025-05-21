@@ -191,61 +191,55 @@ class IDigBioStorage(object):
                     raise
                 time.sleep(2 ** (attempt + 1))
 
-    # ------------------------------------------------------------------
+        # ------------------------------------------------------------------
     # Download helpers
     # ------------------------------------------------------------------
     def get_contents_to_filename(self, obj, filename, md5=None):
-        """Download *obj* to *filename* atomically and (optionally) verify MD5.
-
-        The file is first written to *filename*.tmp; if MD5 verification
-        fails the temp file is deleted and the original path is left
-        untouched - mirroring the legacy AtomicFile behaviour the tests
-        expect.
         """
-        temp_name = filename + '.tmp'
+        Download *obj* to *filename* atomically and (optionally) verify *md5*.
+
+        Data is written to “filename.tmp”; on a successful MD5 check it is
+        renamed into place.  If the digest mismatches we delete the temp
+        file and raise *ValueError*.
+        """
+        import hashlib
+        tmp = filename + '.tmp'
         try:
-            with open(temp_name, 'wb') as fh:
-                self._client.download_fileobj(obj.bucket_name, obj.key, fh)
-            # --------------------------------------------------
-            # Verify integrity
-            # --------------------------------------------------
-            if md5:
-                # For multipart objects the ETag is not a plain MD5; instead
-                # calculate the digest of the temp file so the caller can
-                # still rely on integrity checking just like the legacy boto
-                # wrapper did.
-                def _digest(path):
-                    import hashlib
-                    h = hashlib.md5()
-                    with open(path, 'rb') as fp:
-                        for chunk in iter(lambda: fp.read(8192), b''):
-                            h.update(chunk)
-                    return h.hexdigest()
+            with open(tmp, 'wb') as fh:
+                obj.meta.client.download_fileobj(obj.bucket_name, obj.key, fh)
 
-                local_md5 = _digest(temp_name)
-                if local_md5 != md5:
-                    raise ValueError('MD5 mismatch: remote bytes digest {0} vs expected {1}'.format(local_md5, md5))
+            if md5 is not None:
+                with open(tmp, 'rb') as fh:
+                    digest = hashlib.md5(fh.read()).hexdigest()
+                if digest != md5:
+                    raise ValueError('MD5 mismatch: {0} (download) vs {1} (expected)'
+                                     .format(digest, md5))
 
-            # Passed verification → atomic move into place
             if os.path.exists(filename):
                 os.unlink(filename)
-            os.rename(temp_name, filename)
+            os.rename(tmp, filename)
         finally:
-            # Clean up temp file if we bailed early
-            if os.path.exists(temp_name):
+            if os.path.exists(tmp):
                 try:
-                    os.unlink(temp_name)
+                    os.unlink(tmp)
                 except OSError:
                     pass
         return filename
 
-    def get_contents_to_mem(self, obj, md5=None):
+    @staticmethod
+    def get_contents_to_mem(obj, md5=None):
+        """
+        Return object bytes in a *BytesIO* buffer; verify *md5* if supplied.
+        """
+        import hashlib, io
         buff = io.BytesIO()
-        self._client.download_fileobj(obj.bucket_name, obj.key, buff)
-        if md5:
-            etag = self._client.head_object(Bucket=obj.bucket_name, Key=obj.key)['ETag'].strip('"')
-            if etag != md5:
-                raise ValueError('MD5 mismatch: remote {0} vs expected {1}'.format(etag, md5))
+        obj.meta.client.download_fileobj(obj.bucket_name, obj.key, buff)
+
+        if md5 is not None:
+            digest = hashlib.md5(buff.getvalue()).hexdigest()
+            if digest != md5:
+                raise ValueError('MD5 mismatch: {0} (download) vs {1} (expected)'
+                                 .format(digest, md5))
         buff.seek(0)
         return buff
 

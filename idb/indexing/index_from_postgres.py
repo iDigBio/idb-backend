@@ -317,7 +317,6 @@ def mappings_only(ei):
 def consume(ei, rc, iter_func, no_index=False):
     for typ in ei.types:
         
-        # p = Pool(100)
         # Construct a version of index record that can be just called with the
         # record
         index_func = functools.partial(index_record, ei, rc, typ, do_index=False)
@@ -325,9 +324,6 @@ def consume(ei, rc, iter_func, no_index=False):
         to_index = iter_func(ei, rc, typ, yield_record=True)
         index_record_tuples = itertools.imap(index_func, to_index)
 
-        """ for ok, item in ei.bulk_index(itertools.imap(index_func,iter_func(ei, rc, typ, yield_record=True))):
-            pass """  
-        
         if index_record_tuples is not None:
             if no_index:
                 for _ in index_record_tuples:

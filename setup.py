@@ -82,7 +82,7 @@ setup(
         'celery[redis]>=4.0, <4.3',
         'boto>=2.49.0, <3.0.0',
         'boto3==1.17.112',
-        'fiona<=1.8.22',
+ #       'fiona<=1.8.22',
         'python-magic>=0.4.11, <=0.5.0',
         'feedparser>=5.2.0',
         'click>=6.3, <7.0',
@@ -93,15 +93,16 @@ setup(
         'jsonlines>=1.1.3',
         'py4j==0.10.9.7',
         'lxml==5.0.2',
-        'bsddb3==6.2.9'
+        'bsddb3==6.2.9',
+        "pillow-simd==6.2.2.post1",
+        'pyquery==1.2.17',
+        'pydub==0.16.5',
     ],
     extras_require={
         'ingestion': [
-            'pydub==0.16.5',
             #pillow_package,
             'lxml',
             'chardet==3.0.4',
-            'pyquery==1.2.17',
         ],
         'test': [
             'pytest>=3.0',

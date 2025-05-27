@@ -275,63 +275,41 @@ class ElasticSearchIndexer(object):
         Bulk formats something.
         Needs more info here.
         """
-        
-        itm = next(tups)
-        
-        if itm is not None:
-            for t, i in tups:
-                meta = {
-                    "_index": self.indexName,
-                    "_type": t,
-                    "_id": i["uuid"],
-                    "_source": i,
-                }
+        try:
+            first = next(tups)
+        except StopIteration:
+            return  # Nothing to yield
+    
+        # Yield the first item
+        for current in [first] + list(tups):
+            t, i = current
+            meta = {
+                "_index": self.indexName,
+                "_type": t,
+                "_id": i["uuid"],
+                "_source": i,
+            }
+    
+            if config.IDB_EXTRA_SERIOUS_DEBUG == 'yes':
+                logger.debug("Formatted for bulk: %s", meta["_id"])
+    
+            if i.get("delete", False):
+                meta["_op_type"] = "delete"
+                del meta["_source"]
+    
+            if t == "mediarecords":
+                if i.get('delete', False):
+                    r = self.query_for_one(i["uuid"], doc_type=t)
+                    if r is None:
+                        continue
+                    meta["_parent"] = r['_parent']
+                elif "records" in i and len(i["records"]) > 0:
+                    meta["_parent"] = i["records"][0]
+                else:
+                    meta["_parent"] = 0
+    
+            yield meta
 
-                if config.IDB_EXTRA_SERIOUS_DEBUG == 'yes':
-                    logger.debug("Formatted for bulk: %s", meta["_id"])
-                if i.get("delete", False):
-                    meta["_op_type"] = "delete"
-                    del meta["_source"]
-
-                if t == "mediarecords":
-                    if i.get('delete', False):
-                        r = self.query_for_one(i["uuid"], doc_type=t)
-                        if r is None:
-                            continue   # Delete one that is already not in the index
-                        meta["_parent"] = r['_parent']
-                    elif "records" in i and len(i["records"]) > 0:
-                        meta["_parent"] = i["records"][0]
-                    else:
-                        meta["_parent"] = 0
-
-                yield meta
-            
-            try:
-                itm = {
-                        "_index": self.indexName,
-                        "_type": t,
-                        "_id": i["uuid"],
-                        "_source": i,
-                    }
-
-                if config.IDB_EXTRA_SERIOUS_DEBUG == 'yes':
-                        logger.debug("Formatted for bulk: %s", itm["_id"])
-                if i.get("delete", False):
-                    itm["_op_type"] = "delete"
-                    del itm["_source"]
-
-                if t == "mediarecords":
-                    if i.get('delete', False):
-                        r = self.query_for_one(i["uuid"], doc_type=t)
-                        if r is not None:
-                            itm["_parent"] = r['_parent']
-                    elif "records" in i and len(i["records"]) > 0:
-                        itm["_parent"] = i["records"][0]
-                    else:
-                        itm["_parent"] = 0
-            except:
-                print ("Index not properly defined")
-                traceback.print_exc()
     
     def bulk_index(self, tups):
         """
@@ -364,7 +342,7 @@ class ElasticSearchIndexer(object):
         What is the point of this?
         """
         r = self.es.search(
-            index="idigbio",
+            index="idigbio-dev-local",
             doc_type=doc_type,
             _source=source,
             body={

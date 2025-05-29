@@ -528,7 +528,7 @@ def upload_recordset(rsid, fname, idbmodel):
         mo = MediaObject.fromobj(
             fobj, url=filereference, type='datasets', owner=config.IDB_UUID)
         k = mo.get_key(stor)
-        if k.exists():
+        if k:
             logger.debug("ETAG %s already present in Storage.", mo.etag)
         else:
             mo.upload(stor, fobj)

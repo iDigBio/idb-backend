@@ -708,19 +708,23 @@ def allrsids(since=None, ingest=False):
     logger.info("Checking %s recordsets", len(rsids))
     from .db_rsids import get_paused_rsids
     paused_recordsets = get_paused_rsids()
-    logger.info("Paused recordsets: {0}, rsids: {1}".format(len(paused_recordsets),paused_recordsets))
+    logger.info("Paused recordsets: {0}, rsids: {1}".format(len(paused_recordsets), paused_recordsets))
+    
     # Need to ensure all the connections are closed before multiprocessing forks
     apidbpool.closeall()
     
     # Create pool explicitly
     pool = multiprocessing.Pool()  # no 'processes=' → one worker per core
     try:
-        exitcodes = list(
-            pool.imap_unordered(
-                functools.partial(launch_child, ingest=ingest),
-                rsids
-            )
+        # Use map_async for true parallel execution
+        result = pool.map_async(
+            functools.partial(launch_child, ingest=ingest),
+            rsids
         )
+        
+        # Get results (this will block until all are complete, but they run in parallel)
+        exitcodes = result.get()
+        
         # Make sure to close and join the pool to ensure processes are cleaned up
         pool.close()
         pool.join()
@@ -729,9 +733,10 @@ def allrsids(since=None, ingest=False):
         pool.terminate()
         pool.join()
         raise
-        
+    
     badcount = sum(1 for e in exitcodes if e != 0)  # Replacing ilen with a standard approach
     if badcount:
         logger.critical("%d children failed", badcount)
+    
     from .ds_sum_counts import main as ds_sum_counts
     ds_sum_counts('./', sum_filename='summary.csv', susp_filename="suspects.csv")

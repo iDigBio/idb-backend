@@ -831,21 +831,51 @@ class RecordSet(object):
         if r:
             return RecordSet(**r)
 
-    @staticmethod
-    def fetch_file(uuid, filename, idbmodel=apidbpool, media_store=None, logger=logger):
+    def fetch_file(uuid,
+               filename,
+               idbmodel   = apidbpool,
+               media_store=None,
+               logger     = logger):
+        """
+        Download the object attached to a recordset into `filename`.
+    
+        Parameters
+        ----------
+        uuid : str
+            Recordset UUID.
+        filename : str
+            Local path to write the file to.
+        idbmodel : DB-helper with fetchone()  (defaults to global apidbpool)
+        media_store : S3-like helper with get_key() / get_contents_to_filename()
+        logger : logging.Logger
+        """
+    
         sql = """
             SELECT uuid, etag, objects.bucket
-            FROM recordsets
-            LEFT JOIN objects on recordsets.file_harvest_etag = objects.etag
-            WHERE recordsets.uuid = %s
+            FROM   recordsets
+            LEFT JOIN objects
+                   ON recordsets.file_harvest_etag = objects.etag
+            WHERE  recordsets.uuid = %s
         """
-        r = idbmodel.fetchone(sql, (uuid,), cursor_factory=cursor)
-        if not r:
-            raise ValueError("No recordset with uuid {0!r}".format(uuid))
-        uuid, etag, bucket = r
+    
+        cursor_factory = DictCursor    # or whatever was meant by “cursor”
+    
+        row = idbmodel.fetchone(sql, (uuid,), cursor_factory=cursor_factory)
+        if row is None:
+            raise ValueError("No recordset with uuid {!r}".format(uuid))
+    
+        rs_uuid, etag, bucket = row      # don’t shadow the arg “uuid”
+    
         if not etag:
-            raise ValueError("Recordset {0!r} doesn't have a stored object".format(uuid))
-        logger.info("Fetching etag %s to %r", etag, filename)
+            raise ValueError("Recordset {!r} has no stored object".format(rs_uuid))
+    
+        # ➋ On Py-2.7 logging still uses %-formatting; pass arguments separately
+        logger.info("Fetching etag %s to %s", etag, filename)
+    
         bucketname = "idigbio-{0}-{1}".format(bucket, os.environ["ENV"])
-        k = media_store.get_key(etag, bucketname)
-        media_store.get_contents_to_filename(k, filename, md5=etag)
+    
+        key = media_store.get_key(etag, bucketname)
+        media_store.get_contents_to_filename(key, filename, md5=etag)
+    
+        # ➌ Optional: console feedback even when no logger is configured
+        print("Downloaded", etag, "→", filename)

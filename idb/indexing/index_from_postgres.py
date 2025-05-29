@@ -28,6 +28,11 @@ last_afters = {}
 MAX_SLEEP = 600
 MIN_SLEEP = 120
 
+# Linux / BSD – inside the program
+import resource
+soft, hard = 18 * 1024**3, 18 * 1024**3   # 18 GiB
+resource.setrlimit(resource.RLIMIT_AS, (soft, hard))
+
 
 def rate_logger(prefix, iterator, every=10000):
     count = 0
@@ -251,15 +256,23 @@ def uuidsIter(uuid_l, ei, rc, typ, yield_record=False, children=False):
             sql = "SELECT * FROM idigbio_uuids_data WHERE uuid=%s and type=%s"
         params = (rid.strip(), typ[:-1])
         results = apidbpool.fetchall(sql, params, cursor_factory=DictCursor)
-        for rec in results:
-            if yield_record:
-                yield rec
-            else:
-                yield index_record(ei, rc, typ, rec, do_index=False)
-        
-        
+        batch_size = 1000000  # Set the desired batch size
 
+        record_iterator = apidbpool.fetchiter(sql, params, cursor_factory=DictCursor)
 
+        while True:
+            # Get an iterator from fetchiter
+            results = list(itertools.islice(record_iterator, batch_size))
+
+            if not results:
+                break  # Exit the loop if there are no more records
+
+            for rec in results:
+                if yield_record:
+                    yield rec
+                else:
+                    yield index_record(ei, rc, typ, rec, do_index=False)
+        
 def delete(ei, rc, no_index=False):
     logger.info("Running deletes")
 
@@ -316,26 +329,27 @@ def mappings_only(ei):
 
 def consume(ei, rc, iter_func, no_index=False):
     for typ in ei.types:
-        
-        # Construct a version of index record that can be just called with the
-        # record
-        index_func = functools.partial(index_record, ei, rc, typ, do_index=False)
 
-        to_index = iter_func(ei, rc, typ, yield_record=True)
-        index_record_tuples = itertools.imap(index_func, to_index)
+        index_func   = functools.partial(index_record, ei, rc, typ,
+                                         do_index=False)
+        to_index     = iter_func(ei, rc, typ, yield_record=True)
+        idx_tuples   = itertools.imap(index_func, to_index)
 
-        if index_record_tuples is not None:
+        if idx_tuples is not None:
             if no_index:
-                for _ in index_record_tuples:
+                for _ in idx_tuples:      # just exhaust the generator
                     pass
             else:
-                for ok, item in ei.bulk_index(index_record_tuples):
+                for ok, item in ei.bulk_index(idx_tuples):
                     if not ok:
-                        logger.warning('Failed during bulk index index: {0} '.format(item))
-            # We should never need to call gc manually.  Can we drop this?  Especially
-            # since we no longer ever use continuous mode.
-            # gc.collect()
-            logger.info("I would have collected here..") 
+                        logger.warning("Failed during bulk-index: %s", item)
+
+        # force a full *major* collection and wait until it is finished
+        gc.collect()                      # blocks until the major GC is done
+
+        # statistics *after* the collection
+        st = gc.get_stats()            # <GcStats …>
+        logger.info("GC: " + str(st))
 
 def continuous_incremental(ei, rc, no_index=False):
     while True:

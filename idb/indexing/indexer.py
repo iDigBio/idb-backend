@@ -275,39 +275,31 @@ class ElasticSearchIndexer(object):
         Bulk formats something.
         Needs more info here.
         """
-        try:
-            first = next(tups)
-        except StopIteration:
-            return  # Nothing to yield
-    
-        # Yield the first item
-        for current in [first] + list(tups):
-            t, i = current
+        for t, i in tups:
             meta = {
                 "_index": self.indexName,
                 "_type": t,
                 "_id": i["uuid"],
                 "_source": i,
             }
-    
+
             if config.IDB_EXTRA_SERIOUS_DEBUG == 'yes':
                 logger.debug("Formatted for bulk: %s", meta["_id"])
-    
             if i.get("delete", False):
                 meta["_op_type"] = "delete"
                 del meta["_source"]
-    
+
             if t == "mediarecords":
                 if i.get('delete', False):
                     r = self.query_for_one(i["uuid"], doc_type=t)
                     if r is None:
-                        continue
+                        continue   # Delete one that is already not in the index
                     meta["_parent"] = r['_parent']
                 elif "records" in i and len(i["records"]) > 0:
                     meta["_parent"] = i["records"][0]
                 else:
                     meta["_parent"] = 0
-    
+
             yield meta
 
     
@@ -315,13 +307,13 @@ class ElasticSearchIndexer(object):
         """
         Prepare docs → push to ES with internal thread-pool.
         """
-        actions = self.bulk_formater(tups)   # yields dict/tuple primitives
+        #actions = self.bulk_formater(tups)   # yields dict/tuple primitives
 
         # parallel_bulk uses a background queue and N worker threads;
         # nothing is pickled and it saturates the network link.
         return parallel_bulk(
             self.es,
-            actions,
+            self.bulk_formater(tups),
             thread_count=4,                  # tune for I/O bandwidth
             chunk_size=config.ES_INDEX_CHUNK_SIZE,
             max_chunk_bytes=1048576,

@@ -248,30 +248,46 @@ def queryIter(query, ei, rc, typ, yield_record=False):
 
 
 def uuidsIter(uuid_l, ei, rc, typ, yield_record=False, children=False):
+    """
+    Process UUIDs in batches of 10,000 to optimize memory usage.
+    """
+    batch_size = 10000
+    
     for rid in uuid_l:
         if children:
             logger.debug("Selecting children of %s.", rid)
             sql = "SELECT * FROM idigbio_uuids_data WHERE parent=%s and type=%s"
         else:
             sql = "SELECT * FROM idigbio_uuids_data WHERE uuid=%s and type=%s"
+        
         params = (rid.strip(), typ[:-1])
-        results = apidbpool.fetchall(sql, params, cursor_factory=DictCursor)
-        batch_size = 1000000  # Set the desired batch size
-
+        
+        # Use server-side cursor for memory efficiency
         record_iterator = apidbpool.fetchiter(sql, params, cursor_factory=DictCursor)
-
-        while True:
-            # Get an iterator from fetchiter
-            results = list(itertools.islice(record_iterator, batch_size))
-
-            if not results:
-                break  # Exit the loop if there are no more records
-
-            for rec in results:
-                if yield_record:
-                    yield rec
-                else:
-                    yield index_record(ei, rc, typ, rec, do_index=False)
+        
+        try:
+            while True:
+                # Get batch of 200,000 records using islice
+                batch = list(itertools.islice(record_iterator, batch_size))
+                
+                if not batch:
+                    break  # No more records to process
+                
+                # Process each record in the current batch
+                for rec in batch:
+                    if yield_record:
+                        yield rec
+                    else:
+                        yield index_record(ei, rc, typ, rec, do_index=False)
+                
+        except Exception as e:
+            logger.error("Error processing UUID %s: %s", rid, str(e))
+            continue
+        
+        finally:
+            # Ensure cursor is properly closed
+            if hasattr(record_iterator, 'close'):
+                record_iterator.close()
         
 def delete(ei, rc, no_index=False):
     logger.info("Running deletes")
@@ -345,7 +361,7 @@ def consume(ei, rc, iter_func, no_index=False):
                         logger.warning("Failed during bulk-index: %s", item)
 
         # force a full *major* collection and wait until it is finished
-        gc.collect()                      # blocks until the major GC is done
+        #gc.collect()                      # blocks until the major GC is done
 
         # statistics *after* the collection
         st = gc.get_stats()            # <GcStats …>

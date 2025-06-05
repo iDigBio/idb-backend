@@ -19,6 +19,8 @@ from idb.helpers.logging import idblogger
 from idigbio_ingestion.lib.util import download_file
 from idigbio_ingestion.lib.eml import parseEml
 
+import botocore
+
 #### disabling warnings per https://urllib3.readthedocs.org/en/latest/security.html#disabling-warnings
 ## Would rather have warnings go to log but could not get logging.captureWarnings(True) to work.
 ## There is no urllib3.enable_warnings method. Is it possible to disable_warnings and then re-enable them later?
@@ -524,11 +526,28 @@ def upload_recordset(rsid, fname, idbmodel):
     filereference = "http://api.idigbio.org/v1/recordsets/" + rsid
     logger.debug("Starting Upload of %r", rsid)
     stor = IDigBioStorage()
+
     with open(fname, 'rb') as fobj:
         mo = MediaObject.fromobj(
             fobj, url=filereference, type='datasets', owner=config.IDB_UUID)
         k = mo.get_key(stor)
-        if k:
+        fflag = 0
+
+        try:
+            status = k.archive_status       # triggers the HEAD request
+        except botocore.exceptions.ClientError as e:
+            if "Not Found" in str(e):
+                print("it says not found!")
+            else:
+                print("found!")
+                fflag += 1
+            # or inspect details:
+            code    = e.response['Error']['Code']      # '404'
+            message = e.response['Error']['Message']
+            print(code)
+            print(message)
+
+        if fflag > 0:
             logger.debug("ETAG %s already present in Storage.", mo.etag)
         else:
             mo.upload(stor, fobj)

@@ -21,6 +21,8 @@ from idb.helpers.etags import calcEtag, calcFileHash
 from idb.helpers.media_validation import validate, EtagMismatchError
 from idb.helpers.conversions import get_accessuri
 
+import botocore
+
 
 TEST_SIZE = 10000
 TEST_COUNT = 10
@@ -729,7 +731,24 @@ class MediaObject(object):
 
     def upload(self, media_store, fobj, force=False):
         k = self.get_key(media_store)
-        if force or not k.exists():
+
+        fflag = 0
+
+        try:
+            status = k.archive_status       # triggers the HEAD request
+        except botocore.exceptions.ClientError as e:
+            if "Not Found" in str(e):
+                print("it says not found!")
+            else:
+                print("found!")
+                fflag += 1
+            # or inspect details:
+            code    = e.response['Error']['Code']      # '404'
+            message = e.response['Error']['Message']
+            print(code)
+            print(message)
+        
+        if force or fflag == 0:
             media_store.upload(k, fobj, content_type=self.detected_mime, md5=self.etag)
         return k
 

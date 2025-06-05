@@ -535,6 +535,8 @@ def upload_recordset(rsid, fname, idbmodel):
 
         try:
             status = k.archive_status       # triggers the HEAD request
+            if k.content_length > 0:
+                fflag += 1
         except botocore.exceptions.ClientError as e:
             if "Not Found" in str(e):
                 print("it says not found!")

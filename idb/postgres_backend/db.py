@@ -831,7 +831,8 @@ class RecordSet(object):
         "id", "uuid", "publisher_uuid", "name", "recordids",
         "eml_link", "file_link", "ingest", "first_seen",
         "last_seen", "pub_date", "file_harvest_date",
-        "file_harvest_etag","eml_harvest_date", "eml_harvest_etag", "ingest_is_paused"
+        "file_harvest_etag", "eml_harvest_date",
+        "eml_harvest_etag", "ingest_is_paused"
     ]
 
     def __init__(self, **attrs):
@@ -852,25 +853,26 @@ class RecordSet(object):
         if r:
             return RecordSet(**r)
 
-    def fetch_file(uuid,
-               filename,
-               idbmodel   = apidbpool,
-               media_store=None,
-               logger     = logger):
+    @staticmethod
+    def fetch_file(recordset_uuid,
+                   filename,
+                   idbmodel   = apidbpool,
+                   media_store=None,
+                   logger     = logger):
         """
         Download the object attached to a recordset into `filename`.
-    
+
         Parameters
         ----------
-        uuid : str
+        recordset_uuid : str
             Recordset UUID.
         filename : str
             Local path to write the file to.
-        idbmodel : DB-helper with fetchone()  (defaults to global apidbpool)
-        media_store : S3-like helper with get_key() / get_contents_to_filename()
+        idbmodel : DB helper with fetchone() (defaults to global apidbpool)
+        media_store : S3-like helper with get_key()/get_contents_to_filename()
         logger : logging.Logger
         """
-    
+
         sql = """
             SELECT uuid, etag, objects.bucket
             FROM   recordsets
@@ -878,25 +880,23 @@ class RecordSet(object):
                    ON recordsets.file_harvest_etag = objects.etag
             WHERE  recordsets.uuid = %s
         """
-    
-        cursor_factory = DictCursor    # or whatever was meant by “cursor”
-    
-        row = idbmodel.fetchone(sql, (uuid,), cursor_factory=cursor_factory)
+
+        row = idbmodel.fetchone(sql, (recordset_uuid,),
+                                cursor_factory=DictCursor)
         if row is None:
-            raise ValueError("No recordset with uuid {!r}".format(uuid))
-    
-        rs_uuid, etag, bucket = row      # don’t shadow the arg “uuid”
-    
+            raise ValueError("No recordset with uuid {!r}"
+                             .format(recordset_uuid))
+
+        rs_uuid, etag, bucket = row
         if not etag:
-            raise ValueError("Recordset {!r} has no stored object".format(rs_uuid))
-    
-        # ➋ On Py-2.7 logging still uses %-formatting; pass arguments separately
+            raise ValueError("Recordset {!r} has no stored object"
+                             .format(rs_uuid))
+
         logger.info("Fetching etag %s to %s", etag, filename)
-    
+
         bucketname = "idigbio-{0}-{1}".format(bucket, os.environ["ENV"])
-    
         key = media_store.get_key(etag, bucketname)
         media_store.get_contents_to_filename(key, filename, md5=etag)
-    
-        # ➌ Optional: console feedback even when no logger is configured
+
+        # optional console feedback
         print("Downloaded", etag, "→", filename)

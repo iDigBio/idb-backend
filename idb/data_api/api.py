@@ -69,5 +69,5 @@ def healthz():
     return jsonify({
         "dbconn": idbmodel.fetchone("SELECT 'ok'")[0],
         'remote_addr': request.remote_addr,
-        'version': __version__
+        'version': __version__.decode('utf-8')
     })

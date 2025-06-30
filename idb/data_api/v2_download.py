@@ -15,7 +15,7 @@ from idb.helpers.etags import objectHasher
 
 from .common import json_error, logger
 
-this_version = Blueprint(__name__,__name__)
+this_version = Blueprint(__name__.replace(".","-"),__name__.replace(".","-"))
 
 QUERY_VALID_TIME = timedelta(hours=23)
 TASK_EXPIRE_TIME = timedelta(days=30)
@@ -55,7 +55,7 @@ def download():
             if isinstance(o[k], list):
                 o[k] = o[k][0]
 
-            if isinstance(o[k], basestring):
+            if isinstance(o[k], str):
                 try:
                     params[k] = json.loads(o[k])
                 except ValueError:
@@ -79,6 +79,7 @@ def download():
     if not force:
         tid = rconn.get(rqhk)
         if tid:
+            tid = tid.decode(encoding='utf-8')
             tdata = get_task_status(tid)
             if not tdata or tdata.get('task_status') in ('FAILURE', 'UNKNOWN'):
                 tid = None
@@ -108,6 +109,7 @@ def get_task_status(tid):
     rtkey = DOWNLOADER_TASK_PREFIX + tid
     try:
         tdata = rconn.hgetall(rtkey)
+        tdata = {key.decode('utf-8'): value.decode('utf-8') for key, value in tdata.items()}
         if len(tdata) == 0:
             return None
         tdata["query"] = json.loads(tdata["query"])

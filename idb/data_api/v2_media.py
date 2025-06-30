@@ -16,7 +16,7 @@ from idb.helpers.media_validation import (
 
 from .common import json_error, idbmodel, logger
 
-this_version = Blueprint(__name__, __name__)
+this_version = Blueprint(__name__.replace(".","-"),__name__.replace(".","-"))
 
 # TODO:
 # List endpoints?
@@ -131,7 +131,7 @@ def lookup_uuid(u, format):
 @this_version.route('/media/<string:etag>',
                     methods=['GET', 'OPTIONS'],
                     defaults={"format": None})
-@this_version.route('/media/<string:etag>.<string:format>',
+@this_version.route('/media/<string:etag>.<string(length=10):format>',
                     methods=['GET', 'OPTIONS'])
 @crossdomain(origin="*")
 def lookup_etag(etag, format):

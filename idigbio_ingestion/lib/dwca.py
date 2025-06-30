@@ -5,7 +5,7 @@ from collections import deque
 import traceback
 import shutil
 import requests
-from cStringIO import StringIO
+from io import StringIO
 
 from idb.helpers.logging import idblogger, getLogger
 from .delimited import DelimitedFile
@@ -226,11 +226,11 @@ class DwcaRecordFile(DelimitedFile):
             ignoreheader -= 1
 
 def get_unescaped_linesTerminatedBy(filedict):
-    return filedict["#linesTerminatedBy"].decode('string_escape')
+    return filedict["#linesTerminatedBy"] #decode('string_escape')
 
 def get_unescaped_fieldsTerminatedBy(filedict):
-    return filedict["#fieldsTerminatedBy"].decode('string_escape')
+    return filedict["#fieldsTerminatedBy"] #decode('string_escape')
 
 def get_unescaped_fieldsEnclosedBy(filedict):
-    return filedict["#fieldsEnclosedBy"].decode('string_escape')
+    return filedict["#fieldsEnclosedBy"] #decode('string_escape')
 

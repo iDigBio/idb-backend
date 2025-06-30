@@ -98,7 +98,7 @@ class GeventedConnPool(object):
             elif status != psycopg2.extensions.TRANSACTION_STATUS_IDLE:
                 # connection in error or in transaction
                 conn.rollback()
-        except StandardError:
+        except Exception as e:
             logger.exception("Failed in put")
             self.lock.release()
             gevent.get_hub().handle_error(conn, *sys.exc_info())

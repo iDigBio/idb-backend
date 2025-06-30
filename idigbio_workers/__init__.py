@@ -10,7 +10,7 @@ from idb.helpers.memoize import memoized
 env = config.ENV
 
 app = Celery('tasks')
-app.config_from_object('idigbio_workers.config.' + env)
+app.config_from_object('idigbio_workers.config')
 
 # this must be imported so it has a chance to register worker tasks.
 from idigbio_workers.tasks.download import downloader, blocker, send_download_email  # noqa
@@ -27,6 +27,9 @@ def get_redis_connection_params():
 def get_redis_conn():
     import redis
     return redis.StrictRedis(**get_redis_connection_params())
+
+def dev():
+    return
 
 
 @app.task()

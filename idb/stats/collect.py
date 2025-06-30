@@ -117,7 +117,7 @@ def collect_stats(collect_datetime, es=None):
              LEFT JOIN queries on stats.query_id=queries.id
              WHERE date > %s AND date < %s
     """
-    logger.debug("min is %s, max is %s, query is: %s" % (date_min, date_max, sql))
+    logger.info("min is %s, max is %s, query is: %s" % (date_min, date_max, sql))
 
     filename = "telem-output-structures-%s.log" % (datetime.now().strftime("%Y-%m-%d-%H-%M-%S"))
     tracefilename = "trace-log-%s.log" % (datetime.now().strftime("%Y-%m-%d-%H-%M-%S"))
@@ -134,7 +134,7 @@ def collect_stats(collect_datetime, es=None):
         stats_type = r["type"]
         query_hash = r["query_hash"]
         geocode = json.dumps(r["ip_geocode"], sort_keys=True)
-
+        
         trace_fh.write("record_type: [%s] stats_type: [%s] query_hash: [%s] geocode: %s \n\n" % (record_type, stats_type, query_hash, geocode))
 
         if record_type in record_types:
@@ -171,6 +171,7 @@ def collect_stats(collect_datetime, es=None):
         }
         for record_type in record_types:
             recordset_data[record_type] = {}
+
             for stat_type in stat_types:
                 log_line = "\n\n###############################\nbeginning second loop for record_type: [%s] stat_type: [%s] \n" % (record_type, stat_type)
                 trace_fh.write(log_line)
@@ -215,8 +216,8 @@ def collect_stats(collect_datetime, es=None):
                         "count": recordset_stats[recordset_key][record_type][stat_type]["geocodes"][k]
                     })
         trace_fh.write("writing recordset_data to ES: \n")
-        output_fh.write(json.dumps(recordset_data))
-        trace_fh.write(json.dumps(recordset_data))
+        output_fh.write(json.dumps(recordset_data, sort_keys=True) + "\n")
+        trace_fh.write(json.dumps(recordset_data, sort_keys=True) + "\n")
         
         es.index(index=indexName, doc_type=typeName, body=recordset_data)
     

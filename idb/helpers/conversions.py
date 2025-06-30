@@ -277,7 +277,7 @@ def getfield(f, d, t="text"):
         if t == "list":
             return [x.lower().strip() for x in d[f]]
         else:
-            if isinstance(d[f], str) or isinstance(d[f], unicode):
+            if isinstance(d[f], str) or isinstance(d[f], str):
                 return d[f].lower().strip()
             else:
                 return d[f]
@@ -375,7 +375,7 @@ def intGrabber(t, d):
     for f in ef[t]:
         fv = getfield(f[1], d)
         if fv is not None:
-            if isinstance(fv, (str, unicode)):
+            if isinstance(fv, (str, str)):
                 try:
                     n = grabFirstNumber(fv)
                     if n is not None:
@@ -930,7 +930,7 @@ def grabAll(t, d):
     # r.update(geoshape_fill(t, d, r))
 
     r["flags"] = setFlags(r)
-    for k in r.keys():
+    for k in list(r.keys()):
         if k.startswith("flag_"):
             r["flags"].append("_".join(k.split("_")[1:]))
             del r[k]
@@ -984,7 +984,7 @@ def main():
                 continue
             break
 
-    print "records ready"
+    print("records ready")
 
     interations = 1
 
@@ -1002,7 +1002,7 @@ def main():
             total_time += (t2 - t1).total_seconds()
             count += 1
 
-    print count, total_time, total_time / count
+    print(count, total_time, total_time / count)
 
     # t = sys.argv[1]
     # u = sys.argv[2]

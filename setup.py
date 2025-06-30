@@ -18,8 +18,8 @@ version = re.search(r'^__version__\s*=\s*[\'"]([^\'"]*)[\'"]',
                     read(os.path.join(os.path.dirname(__file__), 'idb/__init__.py')), re.MULTILINE).group(1)
 
 # Abort if on Python 3 since we know the codebase does not support it.
-if sys.version_info >= (3,0):
-    sys.exit("idb-backend: Python 3 is not supported. Consider passing '-p python2.7' when creating the venv.")
+#if sys.version_info >= (3,0):
+    #sys.exit("idb-backend: Python 3 is not supported. Consider passing '-p python2.7' when creating the venv.")
 
 # Pillow-SIMD causes segfault on newer Python 2.
 # We do not yet support Python 3.
@@ -60,32 +60,32 @@ setup(
         'Cython<3.0',
         'idigbio>=0.8.2',
         'psycopg2cffi>=2.9.0',
-        'redis>=2.9.1, <3.0.0',
+        'redis>=2.9.1',
         'python-dateutil>=2.2, <3.0',
         'udatetime>=0.0.13',
         'elasticsearch>=5, <6',
-        'pyproj==1.9.3',
+        'pyproj>1.9.3',
         'pytz>=2016.10',
         'requests==2.27.1',
-        'urllib3==1.25.11',
+        'urllib3>1.25.11',
         'pycryptodome<4',
-        'flask>=0.11.0, <1.0.0',
+        'flask>=0.11.0',
         'Flask-UUID',
         'Flask-CORS',
         'coverage',
         'numpy',
  #       'scipy<=1.2.3',
-        'gevent>=1.1.0, <1.2.0',
+        'gevent>=1.1.0',
         'gipc>=0.6.0, <0.7.0',
         'unicodecsv>=0.14.1, < 0.15.0',
         'shapely',
-        'celery[redis]>=4.0, <4.3',
-        'boto>=2.49.0, <3.0.0',
-        'boto3==1.17.112',
+        'celery[redis]>=4.0',
+        #'boto>=2.49.0, <3.0.0',
+        'boto3>1.17.112',
  #       'fiona<=1.8.22',
         'python-magic>=0.4.11, <=0.5.0',
         'feedparser>=5.2.0',
-        'click>=6.3, <7.0',
+        'click>=6.3',
         'atomicfile==1.0',
         'enum34>=1.1.6, <1.2.0',
         'path.py>=10.0.0, <11',
@@ -95,7 +95,7 @@ setup(
         'lxml==5.0.2',
         'bsddb3==6.2.9',
         "pillow-simd==6.2.2.post1",
-        'pyquery==1.2.17',
+        'pyquery>1.2.17',
         'pydub==0.16.5',
     ],
     extras_require={

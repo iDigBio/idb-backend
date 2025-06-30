@@ -23,7 +23,7 @@ def parseEml(id, emlText):
     # It is possible we could trap this ahead of time by checking the raw emlText for key xml features
     # or HTML document features.
 
-    eml = pq(emlText, parser='xml')
+    eml = pq(emlText.encode(), parser='xml')
 
     ### The eml().txt() function returns an empty string instead of None if the location does not exist in the eml
     ### (if there is "no text node" according to release notes https://pypi.python.org/pypi/pyquery)

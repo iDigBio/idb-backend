@@ -210,7 +210,7 @@ def query_to_csv(outf, t, body, header_fields, fields, id_field, raw, tabs, id_f
             for k in fields:
                 v = get_source_value(r["_source"],k)
                 if v is not None:
-                    if isinstance(v, str) or isinstance(v, unicode):
+                    if isinstance(v, str) or isinstance(v, str):
                         r_fields.append(v)
                     else:
                         r_fields.append(json.dumps(v))
@@ -276,7 +276,7 @@ def make_file(t, query, raw=False, tabs=False, fields=None,
 
         es = get_connection()
         mapping = es.indices.get_mapping(index=indexName, doc_type=t)
-        mapping_root = mapping.values()[0]["mappings"][t]["properties"]
+        mapping_root = list(mapping.values())[0]["mappings"][t]["properties"]
         if raw:
             mapping_root = mapping_root["data"]["properties"]
 
@@ -459,7 +459,7 @@ def generate_files(core_type="records", core_source="indexterms", record_query=N
         zipfilename = filename + ".zip"
         with zipfile.ZipFile(zipfilename, 'w', zipfile.ZIP_DEFLATED, True) as expzip:
             meta_files = []
-            for fa in itertools.ifilter(None, files):
+            for fa in files:
                 expzip.write(fa.filename, fa.archivename)
                 os.unlink(fa.filename)
                 if fa.meta_block is not None:

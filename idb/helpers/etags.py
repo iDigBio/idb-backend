@@ -3,6 +3,7 @@ import hashlib
 import json
 
 
+
 def calcEtag(data):
     arr = []
     for k in sorted(data.keys()):
@@ -49,17 +50,19 @@ def objectHasher(hash_type, data, sort_arrays=False, sort_keys=True):
                                    sort_arrays=sort_arrays,
                                    sort_keys=sort_keys))
         if sort_arrays:
-            sa.sort()
+            #sa.sort()
+            sa = sorted(sa)
         s = "".join(sa)
 
-    elif isinstance(data, str) or isinstance(data, unicode):
+    elif isinstance(data, str):
         s = data
     elif isinstance(data, int) or isinstance(data, float):
         s = str(data)
     elif isinstance(data, dict):
-        ks = data.keys()
+        ks = list(data.keys())
         if sort_keys:
-            ks.sort()
+            #ks.sort()
+            ks = sorted(ks)
 
         for k in ks:
             s += k + objectHasher(hash_type,

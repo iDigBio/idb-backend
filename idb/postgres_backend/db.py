@@ -7,11 +7,12 @@ import sys
 import itertools
 
 from datetime import datetime
-from cStringIO import StringIO
-
-from psycopg2.extras import DictCursor, NamedTupleCursor
-from psycopg2.extensions import cursor
-from psycopg2.extensions import (ISOLATION_LEVEL_READ_COMMITTED,
+from io import StringIO
+from psycopg2cffi import compat
+compat.register()
+from psycopg2cffi.extras import DictCursor, NamedTupleCursor
+from psycopg2cffi.extensions import cursor
+from psycopg2cffi.extensions import (ISOLATION_LEVEL_READ_COMMITTED,
                                  ISOLATION_LEVEL_AUTOCOMMIT,
                                  TRANSACTION_STATUS_IDLE)
 from idb import config
@@ -590,7 +591,7 @@ class MediaObject(object):
     )
 
     def __init__(self, *args, **kwargs):
-        for s, a in itertools.izip_longest(self.__slots__, args):
+        for s, a in itertools.zip_longest(self.__slots__, args):
             setattr(self, s, a)
         for kw in kwargs.items():
             setattr(self, *kw)

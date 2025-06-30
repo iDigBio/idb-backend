@@ -5,7 +5,7 @@ from flask import current_app, Blueprint, jsonify, url_for, request
 from idb.helpers.cors import crossdomain
 from .common import json_error, idbmodel, logger
 
-this_version = Blueprint(__name__,__name__)
+this_version = Blueprint(__name__.replace(".","-"),__name__.replace(".","-"))
 
 
 def format_list_item(t,uuid,etag,modified,version,parent):

@@ -7,7 +7,7 @@ from idb.helpers.storage import IDigBioStorage
 from .common import json_error, idbmodel
 
 
-this_version = Blueprint(__name__, __name__)
+this_version = Blueprint(__name__.replace(".","-"),__name__.replace(".","-"))
 
 
 def format_list_item(t, uuid, etag, modified, version, parent):

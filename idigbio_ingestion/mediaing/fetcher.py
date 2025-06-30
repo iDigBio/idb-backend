@@ -8,15 +8,15 @@ from sched import scheduler
 import signal
 from collections import Counter
 from datetime import datetime
-from cStringIO import StringIO
+from io import StringIO
 
 import requests
 import gevent.pool
 #import gipc
 from gevent import sleep
-from boto.exception import BotoServerError, BotoClientError
+#from boto.exception import BotoServerError, BotoClientError
 from requests.exceptions import MissingSchema, InvalidSchema, InvalidURL, ConnectionError
-from psycopg2.extensions import cursor
+from psycopg2cffi.extensions import cursor
 
 
 from idb.helpers import ilen
@@ -29,10 +29,10 @@ from idb.postgres_backend import apidbpool
 from idb.postgres_backend.db import MediaObject, PostgresDB
 
 
-from idigbio_ingestion.mediaing import IGNORE_PREFIXES, Status
+from idigbio_ingestion.mediaing import IGNORE_PREFIXES, Status #taskletproc
 import threading
 import traceback
-from stackless import channel, tasklet, run as schedule_run
+#from stackless import channel, tasklet, run as schedule_run
 
 class TaskletProc(object):
     """
@@ -58,8 +58,8 @@ class TaskletProc(object):
 
     # --------------------------------------------------
     def start(self, target, *args, **kwargs):
-        self._task = tasklet(self._runner)(target, args, kwargs)
-        TaskletProc._alive.append(self._task)   # prevent GC
+        self._task = ThreadProc(self._runner)(target, args, kwargs)
+        ThreadProc._alive.append(self._task)   # prevent GC
 
     def join(self):
         while self.exitcode is None:
@@ -155,7 +155,7 @@ def continuous(prefix=None, looptime=3600):
         logger.debug("Loop top")
         t1 = datetime.now()
         ignores = set(IGNORE_PREFIXES)
-        for pf, proc in running.items():
+        for pf, proc in list(running.items()):
             if proc.exitcode is not None:
                 del running[pf]
                 lvl = logging.CRITICAL if proc.exitcode != 0 else logging.DEBUG
@@ -186,11 +186,11 @@ def process_list(fetchitems, forprefix=''):
         uploadpool = gevent.pool.Pool(8)
         items = fetchrpool.imap_unordered(lambda fi: fi.get_media(), fetchitems, maxsize=10)
         items = uploadpool.imap_unordered(lambda fi: fi.upload_to_storage(store), items, maxsize=10)
-        items = itertools.imap(FetchItem.cleanup, items)
+        items = map(lambda fi: fi.cleanup, items)
         items = update_db_status(items)
         items = count_result_types(items, forprefix=forprefix)
         return ilen(items)  # consume the generator
-    except StandardError:
+    except Exception as e:
         logger.exception("Unhandled error forprefix:%s", forprefix)
         raise
 
@@ -346,7 +346,7 @@ class FetchItem(object):
             if self.ok:
                 logger.info("Success!  %s", self.url)
             return self
-        except StandardError:
+        except Exception as e:
             self.status_code = Status.UNHANDLED_FAILURE
             logger.exception("Unhandled error processing: %s", self.url)
             return self
@@ -434,7 +434,7 @@ class FetchItem(object):
                 try:
                     mo.upload(store, StringIO(self.content), force=True)
                     logger.debug("Uploaded  %s etag %s", self.url, mo.etag)
-                except (BotoServerError, BotoClientError) as e:
+                except Exception as e:
                     logger.exception("Failed uploading to storage: %s", self.url)
                     self.reason = str(e)
                     self.status_code = Status.STORAGE_ERROR
@@ -522,7 +522,7 @@ class TropicosItem(FetchItem):
                                  self.url, self.sleep_retry, self.retries)
                     sleep(self.sleep_retry)
                     self.sleep_retry *= 1.5
-        except StandardError:
+        except Exception as e:
             self.status_code = Status.UNHANDLED_FAILURE
             logger.exception("Unhandled %s", self.url)
         return self

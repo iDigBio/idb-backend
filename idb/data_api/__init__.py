@@ -43,7 +43,7 @@ def run_server(info, host, port, reload, debugger, eager_loading, debug, wsgi):
     addition of the --wsgi flag
 
     """
-    info.app_import_path = 'idb.data_api.api:app'
+    info.app_import_path = 'idb-data_api-api:app'
     info.debug = debug
     from idb import config
 
@@ -85,12 +85,12 @@ def run_server(info, host, port, reload, debugger, eager_loading, debug, wsgi):
 
     elif wsgi == 'gevent':
         from gevent.pool import Pool
-        from gevent.wsgi import WSGIServer
+        from gevent.pywsgi import WSGIServer
         from idb.helpers.logging import idblogger
         from requestlogger import WSGILogger, ApacheFormatter
         logger = idblogger.getChild('api')
 
-        from werkzeug.contrib.fixers import ProxyFix
+        from werkzeug.middleware.proxy_fix import ProxyFix
         logger.info("gevent server @ http://%s:%s/ ENV=%s", host, port, config.ENV)
         app = info.load_app()
         app = WSGILogger(app, [], ApacheFormatter())

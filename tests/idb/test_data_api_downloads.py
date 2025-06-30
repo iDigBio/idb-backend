@@ -86,7 +86,7 @@ def setupredis(client, tid=None, task_status=None, download_url=None, error=None
 
 def test_status_complete_task(client, fakeredcli):
     tid = setupredis(fakeredcli, task_status="SUCCESS", download_url="http://example.com")
-    resp = client.get(url_for('idb.data_api.v2_download.status', tid=tid))
+    resp = client.get(url_for('idb-data_api-v2_download.status', tid=tid))
     assert resp.status_code == 200
     assert resp.json['download_url'] == "http://example.com"
     assert resp.json['complete'] is True
@@ -99,7 +99,7 @@ def test_status_complete_task(client, fakeredcli):
 def test_status_pending_task(client, fakeredcli, fakeresult):
     tid = setupredis(fakeredcli)
     fakeresult.status = "PENDING"
-    resp = client.get(url_for('idb.data_api.v2_download.status', tid=tid))
+    resp = client.get(url_for('idb-data_api-v2_download.status', tid=tid))
     assert resp.status_code == 200
     assert resp.json['task_status'] == "PENDING"
     assert resp.json['complete'] is False
@@ -113,7 +113,7 @@ def test_status_pending_now_success(client, fakeredcli, fakeresult):
     tid = setupredis(fakeredcli)
     fakeresult.status = "SUCCESS"
     fakeresult.result = "http://foo/bar"
-    resp = client.get(url_for('idb.data_api.v2_download.status', tid=tid))
+    resp = client.get(url_for('idb-data_api-v2_download.status', tid=tid))
     assert resp.status_code == 200
     assert resp.json['download_url'] == "http://foo/bar"
     assert resp.json['complete'] is True
@@ -127,7 +127,7 @@ def test_status_pending_now_failure(client, fakeredcli, fakeresult):
     tid = setupredis(fakeredcli)
     fakeresult.status = 'FAILURE'
     fakeresult.result = ValueError("woot")
-    resp = client.get(url_for('idb.data_api.v2_download.status', tid=tid))
+    resp = client.get(url_for('idb-data_api-v2_download.status', tid=tid))
     assert resp.status_code == 200
     assert resp.json['error'] == "woot"
     assert resp.json['complete'] is True
@@ -145,7 +145,7 @@ def test_status_pending_now_failure_already_unlinked(client, fakeredcli, fakeres
     fakeredcli.set(DOWNLOADER_TASK_PREFIX + "foobar", "woot")
     fakeresult.status = 'FAILURE'
     fakeresult.result = ValueError("woot")
-    resp = client.get(url_for('idb.data_api.v2_download.status', tid=tid))
+    resp = client.get(url_for('idb-data_api-v2_download.status', tid=tid))
     assert resp.status_code == 200
     assert resp.json['error'] == "woot"
     assert resp.json['complete'] is True
@@ -153,49 +153,49 @@ def test_status_pending_now_failure_already_unlinked(client, fakeredcli, fakeres
     assert from_string(resp.json['created'])
     assert from_string(resp.json['expires'])
     assert 'download_url' not in resp.json
-    assert "woot" == fakeredcli.get(DOWNLOADER_TASK_PREFIX + "foobar")
+    assert b'woot' == fakeredcli.get(DOWNLOADER_TASK_PREFIX + "foobar")
 
 
 def test_initialization_no_params(client):
-    resp = client.get(url_for('idb.data_api.v2_download.download'))
+    resp = client.get(url_for('idb-data_api-v2_download.download'))
     assert resp.status_code == 400
 
 
 def test_initialization(client, fakeredcli, fakeresult):
-    resp = client.get(url_for('idb.data_api.v2_download.download', rq={"genus": "acer"}))
+    resp = client.get(url_for('idb-data_api-v2_download.download', rq={"genus": "acer"}))
     assert resp.status_code == 200
     assert 'status_url' in resp.json
     tid = resp.json['status_url'].split('/')[-1]
     data = fakeredcli.hgetall(DOWNLOADER_TASK_PREFIX + tid)
     assert data
     assert len(data) != 0
-    assert data['query']
-    assert data['hash']
-    assert data['created']
+    assert data[b'query']
+    assert data[b'hash']
+    assert data[b'created']
 
 
 def test_initialization_repeated_request(client, fakeredcli, fakeresult):
     "Two requests with the same query should create the same download task"
-    resp = client.get(url_for('idb.data_api.v2_download.download', rq={"genus": "acer"}))
+    resp = client.get(url_for('idb-data_api-v2_download.download', rq={"genus": "acer"}))
     assert resp.status_code == 200
     assert 'status_url' in resp.json
     tid = resp.json['status_url'].split('/')[-1]
     data = fakeredcli.hgetall(DOWNLOADER_TASK_PREFIX + tid)
     assert data
     assert len(data) != 0
-    assert data['query']
-    assert data['hash']
-    assert data['created']
+    assert data[b'query']
+    assert data[b'hash']
+    assert data[b'created']
+    hash = data[b'hash'].decode(encoding='utf-8')
+    assert fakeredcli.get(DOWNLOADER_TASK_PREFIX + hash).decode(encoding='utf-8') == tid
 
-    assert fakeredcli.get(DOWNLOADER_TASK_PREFIX + data['hash']) == tid
-
-    resp = client.get(url_for('idb.data_api.v2_download.download', rq={"genus": "acer"}))
+    resp = client.get(url_for('idb-data_api-v2_download.download', rq={"genus": "acer"}))
     assert resp.status_code == 200
     assert 'status_url' in resp.json
     tid2 = resp.json['status_url'].split('/')[-1]
     assert tid == tid2
 
-    resp = client.get(url_for('idb.data_api.v2_download.download', rq={"genus": "acer"}, force=True))
+    resp = client.get(url_for('idb-data_api-v2_download.download', rq={"genus": "acer"}, force=True))
     assert resp.status_code == 200
     assert 'status_url' in resp.json
     tid3 = resp.json['status_url'].split('/')[-1]
@@ -207,7 +207,7 @@ def test_initialization_repeated_request(client, fakeredcli, fakeresult):
 
 def test_initialization_failed_task(client, fakeredcli, fakeresult):
     "If a download task a has failed, a new POST should retry"
-    resp = client.get(url_for('idb.data_api.v2_download.download', rq={"genus": "acer"}))
+    resp = client.get(url_for('idb-data_api-v2_download.download', rq={"genus": "acer"}))
     assert resp.status_code == 200
     assert 'status_url' in resp.json
     tid = resp.json['status_url'].split('/')[-1]
@@ -215,14 +215,14 @@ def test_initialization_failed_task(client, fakeredcli, fakeresult):
     data = fakeredcli.hgetall(DOWNLOADER_TASK_PREFIX + tid)
     assert data
     assert len(data) != 0
-    assert data['query']
-    assert data['hash']
-    assert data['created']
-
-    assert fakeredcli.get(DOWNLOADER_TASK_PREFIX + data['hash']) == tid
+    assert data[b'query']
+    assert data[b'hash']
+    assert data[b'created']
+    hash = data[b'hash'].decode(encoding='utf-8')
+    assert fakeredcli.get(DOWNLOADER_TASK_PREFIX + hash).decode(encoding='utf-8') == tid
     fakeresult.status = "FAILURE"
 
-    resp = client.get(url_for('idb.data_api.v2_download.download', rq={"genus": "acer"}))
+    resp = client.get(url_for('idb-data_api-v2_download.download', rq={"genus": "acer"}))
     assert resp.status_code == 200
     assert 'status_url' in resp.json
     tid2 = resp.json['status_url'].split('/')[-1]

@@ -1,3 +1,6 @@
+# Updates to this file SHOULD also be reflected into https://github.com/iDigBio/idigbio-search-api/blob/master/src/lib/query-shim.js
+# Last reviewed 2025-12-02 against https://github.com/iDigBio/idigbio-search-api/blob/0191b904f32d350fd5c79894e6022bac2b457a05/src/lib/query-shim.js
+
 from __future__ import division, absolute_import, print_function
 import copy
 
@@ -66,6 +69,11 @@ def prefixFilter(k, shimK):
 
 
 def geoBoundingBox(k, shimK):
+    #Don't allow invalid coordinates to be passed to ES
+    if shimK["top_left"]["lat"] < shimK["bottom_right"]["lat"]:
+        temp = shimK["top_left"]["lat"]
+        shimK["top_left"]["lat"] = shimK["bottom_right"]["lat"]
+        shimK["bottom_right"]["lat"]
     return typeWrapper(k, "geo_bounding_box", shimK)
 
 
@@ -83,11 +91,11 @@ def geoDistance(k, shimK):
 
 
 def geoShape(k, shimK):
-    return typeWrapper(k, "geo_shape", {"shape": shimK})
+    return typeWrapper(k, "geo_shape", {"shape": shimK["value"]})
 
 
 def geoPolygon(k, shimK):
-    return typeWrapper(k, "geo_polygon", {"points": shimK})
+    return typeWrapper(k, "geo_polygon", {"points": shimK["value"]})
 
 
 def termFilter(k, shimK):
@@ -132,11 +140,77 @@ def queryFilter(k, shimK):
         }
     }
 
+
+def exactFilter(k, shimK): # handler for "exact" toggle on portal UI.
+    term = dict()
+    term[k+'.exact'] = shimK['text']
+
+    if isinstance(shimK['text'], list):
+        #noop: also unused in idigbio-search-api:query-shim.js
+        #map(lambda s: s.lower(), term[k+'.exact'])
+
+        return { "terms": term }  # use "terms" plural when passing an array of terms.
+    else:
+        term[k+'.exact'] = term[k+'.exact'].lower()
+        return { "term": term }
+
+
+def keywordFilter(k, shimK):
+    term = dict()
+    term[k+'.keyword'] = shimK['text']
+
+    if isinstance(shimK['text'], list):
+        #noop: also unused in idigbio-search-api:query-shim.js
+        #map(lambda s: s.lower(), term[k+'.keyword'])
+
+        return { "terms": term }
+    else:
+        term[k+'.keyword'] = term[k+'.keyword'].lower()
+        return { "term": term }
+
+
+def fuzzyFilter(k, shimK):
+    queryParam = shimK['text']
+    esQuery = dict()
+    fuzziness = "AUTO" if shimK['type'] else 0 # type is only present when fuzzy is toggled to true
+    if fuzziness == "AUTO":
+        k += ".fuzzy"
+    if isinstance(shimK['text'], list): # combine multiple terms into a bool query
+        matchQueries = map(lambda param: { "match": { k: {
+                "query": param.lower(),
+                "operator": "and",
+                "fuzziness": fuzziness
+            }}}, queryParam)
+        esQuery = { "query": { "bool": { "should": matchQueries }}}
+    elif isinstance(shimK, list):
+        matchQueries = map(lambda param: { "match": { k: {
+                "query": param.lower(),
+                "operator": "and",
+                "fuzziness": fuzziness
+            }}}, shimK)
+        esQuery = { "query": { "bool": { "should": matchQueries }}} # should will OR the contents of the array to determine hits
+    else: # single term
+        esQuery = { "match": { k: {
+            "query": (queryParam.lower()
+                if queryParam
+                else shimK.lower()),
+            "operator": "and",
+            "fuzziness": fuzziness
+        }}}
+    return esQuery
+
+
 def objectType(k, shimK):
     if shimK["type"] == "exists":
         return existsFilter(k)
     elif shimK["type"] == "missing":
         return missingFilter(k)
+    elif shimK["type"] == "exact":
+        return exactFilter(k, shimK)
+    elif shimK["type"] == "keyword":
+        return keywordFilter(k, shimK)
+    elif shimK["type"] == "fuzzy":
+        return fuzzyFilter(k, shimK)
     elif shimK["type"] == "range":
         return rangeFilter(k, shimK)
     elif shimK["type"] == "geo_bounding_box":
@@ -156,9 +230,15 @@ def objectType(k, shimK):
 
 def singleFilter(k, shimK):
     if isString(shimK) or isinstance(shimK, bool) or isinstance(shimK, int) or isinstance(shimK, float):
-        return termFilter(k, shimK)
+        if k == 'scientificname': # TODO: Add support for other fields, store a map containing their keys
+            return fuzzyFilter(k, shimK)
+        else:
+            return termFilter(k, shimK)
     elif isinstance(shimK, list):
-        return termsFilter(k, shimK)
+        if k == 'scientificname':
+            return fuzzyFilter(k, shimK)
+        else:
+            return termsFilter(k, shimK)
     else:
         try:
             if "type" in shimK:

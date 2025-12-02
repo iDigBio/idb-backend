@@ -20,6 +20,32 @@ Missing dependency: libgdal-dev
 
 Ensure all dependencies listed in [README.md: Installation&nbsp;> System Dependencies](README.md#system-dependencies) have been installed.
 
+### (runtime, Celery) ImportError: libgdal.so.30: cannot open shared object file: No such file or directory
+
+When running `celery worker --app=idigbio_workers`:
+> Traceback (most recent call last):  
+> &emsp; File "/bin/celery", line 8, in \<module\>  
+> &emsp;&emsp; `sys.exit(main())`  
+> &emsp; [...]  
+> &emsp; File "/com.github.iDigBio.idb-backend/idb/helpers/rg.py", line 6, in \<module\>  
+> &emsp;&emsp; `import fiona`  
+> &emsp; File "/usr/local/lib/python2.7/site-packages/fiona/\_\_init\_\_.py", line 86, in <module>  
+> &emsp;&emsp; `from fiona.collection import BytesCollection, Collection`  
+> &emsp; File "/usr/local/lib/python2.7/site-packages/fiona/collection.py", line 11, in <module>  
+> &emsp;&emsp; `from fiona.ogrext import Iterator, ItemsIterator, KeysIterator`  
+> ImportError: libgdal.so.30: cannot open shared object file: No such file or directory
+
+#### Cause
+
+- Missing/Broken dependency: libgdal-dev
+- Python package _'Fiona'_ needs re-installation (can be necessary after major system update)
+
+#### Suggestion
+
+- Ensure _'libgdal-dev'_, as well as all other dependencies listed in [README.md: Installation&nbsp;> System Dependencies](README.md#system-dependencies) have been installed.
+- Re-install Python package _'Fiona'_:  
+	`pip install --force-reinstall --no-cache-dir Fiona`
+
 ### (runtime, Elasticsearch) missing authentication token for REST request
 
 When making HTTP requests to an Elasticsearch instance, the following HTTP 401 (Unauthorized) response is given:

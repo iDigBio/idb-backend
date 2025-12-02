@@ -73,7 +73,7 @@ def geoBoundingBox(k, shimK):
     if shimK["top_left"]["lat"] < shimK["bottom_right"]["lat"]:
         temp = shimK["top_left"]["lat"]
         shimK["top_left"]["lat"] = shimK["bottom_right"]["lat"]
-        shimK["bottom_right"]["lat"]
+        shimK["bottom_right"]["lat"] = temp
     return typeWrapper(k, "geo_bounding_box", shimK)
 
 

@@ -1,5 +1,10 @@
 FROM python:2.7
-RUN apt-get update && apt-get install -y --no-install-recommends \
+# base image 'python:2.7' is based on 'debian:buster-20200414',
+# whose repository has moved to archive.debian.org
+RUN sed --in-place --regexp-extended \
+    's/http:\/\/(deb|security).debian.org/http:\/\/archive.debian.org/g' \
+    /etc/apt/sources.list
+RUN apt-get -y update && apt-get install -y --no-install-recommends \
     gfortran \
     libatlas-base-dev \
     ffmpeg \

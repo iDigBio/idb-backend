@@ -14,8 +14,7 @@ def read(*paths):
 
 readme = read('README.md')
 
-version = re.search(r'^__version__\s*=\s*[\'"]([^\'"]*)[\'"]',
-                    read(os.path.join(os.path.dirname(__file__), 'idb/__init__.py')), re.MULTILINE).group(1)
+version = "3.0.8"
 
 # Abort if on Python 3 since we know the codebase does not support it.
 #if sys.version_info >= (3,0):

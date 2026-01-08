@@ -47,7 +47,7 @@ env:
   - BUILDING=$DOCKER_IMAGE:$TRAVIS_COMMIT
   - ACCESS_KEY="testAccessKey"
   - SECRET_KEY="testSecretKey"
-  - PGPORT=5433
+  #- PGPORT=5433
   - PGUSER=travis
 notifications:
   slack:

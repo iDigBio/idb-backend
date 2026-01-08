@@ -14,7 +14,7 @@ services:
     ## Sample run command:
     ## $ docker run --name some-postgres -e POSTGRES_PASSWORD=mysecretpassword -d postgres
     container_name: dev-database
-    image: postgres:9.5
+    image: postgres:14
     ports:
       - "5432:5432"
     environment:

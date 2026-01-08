@@ -174,7 +174,7 @@ def test_upload_auth_success(client, valid_auth_header):
 def test_upload_no_body_existing_url(client, testmedia_result, valid_auth_header):
     tmr = testmedia_result
     url = url_for('idb-data_api-v2_media.upload', filereference=tmr['filereference'])
-    r = client.post(url.encode(), headers=[valid_auth_header])
+    r = client.post(url, headers=[valid_auth_header])
     assert r.status_code == 200, "Existing url, should clear last_status and proceed"
     assert r.json.get('last_status') is None
 

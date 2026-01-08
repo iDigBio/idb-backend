@@ -86,7 +86,7 @@ def id_func(portal_url, e):
 
     if id is not None:
         # Strip trailing version info from ipt ids
-        m = re.search('^(.*)/v[0-9]*(\.)?[0-9]*$', id)
+        m = re.search(r'^(.*)/v[0-9]*(\.)?[0-9]*$', id)
         if m is not None:
             id = m.group(1)
 

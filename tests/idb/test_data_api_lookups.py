@@ -48,6 +48,5 @@ def test_list(client, testrsuuid):
 @pytest.mark.readonly
 @pytest.mark.options(debug=False)
 def test_list_error(client):
-    url = url_for('idb-data_api-v2.list', t='foobar')
-    r = client.get(url)
+    r = client.get("/v2/view/foobar")
     assert r.status_code == 404

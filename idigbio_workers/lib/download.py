@@ -71,7 +71,7 @@ def write_citation_file(dl_id, t, query, recordsets):
             now.isoformat(),    # 3: Access Datetime
             total_rs,           # 4: Number of recordsets
             rs_string,          # 5: List of recordset IDs and counts
-        ))
+        ).encode('utf-8'))
     return filename
 
 def get_recordsets(params, generate=True):

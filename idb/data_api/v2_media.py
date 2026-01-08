@@ -128,10 +128,10 @@ def lookup_uuid(u, format):
     return respond_to_record(r, deriv=deriv, format=format)
 
 
-@this_version.route('/media/<string:etag>',
+@this_version.route('/media/<nonuuid:etag>',
                     methods=['GET', 'OPTIONS'],
                     defaults={"format": None})
-@this_version.route('/media/<string:etag>.<string(length=10):format>',
+@this_version.route('/media/<nonuuid:etag>.<string:format>',
                     methods=['GET', 'OPTIONS'])
 @crossdomain(origin="*")
 def lookup_etag(etag, format):
@@ -190,10 +190,11 @@ def lookup_ref(format):
 @requires_auth
 def upload():
     vals = {}
-    j = request.get_json()
+    print('got to upload...')
+    j = request.get_json(silent=True)
     if j is not None:
         vals.update(j)
-    for k, v in request.values.iteritems():
+    for k, v in request.values.items():
         vals[k] = v
 
     filereference = vals.get("filereference")

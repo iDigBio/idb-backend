@@ -160,6 +160,8 @@ def testdbpool(request, testdb, logger):
 @pytest.fixture()
 def testschema(schemapath, testdbpool, logger):
     "Ensure a fresh version of the idb schema, with no data loaded"
+    logger.info("Ensuring public schema exists")
+    testdbpool.execute("CREATE SCHEMA IF NOT EXISTS public;", readonly=False)
     logger.info("Loading schema into testdb")
     testdbpool.execute(schemapath.open('r', encoding='utf-8').read(), readonly=False)
 

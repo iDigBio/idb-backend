@@ -16,6 +16,85 @@ SET xmloption = content;
 SET client_min_messages = warning;
 SET row_security = off;
 
+ALTER TABLE IF EXISTS ONLY public.uuids_siblings DROP CONSTRAINT IF EXISTS uuids_siblings_r2_fkey;
+ALTER TABLE IF EXISTS ONLY public.uuids_siblings DROP CONSTRAINT IF EXISTS uuids_siblings_r1_fkey;
+ALTER TABLE IF EXISTS ONLY public.uuids_identifier DROP CONSTRAINT IF EXISTS uuids_identifier_uuids_id_fkey;
+ALTER TABLE IF EXISTS ONLY public.uuids_data DROP CONSTRAINT IF EXISTS uuids_data_uuids_id_fkey;
+ALTER TABLE IF EXISTS ONLY public.uuids_data DROP CONSTRAINT IF EXISTS uuids_data_data_etag_fkey;
+ALTER TABLE IF EXISTS ONLY public.recordsets DROP CONSTRAINT IF EXISTS recordsets_publisher_uuid_fkey;
+ALTER TABLE IF EXISTS ONLY public.media_objects DROP CONSTRAINT IF EXISTS media_objects_url_fkey;
+ALTER TABLE IF EXISTS ONLY public.media_objects DROP CONSTRAINT IF EXISTS media_objects_etag_fkey;
+ALTER TABLE IF EXISTS ONLY public.annotations DROP CONSTRAINT IF EXISTS annotations_uuids_id_fkey;
+DROP INDEX IF EXISTS public.uuids_type_parent;
+DROP INDEX IF EXISTS public.uuids_siblings_r2;
+DROP INDEX IF EXISTS public.uuids_siblings_r1;
+DROP INDEX IF EXISTS public.uuids_parent;
+DROP INDEX IF EXISTS public.uuids_identifier_uuids_id;
+DROP INDEX IF EXISTS public.uuids_identifier_reverse_idx;
+DROP INDEX IF EXISTS public.uuids_data_version;
+DROP INDEX IF EXISTS public.uuids_data_uuids_id_modified;
+DROP INDEX IF EXISTS public.media_objects_urls;
+DROP INDEX IF EXISTS public.media_objects_etags;
+DROP INDEX IF EXISTS public.idb_object_keys_etag;
+DROP INDEX IF EXISTS public.corrections_source;
+ALTER TABLE IF EXISTS ONLY public.uuids_siblings DROP CONSTRAINT IF EXISTS uuids_siblings_pkey;
+ALTER TABLE IF EXISTS ONLY public.uuids DROP CONSTRAINT IF EXISTS uuids_pkey;
+ALTER TABLE IF EXISTS ONLY public.uuids_identifier DROP CONSTRAINT IF EXISTS uuids_identifier_pkey;
+ALTER TABLE IF EXISTS ONLY public.uuids_identifier DROP CONSTRAINT IF EXISTS uuids_identifier_identifier_key;
+ALTER TABLE IF EXISTS ONLY public.uuids_data DROP CONSTRAINT IF EXISTS uuids_data_pkey;
+ALTER TABLE IF EXISTS ONLY public.recordsets DROP CONSTRAINT IF EXISTS recordsets_uuid_key;
+ALTER TABLE IF EXISTS ONLY public.recordsets DROP CONSTRAINT IF EXISTS recordsets_pkey;
+ALTER TABLE IF EXISTS ONLY public.publishers DROP CONSTRAINT IF EXISTS publishers_uuid_key;
+ALTER TABLE IF EXISTS ONLY public.publishers DROP CONSTRAINT IF EXISTS publishers_pkey;
+ALTER TABLE IF EXISTS ONLY public.objects DROP CONSTRAINT IF EXISTS objects_pkey;
+ALTER TABLE IF EXISTS ONLY public.objects DROP CONSTRAINT IF EXISTS objects_etag_key;
+ALTER TABLE IF EXISTS ONLY public.media DROP CONSTRAINT IF EXISTS media_url_key;
+ALTER TABLE IF EXISTS ONLY public.media DROP CONSTRAINT IF EXISTS media_pkey;
+ALTER TABLE IF EXISTS ONLY public.media_objects DROP CONSTRAINT IF EXISTS media_objects_pkey;
+ALTER TABLE IF EXISTS ONLY public.recordsets DROP CONSTRAINT IF EXISTS idx_file_link_unique;
+ALTER TABLE IF EXISTS ONLY public.idb_object_keys DROP CONSTRAINT IF EXISTS idb_object_keys_pkey;
+ALTER TABLE IF EXISTS ONLY public.data DROP CONSTRAINT IF EXISTS data_pkey;
+ALTER TABLE IF EXISTS ONLY public.corrections DROP CONSTRAINT IF EXISTS corrections_pkey;
+ALTER TABLE IF EXISTS ONLY public.annotations DROP CONSTRAINT IF EXISTS annotations_pkey;
+ALTER TABLE IF EXISTS public.uuids_siblings ALTER COLUMN id DROP DEFAULT;
+ALTER TABLE IF EXISTS public.uuids_identifier ALTER COLUMN id DROP DEFAULT;
+ALTER TABLE IF EXISTS public.uuids_data ALTER COLUMN id DROP DEFAULT;
+ALTER TABLE IF EXISTS public.recordsets ALTER COLUMN id DROP DEFAULT;
+ALTER TABLE IF EXISTS public.publishers ALTER COLUMN id DROP DEFAULT;
+ALTER TABLE IF EXISTS public.objects ALTER COLUMN id DROP DEFAULT;
+ALTER TABLE IF EXISTS public.media_objects ALTER COLUMN id DROP DEFAULT;
+ALTER TABLE IF EXISTS public.media ALTER COLUMN id DROP DEFAULT;
+ALTER TABLE IF EXISTS public.corrections ALTER COLUMN id DROP DEFAULT;
+ALTER TABLE IF EXISTS public.annotations ALTER COLUMN id DROP DEFAULT;
+DROP SEQUENCE IF EXISTS public.uuids_siblings_id_seq;
+DROP SEQUENCE IF EXISTS public.uuids_identifier_id_seq;
+DROP SEQUENCE IF EXISTS public.uuids_data_id_seq;
+DROP SEQUENCE IF EXISTS public.recordsets_id_seq;
+DROP TABLE IF EXISTS public.recordsets;
+DROP SEQUENCE IF EXISTS public.publishers_id_seq;
+DROP TABLE IF EXISTS public.publishers;
+DROP SEQUENCE IF EXISTS public.objects_id_seq;
+DROP TABLE IF EXISTS public.objects;
+DROP SEQUENCE IF EXISTS public.media_objects_id_seq;
+DROP TABLE IF EXISTS public.media_objects;
+DROP SEQUENCE IF EXISTS public.media_id_seq;
+DROP TABLE IF EXISTS public.media;
+DROP VIEW IF EXISTS public.idigbio_uuids_new;
+DROP VIEW IF EXISTS public.idigbio_uuids_data;
+DROP TABLE IF EXISTS public.uuids_identifier;
+DROP TABLE IF EXISTS public.uuids_data;
+DROP VIEW IF EXISTS public.idigbio_relations;
+DROP TABLE IF EXISTS public.uuids_siblings;
+DROP TABLE IF EXISTS public.uuids;
+DROP TABLE IF EXISTS public.idb_object_keys;
+DROP TABLE IF EXISTS public.idb_api_keys;
+DROP TABLE IF EXISTS public.data;
+DROP SEQUENCE IF EXISTS public.corrections_id_seq;
+DROP TABLE IF EXISTS public.corrections;
+DROP SEQUENCE IF EXISTS public.annotations_id_seq;
+DROP TABLE IF EXISTS public.annotations;
+DROP SCHEMA IF EXISTS public;
+
 DO $$
 BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'idigbio') THEN
@@ -42,6 +121,11 @@ ALTER ROLE idigbio_reader SUPERUSER;
 
 CREATE SCHEMA IF NOT EXISTS public;
 ALTER SCHEMA public OWNER TO idigbio;
+
+SET search_path = public, pg_catalog;
+
+SET default_with_oids = false;
+
 --
 -- Name: amcheck; Type: EXTENSION; Schema: -; Owner: -
 --

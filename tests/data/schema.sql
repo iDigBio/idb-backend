@@ -16,8 +16,20 @@ SET xmloption = content;
 SET client_min_messages = warning;
 SET row_security = off;
 
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'idigbio') THEN
+    CREATE ROLE idigbio LOGIN;
+  END IF;
+END $$;
+
+-- Set password to empty string (optional; only matters if password auth is used)
+ALTER ROLE idigbio PASSWORD '';
+
+ALTER ROLE idigbio SUPERUSER;
 
 CREATE SCHEMA IF NOT EXISTS public;
+ALTER SCHEMA public OWNER TO idigbio;
 --
 -- Name: amcheck; Type: EXTENSION; Schema: -; Owner: -
 --
@@ -1332,6 +1344,9 @@ GRANT SELECT ON TABLE public.recordsets TO idigbio_reader;
 --
 
 ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public GRANT SELECT ON TABLES  TO idigbio_reader;
+
+
+GRANT ALL ON SCHEMA public TO idigbio;
 
 
 --

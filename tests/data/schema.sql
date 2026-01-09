@@ -28,6 +28,18 @@ ALTER ROLE idigbio PASSWORD '';
 
 ALTER ROLE idigbio SUPERUSER;
 
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'idigbio') THEN
+    CREATE ROLE idigbio_reader LOGIN;
+  END IF;
+END $$;
+
+-- Set password to empty string (optional; only matters if password auth is used)
+ALTER ROLE idigbio_reader PASSWORD '';
+
+ALTER ROLE idigbio_reader SUPERUSER;
+
 CREATE SCHEMA IF NOT EXISTS public;
 ALTER SCHEMA public OWNER TO idigbio;
 --

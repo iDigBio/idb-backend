@@ -8,8 +8,9 @@ import itertools
 
 from datetime import datetime
 from io import StringIO
-from psycopg2cffi import compat
-compat.register()
+#This is for PyPY
+#from psycopg2cffi import compat
+#compat.register()
 from psycopg2cffi.extras import DictCursor, NamedTupleCursor
 from psycopg2cffi.extensions import cursor
 from psycopg2cffi.extensions import (ISOLATION_LEVEL_READ_COMMITTED,

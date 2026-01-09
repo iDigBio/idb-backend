@@ -10,8 +10,9 @@ import multiprocessing
 
 import magic
 
-from psycopg2cffi import compat
-compat.register()
+#This is for PyPy
+#from psycopg2cffi import compat
+#compat.register()
 
 from atomicfile import AtomicFile
 from psycopg2 import DatabaseError

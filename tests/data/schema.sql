@@ -106,6 +106,8 @@ DROP TABLE public.annotations;
 DROP FUNCTION public.set_ingest_paused_date();
 DROP EXTENSION intarray;
 DROP EXTENSION amcheck;
+
+CREATE SCHEMA IF NOT EXISTS public;
 --
 -- Name: amcheck; Type: EXTENSION; Schema: -; Owner: -
 --

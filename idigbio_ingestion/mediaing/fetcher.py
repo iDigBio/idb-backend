@@ -16,7 +16,7 @@ import gevent.pool
 from gevent import sleep
 #from boto.exception import BotoServerError, BotoClientError
 from requests.exceptions import MissingSchema, InvalidSchema, InvalidURL, ConnectionError
-from psycopg2cffi.extensions import cursor
+from psycopg2.extensions import cursor
 
 
 from idb.helpers import ilen

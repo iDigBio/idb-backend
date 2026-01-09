@@ -11,9 +11,9 @@ from io import StringIO
 #This is for PyPY
 #from psycopg2cffi import compat
 #compat.register()
-from psycopg2cffi.extras import DictCursor, NamedTupleCursor
-from psycopg2cffi.extensions import cursor
-from psycopg2cffi.extensions import (ISOLATION_LEVEL_READ_COMMITTED,
+from psycopg2.extras import DictCursor, NamedTupleCursor
+from psycopg2.extensions import cursor
+from psycopg2.extensions import (ISOLATION_LEVEL_READ_COMMITTED,
                                  ISOLATION_LEVEL_AUTOCOMMIT,
                                  TRANSACTION_STATUS_IDLE)
 from idb import config

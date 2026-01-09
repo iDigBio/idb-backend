@@ -2,201 +2,121 @@
 -- PostgreSQL database dump
 --
 
--- Dumped from database version 14.7 (Ubuntu 14.7-1.pgdg20.04+1)
--- Dumped by pg_dump version 14.7 (Ubuntu 14.7-1.pgdg20.04+1)
+-- Dumped from database version 9.4.4
+-- Dumped by pg_dump version 9.5.3
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
-SET idle_in_transaction_session_timeout = 0;
 SET client_encoding = 'UTF8';
 SET standard_conforming_strings = on;
-SELECT pg_catalog.set_config('search_path', '', false);
 SET check_function_bodies = false;
-SET xmloption = content;
 SET client_min_messages = warning;
 SET row_security = off;
 
-ALTER TABLE ONLY public.uuids_siblings DROP CONSTRAINT uuids_siblings_r2_fkey;
-ALTER TABLE ONLY public.uuids_siblings DROP CONSTRAINT uuids_siblings_r1_fkey;
-ALTER TABLE ONLY public.uuids_identifier DROP CONSTRAINT uuids_identifier_uuids_id_fkey;
-ALTER TABLE ONLY public.uuids_data DROP CONSTRAINT uuids_data_uuids_id_fkey;
-ALTER TABLE ONLY public.uuids_data DROP CONSTRAINT uuids_data_data_etag_fkey;
-ALTER TABLE ONLY public.recordsets DROP CONSTRAINT recordsets_publisher_uuid_fkey;
-ALTER TABLE ONLY public.media_objects DROP CONSTRAINT media_objects_url_fkey;
-ALTER TABLE ONLY public.media_objects DROP CONSTRAINT media_objects_etag_fkey;
-ALTER TABLE ONLY public.annotations DROP CONSTRAINT annotations_uuids_id_fkey;
-DROP TRIGGER trigger_set_ingest_paused_date ON public.recordsets;
-DROP INDEX public.uuids_type_parent;
-DROP INDEX public.uuids_siblings_r2;
-DROP INDEX public.uuids_siblings_r1;
-DROP INDEX public.uuids_parent;
-DROP INDEX public.uuids_identifier_uuids_id;
-DROP INDEX public.uuids_identifier_reverse_idx;
-DROP INDEX public.uuids_data_version;
-DROP INDEX public.uuids_data_uuids_id_modified;
-DROP INDEX public.uuids_data_data_etag_idx;
-DROP INDEX public.media_objects_urls;
-DROP INDEX public.media_objects_etags;
-DROP INDEX public.index_ceph_on_filename_with_pattern_ops;
-DROP INDEX public.idb_object_keys_etag;
-DROP INDEX public.corrections_source;
-DROP INDEX public.ceph_objects_bucket_name;
-ALTER TABLE ONLY public.uuids_siblings DROP CONSTRAINT uuids_siblings_pkey;
-ALTER TABLE ONLY public.uuids DROP CONSTRAINT uuids_pkey;
-ALTER TABLE ONLY public.uuids_identifier DROP CONSTRAINT uuids_identifier_pkey;
-ALTER TABLE ONLY public.uuids_identifier DROP CONSTRAINT uuids_identifier_identifier_key;
-ALTER TABLE ONLY public.uuids_data DROP CONSTRAINT uuids_data_pkey;
-ALTER TABLE ONLY public.recordsets DROP CONSTRAINT recordsets_uuid_key;
-ALTER TABLE ONLY public.recordsets DROP CONSTRAINT recordsets_pkey;
-ALTER TABLE ONLY public.publishers DROP CONSTRAINT publishers_uuid_key;
-ALTER TABLE ONLY public.publishers DROP CONSTRAINT publishers_pkey;
-ALTER TABLE ONLY public.objects DROP CONSTRAINT objects_pkey;
-ALTER TABLE ONLY public.objects DROP CONSTRAINT objects_etag_key;
-ALTER TABLE ONLY public.media DROP CONSTRAINT media_url_key;
-ALTER TABLE ONLY public.media DROP CONSTRAINT media_pkey;
-ALTER TABLE ONLY public.media_objects DROP CONSTRAINT media_objects_pkey;
-ALTER TABLE ONLY public.recordsets DROP CONSTRAINT idx_file_link_unique;
-ALTER TABLE ONLY public.idb_object_keys DROP CONSTRAINT idb_object_keys_pkey;
-ALTER TABLE ONLY public.data DROP CONSTRAINT data_pkey;
-ALTER TABLE ONLY public.corrections DROP CONSTRAINT corrections_pkey;
-ALTER TABLE ONLY public.annotations DROP CONSTRAINT annotations_source_id_key;
-ALTER TABLE ONLY public.annotations DROP CONSTRAINT annotations_pkey;
-ALTER TABLE public.uuids_siblings ALTER COLUMN id DROP DEFAULT;
-ALTER TABLE public.uuids_identifier ALTER COLUMN id DROP DEFAULT;
-ALTER TABLE public.uuids_data ALTER COLUMN id DROP DEFAULT;
-ALTER TABLE public.recordsets ALTER COLUMN id DROP DEFAULT;
-ALTER TABLE public.publishers ALTER COLUMN id DROP DEFAULT;
-ALTER TABLE public.objects ALTER COLUMN id DROP DEFAULT;
-ALTER TABLE public.media_objects ALTER COLUMN id DROP DEFAULT;
-ALTER TABLE public.media ALTER COLUMN id DROP DEFAULT;
-ALTER TABLE public.corrections ALTER COLUMN id DROP DEFAULT;
-ALTER TABLE public.annotations ALTER COLUMN id DROP DEFAULT;
-DROP SEQUENCE public.uuids_siblings_id_seq;
-DROP SEQUENCE public.uuids_identifier_id_seq;
-DROP SEQUENCE public.uuids_data_id_seq;
-DROP SEQUENCE public.recordsets_id_seq;
-DROP TABLE public.recordsets CASCADE;
-DROP SEQUENCE public.publishers_id_seq;
-DROP TABLE public.publishers;
-DROP SEQUENCE public.objects_id_seq;
-DROP TABLE public.objects;
-DROP SEQUENCE public.media_objects_id_seq;
-DROP TABLE public.media_objects CASCADE;
-DROP SEQUENCE public.media_id_seq;
-DROP TABLE public.media;
-DROP VIEW public.idigbio_uuids_test;
-DROP VIEW public.idigbio_uuids_new_ron;
-DROP VIEW public.idigbio_uuids_new;
-DROP VIEW public.idigbio_uuids_data;
-DROP TABLE public.uuids_identifier CASCADE;
-DROP TABLE public.uuids_data CASCADE;
-DROP VIEW public.idigbio_relations;
-DROP TABLE public.uuids_siblings CASCADE;
-DROP TABLE public.uuids;
-DROP TABLE public.idb_object_keys;
-DROP TABLE public.idb_api_keys;
-DROP TABLE public.deleted_from_uuids_identifier;
-DROP TABLE public.data;
-DROP SEQUENCE public.corrections_id_seq;
-DROP TABLE public.corrections;
-DROP TABLE public.ceph_server_files;
-DROP TABLE public.ceph_objects;
-DROP SEQUENCE public.annotations_id_seq;
-DROP TABLE public.annotations CASCADE;
-DROP FUNCTION public.set_ingest_paused_date();
-DROP EXTENSION intarray;
-DROP EXTENSION amcheck;
+SET search_path = public, pg_catalog;
 
-DO $$
-BEGIN
-  IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'idigbio') THEN
-    CREATE ROLE idigbio LOGIN;
-  END IF;
-END $$;
+ALTER TABLE IF EXISTS ONLY public.uuids_siblings DROP CONSTRAINT IF EXISTS uuids_siblings_r2_fkey;
+ALTER TABLE IF EXISTS ONLY public.uuids_siblings DROP CONSTRAINT IF EXISTS uuids_siblings_r1_fkey;
+ALTER TABLE IF EXISTS ONLY public.uuids_identifier DROP CONSTRAINT IF EXISTS uuids_identifier_uuids_id_fkey;
+ALTER TABLE IF EXISTS ONLY public.uuids_data DROP CONSTRAINT IF EXISTS uuids_data_uuids_id_fkey;
+ALTER TABLE IF EXISTS ONLY public.uuids_data DROP CONSTRAINT IF EXISTS uuids_data_data_etag_fkey;
+ALTER TABLE IF EXISTS ONLY public.recordsets DROP CONSTRAINT IF EXISTS recordsets_publisher_uuid_fkey;
+ALTER TABLE IF EXISTS ONLY public.media_objects DROP CONSTRAINT IF EXISTS media_objects_url_fkey;
+ALTER TABLE IF EXISTS ONLY public.media_objects DROP CONSTRAINT IF EXISTS media_objects_etag_fkey;
+ALTER TABLE IF EXISTS ONLY public.annotations DROP CONSTRAINT IF EXISTS annotations_uuids_id_fkey;
+DROP INDEX IF EXISTS public.uuids_type_parent;
+DROP INDEX IF EXISTS public.uuids_siblings_r2;
+DROP INDEX IF EXISTS public.uuids_siblings_r1;
+DROP INDEX IF EXISTS public.uuids_parent;
+DROP INDEX IF EXISTS public.uuids_identifier_uuids_id;
+DROP INDEX IF EXISTS public.uuids_identifier_reverse_idx;
+DROP INDEX IF EXISTS public.uuids_data_version;
+DROP INDEX IF EXISTS public.uuids_data_uuids_id_modified;
+DROP INDEX IF EXISTS public.media_objects_urls;
+DROP INDEX IF EXISTS public.media_objects_etags;
+DROP INDEX IF EXISTS public.idb_object_keys_etag;
+DROP INDEX IF EXISTS public.corrections_source;
+ALTER TABLE IF EXISTS ONLY public.uuids_siblings DROP CONSTRAINT IF EXISTS uuids_siblings_pkey;
+ALTER TABLE IF EXISTS ONLY public.uuids DROP CONSTRAINT IF EXISTS uuids_pkey;
+ALTER TABLE IF EXISTS ONLY public.uuids_identifier DROP CONSTRAINT IF EXISTS uuids_identifier_pkey;
+ALTER TABLE IF EXISTS ONLY public.uuids_identifier DROP CONSTRAINT IF EXISTS uuids_identifier_identifier_key;
+ALTER TABLE IF EXISTS ONLY public.uuids_data DROP CONSTRAINT IF EXISTS uuids_data_pkey;
+ALTER TABLE IF EXISTS ONLY public.recordsets DROP CONSTRAINT IF EXISTS recordsets_uuid_key;
+ALTER TABLE IF EXISTS ONLY public.recordsets DROP CONSTRAINT IF EXISTS recordsets_pkey;
+ALTER TABLE IF EXISTS ONLY public.publishers DROP CONSTRAINT IF EXISTS publishers_uuid_key;
+ALTER TABLE IF EXISTS ONLY public.publishers DROP CONSTRAINT IF EXISTS publishers_pkey;
+ALTER TABLE IF EXISTS ONLY public.objects DROP CONSTRAINT IF EXISTS objects_pkey;
+ALTER TABLE IF EXISTS ONLY public.objects DROP CONSTRAINT IF EXISTS objects_etag_key;
+ALTER TABLE IF EXISTS ONLY public.media DROP CONSTRAINT IF EXISTS media_url_key;
+ALTER TABLE IF EXISTS ONLY public.media DROP CONSTRAINT IF EXISTS media_pkey;
+ALTER TABLE IF EXISTS ONLY public.media_objects DROP CONSTRAINT IF EXISTS media_objects_pkey;
+ALTER TABLE IF EXISTS ONLY public.recordsets DROP CONSTRAINT IF EXISTS idx_file_link_unique;
+ALTER TABLE IF EXISTS ONLY public.idb_object_keys DROP CONSTRAINT IF EXISTS idb_object_keys_pkey;
+ALTER TABLE IF EXISTS ONLY public.data DROP CONSTRAINT IF EXISTS data_pkey;
+ALTER TABLE IF EXISTS ONLY public.corrections DROP CONSTRAINT IF EXISTS corrections_pkey;
+ALTER TABLE IF EXISTS ONLY public.annotations DROP CONSTRAINT IF EXISTS annotations_pkey;
+ALTER TABLE IF EXISTS public.uuids_siblings ALTER COLUMN id DROP DEFAULT;
+ALTER TABLE IF EXISTS public.uuids_identifier ALTER COLUMN id DROP DEFAULT;
+ALTER TABLE IF EXISTS public.uuids_data ALTER COLUMN id DROP DEFAULT;
+ALTER TABLE IF EXISTS public.recordsets ALTER COLUMN id DROP DEFAULT;
+ALTER TABLE IF EXISTS public.publishers ALTER COLUMN id DROP DEFAULT;
+ALTER TABLE IF EXISTS public.objects ALTER COLUMN id DROP DEFAULT;
+ALTER TABLE IF EXISTS public.media_objects ALTER COLUMN id DROP DEFAULT;
+ALTER TABLE IF EXISTS public.media ALTER COLUMN id DROP DEFAULT;
+ALTER TABLE IF EXISTS public.corrections ALTER COLUMN id DROP DEFAULT;
+ALTER TABLE IF EXISTS public.annotations ALTER COLUMN id DROP DEFAULT;
+DROP SEQUENCE IF EXISTS public.uuids_siblings_id_seq;
+DROP SEQUENCE IF EXISTS public.uuids_identifier_id_seq;
+DROP SEQUENCE IF EXISTS public.uuids_data_id_seq;
+DROP SEQUENCE IF EXISTS public.recordsets_id_seq;
+DROP TABLE IF EXISTS public.recordsets;
+DROP SEQUENCE IF EXISTS public.publishers_id_seq;
+DROP TABLE IF EXISTS public.publishers;
+DROP SEQUENCE IF EXISTS public.objects_id_seq;
+DROP TABLE IF EXISTS public.objects;
+DROP SEQUENCE IF EXISTS public.media_objects_id_seq;
+DROP TABLE IF EXISTS public.media_objects;
+DROP SEQUENCE IF EXISTS public.media_id_seq;
+DROP TABLE IF EXISTS public.media;
+DROP VIEW IF EXISTS public.idigbio_uuids_new;
+DROP VIEW IF EXISTS public.idigbio_uuids_data;
+DROP TABLE IF EXISTS public.uuids_identifier;
+DROP TABLE IF EXISTS public.uuids_data;
+DROP VIEW IF EXISTS public.idigbio_relations;
+DROP TABLE IF EXISTS public.uuids_siblings;
+DROP TABLE IF EXISTS public.uuids;
+DROP TABLE IF EXISTS public.idb_object_keys;
+DROP TABLE IF EXISTS public.idb_api_keys;
+DROP TABLE IF EXISTS public.data;
+DROP SEQUENCE IF EXISTS public.corrections_id_seq;
+DROP TABLE IF EXISTS public.corrections;
+DROP SEQUENCE IF EXISTS public.annotations_id_seq;
+DROP TABLE IF EXISTS public.annotations;
+DROP SCHEMA IF EXISTS public;
+--
+-- Name: public; Type: SCHEMA; Schema: -; Owner: -
+--
 
--- Set password to empty string (optional; only matters if password auth is used)
-ALTER ROLE idigbio PASSWORD '';
+CREATE SCHEMA public;
 
-ALTER ROLE idigbio SUPERUSER;
 
-DO $$
-BEGIN
-  IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'idigbio_reader') THEN
-    CREATE ROLE idigbio_reader LOGIN;
-  END IF;
-END $$;
+--
+-- Name: SCHEMA public; Type: COMMENT; Schema: -; Owner: -
+--
 
--- Set password to empty string (optional; only matters if password auth is used)
-ALTER ROLE idigbio_reader PASSWORD '';
+COMMENT ON SCHEMA public IS 'standard public schema';
 
-ALTER ROLE idigbio_reader SUPERUSER;
-
-CREATE SCHEMA IF NOT EXISTS public;
-ALTER SCHEMA public OWNER TO idigbio;
 
 SET search_path = public, pg_catalog;
 
 SET default_with_oids = false;
 
 --
--- Name: amcheck; Type: EXTENSION; Schema: -; Owner: -
+-- Name: annotations; Type: TABLE; Schema: public; Owner: -
 --
 
-CREATE EXTENSION IF NOT EXISTS amcheck WITH SCHEMA public;
-
-
---
--- Name: EXTENSION amcheck; Type: COMMENT; Schema: -; Owner: 
---
-
-COMMENT ON EXTENSION amcheck IS 'functions for verifying relation integrity';
-
-
---
--- Name: intarray; Type: EXTENSION; Schema: -; Owner: -
---
-
-CREATE EXTENSION IF NOT EXISTS intarray WITH SCHEMA public;
-
-
---
--- Name: EXTENSION intarray; Type: COMMENT; Schema: -; Owner: 
---
-
-COMMENT ON EXTENSION intarray IS 'functions, operators, and index support for 1-D arrays of integers';
-
-
---
--- Name: set_ingest_paused_date(); Type: FUNCTION; Schema: public; Owner: idigbio
---
-
-CREATE FUNCTION public.set_ingest_paused_date() RETURNS trigger
-    LANGUAGE plpgsql
-    AS $$
-BEGIN
-IF OLD.ingest_is_paused=true and NEW.ingest_is_paused=false THEN
-  NEW.ingest_paused_date = NULL;
-ELSIF OLD.ingest_is_paused=false and NEW.ingest_is_paused=true THEN
- NEW.ingest_paused_date = now();
-END IF;
-RETURN NEW;
-END;
-$$;
-
-
-ALTER FUNCTION public.set_ingest_paused_date() OWNER TO idigbio;
-
-SET default_tablespace = '';
-
-SET default_table_access_method = heap;
-
---
--- Name: annotations; Type: TABLE; Schema: public; Owner: idigbio
---
-
-CREATE TABLE public.annotations (
+CREATE TABLE annotations (
     id bigint NOT NULL,
-    source_id uuid NOT NULL,
     uuids_id uuid NOT NULL,
     v jsonb NOT NULL,
     approved boolean DEFAULT false NOT NULL,
@@ -205,13 +125,11 @@ CREATE TABLE public.annotations (
 );
 
 
-ALTER TABLE public.annotations OWNER TO idigbio;
-
 --
--- Name: annotations_id_seq; Type: SEQUENCE; Schema: public; Owner: idigbio
+-- Name: annotations_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
-CREATE SEQUENCE public.annotations_id_seq
+CREATE SEQUENCE annotations_id_seq
     START WITH 1
     INCREMENT BY 1
     NO MINVALUE
@@ -219,73 +137,18 @@ CREATE SEQUENCE public.annotations_id_seq
     CACHE 1;
 
 
-ALTER TABLE public.annotations_id_seq OWNER TO idigbio;
-
 --
--- Name: annotations_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: idigbio
+-- Name: annotations_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
 
-ALTER SEQUENCE public.annotations_id_seq OWNED BY public.annotations.id;
+ALTER SEQUENCE annotations_id_seq OWNED BY annotations.id;
 
 
 --
--- Name: ceph_objects; Type: TABLE; Schema: public; Owner: idigbio
+-- Name: corrections; Type: TABLE; Schema: public; Owner: -
 --
 
-CREATE TABLE public.ceph_objects (
-    ceph_bucket character varying(32) NOT NULL,
-    ceph_name character varying(128) NOT NULL,
-    ceph_date timestamp without time zone,
-    ceph_bytes bigint,
-    ceph_etag uuid,
-    tsm_eligible boolean,
-    tsm_status character varying(16),
-    tsm_last_success timestamp without time zone,
-    tsm_last_failure timestamp without time zone,
-    tsm_bytes bigint,
-    tsm_path character varying(32),
-    ver_status character varying(16),
-    ver_last_success timestamp without time zone,
-    ver_last_failure timestamp without time zone,
-    rest_status character varying(16),
-    rest_last_success timestamp without time zone,
-    rest_last_failure timestamp without time zone,
-    notes character varying(16),
-    ceph_deleted_date timestamp without time zone,
-    ceph_deleted boolean DEFAULT false NOT NULL
-);
-
-
-ALTER TABLE public.ceph_objects OWNER TO idigbio;
-
---
--- Name: ceph_server_files; Type: TABLE; Schema: public; Owner: idigbio
---
-
-CREATE TABLE public.ceph_server_files (
-    server character varying(16) NOT NULL,
-    line integer,
-    unk integer,
-    perms character varying(16),
-    unk2 integer,
-    owner_name character varying(16),
-    group_name character varying(16),
-    size bigint,
-    day integer,
-    month character varying(3),
-    year_time character varying(8),
-    fullname text NOT NULL,
-    filename text NOT NULL
-);
-
-
-ALTER TABLE public.ceph_server_files OWNER TO idigbio;
-
---
--- Name: corrections; Type: TABLE; Schema: public; Owner: idigbio
---
-
-CREATE TABLE public.corrections (
+CREATE TABLE corrections (
     id bigint NOT NULL,
     k jsonb NOT NULL,
     v jsonb NOT NULL,
@@ -295,13 +158,11 @@ CREATE TABLE public.corrections (
 );
 
 
-ALTER TABLE public.corrections OWNER TO idigbio;
-
 --
--- Name: corrections_id_seq; Type: SEQUENCE; Schema: public; Owner: idigbio
+-- Name: corrections_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
-CREATE SEQUENCE public.corrections_id_seq
+CREATE SEQUENCE corrections_id_seq
     START WITH 1
     INCREMENT BY 1
     NO MINVALUE
@@ -309,46 +170,28 @@ CREATE SEQUENCE public.corrections_id_seq
     CACHE 1;
 
 
-ALTER TABLE public.corrections_id_seq OWNER TO idigbio;
-
 --
--- Name: corrections_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: idigbio
+-- Name: corrections_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
 
-ALTER SEQUENCE public.corrections_id_seq OWNED BY public.corrections.id;
+ALTER SEQUENCE corrections_id_seq OWNED BY corrections.id;
 
 
 --
--- Name: data; Type: TABLE; Schema: public; Owner: idigbio
+-- Name: data; Type: TABLE; Schema: public; Owner: -
 --
 
-CREATE TABLE public.data (
+CREATE TABLE data (
     etag character varying(41) NOT NULL,
-    data jsonb,
-    riak_etag character varying(41)
+    data jsonb
 );
 
 
-ALTER TABLE public.data OWNER TO idigbio;
-
 --
--- Name: deleted_from_uuids_identifier; Type: TABLE; Schema: public; Owner: idigbio
+-- Name: idb_api_keys; Type: TABLE; Schema: public; Owner: -
 --
 
-CREATE TABLE public.deleted_from_uuids_identifier (
-    id bigint,
-    identifier text,
-    uuids_id uuid
-);
-
-
-ALTER TABLE public.deleted_from_uuids_identifier OWNER TO idigbio;
-
---
--- Name: idb_api_keys; Type: TABLE; Schema: public; Owner: idigbio
---
-
-CREATE TABLE public.idb_api_keys (
+CREATE TABLE idb_api_keys (
     user_uuid uuid NOT NULL,
     apikey character varying(100) NOT NULL,
     objects_allowed boolean DEFAULT true NOT NULL,
@@ -358,13 +201,11 @@ CREATE TABLE public.idb_api_keys (
 );
 
 
-ALTER TABLE public.idb_api_keys OWNER TO idigbio;
-
 --
--- Name: idb_object_keys; Type: TABLE; Schema: public; Owner: idigbio
+-- Name: idb_object_keys; Type: TABLE; Schema: public; Owner: -
 --
 
-CREATE TABLE public.idb_object_keys (
+CREATE TABLE idb_object_keys (
     lookup_key character varying(255) NOT NULL,
     type character varying(100) NOT NULL,
     etag character varying(41) NOT NULL,
@@ -373,13 +214,11 @@ CREATE TABLE public.idb_object_keys (
 );
 
 
-ALTER TABLE public.idb_object_keys OWNER TO idigbio;
-
 --
--- Name: uuids; Type: TABLE; Schema: public; Owner: idigbio
+-- Name: uuids; Type: TABLE; Schema: public; Owner: -
 --
 
-CREATE TABLE public.uuids (
+CREATE TABLE uuids (
     id uuid NOT NULL,
     type character varying(50) NOT NULL,
     parent uuid,
@@ -387,46 +226,40 @@ CREATE TABLE public.uuids (
 );
 
 
-ALTER TABLE public.uuids OWNER TO idigbio;
-
 --
--- Name: uuids_siblings; Type: TABLE; Schema: public; Owner: idigbio
+-- Name: uuids_siblings; Type: TABLE; Schema: public; Owner: -
 --
 
-CREATE TABLE public.uuids_siblings (
+CREATE TABLE uuids_siblings (
     id bigint NOT NULL,
     r1 uuid NOT NULL,
     r2 uuid NOT NULL
 );
 
 
-ALTER TABLE public.uuids_siblings OWNER TO idigbio;
-
 --
--- Name: idigbio_relations; Type: VIEW; Schema: public; Owner: idigbio
+-- Name: idigbio_relations; Type: VIEW; Schema: public; Owner: -
 --
 
-CREATE VIEW public.idigbio_relations AS
+CREATE VIEW idigbio_relations AS
  SELECT a.r1 AS subject,
     uuids.type AS rel,
     a.r2 AS object
    FROM (( SELECT uuids_siblings.r1,
             uuids_siblings.r2
-           FROM public.uuids_siblings
+           FROM uuids_siblings
         UNION
          SELECT uuids_siblings.r2,
             uuids_siblings.r1
-           FROM public.uuids_siblings) a
-     JOIN public.uuids ON ((a.r2 = uuids.id)));
+           FROM uuids_siblings) a
+     JOIN uuids ON ((a.r2 = uuids.id)));
 
-
-ALTER TABLE public.idigbio_relations OWNER TO idigbio;
 
 --
--- Name: uuids_data; Type: TABLE; Schema: public; Owner: idigbio
+-- Name: uuids_data; Type: TABLE; Schema: public; Owner: -
 --
 
-CREATE TABLE public.uuids_data (
+CREATE TABLE uuids_data (
     id bigint NOT NULL,
     uuids_id uuid NOT NULL,
     data_etag character varying(41) NOT NULL,
@@ -435,26 +268,22 @@ CREATE TABLE public.uuids_data (
 );
 
 
-ALTER TABLE public.uuids_data OWNER TO idigbio;
-
 --
--- Name: uuids_identifier; Type: TABLE; Schema: public; Owner: idigbio
+-- Name: uuids_identifier; Type: TABLE; Schema: public; Owner: -
 --
 
-CREATE TABLE public.uuids_identifier (
+CREATE TABLE uuids_identifier (
     id bigint NOT NULL,
     identifier text NOT NULL,
     uuids_id uuid NOT NULL
 );
 
 
-ALTER TABLE public.uuids_identifier OWNER TO idigbio;
-
 --
--- Name: idigbio_uuids_data; Type: VIEW; Schema: public; Owner: idigbio
+-- Name: idigbio_uuids_data; Type: VIEW; Schema: public; Owner: -
 --
 
-CREATE VIEW public.idigbio_uuids_data AS
+CREATE VIEW idigbio_uuids_data AS
  SELECT uuids.id AS uuid,
     uuids.type,
     uuids.deleted,
@@ -466,42 +295,40 @@ CREATE VIEW public.idigbio_uuids_data AS
     sibs.siblings,
     latest.id AS vid,
     data.data
-   FROM ((((public.uuids
+   FROM ((((uuids
      LEFT JOIN LATERAL ( SELECT uuids_data.id,
             uuids_data.uuids_id,
             uuids_data.data_etag,
             uuids_data.modified,
             uuids_data.version
-           FROM public.uuids_data
+           FROM uuids_data
           WHERE (uuids_data.uuids_id = uuids.id)
           ORDER BY uuids_data.modified DESC
          LIMIT 1) latest ON (true))
      LEFT JOIN LATERAL ( SELECT array_agg(uuids_identifier.identifier) AS recordids
-           FROM public.uuids_identifier
+           FROM uuids_identifier
           WHERE (uuids_identifier.uuids_id = uuids.id)) ids ON (true))
      LEFT JOIN LATERAL ( SELECT json_object_agg(rels.rel, rels.array_agg) AS siblings
            FROM ( SELECT sibs_1.type AS rel,
                     array_agg(rel_union.r2) AS array_agg
                    FROM (( SELECT uuids_siblings.r1,
                             uuids_siblings.r2
-                           FROM public.uuids_siblings
+                           FROM uuids_siblings
                         UNION
                          SELECT uuids_siblings.r2,
                             uuids_siblings.r1
-                           FROM public.uuids_siblings) rel_union
-                     JOIN public.uuids sibs_1 ON ((rel_union.r2 = sibs_1.id)))
+                           FROM uuids_siblings) rel_union
+                     JOIN uuids sibs_1 ON ((rel_union.r2 = sibs_1.id)))
                   WHERE ((sibs_1.deleted = false) AND (rel_union.r1 = uuids.id))
                   GROUP BY sibs_1.type) rels) sibs ON (true))
-     LEFT JOIN public.data ON (((latest.data_etag)::text = (data.etag)::text)));
+     LEFT JOIN data ON (((latest.data_etag)::text = (data.etag)::text)));
 
-
-ALTER TABLE public.idigbio_uuids_data OWNER TO idigbio;
 
 --
--- Name: idigbio_uuids_new; Type: VIEW; Schema: public; Owner: idigbio
+-- Name: idigbio_uuids_new; Type: VIEW; Schema: public; Owner: -
 --
 
-CREATE VIEW public.idigbio_uuids_new AS
+CREATE VIEW idigbio_uuids_new AS
  SELECT uuids.id AS uuid,
     uuids.type,
     uuids.deleted,
@@ -512,42 +339,39 @@ CREATE VIEW public.idigbio_uuids_new AS
     ids.recordids,
     sibs.siblings,
     latest.id AS vid
-   FROM (((public.uuids
+   FROM (((uuids
      LEFT JOIN LATERAL ( SELECT uuids_data.id,
             uuids_data.uuids_id,
             uuids_data.data_etag,
             uuids_data.modified,
             uuids_data.version
-           FROM public.uuids_data
+           FROM uuids_data
           WHERE (uuids_data.uuids_id = uuids.id)
           ORDER BY uuids_data.modified DESC
          LIMIT 1) latest ON (true))
      LEFT JOIN LATERAL ( SELECT array_agg(uuids_identifier.identifier) AS recordids
-           FROM public.uuids_identifier
+           FROM uuids_identifier
           WHERE (uuids_identifier.uuids_id = uuids.id)) ids ON (true))
      LEFT JOIN LATERAL ( SELECT json_object_agg(rels.rel, rels.array_agg) AS siblings
            FROM ( SELECT sibs_1.type AS rel,
                     array_agg(rel_union.r2) AS array_agg
                    FROM (( SELECT uuids_siblings.r1,
                             uuids_siblings.r2
-                           FROM public.uuids_siblings
+                           FROM uuids_siblings
                         UNION
                          SELECT uuids_siblings.r2,
                             uuids_siblings.r1
-                           FROM public.uuids_siblings) rel_union
-                     JOIN public.uuids sibs_1 ON ((rel_union.r2 = sibs_1.id)))
+                           FROM uuids_siblings) rel_union
+                     JOIN uuids sibs_1 ON ((rel_union.r2 = sibs_1.id)))
                   WHERE ((sibs_1.deleted = false) AND (rel_union.r1 = uuids.id))
                   GROUP BY sibs_1.type) rels) sibs ON (true));
 
 
-ALTER TABLE public.idigbio_uuids_new OWNER TO idigbio;
-
-
 --
--- Name: media; Type: TABLE; Schema: public; Owner: idigbio
+-- Name: media; Type: TABLE; Schema: public; Owner: -
 --
 
-CREATE TABLE public.media (
+CREATE TABLE media (
     id bigint NOT NULL,
     url text,
     type character varying(20),
@@ -558,13 +382,11 @@ CREATE TABLE public.media (
 );
 
 
-ALTER TABLE public.media OWNER TO idigbio;
-
 --
--- Name: media_id_seq; Type: SEQUENCE; Schema: public; Owner: idigbio
+-- Name: media_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
-CREATE SEQUENCE public.media_id_seq
+CREATE SEQUENCE media_id_seq
     START WITH 1
     INCREMENT BY 1
     NO MINVALUE
@@ -572,20 +394,18 @@ CREATE SEQUENCE public.media_id_seq
     CACHE 1;
 
 
-ALTER TABLE public.media_id_seq OWNER TO idigbio;
-
 --
--- Name: media_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: idigbio
+-- Name: media_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
 
-ALTER SEQUENCE public.media_id_seq OWNED BY public.media.id;
+ALTER SEQUENCE media_id_seq OWNED BY media.id;
 
 
 --
--- Name: media_objects; Type: TABLE; Schema: public; Owner: idigbio
+-- Name: media_objects; Type: TABLE; Schema: public; Owner: -
 --
 
-CREATE TABLE public.media_objects (
+CREATE TABLE media_objects (
     id bigint NOT NULL,
     url text NOT NULL,
     etag character varying(41) NOT NULL,
@@ -593,13 +413,11 @@ CREATE TABLE public.media_objects (
 );
 
 
-ALTER TABLE public.media_objects OWNER TO idigbio;
-
 --
--- Name: media_objects_id_seq; Type: SEQUENCE; Schema: public; Owner: idigbio
+-- Name: media_objects_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
-CREATE SEQUENCE public.media_objects_id_seq
+CREATE SEQUENCE media_objects_id_seq
     START WITH 1
     INCREMENT BY 1
     NO MINVALUE
@@ -607,20 +425,18 @@ CREATE SEQUENCE public.media_objects_id_seq
     CACHE 1;
 
 
-ALTER TABLE public.media_objects_id_seq OWNER TO idigbio;
-
 --
--- Name: media_objects_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: idigbio
+-- Name: media_objects_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
 
-ALTER SEQUENCE public.media_objects_id_seq OWNED BY public.media_objects.id;
+ALTER SEQUENCE media_objects_id_seq OWNED BY media_objects.id;
 
 
 --
--- Name: objects; Type: TABLE; Schema: public; Owner: idigbio
+-- Name: objects; Type: TABLE; Schema: public; Owner: -
 --
 
-CREATE TABLE public.objects (
+CREATE TABLE objects (
     id bigint NOT NULL,
     bucket character varying(255) NOT NULL,
     etag character varying(41) NOT NULL,
@@ -629,13 +445,11 @@ CREATE TABLE public.objects (
 );
 
 
-ALTER TABLE public.objects OWNER TO idigbio;
-
 --
--- Name: objects_id_seq; Type: SEQUENCE; Schema: public; Owner: idigbio
+-- Name: objects_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
-CREATE SEQUENCE public.objects_id_seq
+CREATE SEQUENCE objects_id_seq
     START WITH 1
     INCREMENT BY 1
     NO MINVALUE
@@ -643,20 +457,18 @@ CREATE SEQUENCE public.objects_id_seq
     CACHE 1;
 
 
-ALTER TABLE public.objects_id_seq OWNER TO idigbio;
-
 --
--- Name: objects_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: idigbio
+-- Name: objects_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
 
-ALTER SEQUENCE public.objects_id_seq OWNED BY public.objects.id;
+ALTER SEQUENCE objects_id_seq OWNED BY objects.id;
 
 
 --
--- Name: publishers; Type: TABLE; Schema: public; Owner: idigbio
+-- Name: publishers; Type: TABLE; Schema: public; Owner: -
 --
 
-CREATE TABLE public.publishers (
+CREATE TABLE publishers (
     id bigint NOT NULL,
     uuid uuid,
     name text,
@@ -671,13 +483,11 @@ CREATE TABLE public.publishers (
 );
 
 
-ALTER TABLE public.publishers OWNER TO idigbio;
-
 --
--- Name: publishers_id_seq; Type: SEQUENCE; Schema: public; Owner: idigbio
+-- Name: publishers_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
-CREATE SEQUENCE public.publishers_id_seq
+CREATE SEQUENCE publishers_id_seq
     START WITH 1
     INCREMENT BY 1
     NO MINVALUE
@@ -685,20 +495,18 @@ CREATE SEQUENCE public.publishers_id_seq
     CACHE 1;
 
 
-ALTER TABLE public.publishers_id_seq OWNER TO idigbio;
-
 --
--- Name: publishers_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: idigbio
+-- Name: publishers_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
 
-ALTER SEQUENCE public.publishers_id_seq OWNED BY public.publishers.id;
+ALTER SEQUENCE publishers_id_seq OWNED BY publishers.id;
 
 
 --
--- Name: recordsets; Type: TABLE; Schema: public; Owner: idigbio
+-- Name: recordsets; Type: TABLE; Schema: public; Owner: -
 --
 
-CREATE TABLE public.recordsets (
+CREATE TABLE recordsets (
     id bigint NOT NULL,
     uuid uuid,
     publisher_uuid uuid,
@@ -713,19 +521,15 @@ CREATE TABLE public.recordsets (
     file_harvest_date timestamp without time zone,
     file_harvest_etag character varying(41),
     eml_harvest_date timestamp without time zone,
-    eml_harvest_etag character varying(41),
-    ingest_is_paused boolean DEFAULT false NOT NULL,
-    ingest_paused_date timestamp without time zone
+    eml_harvest_etag character varying(41)
 );
 
 
-ALTER TABLE public.recordsets OWNER TO idigbio;
-
 --
--- Name: recordsets_id_seq; Type: SEQUENCE; Schema: public; Owner: idigbio
+-- Name: recordsets_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
-CREATE SEQUENCE public.recordsets_id_seq
+CREATE SEQUENCE recordsets_id_seq
     START WITH 1
     INCREMENT BY 1
     NO MINVALUE
@@ -733,20 +537,18 @@ CREATE SEQUENCE public.recordsets_id_seq
     CACHE 1;
 
 
-ALTER TABLE public.recordsets_id_seq OWNER TO idigbio;
-
 --
--- Name: recordsets_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: idigbio
+-- Name: recordsets_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
 
-ALTER SEQUENCE public.recordsets_id_seq OWNED BY public.recordsets.id;
+ALTER SEQUENCE recordsets_id_seq OWNED BY recordsets.id;
 
 
 --
--- Name: uuids_data_id_seq; Type: SEQUENCE; Schema: public; Owner: idigbio
+-- Name: uuids_data_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
-CREATE SEQUENCE public.uuids_data_id_seq
+CREATE SEQUENCE uuids_data_id_seq
     START WITH 1
     INCREMENT BY 1
     NO MINVALUE
@@ -754,20 +556,18 @@ CREATE SEQUENCE public.uuids_data_id_seq
     CACHE 1;
 
 
-ALTER TABLE public.uuids_data_id_seq OWNER TO idigbio;
-
 --
--- Name: uuids_data_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: idigbio
+-- Name: uuids_data_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
 
-ALTER SEQUENCE public.uuids_data_id_seq OWNED BY public.uuids_data.id;
+ALTER SEQUENCE uuids_data_id_seq OWNED BY uuids_data.id;
 
 
 --
--- Name: uuids_identifier_id_seq; Type: SEQUENCE; Schema: public; Owner: idigbio
+-- Name: uuids_identifier_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
-CREATE SEQUENCE public.uuids_identifier_id_seq
+CREATE SEQUENCE uuids_identifier_id_seq
     START WITH 1
     INCREMENT BY 1
     NO MINVALUE
@@ -775,20 +575,18 @@ CREATE SEQUENCE public.uuids_identifier_id_seq
     CACHE 1;
 
 
-ALTER TABLE public.uuids_identifier_id_seq OWNER TO idigbio;
-
 --
--- Name: uuids_identifier_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: idigbio
+-- Name: uuids_identifier_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
 
-ALTER SEQUENCE public.uuids_identifier_id_seq OWNED BY public.uuids_identifier.id;
+ALTER SEQUENCE uuids_identifier_id_seq OWNED BY uuids_identifier.id;
 
 
 --
--- Name: uuids_siblings_id_seq; Type: SEQUENCE; Schema: public; Owner: idigbio
+-- Name: uuids_siblings_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
-CREATE SEQUENCE public.uuids_siblings_id_seq
+CREATE SEQUENCE uuids_siblings_id_seq
     START WITH 1
     INCREMENT BY 1
     NO MINVALUE
@@ -796,569 +594,389 @@ CREATE SEQUENCE public.uuids_siblings_id_seq
     CACHE 1;
 
 
-ALTER TABLE public.uuids_siblings_id_seq OWNER TO idigbio;
-
 --
--- Name: uuids_siblings_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: idigbio
+-- Name: uuids_siblings_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
 
-ALTER SEQUENCE public.uuids_siblings_id_seq OWNED BY public.uuids_siblings.id;
+ALTER SEQUENCE uuids_siblings_id_seq OWNED BY uuids_siblings.id;
 
 
 --
--- Name: annotations id; Type: DEFAULT; Schema: public; Owner: idigbio
+-- Name: id; Type: DEFAULT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.annotations ALTER COLUMN id SET DEFAULT nextval('public.annotations_id_seq'::regclass);
-
-
---
--- Name: corrections id; Type: DEFAULT; Schema: public; Owner: idigbio
---
-
-ALTER TABLE ONLY public.corrections ALTER COLUMN id SET DEFAULT nextval('public.corrections_id_seq'::regclass);
+ALTER TABLE ONLY annotations ALTER COLUMN id SET DEFAULT nextval('annotations_id_seq'::regclass);
 
 
 --
--- Name: media id; Type: DEFAULT; Schema: public; Owner: idigbio
+-- Name: id; Type: DEFAULT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.media ALTER COLUMN id SET DEFAULT nextval('public.media_id_seq'::regclass);
-
-
---
--- Name: media_objects id; Type: DEFAULT; Schema: public; Owner: idigbio
---
-
-ALTER TABLE ONLY public.media_objects ALTER COLUMN id SET DEFAULT nextval('public.media_objects_id_seq'::regclass);
+ALTER TABLE ONLY corrections ALTER COLUMN id SET DEFAULT nextval('corrections_id_seq'::regclass);
 
 
 --
--- Name: objects id; Type: DEFAULT; Schema: public; Owner: idigbio
+-- Name: id; Type: DEFAULT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.objects ALTER COLUMN id SET DEFAULT nextval('public.objects_id_seq'::regclass);
-
-
---
--- Name: publishers id; Type: DEFAULT; Schema: public; Owner: idigbio
---
-
-ALTER TABLE ONLY public.publishers ALTER COLUMN id SET DEFAULT nextval('public.publishers_id_seq'::regclass);
+ALTER TABLE ONLY media ALTER COLUMN id SET DEFAULT nextval('media_id_seq'::regclass);
 
 
 --
--- Name: recordsets id; Type: DEFAULT; Schema: public; Owner: idigbio
+-- Name: id; Type: DEFAULT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.recordsets ALTER COLUMN id SET DEFAULT nextval('public.recordsets_id_seq'::regclass);
-
-
---
--- Name: uuids_data id; Type: DEFAULT; Schema: public; Owner: idigbio
---
-
-ALTER TABLE ONLY public.uuids_data ALTER COLUMN id SET DEFAULT nextval('public.uuids_data_id_seq'::regclass);
+ALTER TABLE ONLY media_objects ALTER COLUMN id SET DEFAULT nextval('media_objects_id_seq'::regclass);
 
 
 --
--- Name: uuids_identifier id; Type: DEFAULT; Schema: public; Owner: idigbio
+-- Name: id; Type: DEFAULT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.uuids_identifier ALTER COLUMN id SET DEFAULT nextval('public.uuids_identifier_id_seq'::regclass);
-
-
---
--- Name: uuids_siblings id; Type: DEFAULT; Schema: public; Owner: idigbio
---
-
-ALTER TABLE ONLY public.uuids_siblings ALTER COLUMN id SET DEFAULT nextval('public.uuids_siblings_id_seq'::regclass);
+ALTER TABLE ONLY objects ALTER COLUMN id SET DEFAULT nextval('objects_id_seq'::regclass);
 
 
 --
--- Name: annotations annotations_pkey; Type: CONSTRAINT; Schema: public; Owner: idigbio
+-- Name: id; Type: DEFAULT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.annotations
+ALTER TABLE ONLY publishers ALTER COLUMN id SET DEFAULT nextval('publishers_id_seq'::regclass);
+
+
+--
+-- Name: id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY recordsets ALTER COLUMN id SET DEFAULT nextval('recordsets_id_seq'::regclass);
+
+
+--
+-- Name: id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY uuids_data ALTER COLUMN id SET DEFAULT nextval('uuids_data_id_seq'::regclass);
+
+
+--
+-- Name: id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY uuids_identifier ALTER COLUMN id SET DEFAULT nextval('uuids_identifier_id_seq'::regclass);
+
+
+--
+-- Name: id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY uuids_siblings ALTER COLUMN id SET DEFAULT nextval('uuids_siblings_id_seq'::regclass);
+
+
+--
+-- Name: annotations_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY annotations
     ADD CONSTRAINT annotations_pkey PRIMARY KEY (id);
 
 
 --
--- Name: annotations annotations_source_id_key; Type: CONSTRAINT; Schema: public; Owner: idigbio
+-- Name: corrections_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.annotations
-    ADD CONSTRAINT annotations_source_id_key UNIQUE (source_id);
-
-
---
--- Name: corrections corrections_pkey; Type: CONSTRAINT; Schema: public; Owner: idigbio
---
-
-ALTER TABLE ONLY public.corrections
+ALTER TABLE ONLY corrections
     ADD CONSTRAINT corrections_pkey PRIMARY KEY (id);
 
 
 --
--- Name: data data_pkey; Type: CONSTRAINT; Schema: public; Owner: idigbio
+-- Name: data_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.data
+ALTER TABLE ONLY data
     ADD CONSTRAINT data_pkey PRIMARY KEY (etag);
 
 
 --
--- Name: idb_object_keys idb_object_keys_pkey; Type: CONSTRAINT; Schema: public; Owner: idigbio
+-- Name: idb_object_keys_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.idb_object_keys
+ALTER TABLE ONLY idb_object_keys
     ADD CONSTRAINT idb_object_keys_pkey PRIMARY KEY (lookup_key);
 
 
 --
--- Name: recordsets idx_file_link_unique; Type: CONSTRAINT; Schema: public; Owner: idigbio
+-- Name: idx_file_link_unique; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.recordsets
+ALTER TABLE ONLY recordsets
     ADD CONSTRAINT idx_file_link_unique UNIQUE (file_link);
 
 
 --
--- Name: media_objects media_objects_pkey; Type: CONSTRAINT; Schema: public; Owner: idigbio
+-- Name: media_objects_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.media_objects
+ALTER TABLE ONLY media_objects
     ADD CONSTRAINT media_objects_pkey PRIMARY KEY (id);
 
 
 --
--- Name: media media_pkey; Type: CONSTRAINT; Schema: public; Owner: idigbio
+-- Name: media_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.media
+ALTER TABLE ONLY media
     ADD CONSTRAINT media_pkey PRIMARY KEY (id);
 
 
 --
--- Name: media media_url_key; Type: CONSTRAINT; Schema: public; Owner: idigbio
+-- Name: media_url_key; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.media
+ALTER TABLE ONLY media
     ADD CONSTRAINT media_url_key UNIQUE (url);
 
 
 --
--- Name: objects objects_etag_key; Type: CONSTRAINT; Schema: public; Owner: idigbio
+-- Name: objects_etag_key; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.objects
+ALTER TABLE ONLY objects
     ADD CONSTRAINT objects_etag_key UNIQUE (etag);
 
 
 --
--- Name: objects objects_pkey; Type: CONSTRAINT; Schema: public; Owner: idigbio
+-- Name: objects_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.objects
+ALTER TABLE ONLY objects
     ADD CONSTRAINT objects_pkey PRIMARY KEY (id);
 
 
 --
--- Name: publishers publishers_pkey; Type: CONSTRAINT; Schema: public; Owner: idigbio
+-- Name: publishers_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.publishers
+ALTER TABLE ONLY publishers
     ADD CONSTRAINT publishers_pkey PRIMARY KEY (id);
 
 
 --
--- Name: publishers publishers_uuid_key; Type: CONSTRAINT; Schema: public; Owner: idigbio
+-- Name: publishers_uuid_key; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.publishers
+ALTER TABLE ONLY publishers
     ADD CONSTRAINT publishers_uuid_key UNIQUE (uuid);
 
 
 --
--- Name: recordsets recordsets_pkey; Type: CONSTRAINT; Schema: public; Owner: idigbio
+-- Name: recordsets_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.recordsets
+ALTER TABLE ONLY recordsets
     ADD CONSTRAINT recordsets_pkey PRIMARY KEY (id);
 
 
 --
--- Name: recordsets recordsets_uuid_key; Type: CONSTRAINT; Schema: public; Owner: idigbio
+-- Name: recordsets_uuid_key; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.recordsets
+ALTER TABLE ONLY recordsets
     ADD CONSTRAINT recordsets_uuid_key UNIQUE (uuid);
 
 
 --
--- Name: uuids_data uuids_data_pkey; Type: CONSTRAINT; Schema: public; Owner: idigbio
+-- Name: uuids_data_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.uuids_data
+ALTER TABLE ONLY uuids_data
     ADD CONSTRAINT uuids_data_pkey PRIMARY KEY (id);
 
 
 --
--- Name: uuids_identifier uuids_identifier_identifier_key; Type: CONSTRAINT; Schema: public; Owner: idigbio
+-- Name: uuids_identifier_identifier_key; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.uuids_identifier
+ALTER TABLE ONLY uuids_identifier
     ADD CONSTRAINT uuids_identifier_identifier_key UNIQUE (identifier);
 
 
 --
--- Name: uuids_identifier uuids_identifier_pkey; Type: CONSTRAINT; Schema: public; Owner: idigbio
+-- Name: uuids_identifier_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.uuids_identifier
+ALTER TABLE ONLY uuids_identifier
     ADD CONSTRAINT uuids_identifier_pkey PRIMARY KEY (id);
 
 
 --
--- Name: uuids uuids_pkey; Type: CONSTRAINT; Schema: public; Owner: idigbio
+-- Name: uuids_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.uuids
+ALTER TABLE ONLY uuids
     ADD CONSTRAINT uuids_pkey PRIMARY KEY (id);
 
 
 --
--- Name: uuids_siblings uuids_siblings_pkey; Type: CONSTRAINT; Schema: public; Owner: idigbio
+-- Name: uuids_siblings_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.uuids_siblings
+ALTER TABLE ONLY uuids_siblings
     ADD CONSTRAINT uuids_siblings_pkey PRIMARY KEY (id);
 
 
 --
--- Name: ceph_objects_bucket_name; Type: INDEX; Schema: public; Owner: idigbio
+-- Name: corrections_source; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE UNIQUE INDEX ceph_objects_bucket_name ON public.ceph_objects USING btree (ceph_name, ceph_bucket);
+CREATE INDEX corrections_source ON corrections USING btree (source);
 
 
 --
--- Name: corrections_source; Type: INDEX; Schema: public; Owner: idigbio
+-- Name: idb_object_keys_etag; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX corrections_source ON public.corrections USING btree (source);
+CREATE INDEX idb_object_keys_etag ON idb_object_keys USING btree (etag);
 
 
 --
--- Name: idb_object_keys_etag; Type: INDEX; Schema: public; Owner: idigbio
+-- Name: media_objects_etags; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX idb_object_keys_etag ON public.idb_object_keys USING btree (etag);
+CREATE INDEX media_objects_etags ON media_objects USING btree (etag);
 
 
 --
--- Name: index_ceph_on_filename_with_pattern_ops; Type: INDEX; Schema: public; Owner: idigbio
+-- Name: media_objects_urls; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX index_ceph_on_filename_with_pattern_ops ON public.ceph_server_files USING btree (filename text_pattern_ops);
+CREATE INDEX media_objects_urls ON media_objects USING btree (url, modified DESC);
 
 
 --
--- Name: media_objects_etags; Type: INDEX; Schema: public; Owner: idigbio
+-- Name: uuids_data_uuids_id_modified; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX media_objects_etags ON public.media_objects USING btree (etag);
+CREATE INDEX uuids_data_uuids_id_modified ON uuids_data USING btree (uuids_id, modified DESC);
 
 
 --
--- Name: media_objects_urls; Type: INDEX; Schema: public; Owner: idigbio
+-- Name: uuids_data_version; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX media_objects_urls ON public.media_objects USING btree (url, modified DESC);
+CREATE INDEX uuids_data_version ON uuids_data USING btree (version);
 
 
 --
--- Name: uuids_data_data_etag_idx; Type: INDEX; Schema: public; Owner: idigbio
+-- Name: uuids_identifier_reverse_idx; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX uuids_data_data_etag_idx ON public.uuids_data USING btree (data_etag);
+CREATE INDEX uuids_identifier_reverse_idx ON uuids_identifier USING btree (reverse(identifier) text_pattern_ops);
 
 
 --
--- Name: uuids_data_uuids_id_modified; Type: INDEX; Schema: public; Owner: idigbio
+-- Name: uuids_identifier_uuids_id; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX uuids_data_uuids_id_modified ON public.uuids_data USING btree (uuids_id, modified DESC);
+CREATE INDEX uuids_identifier_uuids_id ON uuids_identifier USING btree (uuids_id);
 
 
 --
--- Name: uuids_data_version; Type: INDEX; Schema: public; Owner: idigbio
+-- Name: uuids_parent; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX uuids_data_version ON public.uuids_data USING btree (version);
+CREATE INDEX uuids_parent ON uuids USING btree (parent);
 
 
 --
--- Name: uuids_identifier_reverse_idx; Type: INDEX; Schema: public; Owner: idigbio
+-- Name: uuids_siblings_r1; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX uuids_identifier_reverse_idx ON public.uuids_identifier USING btree (reverse(identifier) text_pattern_ops);
+CREATE INDEX uuids_siblings_r1 ON uuids_siblings USING btree (r1);
 
 
 --
--- Name: uuids_identifier_uuids_id; Type: INDEX; Schema: public; Owner: idigbio
+-- Name: uuids_siblings_r2; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX uuids_identifier_uuids_id ON public.uuids_identifier USING btree (uuids_id);
+CREATE INDEX uuids_siblings_r2 ON uuids_siblings USING btree (r2);
 
 
 --
--- Name: uuids_parent; Type: INDEX; Schema: public; Owner: idigbio
+-- Name: uuids_type_parent; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX uuids_parent ON public.uuids USING btree (parent);
+CREATE INDEX uuids_type_parent ON uuids USING btree (type, parent) WHERE (deleted = false);
 
 
 --
--- Name: uuids_siblings_r1; Type: INDEX; Schema: public; Owner: idigbio
+-- Name: annotations_uuids_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
-CREATE INDEX uuids_siblings_r1 ON public.uuids_siblings USING btree (r1);
+ALTER TABLE ONLY annotations
+    ADD CONSTRAINT annotations_uuids_id_fkey FOREIGN KEY (uuids_id) REFERENCES uuids(id);
 
 
 --
--- Name: uuids_siblings_r2; Type: INDEX; Schema: public; Owner: idigbio
+-- Name: media_objects_etag_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
-CREATE INDEX uuids_siblings_r2 ON public.uuids_siblings USING btree (r2);
+ALTER TABLE ONLY media_objects
+    ADD CONSTRAINT media_objects_etag_fkey FOREIGN KEY (etag) REFERENCES objects(etag) ON DELETE CASCADE;
 
 
 --
--- Name: uuids_type_parent; Type: INDEX; Schema: public; Owner: idigbio
+-- Name: media_objects_url_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
-CREATE INDEX uuids_type_parent ON public.uuids USING btree (type, parent) WHERE (deleted = false);
+ALTER TABLE ONLY media_objects
+    ADD CONSTRAINT media_objects_url_fkey FOREIGN KEY (url) REFERENCES media(url) ON DELETE CASCADE;
 
 
 --
--- Name: recordsets trigger_set_ingest_paused_date; Type: TRIGGER; Schema: public; Owner: idigbio
+-- Name: recordsets_publisher_uuid_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
-CREATE TRIGGER trigger_set_ingest_paused_date BEFORE UPDATE ON public.recordsets FOR EACH ROW EXECUTE FUNCTION public.set_ingest_paused_date();
+ALTER TABLE ONLY recordsets
+    ADD CONSTRAINT recordsets_publisher_uuid_fkey FOREIGN KEY (publisher_uuid) REFERENCES publishers(uuid);
 
 
 --
--- Name: annotations annotations_uuids_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: idigbio
+-- Name: uuids_data_data_etag_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.annotations
-    ADD CONSTRAINT annotations_uuids_id_fkey FOREIGN KEY (uuids_id) REFERENCES public.uuids(id);
+ALTER TABLE ONLY uuids_data
+    ADD CONSTRAINT uuids_data_data_etag_fkey FOREIGN KEY (data_etag) REFERENCES data(etag);
 
 
 --
--- Name: media_objects media_objects_etag_fkey; Type: FK CONSTRAINT; Schema: public; Owner: idigbio
+-- Name: uuids_data_uuids_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.media_objects
-    ADD CONSTRAINT media_objects_etag_fkey FOREIGN KEY (etag) REFERENCES public.objects(etag) ON DELETE CASCADE;
+ALTER TABLE ONLY uuids_data
+    ADD CONSTRAINT uuids_data_uuids_id_fkey FOREIGN KEY (uuids_id) REFERENCES uuids(id);
 
 
 --
--- Name: media_objects media_objects_url_fkey; Type: FK CONSTRAINT; Schema: public; Owner: idigbio
+-- Name: uuids_identifier_uuids_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.media_objects
-    ADD CONSTRAINT media_objects_url_fkey FOREIGN KEY (url) REFERENCES public.media(url) ON DELETE CASCADE;
+ALTER TABLE ONLY uuids_identifier
+    ADD CONSTRAINT uuids_identifier_uuids_id_fkey FOREIGN KEY (uuids_id) REFERENCES uuids(id);
 
 
 --
--- Name: recordsets recordsets_publisher_uuid_fkey; Type: FK CONSTRAINT; Schema: public; Owner: idigbio
+-- Name: uuids_siblings_r1_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.recordsets
-    ADD CONSTRAINT recordsets_publisher_uuid_fkey FOREIGN KEY (publisher_uuid) REFERENCES public.publishers(uuid);
+ALTER TABLE ONLY uuids_siblings
+    ADD CONSTRAINT uuids_siblings_r1_fkey FOREIGN KEY (r1) REFERENCES uuids(id);
 
 
 --
--- Name: uuids_data uuids_data_data_etag_fkey; Type: FK CONSTRAINT; Schema: public; Owner: idigbio
+-- Name: uuids_siblings_r2_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.uuids_data
-    ADD CONSTRAINT uuids_data_data_etag_fkey FOREIGN KEY (data_etag) REFERENCES public.data(etag);
-
-
---
--- Name: uuids_data uuids_data_uuids_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: idigbio
---
-
-ALTER TABLE ONLY public.uuids_data
-    ADD CONSTRAINT uuids_data_uuids_id_fkey FOREIGN KEY (uuids_id) REFERENCES public.uuids(id);
-
-
---
--- Name: uuids_identifier uuids_identifier_uuids_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: idigbio
---
-
-ALTER TABLE ONLY public.uuids_identifier
-    ADD CONSTRAINT uuids_identifier_uuids_id_fkey FOREIGN KEY (uuids_id) REFERENCES public.uuids(id);
-
-
---
--- Name: uuids_siblings uuids_siblings_r1_fkey; Type: FK CONSTRAINT; Schema: public; Owner: idigbio
---
-
-ALTER TABLE ONLY public.uuids_siblings
-    ADD CONSTRAINT uuids_siblings_r1_fkey FOREIGN KEY (r1) REFERENCES public.uuids(id);
-
-
---
--- Name: uuids_siblings uuids_siblings_r2_fkey; Type: FK CONSTRAINT; Schema: public; Owner: idigbio
---
-
-ALTER TABLE ONLY public.uuids_siblings
-    ADD CONSTRAINT uuids_siblings_r2_fkey FOREIGN KEY (r2) REFERENCES public.uuids(id);
-
-
---
--- Name: TABLE annotations; Type: ACL; Schema: public; Owner: idigbio
---
-
-GRANT SELECT ON TABLE public.annotations TO idigbio_reader;
-
-
---
--- Name: TABLE ceph_objects; Type: ACL; Schema: public; Owner: idigbio
---
-
-GRANT SELECT ON TABLE public.ceph_objects TO idigbio_reader;
-
-
---
--- Name: TABLE ceph_server_files; Type: ACL; Schema: public; Owner: idigbio
---
-
-GRANT SELECT ON TABLE public.ceph_server_files TO idigbio_reader;
-
-
---
--- Name: TABLE corrections; Type: ACL; Schema: public; Owner: idigbio
---
-
-GRANT SELECT ON TABLE public.corrections TO idigbio_reader;
-
-
---
--- Name: TABLE data; Type: ACL; Schema: public; Owner: idigbio
---
-
-GRANT SELECT ON TABLE public.data TO idigbio_reader;
-
-
---
--- Name: TABLE idb_api_keys; Type: ACL; Schema: public; Owner: idigbio
---
-
-GRANT SELECT ON TABLE public.idb_api_keys TO idigbio_reader;
-
-
---
--- Name: TABLE idb_object_keys; Type: ACL; Schema: public; Owner: idigbio
---
-
-GRANT SELECT ON TABLE public.idb_object_keys TO idigbio_reader;
-
-
---
--- Name: TABLE uuids; Type: ACL; Schema: public; Owner: idigbio
---
-
-GRANT SELECT ON TABLE public.uuids TO idigbio_reader;
-
-
---
--- Name: TABLE uuids_siblings; Type: ACL; Schema: public; Owner: idigbio
---
-
-GRANT SELECT ON TABLE public.uuids_siblings TO idigbio_reader;
-
-
---
--- Name: TABLE idigbio_relations; Type: ACL; Schema: public; Owner: idigbio
---
-
-GRANT SELECT ON TABLE public.idigbio_relations TO idigbio_reader;
-
-
---
--- Name: TABLE uuids_data; Type: ACL; Schema: public; Owner: idigbio
---
-
-GRANT SELECT ON TABLE public.uuids_data TO idigbio_reader;
-
-
---
--- Name: TABLE uuids_identifier; Type: ACL; Schema: public; Owner: idigbio
---
-
-GRANT SELECT ON TABLE public.uuids_identifier TO idigbio_reader;
-
-
---
--- Name: TABLE idigbio_uuids_data; Type: ACL; Schema: public; Owner: idigbio
---
-
-GRANT SELECT ON TABLE public.idigbio_uuids_data TO idigbio_reader;
-
-
---
--- Name: TABLE idigbio_uuids_new; Type: ACL; Schema: public; Owner: idigbio
---
-
-GRANT SELECT ON TABLE public.idigbio_uuids_new TO idigbio_reader;
-
---
--- Name: TABLE media; Type: ACL; Schema: public; Owner: idigbio
---
-
-GRANT SELECT ON TABLE public.media TO idigbio_reader;
-
-
---
--- Name: TABLE media_objects; Type: ACL; Schema: public; Owner: idigbio
---
-
-GRANT SELECT ON TABLE public.media_objects TO idigbio_reader;
-
-
---
--- Name: TABLE objects; Type: ACL; Schema: public; Owner: idigbio
---
-
-GRANT SELECT ON TABLE public.objects TO idigbio_reader;
-
-
---
--- Name: TABLE publishers; Type: ACL; Schema: public; Owner: idigbio
---
-
-GRANT SELECT ON TABLE public.publishers TO idigbio_reader;
-
-
---
--- Name: TABLE recordsets; Type: ACL; Schema: public; Owner: idigbio
---
-
-GRANT SELECT ON TABLE public.recordsets TO idigbio_reader;
-
-
---
--- Name: DEFAULT PRIVILEGES FOR TABLES; Type: DEFAULT ACL; Schema: public; Owner: postgres
---
-
-ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public GRANT SELECT ON TABLES  TO idigbio_reader;
-
-
-GRANT ALL ON SCHEMA public TO idigbio;
+ALTER TABLE ONLY uuids_siblings
+    ADD CONSTRAINT uuids_siblings_r2_fkey FOREIGN KEY (r2) REFERENCES uuids(id);
 
 
 --

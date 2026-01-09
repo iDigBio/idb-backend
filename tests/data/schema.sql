@@ -16,84 +16,96 @@ SET xmloption = content;
 SET client_min_messages = warning;
 SET row_security = off;
 
-ALTER TABLE IF EXISTS ONLY public.uuids_siblings DROP CONSTRAINT IF EXISTS uuids_siblings_r2_fkey;
-ALTER TABLE IF EXISTS ONLY public.uuids_siblings DROP CONSTRAINT IF EXISTS uuids_siblings_r1_fkey;
-ALTER TABLE IF EXISTS ONLY public.uuids_identifier DROP CONSTRAINT IF EXISTS uuids_identifier_uuids_id_fkey;
-ALTER TABLE IF EXISTS ONLY public.uuids_data DROP CONSTRAINT IF EXISTS uuids_data_uuids_id_fkey;
-ALTER TABLE IF EXISTS ONLY public.uuids_data DROP CONSTRAINT IF EXISTS uuids_data_data_etag_fkey;
-ALTER TABLE IF EXISTS ONLY public.recordsets DROP CONSTRAINT IF EXISTS recordsets_publisher_uuid_fkey;
-ALTER TABLE IF EXISTS ONLY public.media_objects DROP CONSTRAINT IF EXISTS media_objects_url_fkey;
-ALTER TABLE IF EXISTS ONLY public.media_objects DROP CONSTRAINT IF EXISTS media_objects_etag_fkey;
-ALTER TABLE IF EXISTS ONLY public.annotations DROP CONSTRAINT IF EXISTS annotations_uuids_id_fkey;
-DROP INDEX IF EXISTS public.uuids_type_parent;
-DROP INDEX IF EXISTS public.uuids_siblings_r2;
-DROP INDEX IF EXISTS public.uuids_siblings_r1;
-DROP INDEX IF EXISTS public.uuids_parent;
-DROP INDEX IF EXISTS public.uuids_identifier_uuids_id;
-DROP INDEX IF EXISTS public.uuids_identifier_reverse_idx;
-DROP INDEX IF EXISTS public.uuids_data_version;
-DROP INDEX IF EXISTS public.uuids_data_uuids_id_modified;
-DROP INDEX IF EXISTS public.media_objects_urls;
-DROP INDEX IF EXISTS public.media_objects_etags;
-DROP INDEX IF EXISTS public.idb_object_keys_etag;
-DROP INDEX IF EXISTS public.corrections_source;
-ALTER TABLE IF EXISTS ONLY public.uuids_siblings DROP CONSTRAINT IF EXISTS uuids_siblings_pkey;
-ALTER TABLE IF EXISTS ONLY public.uuids DROP CONSTRAINT IF EXISTS uuids_pkey;
-ALTER TABLE IF EXISTS ONLY public.uuids_identifier DROP CONSTRAINT IF EXISTS uuids_identifier_pkey;
-ALTER TABLE IF EXISTS ONLY public.uuids_identifier DROP CONSTRAINT IF EXISTS uuids_identifier_identifier_key;
-ALTER TABLE IF EXISTS ONLY public.uuids_data DROP CONSTRAINT IF EXISTS uuids_data_pkey;
-ALTER TABLE IF EXISTS ONLY public.recordsets DROP CONSTRAINT IF EXISTS recordsets_uuid_key;
-ALTER TABLE IF EXISTS ONLY public.recordsets DROP CONSTRAINT IF EXISTS recordsets_pkey;
-ALTER TABLE IF EXISTS ONLY public.publishers DROP CONSTRAINT IF EXISTS publishers_uuid_key;
-ALTER TABLE IF EXISTS ONLY public.publishers DROP CONSTRAINT IF EXISTS publishers_pkey;
-ALTER TABLE IF EXISTS ONLY public.objects DROP CONSTRAINT IF EXISTS objects_pkey;
-ALTER TABLE IF EXISTS ONLY public.objects DROP CONSTRAINT IF EXISTS objects_etag_key;
-ALTER TABLE IF EXISTS ONLY public.media DROP CONSTRAINT IF EXISTS media_url_key;
-ALTER TABLE IF EXISTS ONLY public.media DROP CONSTRAINT IF EXISTS media_pkey;
-ALTER TABLE IF EXISTS ONLY public.media_objects DROP CONSTRAINT IF EXISTS media_objects_pkey;
-ALTER TABLE IF EXISTS ONLY public.recordsets DROP CONSTRAINT IF EXISTS idx_file_link_unique;
-ALTER TABLE IF EXISTS ONLY public.idb_object_keys DROP CONSTRAINT IF EXISTS idb_object_keys_pkey;
-ALTER TABLE IF EXISTS ONLY public.data DROP CONSTRAINT IF EXISTS data_pkey;
-ALTER TABLE IF EXISTS ONLY public.corrections DROP CONSTRAINT IF EXISTS corrections_pkey;
-ALTER TABLE IF EXISTS ONLY public.annotations DROP CONSTRAINT IF EXISTS annotations_pkey;
-ALTER TABLE IF EXISTS public.uuids_siblings ALTER COLUMN id DROP DEFAULT;
-ALTER TABLE IF EXISTS public.uuids_identifier ALTER COLUMN id DROP DEFAULT;
-ALTER TABLE IF EXISTS public.uuids_data ALTER COLUMN id DROP DEFAULT;
-ALTER TABLE IF EXISTS public.recordsets ALTER COLUMN id DROP DEFAULT;
-ALTER TABLE IF EXISTS public.publishers ALTER COLUMN id DROP DEFAULT;
-ALTER TABLE IF EXISTS public.objects ALTER COLUMN id DROP DEFAULT;
-ALTER TABLE IF EXISTS public.media_objects ALTER COLUMN id DROP DEFAULT;
-ALTER TABLE IF EXISTS public.media ALTER COLUMN id DROP DEFAULT;
-ALTER TABLE IF EXISTS public.corrections ALTER COLUMN id DROP DEFAULT;
-ALTER TABLE IF EXISTS public.annotations ALTER COLUMN id DROP DEFAULT;
-DROP SEQUENCE IF EXISTS public.uuids_siblings_id_seq;
-DROP SEQUENCE IF EXISTS public.uuids_identifier_id_seq;
-DROP SEQUENCE IF EXISTS public.uuids_data_id_seq;
-DROP SEQUENCE IF EXISTS public.recordsets_id_seq;
-DROP TABLE IF EXISTS public.recordsets;
-DROP SEQUENCE IF EXISTS public.publishers_id_seq;
-DROP TABLE IF EXISTS public.publishers;
-DROP SEQUENCE IF EXISTS public.objects_id_seq;
-DROP TABLE IF EXISTS public.objects;
-DROP SEQUENCE IF EXISTS public.media_objects_id_seq;
-DROP TABLE IF EXISTS public.media_objects;
-DROP SEQUENCE IF EXISTS public.media_id_seq;
-DROP TABLE IF EXISTS public.media;
-DROP VIEW IF EXISTS public.idigbio_uuids_new;
-DROP VIEW IF EXISTS public.idigbio_uuids_data;
-DROP TABLE IF EXISTS public.uuids_identifier;
-DROP TABLE IF EXISTS public.uuids_data;
-DROP VIEW IF EXISTS public.idigbio_relations;
-DROP TABLE IF EXISTS public.uuids_siblings;
-DROP TABLE IF EXISTS public.uuids;
-DROP TABLE IF EXISTS public.idb_object_keys;
-DROP TABLE IF EXISTS public.idb_api_keys;
-DROP TABLE IF EXISTS public.data;
-DROP SEQUENCE IF EXISTS public.corrections_id_seq;
-DROP TABLE IF EXISTS public.corrections;
-DROP SEQUENCE IF EXISTS public.annotations_id_seq;
-DROP TABLE IF EXISTS public.annotations;
-DROP SCHEMA IF EXISTS public;
+ALTER TABLE ONLY public.uuids_siblings DROP CONSTRAINT uuids_siblings_r2_fkey;
+ALTER TABLE ONLY public.uuids_siblings DROP CONSTRAINT uuids_siblings_r1_fkey;
+ALTER TABLE ONLY public.uuids_identifier DROP CONSTRAINT uuids_identifier_uuids_id_fkey;
+ALTER TABLE ONLY public.uuids_data DROP CONSTRAINT uuids_data_uuids_id_fkey;
+ALTER TABLE ONLY public.uuids_data DROP CONSTRAINT uuids_data_data_etag_fkey;
+ALTER TABLE ONLY public.recordsets DROP CONSTRAINT recordsets_publisher_uuid_fkey;
+ALTER TABLE ONLY public.media_objects DROP CONSTRAINT media_objects_url_fkey;
+ALTER TABLE ONLY public.media_objects DROP CONSTRAINT media_objects_etag_fkey;
+ALTER TABLE ONLY public.annotations DROP CONSTRAINT annotations_uuids_id_fkey;
+DROP TRIGGER trigger_set_ingest_paused_date ON public.recordsets;
+DROP INDEX public.uuids_type_parent;
+DROP INDEX public.uuids_siblings_r2;
+DROP INDEX public.uuids_siblings_r1;
+DROP INDEX public.uuids_parent;
+DROP INDEX public.uuids_identifier_uuids_id;
+DROP INDEX public.uuids_identifier_reverse_idx;
+DROP INDEX public.uuids_data_version;
+DROP INDEX public.uuids_data_uuids_id_modified;
+DROP INDEX public.uuids_data_data_etag_idx;
+DROP INDEX public.media_objects_urls;
+DROP INDEX public.media_objects_etags;
+DROP INDEX public.index_ceph_on_filename_with_pattern_ops;
+DROP INDEX public.idb_object_keys_etag;
+DROP INDEX public.corrections_source;
+DROP INDEX public.ceph_objects_bucket_name;
+ALTER TABLE ONLY public.uuids_siblings DROP CONSTRAINT uuids_siblings_pkey;
+ALTER TABLE ONLY public.uuids DROP CONSTRAINT uuids_pkey;
+ALTER TABLE ONLY public.uuids_identifier DROP CONSTRAINT uuids_identifier_pkey;
+ALTER TABLE ONLY public.uuids_identifier DROP CONSTRAINT uuids_identifier_identifier_key;
+ALTER TABLE ONLY public.uuids_data DROP CONSTRAINT uuids_data_pkey;
+ALTER TABLE ONLY public.recordsets DROP CONSTRAINT recordsets_uuid_key;
+ALTER TABLE ONLY public.recordsets DROP CONSTRAINT recordsets_pkey;
+ALTER TABLE ONLY public.publishers DROP CONSTRAINT publishers_uuid_key;
+ALTER TABLE ONLY public.publishers DROP CONSTRAINT publishers_pkey;
+ALTER TABLE ONLY public.objects DROP CONSTRAINT objects_pkey;
+ALTER TABLE ONLY public.objects DROP CONSTRAINT objects_etag_key;
+ALTER TABLE ONLY public.media DROP CONSTRAINT media_url_key;
+ALTER TABLE ONLY public.media DROP CONSTRAINT media_pkey;
+ALTER TABLE ONLY public.media_objects DROP CONSTRAINT media_objects_pkey;
+ALTER TABLE ONLY public.recordsets DROP CONSTRAINT idx_file_link_unique;
+ALTER TABLE ONLY public.idb_object_keys DROP CONSTRAINT idb_object_keys_pkey;
+ALTER TABLE ONLY public.data DROP CONSTRAINT data_pkey;
+ALTER TABLE ONLY public.corrections DROP CONSTRAINT corrections_pkey;
+ALTER TABLE ONLY public.annotations DROP CONSTRAINT annotations_source_id_key;
+ALTER TABLE ONLY public.annotations DROP CONSTRAINT annotations_pkey;
+ALTER TABLE public.uuids_siblings ALTER COLUMN id DROP DEFAULT;
+ALTER TABLE public.uuids_identifier ALTER COLUMN id DROP DEFAULT;
+ALTER TABLE public.uuids_data ALTER COLUMN id DROP DEFAULT;
+ALTER TABLE public.recordsets ALTER COLUMN id DROP DEFAULT;
+ALTER TABLE public.publishers ALTER COLUMN id DROP DEFAULT;
+ALTER TABLE public.objects ALTER COLUMN id DROP DEFAULT;
+ALTER TABLE public.media_objects ALTER COLUMN id DROP DEFAULT;
+ALTER TABLE public.media ALTER COLUMN id DROP DEFAULT;
+ALTER TABLE public.corrections ALTER COLUMN id DROP DEFAULT;
+ALTER TABLE public.annotations ALTER COLUMN id DROP DEFAULT;
+DROP SEQUENCE public.uuids_siblings_id_seq;
+DROP SEQUENCE public.uuids_identifier_id_seq;
+DROP SEQUENCE public.uuids_data_id_seq;
+DROP SEQUENCE public.recordsets_id_seq;
+DROP TABLE public.recordsets CASCADE;
+DROP SEQUENCE public.publishers_id_seq;
+DROP TABLE public.publishers;
+DROP SEQUENCE public.objects_id_seq;
+DROP TABLE public.objects;
+DROP SEQUENCE public.media_objects_id_seq;
+DROP TABLE public.media_objects CASCADE;
+DROP SEQUENCE public.media_id_seq;
+DROP TABLE public.media;
+DROP VIEW public.idigbio_uuids_test;
+DROP VIEW public.idigbio_uuids_new_ron;
+DROP VIEW public.idigbio_uuids_new;
+DROP VIEW public.idigbio_uuids_data;
+DROP TABLE public.uuids_identifier CASCADE;
+DROP TABLE public.uuids_data CASCADE;
+DROP VIEW public.idigbio_relations;
+DROP TABLE public.uuids_siblings CASCADE;
+DROP TABLE public.uuids;
+DROP TABLE public.idb_object_keys;
+DROP TABLE public.idb_api_keys;
+DROP TABLE public.deleted_from_uuids_identifier;
+DROP TABLE public.data;
+DROP SEQUENCE public.corrections_id_seq;
+DROP TABLE public.corrections;
+DROP TABLE public.ceph_server_files;
+DROP TABLE public.ceph_objects;
+DROP SEQUENCE public.annotations_id_seq;
+DROP TABLE public.annotations CASCADE;
+DROP FUNCTION public.set_ingest_paused_date();
+DROP EXTENSION intarray;
+DROP EXTENSION amcheck;
 
 DO $$
 BEGIN
@@ -530,87 +542,6 @@ CREATE VIEW public.idigbio_uuids_new AS
 
 ALTER TABLE public.idigbio_uuids_new OWNER TO idigbio;
 
---
--- Name: idigbio_uuids_new_ron; Type: VIEW; Schema: public; Owner: idigbio
---
-
-CREATE VIEW public.idigbio_uuids_new_ron AS
- SELECT uuids.id AS uuid,
-    uuids.type,
-    uuids.deleted,
-    latest.data_etag AS etag,
-    latest.version,
-    latest.modified,
-    uuids.parent,
-    ids.recordids,
-    latest.id AS vid
-   FROM ((public.uuids
-     LEFT JOIN LATERAL ( SELECT uuids_data.id,
-            uuids_data.uuids_id,
-            uuids_data.data_etag,
-            uuids_data.modified,
-            uuids_data.version
-           FROM public.uuids_data
-          WHERE (uuids_data.uuids_id = uuids.id)
-          ORDER BY uuids_data.modified DESC
-         LIMIT 1) latest ON (true))
-     LEFT JOIN LATERAL ( SELECT array_agg(uuids_identifier.identifier) AS recordids
-           FROM public.uuids_identifier
-          WHERE (uuids_identifier.uuids_id = uuids.id)) ids ON (true));
-
-
-ALTER TABLE public.idigbio_uuids_new_ron OWNER TO idigbio;
-
---
--- Name: idigbio_uuids_test; Type: VIEW; Schema: public; Owner: postgres
---
-
-CREATE VIEW public.idigbio_uuids_test AS
- SELECT uuids.id AS uuid,
-    uuids.type,
-    uuids.deleted,
-    latest.data_etag AS etag,
-    latest.version,
-    latest.modified,
-    uuids.parent,
-    ids.recordids,
-    sibs.siblings,
-    latest.id AS vid,
-    ac.annotation_count,
-    data.data
-   FROM (((((public.uuids
-     LEFT JOIN LATERAL ( SELECT uuids_data.id,
-            uuids_data.uuids_id,
-            uuids_data.data_etag,
-            uuids_data.modified,
-            uuids_data.version
-           FROM public.uuids_data
-          WHERE (uuids_data.uuids_id = uuids.id)
-          ORDER BY uuids_data.modified DESC
-         LIMIT 1) latest ON (true))
-     LEFT JOIN LATERAL ( SELECT array_agg(uuids_identifier.identifier) AS recordids
-           FROM public.uuids_identifier
-          WHERE (uuids_identifier.uuids_id = uuids.id)) ids ON (true))
-     LEFT JOIN LATERAL ( SELECT json_object_agg(rels.rel, rels.array_agg) AS siblings
-           FROM ( SELECT sibs_1.type AS rel,
-                    array_agg(rel_union.r2) AS array_agg
-                   FROM (( SELECT uuids_siblings.r1,
-                            uuids_siblings.r2
-                           FROM public.uuids_siblings
-                        UNION
-                         SELECT uuids_siblings.r2,
-                            uuids_siblings.r1
-                           FROM public.uuids_siblings) rel_union
-                     JOIN public.uuids sibs_1 ON ((rel_union.r2 = sibs_1.id)))
-                  WHERE ((sibs_1.deleted = false) AND (rel_union.r1 = uuids.id))
-                  GROUP BY sibs_1.type) rels) sibs ON (true))
-     LEFT JOIN LATERAL ( SELECT count(*) AS annotation_count
-           FROM public.annotations
-          WHERE (annotations.uuids_id = uuids.id)) ac ON (true))
-     LEFT JOIN public.data ON (((latest.data_etag)::text = (data.etag)::text)));
-
-
-ALTER TABLE public.idigbio_uuids_test OWNER TO postgres;
 
 --
 -- Name: media; Type: TABLE; Schema: public; Owner: idigbio
@@ -1384,21 +1315,6 @@ GRANT SELECT ON TABLE public.idigbio_uuids_data TO idigbio_reader;
 --
 
 GRANT SELECT ON TABLE public.idigbio_uuids_new TO idigbio_reader;
-
-
---
--- Name: TABLE idigbio_uuids_new_ron; Type: ACL; Schema: public; Owner: idigbio
---
-
-GRANT SELECT ON TABLE public.idigbio_uuids_new_ron TO idigbio_reader;
-
-
---
--- Name: TABLE idigbio_uuids_test; Type: ACL; Schema: public; Owner: postgres
---
-
-GRANT SELECT ON TABLE public.idigbio_uuids_test TO idigbio_reader;
-
 
 --
 -- Name: TABLE media; Type: ACL; Schema: public; Owner: idigbio

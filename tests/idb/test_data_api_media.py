@@ -293,7 +293,7 @@ def test_datasets_mime_type(client, valid_auth_header, zippath, mocker):
     url = url_for('idb-data_api-v2_media.upload', filereference=filereference)
     r = client.post(url,
                     data={
-                        'file': (zippath.open('rb'), 'file'),
+                        'file': (zippath.open('rb'), 'file.zip', 'application/zip'),
                         'media_type': 'datasets',
                     },
                     headers=[valid_auth_header])

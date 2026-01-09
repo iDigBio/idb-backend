@@ -36,11 +36,16 @@ def bucketname(store, request):
 
     def purge():
         bucket = s3.Bucket(name)
-        # delete all objects then the bucket itself
-        bucket.objects.all().delete()
+    
+        # Avoid multi-delete (DeleteObjects) which can require Content-MD5 on some S3-compatible backends
+        for obj in bucket.objects.all():
+            obj.delete()
+    
         bucket.delete()
+
     request.addfinalizer(purge)
     return name
+
 
 
 @pytest.fixture()

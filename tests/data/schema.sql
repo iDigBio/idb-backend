@@ -30,7 +30,7 @@ ALTER ROLE idigbio SUPERUSER;
 
 DO $$
 BEGIN
-  IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'idigbio') THEN
+  IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'idigbio_reader') THEN
     CREATE ROLE idigbio_reader LOGIN;
   END IF;
 END $$;

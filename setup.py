@@ -59,6 +59,7 @@ setup(
         'Cython<3.0',
         'idigbio>=0.8.2',
         'psycopg2cffi>=2.9.0',
+        'psycopg2>=2.9.9',
         'redis>=2.9.1',
         'python-dateutil>=2.2, <3.0',
         'udatetime>=0.0.13',

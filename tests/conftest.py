@@ -11,8 +11,9 @@ that can create databases.
 import gevent
 import gevent.monkey
 import pytest
-from psycopg2cffi import compat
-compat.register()
+#This is for PyPy
+#from psycopg2cffi import compat
+#compat.register()
 import psycopg2
 from functools import partial
 from py.path import local

@@ -1,6 +1,7 @@
 pillow>=3.4,<=5.1.1
 pyquery>1.2.17
 psycopg2cffi>=2.9.0
+psycopg2>=2.9.9
 redis>=2.9.1
 python-dateutil>=2.2, <3.0
 udatetime>=0.0.13

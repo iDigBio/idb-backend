@@ -75,7 +75,7 @@ def setupredis(client, tid=None, task_status=None, download_url=None, error=None
         redisdata['download_url'] = download_url
     if error:
         redisdata['error'] = error
-    client.hmset(rtkey, redisdata)
+    client.hset(rtkey, mapping=redisdata)
     client.expire(rtkey, timedelta(hours=1))
     if link:
         rqhk = DOWNLOADER_TASK_PREFIX + redisdata['hash']

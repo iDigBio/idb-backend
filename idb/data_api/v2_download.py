@@ -87,10 +87,10 @@ def download():
     if not tid:
         tid = downloader.delay(params).id
         rtkey = DOWNLOADER_TASK_PREFIX + tid
-        rconn.hmset(rtkey, {
+        rconn.hset(rtkey, mapping={
             "query": json.dumps(params),
             "hash": query_hash,
-            "created": udatetime.utcnow_to_string()
+            "created": udatetime.utcnow_to_string(),
         })
         rconn.expire(rtkey, TASK_EXPIRE_TIME)
         rconn.set(rqhk, tid)

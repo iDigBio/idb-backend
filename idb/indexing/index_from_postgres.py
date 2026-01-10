@@ -349,7 +349,7 @@ def consume(ei, rc, iter_func, no_index=False):
         index_func   = functools.partial(index_record, ei, rc, typ,
                                          do_index=False)
         to_index     = iter_func(ei, rc, typ, yield_record=True)
-        idx_tuples   = itertools.imap(index_func, to_index)
+        idx_tuples   = map(index_func, to_index)
 
         if idx_tuples is not None:
             if no_index:

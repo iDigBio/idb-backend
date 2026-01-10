@@ -73,24 +73,29 @@ class RecordCorrector(object):
 
     def read_corrections_etag_bdb(self, target_etag):
         try:
-            output = self.db_handle.get(target_etag)
-            if output:
-                    # Split the output into lines
-                    lines = output.strip().split('\n')
-
-                    # Initialize an empty dictionary to store the merged JSON objects
-                    merged_json = {}
-
-                    for line in lines:
-                        # Parse each line as a JSON object
-                        data_dict = ast.literal_eval(line)
-                        merged_json[target_etag] = data_dict
-
-                    return merged_json
-            else:
+            # bsddb3 keys should be bytes
+            key = target_etag.encode("utf-8") if isinstance(target_etag, str) else target_etag
+    
+            output = self.db_handle.get(key)
+            if not output:
                 return None
+    
+            # output is bytes -> decode to text once
+            text = output.decode("utf-8", errors="replace")
+    
+            merged_json = {}
+            # each line is a JSON object
+            for line in text.splitlines():
+                line = line.strip()
+                if not line:
+                    continue
+                data_dict = json.loads(line)
+                merged_json[target_etag] = data_dict  # (keeps your existing shape)
+    
+            return merged_json
+    
         except bsddb3.db.DBNotFoundError as e:
-            print("Error: {0}".format(e))
+            print(f"Error: {e}")
             raise
     
     def read_corrections_etag(self, target_etag):

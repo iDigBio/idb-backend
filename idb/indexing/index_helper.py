@@ -10,7 +10,7 @@ from idb.helpers.logging import idblogger
 logger = idblogger.getChild('index_helper')
 
 # PYTHON3_WARNING
-from urlparse import urlparse
+from urllib.parse import urlparse
 
 
 # A problematic field name is "http://rs.iobis.org/obis/terms/measurementTypeID" inside

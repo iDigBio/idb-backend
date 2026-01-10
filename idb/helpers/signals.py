@@ -10,7 +10,7 @@ from signal import (  # noqa
     SIG_DFL, SIG_IGN, SIGABRT, SIGHUP,
     SIGINT, SIGQUIT, SIGUSR1, SIGUSR2, SIGTERM)
 from signal import signal as _signal
-
+import threading
 
 from idb.helpers.logging import idblogger
 
@@ -28,27 +28,24 @@ def ignored(signalnum):
 
 
 @contextmanager
-def signalcm(signalnum, handler, call_original=True):
-    """Install a new signal handler
+def signalcm(signalnum, handler, call_original=False):
+    # Python only allows installing signal handlers in the main thread.
+    if threading.current_thread() is not threading.main_thread():
+        yield
+        return
 
-    The original signal handler will be restored at the end.
+    previous_handler = _signal.getsignal(signalnum)
 
-    If ``call_original`` is True (DEFAULT) and the original signal
-    handler is callable, it will invoked after the specified handler.
+    def wrapper(signum, frame):
+        handler(signum, frame)
+        if call_original and callable(previous_handler):
+            previous_handler(signum, frame)
 
-    """
-    previous_handler = None
-
-    def wrapper(signalnum, frame):
-        handler(signalnum, frame)
-        if callable(previous_handler):
-            previous_handler(signalnum, frame)
-
-    previous_handler = _signal(signalnum, wrapper if call_original else handler)
+    _signal.signal(signalnum, wrapper if call_original else handler)
     try:
         yield
     finally:
-        _signal(signalnum, previous_handler)
+        _signal.signal(signalnum, previous_handler)
 
 
 @contextmanager

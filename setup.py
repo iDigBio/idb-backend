@@ -28,7 +28,7 @@ version = "3.0.8"
 """ if sys.version_info >= (2,7,15):
     pillow_package = "pillow>=3.4,<=5.1.1"
 else:
-    pillow_package = "pillow-simd>=3.4,<=5.1.1" """
+    pillow_package = "pillow-simd>=3.4,<=9.5.0.post2" """
 
 # Extension modules
 extensions = [
@@ -94,7 +94,7 @@ setup(
         'py4j==0.10.9.7',
         'lxml==5.0.2',
         'bsddb3==6.2.9',
-        "pillow-simd==6.2.2.post1",
+        "pillow-simd==9.5.0.post2",
         'pyquery>1.2.17',
         'pydub==0.16.5',
     ],

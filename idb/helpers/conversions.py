@@ -18,6 +18,8 @@ from .biodiversity_socket_connector import Biodiversity
 from .rg import get_country
 from .media_validation import get_default_bucket
 
+from pyproj import CRS, Transformer
+
 bioserv = Biodiversity()
 
 
@@ -461,30 +463,24 @@ def geoGrabber(t, d):
         datum_val = getfield("dwc:geodeticDatum", d)
 
         # if we got this far with actual values
+        # if we got this far with actual values
         if r["geopoint"] is not None:
             if datum_val is not None:
-                # convert datum to a more canonical representation (no
-                # whitespace, all uppercase)
                 source_datum = mangleString(datum_val)
                 try:
-                    # source projection
-                    p1 = pyproj.Proj(proj="latlon", datum=source_datum)
-
-                    # destination projection
-                    p2 = pyproj.Proj(proj="latlon", datum="WGS84")
-
-                    # do the transform
-                    # (lon, lat)
-                    r["geopoint"] = pyproj.transform(
-                        p1, p2, r["geopoint"][0], r["geopoint"][1])
-                except:
-                    # traceback.print_exc()
-                    # create an error flag on projection creation exception (invalid source datum)
-                    # or on transform exception (point out of bounds for source
-                    # projection)
+                    # Build CRS objects (lat/lon)
+                    src = CRS.from_user_input(f"+proj=latlon +datum={source_datum}")
+                    dst = CRS.from_epsg(4326)  # WGS84 lat/lon
+        
+                    transformer = Transformer.from_crs(src, dst, always_xy=True)
+        
+                    lon, lat = r["geopoint"][0], r["geopoint"][1]
+                    lon2, lat2 = transformer.transform(lon, lat)
+        
+                    r["geopoint"] = (lon2, lat2)
+                except Exception:
                     r["flag_geopoint_datum_error"] = True
             else:
-                # note unprojected points (datum_val is None)
                 r["flag_geopoint_datum_missing"] = True
 
             # get_country takes lon, lat

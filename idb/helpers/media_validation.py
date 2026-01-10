@@ -64,7 +64,11 @@ class MimeMismatchError(MediaValidationError):
             detected, expected)
 
 
-def sniff_mime(content):
+def sniff_mime(content: bytes) -> str:
+    # ZIP signatures: local file header / empty archive / spanned archive
+    if content.startswith((b"PK\x03\x04", b"PK\x05\x06", b"PK\x07\x08")):
+        return "application/zip"
+
     import magic
     return magic.from_buffer(content, mime=True)
 

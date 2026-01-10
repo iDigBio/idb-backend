@@ -45,6 +45,15 @@ class DelimitedFile(object):
         Generic Delimited File class that returns lines as dicts of non-blank fields
     """
 
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        return super(DwcaRecordFile, self).next()   # or whatever transform DelimitedFile expects
+
+    # optional Py2 compat (harmless in Py3, but don’t do this if you also define def next())
+    next = __next__
+
     def __init__(self, fh, encoding="utf8", delimiter=",", fieldenc="\"", header=None, rowtype=None, logname=None):
         super(DelimitedFile, self).__init__()
 
@@ -134,7 +143,7 @@ class DelimitedFile(object):
             try:
                 lineDict = {}
                 # self.filehandle.snap()
-                lineArr = self._reader.next()
+                lineArr = next(self._reader)
 
                 self.lineCount += 1
                 if self.lineLength is None:

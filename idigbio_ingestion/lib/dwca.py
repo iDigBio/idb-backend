@@ -130,6 +130,14 @@ class DwcaRecordFile(DelimitedFile):
     """
         Internal representation of a darwin core archive record data file.
     """
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        return super(DwcaRecordFile, self).next()   # or whatever transform DelimitedFile expects
+
+    # optional Py2 compat (harmless in Py3, but don’t do this if you also define def next())
+    next = __next__
 
     def __init__(self,filedict,fh,logname=None):
         """
@@ -222,7 +230,7 @@ class DwcaRecordFile(DelimitedFile):
             logname=self.logger.name)
 
         while ignoreheader > 0:
-            self._reader.next()
+            next(self._reader)
             ignoreheader -= 1
 
 def get_unescaped_linesTerminatedBy(filedict):

@@ -161,6 +161,16 @@ def identifyRecord(t, etag, r, rsid):
 unconsumed_extensions = {}
 core_siblings = {}
 
+def strip_nuls(x):
+    if isinstance(x, str):
+        return x.replace("\x00", "")
+    if isinstance(x, dict):
+        return {k: strip_nuls(v) for k, v in x.items()}
+    if isinstance(x, list):
+        return [strip_nuls(v) for v in x]
+    if isinstance(x, tuple):
+        return tuple(strip_nuls(v) for v in x)
+    return x
 
 def process_subfile(rf, rsid, rs_uuid_etag, rs_id_uuid, ingest=False, db=None):
     """
@@ -226,6 +236,7 @@ def process_subfile(rf, rsid, rs_uuid_etag, rs_id_uuid, ingest=False, db=None):
     rlogger.info("Beginning row processing, rowtype = {0}".format(rf.rowtype))
     for r in rf:
         # r is a Dict representation of a data row
+        r = strip_nuls(r)
         ids_to_add = {}
         uuids_to_add = {}
         siblings = []
@@ -321,11 +332,11 @@ def process_subfile(rf, rsid, rs_uuid_etag, rs_id_uuid, ingest=False, db=None):
                 else:
                     if config.IDB_EXTRA_SERIOUS_DEBUG == 'yes':
                         rlogger.debug("Setting sibling for '{0}'".format(u))
-                    db.set_record(u, typ[:-1], rsid, r, ids_to_add.keys(), siblings)
+                    db.set_record(u, typ[:-1], rsid, r, list(ids_to_add), siblings)
                     ingestions += 1
             elif ingest and deleted:
                 db.undelete_item(u)
-                db.set_record(u, typ[:-1], rsid, r, ids_to_add.keys(), siblings)
+                db.set_record(u, typ[:-1], rsid, r, list(ids_to_add), siblings)
                 resurrections += 1
 
 
@@ -413,8 +424,8 @@ def process_subfile(rf, rsid, rs_uuid_etag, rs_id_uuid, ingest=False, db=None):
         seen_ids.update(ids_to_add)
         seen_uuids.update(uuids_to_add)
 
-    eu_set = existing_etags.viewkeys()
-    nu_set = seen_uuids.viewkeys()
+    eu_set = existing_etags.keys()
+    nu_set = seen_uuids.keys()
 
     deletes = len(eu_set - nu_set)
 
@@ -592,10 +603,10 @@ def metadataToSummaryJSON(rsid, metadata, writeFile=True, doStats=True):
     summary["dublicate_occurence_ids"] = duplicate_id_count
 
     if writeFile:
-        with AtomicFile(rsid + ".summary.json", "wb") as jf:
+        with AtomicFile(rsid + ".summary.json", "w") as jf:
             json.dump(summary, jf, indent=2)
             jf.write(os.linesep)
-        with AtomicFile(rsid + ".metadata.json", "wb") as jf:
+        with AtomicFile(rsid + ".metadata.json", "w") as jf:
             json.dump(metadata, jf, indent=2)
             jf.write(os.linesep)
     

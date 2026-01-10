@@ -152,7 +152,7 @@ def update_db_from_rss():
         logger.debug("Gathering existing recordsets...")
         for row in db.fetchall("SELECT * FROM recordsets"):
             recordsets[row["id"]] = row
-            row["file_link"] = row["file_link"].encode('utf-8').strip()
+            row["file_link"] = (row["file_link"] or "").strip()
             file_links[row["file_link"]] = row["id"]
             for recordid in row["recordids"]:
                 logger.debug("id | recordid | file_link : '{0}' | '{1}' | '{2}'".format(
@@ -208,10 +208,13 @@ def _do_rss_entry(entry, portal_url, db, recordsets, existing_recordsets, pub_uu
 
     for k in entry:
         if k == "link":
-            entry[k] = entry[k].encode('utf-8').strip()
+            entry["link"] = (entry["link"] or "").strip()
         elif k == "links":
-            if entry[k][0] is not None:
-                entry[k][0] = [v.encode('utf-8').strip() for v in entry[k][0]]
+             if isinstance(entry[k], list):
+                for link in entry[k]:
+                    if isinstance(link, dict):
+                        if "href" in link and link["href"]:
+                            link["href"] = str(link["href"]).strip()
  
     
     logger.debug("Dump of this feed entry: '{0}'".format(entry))

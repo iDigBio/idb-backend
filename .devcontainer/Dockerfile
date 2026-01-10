@@ -5,6 +5,7 @@ RUN apt-get update; \
         gfortran \
         libatlas-base-dev \
         ffmpeg \
+        libmagic1 \
         libblas-dev \
         libgdal-dev \
         liblapack-dev \

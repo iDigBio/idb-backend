@@ -193,7 +193,7 @@ def generate_all(item):
 
 
 def build_deriv(item, img, key):
-    deriv = first(DTYPES, key.bucket.name.endswith)
+    deriv = first(DTYPES, key.bucket_name.endswith)
     assert deriv
     if deriv == 'fullsize' and item.bucket == 'images' and img.format == 'JPEG':
         return CopyItem(key, item.media)
@@ -217,25 +217,68 @@ def upload_all(gr):
         logger.exception("%s Unexpected error", gr.etag)
 
 
-def upload_item(item):
-    key = item.key
-    data = item.data
+def upload_item(item, content_type="image/jpeg"):
+    """
+    Boto3/Python3 version.
+
+    Expectations:
+      - item.key is a boto3 s3.Object (destination)
+          has: .bucket_name (str), .key (str), .put(), .upload_fileobj(), .copy_from()
+      - if isinstance(item, CopyItem):
+          item.data is a boto3 s3.Object (source)
+            has: .bucket_name (str), .key (str)
+        else:
+          item.data is file-like (opened in 'rb') OR bytes-like
+    """
+    dst = item.key
+
+    # Hard assertions so we don't silently do the wrong thing
+    if not (hasattr(dst, "bucket_name") and hasattr(dst, "key")):
+        raise TypeError(
+            f"item.key must be boto3 s3.Object; got {type(dst)!r} "
+            f"(attrs: {sorted(set(dir(dst)) & {'bucket_name','key','name','bucket'})})"
+        )
+
     if isinstance(item, CopyItem):
-        if key.bucket.copy_key is not None:
-            logger.debug("%s copying from bucket %s", key, data.bucket.name)
-            s = get_store()
-            bucket = s.get_bucket(str(key.bucket.name))
-            if bucket is not None and bucket.copy_key is not None:
-                data.copy(dst_bucket=bucket,
-                  dst_key=key.name,
-                  metadata={'Content-Type': 'image/jpeg'})
-            
+        src = item.data
+
+        if not (hasattr(src, "bucket_name") and hasattr(src, "key")):
+            raise TypeError(
+                f"CopyItem.data must be boto3 s3.Object; got {type(src)!r} "
+                f"(attrs: {sorted(set(dir(src)) & {'bucket_name','key','name','bucket'})})"
+            )
+
+        logger.debug(
+            "copying s3://%s/%s -> s3://%s/%s",
+            src.bucket_name, src.key, dst.bucket_name, dst.key
+        )
+
+        # S3 requires REPLACE to change ContentType/metadata during copy
+        dst.copy_from(
+            CopySource={"Bucket": src.bucket_name, "Key": src.key},
+            ContentType=content_type,
+            MetadataDirective="REPLACE",
+            Metadata={},  # add any x-amz-meta-* you need preserved/added
+        )
+
     else:
-        # no key exists check here, that was done in build_deriv
-        logger.debug("%s uploading", key)
-        key.set_metadata('Content-Type', 'image/jpeg')
-        key.set_contents_from_file(data)
-    #key.make_public()
+        data = item.data
+        logger.debug("uploading s3://%s/%s", dst.bucket_name, dst.key)
+
+        # If it's file-like, rewind to be safe
+        if hasattr(data, "seek"):
+            try:
+                data.seek(0)
+            except Exception:
+                pass
+
+        # bytes-like upload
+        if isinstance(data, (bytes, bytearray, memoryview)):
+            dst.put(Body=bytes(data), ContentType=content_type)
+        else:
+            # file-like upload
+            dst.upload_fileobj(data, ExtraArgs={"ContentType": content_type})
+
 
 
 def img_to_buffer(img, **kwargs):

@@ -34,6 +34,9 @@ import threading
 import traceback
 #from stackless import channel, tasklet, run as schedule_run
 
+from botocore.exceptions import ClientError
+from io import BytesIO
+
 class TaskletProc(object):
     """
     Process-like wrapper around a single stackless tasklet.
@@ -173,26 +176,28 @@ def continuous(prefix=None, looptime=3600):
         sleep(looptime - time)
 
 
+def _cleanup(fi):
+    fi.cleanup()          # <- CALL IT
+    return fi
+
 def process_list(fetchitems, forprefix=''):
-    """Process a list of FetchItems.
-
-    This is intended to be the toplevel entry point of a subprocess
-    working on a list of one domain's urls
-
-    """
     try:
         store = IDigBioStorage()
         fetchrpool = gevent.pool.Pool(get_fetcher_count(forprefix))
         uploadpool = gevent.pool.Pool(8)
+
         items = fetchrpool.imap_unordered(lambda fi: fi.get_media(), fetchitems, maxsize=10)
         items = uploadpool.imap_unordered(lambda fi: fi.upload_to_storage(store), items, maxsize=10)
-        items = map(lambda fi: fi.cleanup, items)
+        items = map(_cleanup, items)
+
         items = update_db_status(items)
         items = count_result_types(items, forprefix=forprefix)
-        return ilen(items)  # consume the generator
-    except Exception as e:
+
+        return ilen(items)
+    except Exception:
         logger.exception("Unhandled error forprefix:%s", forprefix)
         raise
+
 
 
 def get_items(prefix=None, ignores=IGNORE_PREFIXES, last_check_interval=None):
@@ -421,18 +426,36 @@ class FetchItem(object):
                 logger.error("HtmlResp  %s %r", self.url, sc)
         return self
 
+    
+    def _strip_quotes(s):
+        return (s or "").strip('"')
+
     def upload_to_storage(self, store, attempt=1):
         if not self.ok:
             return self
+
         try:
             mo = self.media_object
-            k = mo.get_key(store)
+            k = mo.get_key(store)  # boto3 s3.Object
 
-            if k.exists() and k.read() and k.etag == '"{0}"'.format(mo.etag):
+            already_present = False
+            try:
+                k.load()  # HEAD object; raises ClientError if missing
+                remote_etag = _strip_quotes(getattr(k, "e_tag", None))
+                local_etag  = _strip_quotes(str(mo.etag))
+                if k.content_length and remote_etag == local_etag:
+                    already_present = True
+            except ClientError as e:
+                code = e.response.get("Error", {}).get("Code", "")
+                if code not in ("404", "NoSuchKey", "NotFound"):
+                    raise
+
+            if already_present:
                 logger.debug("NoUpload  %s etag %s, already present", self.url, mo.etag)
             else:
                 try:
-                    mo.upload(store, StringIO(self.content), force=True)
+                    # IMPORTANT: for bytes content in Py3, use BytesIO not StringIO
+                    mo.upload(store, BytesIO(self.content), force=True)
                     logger.debug("Uploaded  %s etag %s", self.url, mo.etag)
                 except Exception as e:
                     logger.exception("Failed uploading to storage: %s", self.url)
@@ -441,15 +464,16 @@ class FetchItem(object):
                     return self
 
             with PostgresDB() as idbmodel:
-                # Don't need to ensure_media, we're processing
-                # through media entries
                 mo.ensure_object(idbmodel)
                 mo.ensure_media_object(idbmodel)
                 idbmodel.commit()
+
         except Exception:
             logger.exception("DbSaveErr %s", self.url)
             self.status_code = Status.STORAGE_ERROR
+
         return self
+
 
     def cleanup(self):
         "Get rid of all the big references, hang on to url and status_code"

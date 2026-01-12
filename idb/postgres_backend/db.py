@@ -7,7 +7,7 @@ import sys
 import itertools
 
 from datetime import datetime
-from io import StringIO
+from io import BytesIO
 #This is for PyPY
 #from psycopg2cffi import compat
 #compat.register()
@@ -688,7 +688,7 @@ class MediaObject(object):
 
     @classmethod
     def frombuff(cls, buff, **attrs):
-        return cls.fromobj(StringIO(buff), **attrs)
+        return cls.fromobj(BytesIO(buff), **attrs)
 
     @classmethod
     def fromobj(cls, obj, **attrs):

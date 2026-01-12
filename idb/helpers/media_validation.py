@@ -1,5 +1,8 @@
 from __future__ import division, absolute_import, print_function
 
+import magic
+from typing import Union
+
 
 bucket_mimes = {
     'images': {'image/jpeg', 'image/jp2'},
@@ -64,12 +67,19 @@ class MimeMismatchError(MediaValidationError):
             detected, expected)
 
 
-def sniff_mime(content: bytes) -> str:
+def sniff_mime(content: Union[bytes, bytearray, memoryview, str]) -> str:
+    # Coerce to bytes
+    if isinstance(content, str):
+        # If this is *actually* textual data, encode it.
+        # (Better is to pass real bytes from the network/file in the first place.)
+        content = content.encode("utf-8", errors="replace")
+    else:
+        content = bytes(content)
+
     # ZIP signatures: local file header / empty archive / spanned archive
     if content.startswith((b"PK\x03\x04", b"PK\x05\x06", b"PK\x07\x08")):
         return "application/zip"
 
-    import magic
     return magic.from_buffer(content, mime=True)
 
 

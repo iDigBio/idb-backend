@@ -26,7 +26,7 @@ class FakeKey(object):
     def __init__(self, name, bucket, exists, contents=None):
         self.name = name
         self._exists = exists
-        self.bucket = NamedThing(bucket)
+        self.bucket_name = str(bucket)
         self.contents = contents
 
     def exists(self):

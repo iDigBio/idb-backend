@@ -1,4 +1,6 @@
-import unicodecsv as csv
+import os
+import re
+import csv
 import traceback
 import codecs
 import io
@@ -54,49 +56,124 @@ class DelimitedFile(object):
     # optional Py2 compat (harmless in Py3, but don’t do this if you also define def next())
     next = __next__
 
-    def __init__(self, fh, encoding="utf8", delimiter=",", fieldenc="\"", header=None, rowtype=None, logname=None):
+    def _normalize_delimiter(self, d, default=","):
+        """
+        Normalize DwC-A / meta.xml delimiter representations into a single character str.
+        Accepts things like:
+          - "\t" or "\\t" (literal backslash+t)
+          - "tab" / "TAB"
+          - "0x09"
+          - "&#9;" or "&#x9;"
+          - "||" (collapses to "|") when all chars are identical
+        """
+        if d is None:
+            return default
+
+        # bytes -> str
+        if isinstance(d, (bytes, bytearray, memoryview)):
+            d = bytes(d).decode("utf-8", errors="replace")
+
+        d = str(d).strip()
+
+        # strip simple wrapping quotes: '"|"' or "'\t'"
+        if len(d) >= 2 and d[0] == d[-1] and d[0] in ("'", '"'):
+            d = d[1:-1]
+
+        # common words
+        if d.lower() == "tab":
+            d = "\t"
+
+        # literal backslash escapes often found in meta.xml parsing
+        if d in (r"\t", "\\t"):
+            d = "\t"
+        elif d in (r"\n", "\\n"):
+            d = "\n"
+        elif d in (r"\r", "\\r"):
+            d = "\r"
+
+        # numeric forms: 0x09
+        m = re.fullmatch(r"0x([0-9a-fA-F]+)", d)
+        if m:
+            d = chr(int(m.group(1), 16))
+
+        # XML numeric entities: &#9; or &#x9;
+        m = re.fullmatch(r"&#([0-9]+);", d)
+        if m:
+            d = chr(int(m.group(1), 10))
+        m = re.fullmatch(r"&#x([0-9a-fA-F]+);", d)
+        if m:
+            d = chr(int(m.group(1), 16))
+
+        # empty -> default
+        if d == "":
+            return default
+
+        # If it's multiple identical chars (e.g., "||" or ",,") collapse to one.
+        if len(d) != 1:
+            uniq = set(d)
+            if len(uniq) == 1:
+                d = d[0]
+
+        if len(d) != 1:
+            # This is the place to log what you got from meta.xml
+            raise ValueError(f"Invalid CSV delimiter {d!r} (expected 1 character)")
+
+        return d
+
+    def __init__(self, fh, encoding="utf-8", delimiter=",", fieldenc='"',
+                 header=None, rowtype=None, logname=None):
         super(DelimitedFile, self).__init__()
 
-        # if incoming encoding is specified but is an empty string, we should abort here rather than
-        # waiting for the actual file processing to raise an exception.
         if encoding == "":
             raise ValueError("Encoding cannot be an empty string, must specify an actual encoding.")
-        else:
-            self.encoding = encoding
+        self.encoding = encoding
+
         self.fieldenc = fieldenc
-        self.delimiter = delimiter
+        self.delimiter = self._normalize_delimiter(delimiter)
         self.rowtype = rowtype
         self.lineCount = 0
         self.lineLength = None
 
-        if isinstance(fh, str) or isinstance(fh, unicode):
-            self.name = fh
+        # Python 3: no 'unicode'. Use str / PathLike.
+        is_path = isinstance(fh, (str, os.PathLike))
+
+        if is_path:
+            self.name = os.fspath(fh)
+            self.filehandle = io.open(self.name, "r", encoding=encoding, errors="flag_error", newline="")
         else:
-            self.name = fh.name
-        self.filehandle = io.open(
-            fh, "r", encoding=encoding, errors="flag_error")
+            # assume a file-like object already opened in text mode
+            self.filehandle = fh
+            self.name = getattr(fh, "name", "<stream>")
 
         if logname is None:
-            self.logger = idblogger.getChild('df')
+            self.logger = idblogger.getChild("df")
         else:
             self.logger = getLogger(logname)
 
-        encoded_lines = (l.encode("utf-8") for l in self.filehandle)
+        # IMPORTANT: csv.reader in Python 3 consumes TEXT lines (str), not bytes.
         if self.fieldenc is None or self.fieldenc == "":
-            self._reader = csv.reader(encoded_lines, encoding="utf-8",
-                                      delimiter=self.delimiter, quoting=csv.QUOTE_NONE)
+            self._reader = csv.reader(
+                self.filehandle,
+                delimiter=self.delimiter,
+                quoting=csv.QUOTE_NONE,
+            )
         else:
-            self._reader = csv.reader(encoded_lines, encoding="utf-8",
-                                      delimiter=self.delimiter, quotechar=self.fieldenc)
+            self._reader = csv.reader(
+                self.filehandle,
+                delimiter=self.delimiter,
+                quotechar=self.fieldenc,
+            )
 
         t = defaultdict(int)
+
         if header is not None:
             self.fields = header
-            for k, v in header.items():
+            for _, v in header.items():
                 cn = get_canonical_name(v)
                 t[cn[1]] += 1
         else:
-            headerline = self._reader.next()
+            # Python 3: next(reader), not reader.next()
+            headerline = next(self._reader)
             self.lineLength = len(headerline)
             self.fields = {}
             for k, v in enumerate(headerline):
@@ -106,14 +183,15 @@ class DelimitedFile(object):
                     self.fields[k] = cn[0]
 
         if self.rowtype is None:
-            items = t.items()
-            items.sort(key=lambda item: (item[1], item[0]), reverse=True)
+            # Python 3: dict_items is not sortable in-place; use sorted()
+            items = sorted(t.items(), key=lambda item: (item[1], item[0]), reverse=True)
             self.rowtype = items[0][0]
             self.logger.info("Setting row type to %s", self.rowtype)
         elif self.rowtype in types:
             self.rowtype = types[self.rowtype]["shortname"]
         else:
             raise TypeError("{} not mapped to short name".format(self.rowtype))
+
 
 
     def __iter__(self):

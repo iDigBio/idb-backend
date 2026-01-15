@@ -11,7 +11,7 @@ from collections import Counter, namedtuple
 
 import elasticsearch
 import elasticsearch.helpers
-import unicodecsv as csv
+import csv
 
 from atomicfile import AtomicFile
 

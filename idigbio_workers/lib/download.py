@@ -317,7 +317,7 @@ def make_file(t, query, raw=False, tabs=False, fields=None,
             "query": query
         }
 
-        with AtomicFile(outfile_name, "wb") as outf:
+        with AtomicFile(outfile_name, "w") as outf:
             query_to_csv(
                 outf, t, body, converted_fields, fields, id_field, raw, tabs, id_func)
         return FileArtifact(outfile_name, final_filename, meta_block)

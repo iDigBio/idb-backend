@@ -62,9 +62,16 @@ def run_server(info, host, port, reload, debugger, eager_loading, debug, wsgi):
 
     if wsgi == 'werkzeug':
         from werkzeug.serving import run_simple
-        from flask.cli import DispatchingApp
+        
+        app = info.load_app()
 
-        app = DispatchingApp(info.load_app, use_eager_loading=eager_loading)
+        run_simple(
+            host, port, app,
+            use_reloader=reload,
+            use_debugger=debugger,
+            threaded=False,
+            passthrough_errors=True,
+        )
 
         # Extra startup messages.  This depends a but on Werkzeug internals to
         # not double execute when the reloader kicks in.

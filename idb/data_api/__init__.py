@@ -43,7 +43,7 @@ def run_server(info, host, port, reload, debugger, eager_loading, debug, wsgi):
     addition of the --wsgi flag
 
     """
-    info.app_import_path = 'idb-data_api-api:app'
+    info.app_import_path = 'api:app'
     info.debug = debug
     from idb import config
 

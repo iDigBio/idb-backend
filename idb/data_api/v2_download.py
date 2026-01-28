@@ -39,7 +39,9 @@ def download():
     if request.method == "GET":
         o = request.args
     else:
-        o = request.get_json()
+        o = request.get_json(force=True, silent=True)
+        if o is None:
+            o = request.form
 
     if o is None:
         o = request.form

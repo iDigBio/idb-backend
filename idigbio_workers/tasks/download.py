@@ -6,7 +6,12 @@ import json
 import requests
 import uuid
 
-from path import tempdir, Path
+from pathlib import Path
+import tempfile
+
+# Create temporary directory
+tmpdir = tempfile.mkdtemp()
+temp_path = Path(tmpdir)
 
 from ..lib.download import generate_files, get_recordsets
 from ..lib.query_shim import queryFromShim

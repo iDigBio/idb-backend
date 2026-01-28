@@ -42,7 +42,7 @@ _APPLY_BROKER_URL_CORRECTIONS_IMMEDIATELY = not (IN_CELERY_WORKER_PROCESS or 'py
 env = config.ENV
 
 app = Celery('tasks')
-app.config_from_object('idigbio_workers.config')
+app.config_from_object('idigbio_workers.config.test')
 
 class PreConsumerConnectionStep(bootsteps.StartStopStep):
     """When this bootstep is run, immediately triggers broker connectivity check and fail fast if there is an issue."""

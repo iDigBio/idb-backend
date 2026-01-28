@@ -74,8 +74,9 @@ def downloader(self, params):
     # hid = objectHasher("sha1", params, sort_arrays=True, sort_keys=True)
     # filename = hid + '-' + datetime.datetime.now().isoformat
     filename = tid
+    
 
-    with tempdir() as td:
+    with tmpdir() as td:
         filename = td / filename
         tid = generate_files(filename=filename, **params)
         logger.debug("Finished generating file, uploading to ceph, size: %s", Path(tid).getsize())

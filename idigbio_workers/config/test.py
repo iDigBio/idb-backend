@@ -1,7 +1,7 @@
 # idigbio_workers/config/test.py
 
-broker_url = "redis://10.13.44.11:6379/0"
-result_backend = "redis://10.13.44.11:6379/0"
+broker_url = "redis://10.13.44.11:6379/1"
+result_backend = "redis://10.13.44.11:6379/1"
 accept_content = ["json"]
 task_serializer = "json"
 result_serializer = "json"

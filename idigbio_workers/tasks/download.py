@@ -22,7 +22,7 @@ from celery.utils.log import get_task_logger
 from celery.result import AsyncResult
 #, getRecordsets
 
-from .. import app
+from idigbio_workers import app
 
 
 logger = get_task_logger('downloader')
@@ -71,15 +71,13 @@ def downloader(self, params):
     tid = self.request.id or str(uuid.uuid4())
     logger.info("Kicking off downloader: %s", tid)
     params = normalize_params(params)
-    # hid = objectHasher("sha1", params, sort_arrays=True, sort_keys=True)
-    # filename = hid + '-' + datetime.datetime.now().isoformat
     filename = tid
     
-
-    with tmpdir() as td:
-        filename = td / filename
+    with tempfile.TemporaryDirectory() as td:
+        td_path = Path(td)
+        filename = str(td_path / filename)  # Convert back to string
         tid = generate_files(filename=filename, **params)
-        logger.debug("Finished generating file, uploading to ceph, size: %s", Path(tid).getsize())
+        logger.debug("Finished generating file, uploading to ceph, size: %s", Path(tid).stat().st_size)
         link = upload_download_file_to_ceph(tid)
         logger.debug("Finished uploading to ceph")
     return link

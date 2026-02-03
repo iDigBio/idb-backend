@@ -48,10 +48,23 @@ s = requests.Session()
 
 
 def upload_download_file_to_ceph(filename):
-    s = IDigBioStorage()
-    keyname, bucket = os.path.basename(filename), "idigbio-downloads"
-    fkey = s.upload(s.get_key(keyname, bucket), filename, content_type='application/zip', public=True)
-    return "https://s.idigbio.org/idigbio-downloads/" + fkey.name
+    storage = IDigBioStorage()
+    bucket = "idigbio-downloads"
+    keyname = os.path.basename(filename)
+
+    obj = storage.get_key(keyname, bucket)
+    uploaded = storage.upload(obj, filename, content_type="application/zip", public=True)
+
+    # boto3 s3.Object => .key
+    obj_key = (
+        getattr(uploaded, "key", None)
+        or getattr(obj, "key", None)
+        or getattr(uploaded, "name", None)   # backwards compat if wrapper returns boto2-ish
+        or getattr(obj, "name", None)
+        or keyname
+    )
+
+    return f"https://s.idigbio.org/{bucket}/{obj_key}"
 
 
 def normalize_params(params):
@@ -82,20 +95,18 @@ def downloader(self, params):
         logger.debug("Finished uploading to ceph")
     return link
 
+
 @app.task(bind=True, ignore_result=True, max_retries=None)
 def blocker(self, rid, pollbase=1.25):
-    """Wait for an AsyncResult to be ready, then return its result.
-
-    This can be used to append tasks to a running one, block on the
-    running and chain after this.
-
-    """
     ar = AsyncResult(rid)
     if ar.ready():
-        return ar.result
-    else:
-        raise self.retry(kwargs={'pollbase': pollbase},
-                         countdown=pollbase ** self.request.retries)
+        # If upstream failed, raise it here (do NOT return exception objects)
+        return ar.get(propagate=True)
+
+    raise self.retry(
+        kwargs={"pollbase": pollbase},
+        countdown=pollbase ** self.request.retries
+    )
 
 
 @app.task(ignore_result=True)
@@ -106,9 +117,10 @@ def send_download_email(link, email, params, ip=None, source=None):
     logger.info("Sending email to %s with link %s", email, link)
     if not email.endswith("@acis.ufl.edu"):
         q, recordsets = get_recordsets(params)
+        record_query = params.get("rq") or params.get("record_query") or q
         stats_post = {
             "type": "download",
-            "query": params["rq"] or q,
+            "query": record_query,
             "results": recordsets,
             "recordtype": "records"
         }

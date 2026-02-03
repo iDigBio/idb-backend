@@ -99,14 +99,25 @@ def downloader(self, params):
 @app.task(bind=True, ignore_result=True, max_retries=None)
 def blocker(self, rid, pollbase=1.25):
     ar = AsyncResult(rid)
-    if ar.ready():
-        # If upstream failed, raise it here (do NOT return exception objects)
-        return ar.get(propagate=True)
 
-    raise self.retry(
-        kwargs={"pollbase": pollbase},
-        countdown=pollbase ** self.request.retries
-    )
+    if not ar.ready():
+        raise self.retry(
+            kwargs={"pollbase": pollbase},
+            countdown=pollbase ** self.request.retries,
+        )
+
+    # At this point it's done; use state/result (no .get()).
+    if ar.successful():
+        return ar.result  # should be your link (JSON-serializable)
+
+    # FAILURE (or other terminal states): do NOT return ar.result (it's often an exception)
+    exc = ar.result
+    tb = ar.traceback
+
+    if isinstance(exc, BaseException):
+        raise RuntimeError(f"Upstream task {rid} failed: {exc}\n{tb}") from exc
+
+    raise RuntimeError(f"Upstream task {rid} finished in state={ar.state}: {exc}\n{tb}")
 
 
 @app.task(ignore_result=True)

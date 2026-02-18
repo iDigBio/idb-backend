@@ -142,6 +142,7 @@ def columnize(ifile, ofile):
     #column -ts ',' summary.csv | sort > summary.pretty.txt
     p = subprocess.Popen(['column', '-ts', ',', ifile], stdout=subprocess.PIPE)
     lines = p.stdout.readlines()
-    with AtomicFile(ofile, 'wb', encoding='utf-8') as out:
+    with AtomicFile(ofile, 'w', encoding='utf-8') as out:
         for l in lines:
-            out.write(l)
+            out.write(l.decode('utf-8', errors='replace'))
+    p.wait()

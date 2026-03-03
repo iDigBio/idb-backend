@@ -9,7 +9,7 @@ from idb import config
 from idb.helpers.logging import idblogger
 from idb.helpers.conversions import fields, custom_mappings
 
-from elasticsearch.helpers import parallel_bulk
+from elasticsearch.helpers import streaming_bulk
 
 local_tz = timezone('US/Eastern')
 logger = idblogger.getChild('indexer')
@@ -311,15 +311,23 @@ class ElasticSearchIndexer(object):
 
         # parallel_bulk uses a background queue and N worker threads;
         # nothing is pickled and it saturates the network link.
-        return parallel_bulk(
+        """ return parallel_bulk(
             self.es,
             self.bulk_formater(tups),
-            thread_count=4,                  # tune for I/O bandwidth
+            thread_count=8,                  # tune for I/O bandwidth
             chunk_size=config.ES_INDEX_CHUNK_SIZE,
             max_chunk_bytes=1048576,
             raise_on_error=False,
             raise_on_exception=False,
-        )
+        ) """
+        return streaming_bulk(
+        self.es,
+        self.bulk_formater(tups),
+        chunk_size=500,
+        max_chunk_bytes=10 * 1024 * 1024,
+        raise_on_error=False,
+        raise_on_exception=False,
+       )
 
     def close(self):
         """
@@ -334,7 +342,7 @@ class ElasticSearchIndexer(object):
         What is the point of this?
         """
         r = self.es.search(
-            index="idigbio-dev-local",
+            index="idigbio",
             doc_type=doc_type,
             _source=source,
             body={

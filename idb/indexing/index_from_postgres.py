@@ -29,9 +29,9 @@ MAX_SLEEP = 600
 MIN_SLEEP = 120
 
 # Linux / BSD – inside the program
-import resource
-soft, hard = 18 * 1024**3, 18 * 1024**3   # 18 GiB
-resource.setrlimit(resource.RLIMIT_AS, (soft, hard))
+# import resource
+#soft, hard = 18 * 1024**3, 18 * 1024**3   # 18 GiB
+#resource.setrlimit(resource.RLIMIT_AS, (soft, hard))
 
 
 def rate_logger(prefix, iterator, every=10000):
@@ -189,42 +189,37 @@ def type_yield_resume(ei, rc, typ, also_delete=False, yield_record=False):
     es_ids = get_resume_cache(ei, typ)
     logger.info("%s: Indexing", typ)
     pg_typ = "".join(typ[:-1])
+
     sql = "SELECT * FROM idigbio_uuids_data WHERE type=%s"
     if not also_delete:
         sql += " AND deleted=false"
-    results = apidbpool.fetchiter(
-        sql, (pg_typ,), named=True, cursor_factory=DictCursor)
-    
-    #Sort entries by parent recordset
-    results = sorted(results, key=lambda x: x['parent'])
-    
-    #Group entries by parent recordset
-    if(pg_typ == 'record'):
-        for key, group in itertools.groupby(results, lambda x: x['parent']):
-            print("Indexing recordset: {0}".format(key))
+
+    # Stream in the order we need (no Python-side sort!)
+    if pg_typ == "record":
+        sql += " ORDER BY parent"
+    else:
+        sql += " ORDER BY uuid"
+
+    results = apidbpool.fetchiter(sql, (pg_typ,), named=True, cursor_factory=DictCursor)
+
+    rows = rate_logger(typ + " indexing", results)
+
+    if pg_typ == "record":
+        for parent, group in itertools.groupby(rows, key=lambda x: x["parent"]):
+            logger.info("Indexing recordset: %s", parent)
             for r in group:
-                rate_logger(typ + " indexing", r)
                 es_etag = es_ids.get(r["uuid"])
-                pg_etag = r['etag']
+                pg_etag = r["etag"]
                 if es_etag == pg_etag or (pg_etag == tombstone_etag and es_etag is None):
                     continue
-
-                if yield_record:
-                    yield r
-                else:
-                    yield index_record(ei, rc, typ, r, do_index=False)
-            #TODO: update ES with index completion now()
+                yield r if yield_record else index_record(ei, rc, typ, r, do_index=False)
     else:
-        for r in rate_logger(typ + " indexing", results):
+        for r in rows:
             es_etag = es_ids.get(r["uuid"])
-            pg_etag = r['etag']
+            pg_etag = r["etag"]
             if es_etag == pg_etag or (pg_etag == tombstone_etag and es_etag is None):
                 continue
-
-            if yield_record:
-                yield r
-            else:
-                yield index_record(ei, rc, typ, r, do_index=False)
+            yield r if yield_record else index_record(ei, rc, typ, r, do_index=False)
 
 
 def queryIter(query, ei, rc, typ, yield_record=False):

@@ -421,6 +421,28 @@ def floatGrabber(t, d):
     return r
 
 
+DATUM_ALIASES = {
+    "WORLDGEODETICSYSTEM1984": "WGS84",
+    "WORLDGEODETICSYSTEM84":   "WGS84",
+    "WORLDGEODETICSYSTEM1972": "WGS72",
+    "NORTHAMERICANDATUM1983":  "NAD83",
+    "NORTHAMERICANDATUM1927":  "NAD27",
+}
+
+def try_make_crs(datum_str):
+    if not datum_str:
+        return None
+    normalized = DATUM_ALIASES.get(datum_str, datum_str)
+    try:
+        return CRS.from_user_input(f"+proj=latlon +datum={normalized}")
+    except Exception:
+        pass
+    try:
+        return CRS.from_user_input(normalized)
+    except Exception:
+        pass
+    return None
+
 def geoGrabber(t, d):
     r = {}
     # get the lat and lon values
@@ -463,16 +485,21 @@ def geoGrabber(t, d):
         datum_val = getfield("dwc:geodeticDatum", d)
 
         # if we got this far with actual values
-        # if we got this far with actual values
         if r["geopoint"] is not None:
             if datum_val is not None:
                 source_datum = mangleString(datum_val)
                 try:
                     # Build CRS objects (lat/lon)
-                    src = CRS.from_user_input(f"+proj=latlon +datum={source_datum}")
-                    dst = CRS.from_epsg(4326)  # WGS84 lat/lon
-        
-                    transformer = Transformer.from_crs(src, dst, always_xy=True)
+                    #src = CRS.from_user_input(f"+proj=latlon +datum={source_datum}")
+                    src = try_make_crs(source_datum)
+                    
+                    if src is None:
+                        r["flag_geopoint_datum_error"] = True
+                    else:
+                        dst = CRS.from_epsg(4326)  # WGS84 lat/lon
+                        transformer = Transformer.from_crs(src, dst, always_xy=True)
+                    
+                    #transformer = Transformer.from_crs(src, dst, always_xy=True)
         
                     lon, lat = r["geopoint"][0], r["geopoint"][1]
                     lon2, lat2 = transformer.transform(lon, lat)

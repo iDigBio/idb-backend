@@ -82,7 +82,7 @@ setup(
         'celery[redis]>=5.2.2',
         #'boto>=2.49.0, <3.0.0',
         'boto3>1.17.112',
- #       'fiona<=1.8.22',
+        'fiona>1.8.22',
         'python-magic>=0.4.11, <=0.5.0',
         'feedparser>=5.2.0',
         'click>=6.3',

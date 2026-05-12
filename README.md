@@ -260,3 +260,14 @@ sudo apt install postgresql-client-14
 ```
 
 See https://www.postgresql.org/download/linux/ubuntu/ for more info.
+
+## Local Development
+
+This branch is created for local development where docker images can be run for ES, Redis, and MinIO along with a local Postgres installation or Postgres docker image. RAM usage has been reduced by using ripgrep. Tests may fail in the meantime until docker support is added. This is not a drop in replacement in terms of performance and things will run more quickly on servers which keep corrections data in RAM but this branch is able to ingest small recordsets in a reasonable amount of time with little overhead for testing. More information about ripgrep can be found here: https://github.com/BurntSushi/ripgrep/tree/master. Be sure to install it by running this:
+
+```
+sudo apt install ripgrep
+```
+BerkeleyDB has been added to test locally running corrections against. Currently in scripts there is a scripts/dbdcorrections.py file which creates the database file from the previous JSON file created for RipGrep. This is BerkleyDB 5.3 (available for Ubuntu as libdb5.3 and libdb5.3-devel) along with the bsddb3 module: https://pypi.org/project/bsddb3/
+
+This version is the one available before it was moved from SleepyCat licensing and is just a further convenient step in analysis. Be sure to run the bdbcorrections script from the idb-backend folder so that the ___db.*, .swp, and .swo files are loaded.  

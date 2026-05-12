@@ -1,16 +1,16 @@
 from __future__ import division, absolute_import
 from __future__ import print_function
-from future_builtins import map, filter
+#from future_builtins import map, filter
 
-import cStringIO
+import io
 
 from datetime import datetime
 from collections import Counter, namedtuple
 import itertools
 
 from gevent.pool import Pool
-from PIL import Image
-from boto.exception import BotoServerError, BotoClientError, S3DataError
+from PIL import Image, ImageFile
+from botocore.exceptions import ClientError
 
 
 from idb.helpers import first, gipcpool, ilen, grouper
@@ -25,11 +25,12 @@ WIDTHS = {
     'thumbnail': 260,
     'webview': 600
 }
-
+ImageFile.LOAD_TRUNCATED_IMAGES = True
 # Some really large images starting to come from some data providers. Reduce
 # the pool size to keep from running the workflow machine out of memory.
 POOLSIZE = 10
 DTYPES = ('thumbnail', 'fullsize', 'webview')
+
 
 logger = idblogger.getChild('deriv')
 
@@ -86,7 +87,7 @@ def process_objects(objects):
         ci = get_keys(o)
         gr = generate_all(ci)
         return upload_all(gr)
-    results = pool.imap_unordered(one, itertools.ifilter(None, objects))
+    results = pool.imap_unordered(one, objects)
     results = count_results(results, update_freq=100)
     etags = ((gr.etag,) for gr in results if gr)
     count = apidbpool.executemany(
@@ -150,7 +151,7 @@ get_store = memoized()(lambda: IDigBioStorage())
 
 def get_keys(obj):
     etag, bucket = obj.etag, obj.bucket
-    etag = unicode(etag)
+    etag = str(etag)
     s = get_store()
     bucketbase = u"idigbio-{0}-{1}".format(bucket, config.ENV)
     mediakey = s.get_key(etag, bucketbase)
@@ -166,7 +167,7 @@ def generate_all(item):
     try:
         buff = fetch_media(item.media)
         img = convert_media(item, buff)
-    except (BotoServerError, BotoClientError):
+    except (ClientError):
         return None
     except BadImageError as bie:
         logger.error("%s caused BadImageError: %s", item.etag, bie.message)
@@ -192,7 +193,7 @@ def generate_all(item):
 
 
 def build_deriv(item, img, key):
-    deriv = first(DTYPES, key.bucket.name.endswith)
+    deriv = first(DTYPES, key.bucket_name.endswith)
     assert deriv
     if deriv == 'fullsize' and item.bucket == 'images' and img.format == 'JPEG':
         return CopyItem(key, item.media)
@@ -207,34 +208,83 @@ def upload_all(gr):
         return
     try:
         for item in gr.items:
-            IDigBioStorage.retry_loop(lambda: upload_item(item))
+            if item is not None:
+                IDigBioStorage.retry_loop(lambda: upload_item(item))
         return gr
-    except (BotoServerError, BotoClientError):
+    except (ClientError):
         logger.exception("%s failed uploading derivatives", gr.etag)
     except Exception:
         logger.exception("%s Unexpected error", gr.etag)
 
 
-def upload_item(item):
-    key = item.key
-    data = item.data
+def upload_item(item, content_type="image/jpeg"):
+    """
+    Boto3/Python3 version.
+
+    Expectations:
+      - item.key is a boto3 s3.Object (destination)
+          has: .bucket_name (str), .key (str), .put(), .upload_fileobj(), .copy_from()
+      - if isinstance(item, CopyItem):
+          item.data is a boto3 s3.Object (source)
+            has: .bucket_name (str), .key (str)
+        else:
+          item.data is file-like (opened in 'rb') OR bytes-like
+    """
+    dst = item.key
+
+    # Hard assertions so we don't silently do the wrong thing
+    if not (hasattr(dst, "bucket_name") and hasattr(dst, "key")):
+        raise TypeError(
+            f"item.key must be boto3 s3.Object; got {type(dst)!r} "
+            f"(attrs: {sorted(set(dir(dst)) & {'bucket_name','key','name','bucket'})})"
+        )
+
     if isinstance(item, CopyItem):
-        logger.debug("%s copying from bucket %s", key, data.bucket.name)
-        data.copy(dst_bucket=key.bucket,
-                  dst_key=key.name,
-                  metadata={'Content-Type': 'image/jpeg'})
+        src = item.data
+
+        if not (hasattr(src, "bucket_name") and hasattr(src, "key")):
+            raise TypeError(
+                f"CopyItem.data must be boto3 s3.Object; got {type(src)!r} "
+                f"(attrs: {sorted(set(dir(src)) & {'bucket_name','key','name','bucket'})})"
+            )
+
+        logger.debug(
+            "copying s3://%s/%s -> s3://%s/%s",
+            src.bucket_name, src.key, dst.bucket_name, dst.key
+        )
+
+        # S3 requires REPLACE to change ContentType/metadata during copy
+        dst.copy_from(
+            CopySource={"Bucket": src.bucket_name, "Key": src.key},
+            ContentType=content_type,
+            MetadataDirective="REPLACE",
+            Metadata={},  # add any x-amz-meta-* you need preserved/added
+        )
+
     else:
-        # no key exists check here, that was done in build_deriv
-        logger.debug("%s uploading", key)
-        key.set_metadata('Content-Type', 'image/jpeg')
-        key.set_contents_from_file(data)
-    key.make_public()
+        data = item.data
+        logger.debug("uploading s3://%s/%s", dst.bucket_name, dst.key)
+
+        # If it's file-like, rewind to be safe
+        if hasattr(data, "seek"):
+            try:
+                data.seek(0)
+            except Exception:
+                pass
+
+        # bytes-like upload
+        if isinstance(data, (bytes, bytearray, memoryview)):
+            dst.put(Body=bytes(data), ContentType=content_type)
+        else:
+            # file-like upload
+            dst.upload_fileobj(data, ExtraArgs={"ContentType": content_type})
+
 
 
 def img_to_buffer(img, **kwargs):
     kwargs.setdefault('format', 'JPEG')
     kwargs.setdefault('quality', 95)
-    dervbuff = cStringIO.StringIO()
+    dervbuff = io.BytesIO()
     img.save(dervbuff, **kwargs)
     dervbuff.seek(0)
     return dervbuff
@@ -255,17 +305,18 @@ def resize_image(img, deriv):
         return img
 
 
-def fetch_media(key):
+def fetch_media(obj):
+    """
+    Download the object into memory and verify its MD5/ETag.
+    """
     try:
-        return IDigBioStorage.get_contents_to_mem(key, md5=key.name)
-    except BotoServerError as e:
-        logger.error("%r failed downloading with %r %s %s", key, e.status, e.reason, key.name)
+        # obj.key is the object-name string
+        return IDigBioStorage.get_contents_to_mem(obj, md5=obj.key)
+    except ClientError as e:
+        logger.error("%r failed downloading (%s)", obj, e)
         raise
-    except S3DataError as e:
-        logger.error("%r failed downloading on md5 mismatch", key)
-        raise
-    except BotoClientError as e:
-        logger.exception("%r failed downloading because...")
+    except ValueError:                                # raised on MD5 mismatch
+        logger.error("%r failed downloading on md5 mismatch", obj)
         raise
 
 def convert_media(item, buff):

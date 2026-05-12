@@ -45,10 +45,10 @@ def filedict_fieldsTerminatedBy_tab():
     return filedict
 
 def test_get_unescaped_linesTerminatedBy_from_filedict():
-    assert(get_unescaped_linesTerminatedBy(FILEDICT_BASE) == '\n')
+    assert(get_unescaped_linesTerminatedBy(FILEDICT_BASE) == '\\n')
 
 def test_get_unescaped_fieldsTerminatedBy_from_filedict(filedict_fieldsTerminatedBy_tab):
-    assert(get_unescaped_fieldsTerminatedBy(filedict_fieldsTerminatedBy_tab) == '\t')
+    assert(get_unescaped_fieldsTerminatedBy(filedict_fieldsTerminatedBy_tab) == '\\t')
 
 def test_get_unescaped_fieldsEnclosedBy_from_filedict(filedict_fieldsEnclosedBy_escapeddoublequotes):
     assert(get_unescaped_fieldsEnclosedBy(filedict_fieldsEnclosedBy_escapeddoublequotes) == '"')

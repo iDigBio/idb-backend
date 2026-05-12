@@ -144,4 +144,5 @@ def columnize(ifile, ofile):
     lines = p.stdout.readlines()
     with AtomicFile(ofile, 'w', encoding='utf-8') as out:
         for l in lines:
-            out.write(l)
+            out.write(l.decode('utf-8', errors='replace'))
+    p.wait()

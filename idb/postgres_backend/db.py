@@ -7,8 +7,10 @@ import sys
 import itertools
 
 from datetime import datetime
-from cStringIO import StringIO
-
+from io import BytesIO
+#This is for PyPY
+#from psycopg2cffi import compat
+#compat.register()
 from psycopg2.extras import DictCursor, NamedTupleCursor
 from psycopg2.extensions import cursor
 from psycopg2.extensions import (ISOLATION_LEVEL_READ_COMMITTED,
@@ -20,6 +22,8 @@ from idb.postgres_backend import apidbpool
 from idb.helpers.etags import calcEtag, calcFileHash
 from idb.helpers.media_validation import validate, EtagMismatchError
 from idb.helpers.conversions import get_accessuri
+
+import botocore
 
 
 TEST_SIZE = 10000
@@ -588,7 +592,7 @@ class MediaObject(object):
     )
 
     def __init__(self, *args, **kwargs):
-        for s, a in itertools.izip_longest(self.__slots__, args):
+        for s, a in itertools.zip_longest(self.__slots__, args):
             setattr(self, s, a)
         for kw in kwargs.items():
             setattr(self, *kw)
@@ -684,7 +688,7 @@ class MediaObject(object):
 
     @classmethod
     def frombuff(cls, buff, **attrs):
-        return cls.fromobj(StringIO(buff), **attrs)
+        return cls.fromobj(BytesIO(buff), **attrs)
 
     @classmethod
     def fromobj(cls, obj, **attrs):
@@ -729,7 +733,26 @@ class MediaObject(object):
 
     def upload(self, media_store, fobj, force=False):
         k = self.get_key(media_store)
-        if force or not k.exists():
+
+        fflag = 0
+
+        try:
+            status = k.archive_status       # triggers the HEAD request
+            if k.content_length > 0:
+                fflag += 1
+        except botocore.exceptions.ClientError as e:
+            if "Not Found" in str(e):
+                print("it says not found!")
+            else:
+                print("found!")
+                fflag += 1
+            # or inspect details:
+            code    = e.response['Error']['Code']      # '404'
+            message = e.response['Error']['Message']
+            print(code)
+            print(message)
+        
+        if force or fflag == 0:
             media_store.upload(k, fobj, content_type=self.detected_mime, md5=self.etag)
         return k
 
@@ -810,7 +833,8 @@ class RecordSet(object):
         "id", "uuid", "publisher_uuid", "name", "recordids",
         "eml_link", "file_link", "ingest", "first_seen",
         "last_seen", "pub_date", "file_harvest_date",
-        "file_harvest_etag","eml_harvest_date", "eml_harvest_etag", "ingest_is_paused"
+        "file_harvest_etag", "eml_harvest_date",
+        "eml_harvest_etag", "ingest_is_paused"
     ]
 
     def __init__(self, **attrs):
@@ -832,20 +856,49 @@ class RecordSet(object):
             return RecordSet(**r)
 
     @staticmethod
-    def fetch_file(uuid, filename, idbmodel=apidbpool, media_store=None, logger=logger):
+    def fetch_file(recordset_uuid,
+                   filename,
+                   idbmodel   = apidbpool,
+                   media_store=None,
+                   logger     = logger):
+        """
+        Download the object attached to a recordset into `filename`.
+
+        Parameters
+        ----------
+        recordset_uuid : str
+            Recordset UUID.
+        filename : str
+            Local path to write the file to.
+        idbmodel : DB helper with fetchone() (defaults to global apidbpool)
+        media_store : S3-like helper with get_key()/get_contents_to_filename()
+        logger : logging.Logger
+        """
+
         sql = """
             SELECT uuid, etag, objects.bucket
-            FROM recordsets
-            LEFT JOIN objects on recordsets.file_harvest_etag = objects.etag
-            WHERE recordsets.uuid = %s
+            FROM   recordsets
+            LEFT JOIN objects
+                   ON recordsets.file_harvest_etag = objects.etag
+            WHERE  recordsets.uuid = %s
         """
-        r = idbmodel.fetchone(sql, (uuid,), cursor_factory=cursor)
-        if not r:
-            raise ValueError("No recordset with uuid {0!r}".format(uuid))
-        uuid, etag, bucket = r
+
+        row = idbmodel.fetchone(sql, (recordset_uuid,),
+                                cursor_factory=DictCursor)
+        if row is None:
+            raise ValueError("No recordset with uuid {!r}"
+                             .format(recordset_uuid))
+
+        rs_uuid, etag, bucket = row
         if not etag:
-            raise ValueError("Recordset {0!r} doesn't have a stored object".format(uuid))
-        logger.info("Fetching etag %s to %r", etag, filename)
+            raise ValueError("Recordset {!r} has no stored object"
+                             .format(rs_uuid))
+
+        logger.info("Fetching etag %s to %s", etag, filename)
+
         bucketname = "idigbio-{0}-{1}".format(bucket, os.environ["ENV"])
-        k = media_store.get_key(etag, bucketname)
-        media_store.get_contents_to_filename(k, filename, md5=etag)
+        key = media_store.get_key(etag, bucketname)
+        media_store.get_contents_to_filename(key, filename, md5=etag)
+
+        # optional console feedback
+        print("Downloaded", etag, "→", filename)

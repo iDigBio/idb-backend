@@ -1,4 +1,6 @@
-import unicodecsv as csv
+import os
+import re
+import csv
 import traceback
 import codecs
 import io
@@ -11,7 +13,9 @@ if sys.version_info >= (3, 5):
     DwcTerm = str
 
 from idb.helpers.logging import idblogger, getLogger
-from idb.helpers.fieldnames import NO_CLASS__UNKNOWN_FIELD, get_canonical_name, types
+from idb.helpers.fieldnames import get_canonical_name, types
+#For POLYGON fields and others which are large
+csv.field_size_limit(sys.maxsize)
 
 class MissingFieldsException(Exception):
 
@@ -47,96 +51,135 @@ class DelimitedFile(object):
         Iterable. Generic Delimited File class that returns lines as dicts of non-blank fields
     """
 
-    def __init__(self,
-            fh, # type: str
-            encoding="utf8", # type: str
-            delimiter=",", # type: str
-            fieldenc="\"", # type: str
-            header=None, # type: Optional[Dict[int, str]]
-            rowtype=None, # type: Optional[str]
-            logname=None # type: Optional[str]
-        ):
-        # type: (...) -> None
-        """
-        Parameters
-        ---
-        fh : str
-            File path to this delimited file
-        encoding : str
-            Character encoding for this delimited file
-        delimiter : str
-            Delimiter between fields in this file.
-            Corresponds to /*/@fieldsTerminatedBy in a Darwin Core metafile.
-        fieldenc : str
-            Character used to enclose (mark the start and end of) each field.
-            Corresponds to /*/@fieldsEnclosedBy in a Darwin Core metafile.
-        header : dict, optional
-            Header of this delimited file,
-            indexed by int, values are DwC terms (CURIE form, e.g. 'dwc:genus').
-            If ``None``, the first row of this file will be interpreted as
-            the header row.
-            Corresponds to /*/field in a Darwin Core metafile.
-        rowType : str, optional
-            In URI form, the data class represented by each row of
-            this delimited file.
-            If ``None``, the rowtype will be inferred from the most common
-            class each header term appears in.
-            Corresponds to /*/@rowType in a Darwin Core metafile.
-            Examples:
-            - "http://data.ggbn.org/schemas/ggbn/terms/MaterialSample"
-            - "http://rs.tdwg.org/ac/terms/Multimedia"
+    def __iter__(self):
+        return self
 
-        logname : str, optional
+    def __next__(self):
+        return super(DwcaRecordFile, self).next()   # or whatever transform DelimitedFile expects
 
-        Notes
-        ---
-        Above corresponding XPaths derived from the Darwin Core text guide,
-        version dated 2023-09-13, available at: https://dwc.tdwg.org/text/
+    # optional Py2 compat (harmless in Py3, but don’t do this if you also define def next())
+    next = __next__
+
+    def _normalize_delimiter(self, d, default=","):
         """
+        Normalize DwC-A / meta.xml delimiter representations into a single character str.
+        Accepts things like:
+          - "\t" or "\\t" (literal backslash+t)
+          - "tab" / "TAB"
+          - "0x09"
+          - "&#9;" or "&#x9;"
+          - "||" (collapses to "|") when all chars are identical
+        """
+        if d is None:
+            return default
+
+        # bytes -> str
+        if isinstance(d, (bytes, bytearray, memoryview)):
+            d = bytes(d).decode("utf-8", errors="replace")
+
+        d = str(d).strip()
+
+        # strip simple wrapping quotes: '"|"' or "'\t'"
+        if len(d) >= 2 and d[0] == d[-1] and d[0] in ("'", '"'):
+            d = d[1:-1]
+
+        # common words
+        if d.lower() == "tab":
+            d = "\t"
+
+        # literal backslash escapes often found in meta.xml parsing
+        if d in (r"\t", "\\t"):
+            d = "\t"
+        elif d in (r"\n", "\\n"):
+            d = "\n"
+        elif d in (r"\r", "\\r"):
+            d = "\r"
+
+        # numeric forms: 0x09
+        m = re.fullmatch(r"0x([0-9a-fA-F]+)", d)
+        if m:
+            d = chr(int(m.group(1), 16))
+
+        # XML numeric entities: &#9; or &#x9;
+        m = re.fullmatch(r"&#([0-9]+);", d)
+        if m:
+            d = chr(int(m.group(1), 10))
+        m = re.fullmatch(r"&#x([0-9a-fA-F]+);", d)
+        if m:
+            d = chr(int(m.group(1), 16))
+
+        # empty -> default
+        if d == "":
+            return default
+
+        # If it's multiple identical chars (e.g., "||" or ",,") collapse to one.
+        if len(d) != 1:
+            uniq = set(d)
+            if len(uniq) == 1:
+                d = d[0]
+
+        if len(d) != 1:
+            # This is the place to log what you got from meta.xml
+            raise ValueError(f"Invalid CSV delimiter {d!r} (expected 1 character)")
+
+        return d
+
+    def __init__(self, fh, encoding="utf-8", delimiter=",", fieldenc='"',
+                 header=None, rowtype=None, logname=None):
         super(DelimitedFile, self).__init__()
 
-        # if incoming encoding is specified but is an empty string, we should abort here rather than
-        # waiting for the actual file processing to raise an exception.
         if encoding == "":
             raise ValueError("Encoding cannot be an empty string, must specify an actual encoding.")
-        else:
-            self.encoding = encoding
+        self.encoding = encoding
+
         self.fieldenc = fieldenc
-        self.delimiter = delimiter
+        self.delimiter = self._normalize_delimiter(delimiter)
         self.rowtype = rowtype
         self.lineCount = 0
         self.lineLength = None
 
-        if isinstance(fh, str) or isinstance(fh, unicode):
-            self.name = fh
+        # Python 3: no 'unicode'. Use str / PathLike.
+        is_path = isinstance(fh, (str, os.PathLike))
+
+        if is_path:
+            self.name = os.fspath(fh)
+            self.filehandle = io.open(self.name, "r", encoding=encoding, errors="flag_error", newline="")
         else:
-            self.name = fh.name
-        self.filehandle = io.open(
-            fh, "r", encoding=encoding, errors="flag_error")
+            # assume a file-like object already opened in text mode
+            self.filehandle = fh
+            self.name = getattr(fh, "name", "<stream>")
 
         if logname is None:
-            self.logger = idblogger.getChild('df')
+            self.logger = idblogger.getChild("df")
         else:
             self.logger = getLogger(logname)
 
-        encoded_lines = (l.encode("utf-8") for l in self.filehandle)
+        # IMPORTANT: csv.reader in Python 3 consumes TEXT lines (str), not bytes.
         if self.fieldenc is None or self.fieldenc == "":
-            self._reader = csv.reader(encoded_lines, encoding="utf-8",
-                                      delimiter=self.delimiter, quoting=csv.QUOTE_NONE)
+            self._reader = csv.reader(
+                self.filehandle,
+                delimiter=self.delimiter,
+                quoting=csv.QUOTE_NONE,
+            )
         else:
-            self._reader = csv.reader(encoded_lines, encoding="utf-8",
-                                      delimiter=self.delimiter, quotechar=self.fieldenc)
+            self._reader = csv.reader(
+                self.filehandle,
+                delimiter=self.delimiter,
+                quotechar=self.fieldenc,
+            )
 
         # Count encountered Darwin Core classes.
         # To be used as a fallback if parameter 'rowtype' is unspecified.
         t = defaultdict(int)
+
         if header is not None:
             self.fields = header
-            for k, v in header.items():
+            for _, v in header.items():
                 cn = get_canonical_name(v)
                 t[cn[1]] += 1
         else:
-            headerline = self._reader.next()
+            # Python 3: next(reader), not reader.next()
+            headerline = next(self._reader)
             self.lineLength = len(headerline)
             self.fields = {}
             for k, v in enumerate(headerline):
@@ -155,14 +198,15 @@ class DelimitedFile(object):
                 "\n  - ".join(sorted(unregistered_fields)))
 
         if self.rowtype is None:
-            items = t.items()
-            items.sort(key=lambda item: (item[1], item[0]), reverse=True)
+            # Python 3: dict_items is not sortable in-place; use sorted()
+            items = sorted(t.items(), key=lambda item: (item[1], item[0]), reverse=True)
             self.rowtype = items[0][0]
             self.logger.info("Setting row type to %s", self.rowtype)
         elif self.rowtype in types:
             self.rowtype = types[self.rowtype]["shortname"]
         else:
             raise TypeError("{} not mapped to short name".format(self.rowtype))
+
 
 
     def __iter__(self):
@@ -194,7 +238,7 @@ class DelimitedFile(object):
             try:
                 lineDict = {}
                 # self.filehandle.snap()
-                lineArr = self._reader.next()
+                lineArr = next(self._reader)
 
                 self.lineCount += 1
                 if self.lineLength is None:

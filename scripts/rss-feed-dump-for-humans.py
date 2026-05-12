@@ -1,52 +1,44 @@
-from __future__ import print_function
-import feedparser
-from pyquery import PyQuery as pq
+#!/usr/bin/env python3
 import argparse
+import feedparser
 
-argparser = argparse.ArgumentParser(description='Script to quickly dump dataset information out of an RSS feed in human-readable format.')
-argparser.add_argument("-f", "--feed", required=True, help="The filename or URL of the RSS feed to parse.")
-args = argparser.parse_args()
-feed_to_parse = args.feed
+HR = "=" * 94
 
-if not feed_to_parse.startswith('http'):
-    print ()
-    print ("* non-HTTP feed supplied, assuming local file. *")
+def s(x, default=""):
+    """Return a safe printable string."""
+    if x is None:
+        return default
+    if isinstance(x, bytes):
+        return x.decode("utf-8", errors="replace")
+    return str(x)
 
-feed = feedparser.parse(feed_to_parse)
+def get_field(entry, *names, default="NO VALUE FOUND"):
+    for n in names:
+        if n in entry and entry[n]:
+            return s(entry[n])
+    return default
 
+def main():
+    argparser = argparse.ArgumentParser(
+        description="Dump dataset information out of an RSS feed in human-readable format."
+    )
+    argparser.add_argument("-f", "--feed", required=True, help="Filename or URL of RSS feed.")
+    args = argparser.parse_args()
+    feed_to_parse = args.feed
 
-def get_title(entry):
-    if "title" in entry:
-        return(entry["title"])
-    else:
-        return("NO TITLE FOUND")
+    if not feed_to_parse.startswith("http"):
+        print()
+        print("* non-HTTP feed supplied, assuming local file. *")
 
-def get_pubDate(entry):
-    if "published" in entry:
-        return (entry["published"])
-    else:
-        return ("NO PUBLISHED DATE FOUND")
+    feed = feedparser.parse(feed_to_parse)
 
+    print()
+    print(HR)
+    print(feed_to_parse)
 
-def get_id(entry):
-    if "id" in entry:
-        return (entry["id"])
-    else:
-        return ("NO ID FOUND")
-
-def get_dataset_link(entry):
-    if "ipt_dwca" in entry:
-        return (entry["ipt_dwca"])
-    elif "link" in entry:
-        return (entry["link"])
-    else:
-        return ("NO DATASET LINK FOUND")
-
-def get_eml_link(entry):
-    if "ipt_eml" in entry:
-        return (entry["ipt_eml"])
-    elif "emllink" in entry:
-        return (entry["emllink"])
+    feed_title = feed.get("feed", {}).get("title")
+    if feed_title:
+        print(s(feed_title))
     else:
         return ("NO EML LINK FOUND")
 
@@ -81,11 +73,15 @@ for entry in feed.entries:
     # The actual IPT guid field is not visible as a normalized field since another id field is used.
     # However, the id is embedded in the middle of the id url so human can pluck it out if needed.
 
+    print(HR)
 
-    print ("title:        ", get_title(entry).encode('utf-8').strip())
-    print ("published:    ", get_pubDate(entry).encode('utf-8').strip())
-    print ("id:           ", get_id(entry).encode('utf-8').strip())
-    print ("dataset link: ", get_dataset_link(entry).encode('utf-8').strip())
-    print ("eml link:     ", get_eml_link(entry).encode('utf-8').strip())
-    print (hr)
+    for entry in feed.entries:
+        print("title:        ", get_field(entry, "title", default="NO TITLE FOUND").strip())
+        print("published:    ", get_field(entry, "published", default="NO PUBLISHED DATE FOUND").strip())
+        print("id:           ", get_field(entry, "id", default="NO ID FOUND").strip())
+        print("dataset link: ", get_field(entry, "ipt_dwca", "link", default="NO DATASET LINK FOUND").strip())
+        print("eml link:     ", get_field(entry, "ipt_eml", "emllink", default="NO EML LINK FOUND").strip())
+        print(HR)
 
+if __name__ == "__main__":
+    main()

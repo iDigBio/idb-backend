@@ -1,10 +1,11 @@
-FROM python:2.7
+FROM python:3.12
 
 RUN apt-get update; \
     apt-get install -y --no-install-recommends \
         gfortran \
         libatlas-base-dev \
         ffmpeg \
+        libmagic1 \
         libblas-dev \
         libgdal-dev \
         liblapack-dev \

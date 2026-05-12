@@ -104,7 +104,7 @@ def maybe_dry_run(fn=None, logcallback=None, logmsg=None, logfn=idblogger.debug,
                 else:
                     fnname = getattr(fn, 'func_name', fn)
                     argsreprs = itertools.chain(
-                        itertools.imap(repr, args),
+                        map(repr, args),
                         itertools.starmap(u'{0!s}={1!r}'.format, kwargs.items()))
                     logfn('DRY_RUN: {0}({1})', fnname, u', '.join(argsreprs))
             return retval

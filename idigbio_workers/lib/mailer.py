@@ -1,11 +1,11 @@
 from __future__ import division, absolute_import, print_function
 import os.path
 import smtplib
-from email.MIMEMultipart import MIMEMultipart
-from email.MIMEBase import MIMEBase
-from email.MIMEText import MIMEText
-from email.Utils import COMMASPACE, formatdate
-from email import Encoders
+from email.mime.multipart import MIMEMultipart
+from email.mime.base import MIMEBase
+from email.mime.text import MIMEText
+from email.utils import COMMASPACE, formatdate
+from email.encoders import encode_base64
 
 from idb.helpers.logging import idblogger
 
@@ -27,7 +27,7 @@ def send_mail(send_from, send_to, subject, text, files=[]):
     for f in files:
         part = MIMEBase('application', "octet-stream")
         part.set_payload(open(f,"rb").read())
-        Encoders.encode_base64(part)
+        encode_base64(part)
         part.add_header('Content-Disposition', 'attachment; filename="%s"' % os.path.basename(f))
         msg.attach(part)
 

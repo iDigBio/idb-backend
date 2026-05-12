@@ -62,9 +62,16 @@ def run_server(info, host, port, reload, debugger, eager_loading, debug, wsgi):
 
     if wsgi == 'werkzeug':
         from werkzeug.serving import run_simple
-        from flask.cli import DispatchingApp
+        
+        app = info.load_app()
 
-        app = DispatchingApp(info.load_app, use_eager_loading=eager_loading)
+        run_simple(
+            host, port, app,
+            use_reloader=reload,
+            use_debugger=debugger,
+            threaded=False,
+            passthrough_errors=True,
+        )
 
         # Extra startup messages.  This depends a but on Werkzeug internals to
         # not double execute when the reloader kicks in.
@@ -85,12 +92,12 @@ def run_server(info, host, port, reload, debugger, eager_loading, debug, wsgi):
 
     elif wsgi == 'gevent':
         from gevent.pool import Pool
-        from gevent.wsgi import WSGIServer
+        from gevent.pywsgi import WSGIServer
         from idb.helpers.logging import idblogger
         from requestlogger import WSGILogger, ApacheFormatter
         logger = idblogger.getChild('api')
 
-        from werkzeug.contrib.fixers import ProxyFix
+        from werkzeug.middleware.proxy_fix import ProxyFix
         logger.info("gevent server @ http://%s:%s/ ENV=%s", host, port, config.ENV)
         app = info.load_app()
         app = WSGILogger(app, [], ApacheFormatter())

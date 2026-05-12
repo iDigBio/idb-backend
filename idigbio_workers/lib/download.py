@@ -15,7 +15,7 @@ from collections import Counter, namedtuple
 
 import elasticsearch
 import elasticsearch.helpers
-import unicodecsv as csv
+import csv
 
 from atomicfile import AtomicFile
 
@@ -75,7 +75,7 @@ def write_citation_file(dl_id, t, query, recordsets):
             now.isoformat(),    # 3: Access Datetime
             total_rs,           # 4: Number of recordsets
             rs_string,          # 5: List of recordset IDs and counts
-        ))
+        ).encode('utf-8'))
     return filename
 
 def get_recordsets(params, generate=True):
@@ -214,7 +214,7 @@ def query_to_csv(outf, t, body, header_fields, fields, id_field, raw, tabs, id_f
             for k in fields:
                 v = get_source_value(r["_source"],k)
                 if v is not None:
-                    if isinstance(v, str) or isinstance(v, unicode):
+                    if isinstance(v, str) or isinstance(v, str):
                         r_fields.append(v)
                     else:
                         r_fields.append(json.dumps(v))
@@ -281,7 +281,7 @@ def make_file(t, query, raw=False, tabs=False, fields=None,
 
         es = get_connection()
         mapping = es.indices.get_mapping(index=indexName, doc_type=t)
-        mapping_root = mapping.values()[0]["mappings"][t]["properties"]
+        mapping_root = list(mapping.values())[0]["mappings"][t]["properties"]
         if raw:
             mapping_root = mapping_root["data"]["properties"]
 
@@ -322,7 +322,7 @@ def make_file(t, query, raw=False, tabs=False, fields=None,
             "query": query
         }
 
-        with AtomicFile(outfile_name, "wb") as outf:
+        with AtomicFile(outfile_name, "w") as outf:
             query_to_csv(
                 outf, t, body, converted_fields, fields, id_field, raw, tabs, id_func)
         return FileArtifact(outfile_name, final_filename, meta_block)
@@ -464,7 +464,7 @@ def generate_files(core_type="records", core_source="indexterms", record_query=N
         zipfilename = filename + ".zip"
         with zipfile.ZipFile(zipfilename, 'w', zipfile.ZIP_DEFLATED, True) as expzip:
             meta_files = []
-            for fa in itertools.ifilter(None, files):
+            for fa in files:
                 expzip.write(fa.filename, fa.archivename)
                 os.unlink(fa.filename)
                 if fa.meta_block is not None:

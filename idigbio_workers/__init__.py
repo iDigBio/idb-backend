@@ -42,7 +42,7 @@ _APPLY_BROKER_URL_CORRECTIONS_IMMEDIATELY = not (IN_CELERY_WORKER_PROCESS or 'py
 env = config.ENV
 
 app = Celery('tasks')
-app.config_from_object('idigbio_workers.config.' + env)
+app.config_from_object('idigbio_workers.config.test')
 
 class PreConsumerConnectionStep(bootsteps.StartStopStep):
     """When this bootstep is run, immediately triggers broker connectivity check and fail fast if there is an issue."""
@@ -124,6 +124,9 @@ from idigbio_workers.tasks.download import downloader, blocker, send_download_em
 def get_redis_conn():
     import redis
     return redis.StrictRedis(**get_redis_connection_params())
+
+def dev():
+    return
 
 
 @app.task()

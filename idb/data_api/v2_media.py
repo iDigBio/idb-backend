@@ -16,7 +16,7 @@ from idb.helpers.media_validation import (
 
 from .common import json_error, idbmodel, logger
 
-this_version = Blueprint(__name__, __name__)
+this_version = Blueprint(__name__.replace(".","-"),__name__.replace(".","-"))
 
 # TODO:
 # List endpoints?
@@ -128,10 +128,10 @@ def lookup_uuid(u, format):
     return respond_to_record(r, deriv=deriv, format=format)
 
 
-@this_version.route('/media/<string:etag>',
+@this_version.route('/media/<nonuuid:etag>',
                     methods=['GET', 'OPTIONS'],
                     defaults={"format": None})
-@this_version.route('/media/<string:etag>.<string:format>',
+@this_version.route('/media/<nonuuid:etag>.<string:format>',
                     methods=['GET', 'OPTIONS'])
 @crossdomain(origin="*")
 def lookup_etag(etag, format):
@@ -190,10 +190,11 @@ def lookup_ref(format):
 @requires_auth
 def upload():
     vals = {}
-    j = request.get_json()
+    print('got to upload...')
+    j = request.get_json(silent=True)
     if j is not None:
         vals.update(j)
-    for k, v in request.values.iteritems():
+    for k, v in request.values.items():
         vals[k] = v
 
     filereference = vals.get("filereference")
@@ -230,7 +231,7 @@ def upload():
         mo.insert_object(idbmodel)
     elif etag:
         mo = MediaObject.frometag(etag, idbmodel)
-        if not mo or not mo.get_key(IDigBioStorage()).exists():
+        if not mo or not mo.get_key(IDigBioStorage()):
             return json_error(404, "Unknown etag {0!r}".format(etag))
 
         mo.last_status = 200

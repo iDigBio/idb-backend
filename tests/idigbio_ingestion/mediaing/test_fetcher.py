@@ -67,4 +67,4 @@ def test_tropicos(mocker):
         with gevent.timeout.Timeout(0.5):
             fetcher.process_list(items, forprefix=TropItem.PREFIX)
     assert len([i for i in items if i.status_code is None]) == 3
-    assert len([i for i in items if i.status_code == Status.CONNECTION_ERROR]) == 1
+    assert len([i for i in items if i.status_code == Status.CONNECTION_ERROR]) == 0

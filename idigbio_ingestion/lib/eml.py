@@ -22,8 +22,12 @@ def parseEml(id, emlText):
     # For example:  http://xbiod.osu.edu/ipt/eml.do?r=osum-fish
     # It is possible we could trap this ahead of time by checking the raw emlText for key xml features
     # or HTML document features.
+    if isinstance(emlText, bytes):
+        eml_bytes = emlText
+    else:
+        eml_bytes = emlText.encode("utf-8", errors="replace")
 
-    eml = pq(emlText, parser='xml')
+    eml = pq(eml_bytes, parser="xml")
 
     ### The eml().txt() function returns an empty string instead of None if the location does not exist in the eml
     ### (if there is "no text node" according to release notes https://pypi.python.org/pypi/pyquery)

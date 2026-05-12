@@ -1,15 +1,15 @@
 sudo: required
-dist: focal
+dist: jammy
 language: python
-python: 2.7
+python: 3.12
 services:
 - docker
 addons:
-  postgresql: "12"
+  postgresql: "14"
   apt:
     packages:
-    - postgresql-12
-    - postgresql-client-12
+    - postgresql-14
+    - postgresql-client-14
 
 git:
   depth: 1
@@ -43,7 +43,7 @@ env:
   - BUILDING=$DOCKER_IMAGE:$TRAVIS_COMMIT
   - ACCESS_KEY="testAccessKey"
   - SECRET_KEY="testSecretKey"
-  - PGPORT=5433
+  #- PGPORT=5433
   - PGUSER=travis
 notifications:
   slack:

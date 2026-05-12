@@ -1,16 +1,8 @@
 from __future__ import division, absolute_import, print_function
 import requests
 
-from flask import jsonify, current_app
+from flask import jsonify, current_app, g
 from werkzeug.exceptions import default_exceptions
-
-# Find the stack on which we want to store the database connection.
-# Starting with Flask 0.9, the _app_ctx_stack is the correct one,
-# before that we need to use the _request_ctx_stack.
-try:
-    from flask import _app_ctx_stack as stack
-except ImportError:
-    from flask import _request_ctx_stack as stack
 
 from idb.postgres_backend.db import PostgresDB
 from idb.helpers.logging import idblogger
@@ -32,6 +24,7 @@ def json_error(status_code, message=None):
 def get_idb():
     return PostgresDB(pool=current_app.config['DB'])
 
+
 class IDBModelSession(object):
     app = None
 
@@ -42,28 +35,21 @@ class IDBModelSession(object):
 
     def init_app(self, app):
         logger.debug("Initializing idbmodel connection with %r", app)
-        # Use the newstyle teardown_appcontext if it's available,
-        # otherwise fall back to the request context
-        if hasattr(app, 'teardown_appcontext'):
-            app.teardown_appcontext(self._teardown)
-        else:
-            app.teardown_request(self._teardown)
+        # Use teardown_appcontext which is the modern approach
+        app.teardown_appcontext(self._teardown)
 
     def _teardown(self, exception):
-        ctx = stack.top
-        try:
-            ctx.IDBModel.close()
-        except AttributeError:
-            pass
+        # Use Flask's g object instead of stack
+        if hasattr(g, 'IDBModel'):
+            g.IDBModel.close()
 
     def __getattr__(self, k):
-        ctx = stack.top
-        idb = None
-        try:
-            idb = ctx.IDBModel
-        except:
+        # Use Flask's g object which is the application context local storage
+        idb = getattr(g, 'IDBModel', None)
+        if idb is None:
             idb = get_idb()
-            ctx.IDBModel = idb
+            g.IDBModel = idb
         return getattr(idb, k)
+
 
 idbmodel = IDBModelSession()

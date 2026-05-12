@@ -1,9 +1,3 @@
-"""This is a multiprocessing like pool using gipc and gevent
-
-A *major* distinction though is that we don't attempt to get any
-result object back, just the processes return code.
-
-"""
 
 from __future__ import division, absolute_import, print_function
 

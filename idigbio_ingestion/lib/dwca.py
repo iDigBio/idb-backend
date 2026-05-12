@@ -5,11 +5,7 @@ from collections import deque
 import traceback
 import shutil
 import requests
-from cStringIO import StringIO
-import sys
-
-if sys.version_info >= (3, 5):
-    from typing import Any, Dict, List, Optional
+from io import BytesIO, StringIO
 
 from idb.helpers.logging import idblogger, getLogger
 from .delimited import DelimitedFile
@@ -67,7 +63,7 @@ class Dwca(object):
         try:
             schema_parser = etree.XMLParser(no_network=False)
             r = requests.get(DWC_SCHEMA_URL)
-            r_file_like_object = StringIO(r.content)
+            r_file_like_object = BytesIO(r.content)
             parsed = etree.parse(r_file_like_object, schema_parser)
             schema = etree.XMLSchema(parsed)
 
@@ -142,7 +138,14 @@ class DwcaRecordFile(DelimitedFile):
     """
         Iterable. Internal representation of a darwin core archive record data file.
     """
-    # Iterable capability inherited from DelimitedFile
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        return super(DwcaRecordFile, self).next()   # or whatever transform DelimitedFile expects
+
+    # optional Py2 compat (harmless in Py3, but don’t do this if you also define def next())
+    next = __next__
 
     def __init__(self,filedict,fh,logname=None):
         # type: (Dict[str, Any], str, Optional[str]) -> None
@@ -247,15 +250,15 @@ class DwcaRecordFile(DelimitedFile):
             logname=self.logger.name)
 
         while ignoreheader > 0:
-            self._reader.next()
+            next(self._reader)
             ignoreheader -= 1
 
 def get_unescaped_linesTerminatedBy(filedict):
-    return filedict["#linesTerminatedBy"].decode('string_escape')
+    return filedict["#linesTerminatedBy"] #decode('string_escape')
 
 def get_unescaped_fieldsTerminatedBy(filedict):
-    return filedict["#fieldsTerminatedBy"].decode('string_escape')
+    return filedict["#fieldsTerminatedBy"] #decode('string_escape')
 
 def get_unescaped_fieldsEnclosedBy(filedict):
-    return filedict["#fieldsEnclosedBy"].decode('string_escape')
+    return filedict["#fieldsEnclosedBy"] #decode('string_escape')
 

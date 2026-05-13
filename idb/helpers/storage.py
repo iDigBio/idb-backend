@@ -16,6 +16,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 import io
 import math
 import os
+import sys
 import time
 
 import boto3
@@ -35,6 +36,11 @@ from botocore.exceptions import ClientError, BotoCoreError
 from idb import config
 from idb.helpers.logging import idblogger
 from idb.postgres_backend.db import MediaObject
+
+if sys.version_info >= (3, 5):
+    import typing
+    if typing.TYPE_CHECKING:
+        import boto.s3.bucket
 
 logger = idblogger.getChild('storage')
 

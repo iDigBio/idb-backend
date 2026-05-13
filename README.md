@@ -1,6 +1,6 @@
 # idb-backend
 
-[![Build Status](https://api.travis-ci.com/iDigBio/idb-backend.svg?branch=idb_dev_local)](https://app.travis-ci.com/github/iDigBio/idb-backend)
+[![Build Status](https://api.travis-ci.com/iDigBio/idb-backend.svg?branch=master)](https://app.travis-ci.com/github/iDigBio/idb-backend)
 
 iDigBio server and backend code for data ingestion and data API.
 
@@ -35,10 +35,13 @@ In Ubuntu 16.04:
 
 For Ingestion and Development, the following are also needed:
 
+<!-- Package rationale:
+  -- bsdmainutils: provides: column (for creating human-readable text files)
+  -->
 
 In Ubuntu 20.04:
 
-    apt install libxml2 libxslt1-dev ffmpeg fonts-dejavu-core libfreetype6-dev libsystemd-dev
+    apt install bsdmainutils libxml2 libxslt1-dev ffmpeg fonts-dejavu-core libfreetype6-dev libsystemd-dev
 
 It appears that no actual python systemd packages are needed.
 
@@ -46,7 +49,7 @@ It appears that no actual python systemd packages are needed.
 
 In Ubuntu 16.04, 18.04:
 
-    apt-get install libxml2 libxslt1-dev ffmpeg fonts-dejavu-core libfreetype6-dev python-systemd
+    apt-get install bsdmainutils libxml2 libxslt1-dev ffmpeg fonts-dejavu-core libfreetype6-dev python-systemd
 
 
 ### Package installation

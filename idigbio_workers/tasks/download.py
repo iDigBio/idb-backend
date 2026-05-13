@@ -4,6 +4,7 @@ import datetime
 import os
 import json
 import requests
+import string
 import uuid
 
 from pathlib import Path
@@ -92,8 +93,9 @@ def downloader(self, params):
         tid = generate_files(filename=filename, **params)
         logger.debug("Finished generating file, uploading to ceph, size: %s", Path(tid).stat().st_size)
         link = upload_download_file_to_ceph(tid)
+        tmp_link = string.replace(link, "http:", "https:")
         logger.debug("Finished uploading to ceph")
-    return link
+    return tmp_link
 
 
 @app.task(bind=True, ignore_result=True, max_retries=None)
@@ -125,7 +127,8 @@ def send_download_email(link, email, params, ip=None, source=None):
     if email is None:
         logger.warn("send email called with no email")
         return
-    logger.info("Sending email to %s with link %s", email, link)
+    tmp_link = string.replace(link,"http:","https:")
+    logger.info("Sending email to %s with link %s", email, tmp_link)
     if not email.endswith("@acis.ufl.edu"):
         q, recordsets = get_recordsets(params)
         record_query = params.get("rq") or params.get("record_query") or q
@@ -142,7 +145,7 @@ def send_download_email(link, email, params, ip=None, source=None):
         s.post("http://10.13.45.190:3000",
                data=json.dumps(stats_post), headers={'content-type': 'application/json'})
     send_mail("data@idigbio.org", [email], "iDigBio Download Ready",
-              mail_text.format(link, json.dumps(params)))
+              mail_text.format(tmp_link, json.dumps(params)))
 
 
 def main():

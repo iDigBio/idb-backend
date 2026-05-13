@@ -5,6 +5,7 @@ import json
 import logging
 import os
 import re
+import sys
 import traceback
 import multiprocessing
 
@@ -33,6 +34,11 @@ from idb.helpers.storage import IDigBioStorage
 
 from idigbio_ingestion.lib.dwca import Dwca
 from idigbio_ingestion.lib.delimited import DelimitedFile
+
+if sys.version_info >= (3, 5):
+    from typing import TYPE_CHECKING, Dict
+    if TYPE_CHECKING:
+        from idigbio_ingestion.lib.dwca import DwcaRecordFile
 
 
 bad_chars = u"\ufeff"
@@ -172,7 +178,15 @@ def strip_nuls(x):
         return tuple(strip_nuls(v) for v in x)
     return x
 
-def process_subfile(rf, rsid, rs_uuid_etag, rs_id_uuid, ingest=False, db=None):
+def process_subfile(
+        rf, # type: DwcaRecordFile
+        rsid,
+        rs_uuid_etag,
+        rs_id_uuid,
+        ingest=False,
+        db=None
+    ):
+    # type: (...) -> Dict
     """
     Processes a data file (typically one of multiple files inside a DwCA).
 

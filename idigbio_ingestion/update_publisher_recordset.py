@@ -140,6 +140,18 @@ def get_feed(rss_url):
         return feedtest.text
 
 
+def validate_configuration():
+    """Raises exception on invalid configuration"""
+    stor = IDigBioStorage()
+    mo = MediaObject(bucket='datasets')
+    bucket = mo.bucketname
+    try:
+        stor.get_bucket(bucket, validate=True)
+    except Exception:
+        logger.exception("Failed to get bucket '%s' (might not exist)", bucket)
+        raise
+
+
 def update_db_from_rss():
     # existing_recordsets is a dict that holds mapping of recordids to DB id
     existing_recordsets = {}
@@ -205,6 +217,12 @@ def _do_rss_entry(entry, portal_url, db, recordsets, existing_recordsets, pub_uu
     file_links : dict
         dict of existing known file_links with associated DB ids
     """
+    for k in entry:
+        if k == "link":
+            entry[k] = entry[k].encode('utf-8').strip()
+        elif k == "links":
+            if entry[k][0] is not None:
+                entry[k][0] = [v.encode('utf-8').strip() for v in entry[k][0]]
 
     for k in entry:
         if k == "link":
@@ -679,6 +697,9 @@ def main():
     # create_tables()
     # Re-work from canonical db
     logger.info("Begin update_publisher_recordset()")
+    logger.info("*** Validating configuration...")
+    validate_configuration()
+    logger.info("*** Fetching RSS feeds...")
     update_db_from_rss()
     logger.info("*** Begin harvest of eml files...")
     harvest_all_eml()

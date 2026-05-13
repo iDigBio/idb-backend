@@ -4,8 +4,12 @@ import json
 import logging
 import zipfile
 import os
+import sys
 import datetime
 import itertools
+
+if sys.version_info >= (3, 5):
+    from typing import Optional
 
 from collections import Counter, namedtuple
 
@@ -36,7 +40,7 @@ indexName = get_indexname()
 # 3: Access Datetime
 # 4: Number of recordsets
 # 5: List of recordset IDs and counts
-citation_format = """http://www.idigbio.org/portal ({0}),
+citation_format = """https://www.idigbio.org/portal ({0}),
 Query: {1},
 {2} records, accessed on {3},
 contributed by {4} Recordsets, Recordset identifiers:
@@ -49,7 +53,7 @@ def write_citation_file(dl_id, t, query, recordsets):
     total_recs = 0
     total_rs = len(recordsets.keys())
     for rs, rsc in sorted([(rs, recordsets[rs]) for rs in recordsets], key=lambda x: x[1], reverse=True):
-        rs_strings.append("http://www.idigbio.org/portal/recordsets/{0} ({1} records)".format(rs, rsc))
+        rs_strings.append("https://www.idigbio.org/portal/recordsets/{0} ({1} records)".format(rs, rsc))
         total_recs += rsc
     if total_recs == 0:
         return None
@@ -254,6 +258,7 @@ FileArtifact = namedtuple("FileArtifact", ["filename", "archivename", "meta_bloc
 
 def make_file(t, query, raw=False, tabs=False, fields=None,
               core_type="records", core_source="indexterms", file_prefix="", final_filename=""):
+    # type: (...) -> Optional[FileArtifact]
     file_extension = ".tsv" if tabs else ".csv"
     final_filename = final_filename + file_extension
     core = t == core_type and raw == core_source == "raw"

@@ -40,7 +40,38 @@ def main():
     if feed_title:
         print(s(feed_title))
     else:
-        print("Feed has no TITLE.")
+        return ("NO EML LINK FOUND")
+
+
+hr = "=============================================================================================="
+
+print () 
+print (hr)
+print (feed_to_parse)
+
+if feed.bozo:
+    raise feed.bozo_exception
+
+if "title" in feed['feed']:
+    print (feed['feed']['title'])
+else:
+    print ("Feed has no TITLE.")
+
+print (hr)
+for entry in feed.entries:
+    entry_title = ""
+    entry_pubDate = ""
+    entry_id = ""
+    entry_dataset_link = ""
+    entry_eml_link = ""
+    # feedparser converts many common fields into normalized names. Examples:
+    #   guid --> id
+    #   pubDate --> published
+    #
+    # Fields that contain colons such as ipt:dwca and ipt:eml get underscored to ipt_dwca and ipt_eml
+    #
+    # The actual IPT guid field is not visible as a normalized field since another id field is used.
+    # However, the id is embedded in the middle of the id url so human can pluck it out if needed.
 
     print(HR)
 

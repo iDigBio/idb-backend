@@ -8,6 +8,10 @@ import sys
 
 from collections import defaultdict
 
+if sys.version_info >= (3, 5):
+    from typing import Dict, Optional
+    DwcTerm = str
+
 from idb.helpers.logging import idblogger, getLogger
 from idb.helpers.fieldnames import get_canonical_name, types
 #For POLYGON fields and others which are large
@@ -44,7 +48,7 @@ codecs.register_error("flag_error", flag_unicode_error)
 
 class DelimitedFile(object):
     """
-        Generic Delimited File class that returns lines as dicts of non-blank fields
+        Iterable. Generic Delimited File class that returns lines as dicts of non-blank fields
     """
 
     def __iter__(self):
@@ -164,6 +168,8 @@ class DelimitedFile(object):
                 quotechar=self.fieldenc,
             )
 
+        # Count encountered Darwin Core classes.
+        # To be used as a fallback if parameter 'rowtype' is unspecified.
         t = defaultdict(int)
 
         if header is not None:
@@ -181,6 +187,15 @@ class DelimitedFile(object):
                 if cn[0] is not None:
                     t[cn[1]] += 1
                     self.fields[k] = cn[0]
+
+        # early warning on unmapped fields
+        unregistered_fields = set()
+        for field in iter(self.fields.values()):
+            if get_canonical_name(field)[1] == NO_CLASS__UNKNOWN_FIELD:
+                unregistered_fields.add(field)
+        if len(unregistered_fields) > 0:
+            self.logger.warning("Encountered unmapped fields:\n  - " +
+                "\n  - ".join(sorted(unregistered_fields)))
 
         if self.rowtype is None:
             # Python 3: dict_items is not sortable in-place; use sorted()
@@ -213,8 +228,10 @@ class DelimitedFile(object):
         return self.readline()
 
     def readline(self, size=None):
+        # type: (...) -> Dict[DwcTerm, str]
         """
-            Returns a parsed record line from a DWCA file as an dictionary.
+            Returns a parsed record line from a DWCA file as an dictionary
+            of DwC terms and values
         """
 
         while True:

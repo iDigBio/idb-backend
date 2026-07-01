@@ -92,7 +92,7 @@ setup(
         'wsgi-request-logger>=0.4.6',
         'jsonlines>=1.1.3',
         'py4j==0.10.9.7',
-        'lxml==5.0.2',
+        'lxml>=6.1.0',
         'bsddb3==6.2.9',
         "pillow-simd==9.5.0.post2",
         'pyquery>1.2.17',

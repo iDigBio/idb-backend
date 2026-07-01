@@ -37,7 +37,7 @@ py4j==0.10.9.7
 pillow-simd==9.5.0.post2
 
 # The following are for ingest
-lxml==5.0.2
+lxml>=6.1.0
 pydub==0.16.5
 chardet==3.0.4
 pyquery>1.2.17

@@ -101,7 +101,7 @@ setup(
     extras_require={
         'ingestion': [
             #pillow_package,
-            'lxml',
+            'lxml>=6.1.0',
             'chardet==3.0.4',
         ],
         'test': [

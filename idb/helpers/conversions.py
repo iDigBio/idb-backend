@@ -18,6 +18,8 @@ from .biodiversity_socket_connector import Biodiversity
 from .rg import get_country
 from .media_validation import get_default_bucket
 
+from pyproj import CRS, Transformer
+
 bioserv = Biodiversity()
 
 
@@ -277,7 +279,7 @@ def getfield(f, d, t="text"):
         if t == "list":
             return [x.lower().strip() for x in d[f]]
         else:
-            if isinstance(d[f], str) or isinstance(d[f], unicode):
+            if isinstance(d[f], str) or isinstance(d[f], str):
                 return d[f].lower().strip()
             else:
                 return d[f]
@@ -291,7 +293,7 @@ def verbatimGrabber(t, d):
         r[f[0]] = getfield(f[1], d, t=f[2])
     return r
 
-gfn = re.compile("([+-]?[0-9]+(?:[,][0-9]{3})*(?:[\.][0-9]*)?)")
+gfn = re.compile(r"([+-]?[0-9]+(?:[,][0-9]{3})*(?:[\.][0-9]*)?)")
 
 
 def grabFirstNumber(f):
@@ -307,7 +309,7 @@ def grabFirstNumber(f):
         pass
     return n
 
-mangler = re.compile("[\W]+")
+mangler = re.compile(r"[\W]+")
 
 
 def mangleString(s):
@@ -375,7 +377,7 @@ def intGrabber(t, d):
     for f in ef[t]:
         fv = getfield(f[1], d)
         if fv is not None:
-            if isinstance(fv, (str, unicode)):
+            if isinstance(fv, (str, str)):
                 try:
                     n = grabFirstNumber(fv)
                     if n is not None:
@@ -418,6 +420,28 @@ def floatGrabber(t, d):
             r[resultkey] = None
     return r
 
+
+DATUM_ALIASES = {
+    "WORLDGEODETICSYSTEM1984": "WGS84",
+    "WORLDGEODETICSYSTEM84":   "WGS84",
+    "WORLDGEODETICSYSTEM1972": "WGS72",
+    "NORTHAMERICANDATUM1983":  "NAD83",
+    "NORTHAMERICANDATUM1927":  "NAD27",
+}
+
+def try_make_crs(datum_str):
+    if not datum_str:
+        return None
+    normalized = DATUM_ALIASES.get(datum_str, datum_str)
+    try:
+        return CRS.from_user_input(f"+proj=latlon +datum={normalized}")
+    except Exception:
+        pass
+    try:
+        return CRS.from_user_input(normalized)
+    except Exception:
+        pass
+    return None
 
 def geoGrabber(t, d):
     r = {}
@@ -463,28 +487,27 @@ def geoGrabber(t, d):
         # if we got this far with actual values
         if r["geopoint"] is not None:
             if datum_val is not None:
-                # convert datum to a more canonical representation (no
-                # whitespace, all uppercase)
                 source_datum = mangleString(datum_val)
                 try:
-                    # source projection
-                    p1 = pyproj.Proj(proj="latlon", datum=source_datum)
-
-                    # destination projection
-                    p2 = pyproj.Proj(proj="latlon", datum="WGS84")
-
-                    # do the transform
-                    # (lon, lat)
-                    r["geopoint"] = pyproj.transform(
-                        p1, p2, r["geopoint"][0], r["geopoint"][1])
-                except:
-                    # traceback.print_exc()
-                    # create an error flag on projection creation exception (invalid source datum)
-                    # or on transform exception (point out of bounds for source
-                    # projection)
+                    # Build CRS objects (lat/lon)
+                    #src = CRS.from_user_input(f"+proj=latlon +datum={source_datum}")
+                    src = try_make_crs(source_datum)
+                    
+                    if src is None:
+                        r["flag_geopoint_datum_error"] = True
+                    else:
+                        dst = CRS.from_epsg(4326)  # WGS84 lat/lon
+                        transformer = Transformer.from_crs(src, dst, always_xy=True)
+                    
+                    #transformer = Transformer.from_crs(src, dst, always_xy=True)
+        
+                    lon, lat = r["geopoint"][0], r["geopoint"][1]
+                    lon2, lat2 = transformer.transform(lon, lat)
+        
+                    r["geopoint"] = (lon2, lat2)
+                except Exception:
                     r["flag_geopoint_datum_error"] = True
             else:
-                # note unprojected points (datum_val is None)
                 r["flag_geopoint_datum_missing"] = True
 
             # get_country takes lon, lat
@@ -565,7 +588,7 @@ def dateGrabber(t, d):
             # dates are more sensitivie to lower case then upper.
             fv = fv.upper()
             try:
-                x = dateutil.parser.parse(fv)
+                x = dateutil.parser.parse(fv, default=datetime.datetime(year=1, month=1, day=1))
                 if x.tzinfo is None:
                     x = x.replace(tzinfo=pytz.utc)
                 try:
@@ -588,15 +611,15 @@ def dateGrabber(t, d):
                 if month is not None:
                     if day is not None:
                         r["datecollected"] = dateutil.parser.parse(
-                            "{0}-{1}-{2}".format(year, month, day)).date()
+                            "{0}-{1}-{2}".format(year, month, day), default=datetime.datetime(year=1, month=1, day=1)).date()
                     elif sd_of_year is not None:
                         r["datecollected"] = (datetime.datetime(
                             year, 1, 1) + datetime.timedelta(locale.atoi(sd_of_year) - 1)).date()
                     else:
                         r["datecollected"] = dateutil.parser.parse(
-                            "{0}-{1}".format(year, month)).date()
+                            "{0}-{1}".format(year, month), default=datetime.datetime(year=1, month=1, day=1)).date()
                 else:
-                    r["datecollected"] = dateutil.parser.parse(year).date()
+                    r["datecollected"] = dateutil.parser.parse(year, default=datetime.datetime(year=1, month=1, day=1)).date()
             except:
                 pass
 
@@ -812,7 +835,7 @@ def collect_common_names(t, d):
         return {}
 
 
-genbank_ids = re.compile("[a-zA-Z]{1,2}\-?_?\d{5,6}")
+genbank_ids = re.compile(r"[a-zA-Z]{1,2}-?_?\d{5,6}")
 
 def collect_genbank_sequences(t, d):
     if t == "records":
@@ -930,7 +953,7 @@ def grabAll(t, d):
     # r.update(geoshape_fill(t, d, r))
 
     r["flags"] = setFlags(r)
-    for k in r.keys():
+    for k in list(r.keys()):
         if k.startswith("flag_"):
             r["flags"].append("_".join(k.split("_")[1:]))
             del r[k]
@@ -984,7 +1007,7 @@ def main():
                 continue
             break
 
-    print "records ready"
+    print("records ready")
 
     interations = 1
 
@@ -1002,7 +1025,7 @@ def main():
             total_time += (t2 - t1).total_seconds()
             count += 1
 
-    print count, total_time, total_time / count
+    print(count, total_time, total_time / count)
 
     # t = sys.argv[1]
     # u = sys.argv[2]

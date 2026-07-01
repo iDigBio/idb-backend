@@ -9,13 +9,14 @@ import gc
 import math
 import signal
 import logging
+import gevent
 
 from idb.postgres_backend import apidbpool, DictCursor
-from .index_helper import index_record
+from .index_helper import index_record, close_dbd
 from idb.helpers.signals import signalcm
 from idb.helpers.logging import idblogger, configure
 from idb.postgres_backend.db import tombstone_etag
-
+from gevent.pool import Pool
 import elasticsearch.helpers
 
 logger = idblogger.getChild('index_from_postgres')
@@ -26,6 +27,11 @@ last_afters = {}
 # Maximum number of seconds to sleep
 MAX_SLEEP = 600
 MIN_SLEEP = 120
+
+# Linux / BSD – inside the program
+# import resource
+#soft, hard = 18 * 1024**3, 18 * 1024**3   # 18 GiB
+#resource.setrlimit(resource.RLIMIT_AS, (soft, hard))
 
 
 def rate_logger(prefix, iterator, every=10000):
@@ -183,21 +189,37 @@ def type_yield_resume(ei, rc, typ, also_delete=False, yield_record=False):
     es_ids = get_resume_cache(ei, typ)
     logger.info("%s: Indexing", typ)
     pg_typ = "".join(typ[:-1])
+
     sql = "SELECT * FROM idigbio_uuids_data WHERE type=%s"
     if not also_delete:
         sql += " AND deleted=false"
-    results = apidbpool.fetchiter(
-        sql, (pg_typ,), named=True, cursor_factory=DictCursor)
-    for r in rate_logger(typ + " indexing", results):
-        es_etag = es_ids.get(r["uuid"])
-        pg_etag = r['etag']
-        if es_etag == pg_etag or (pg_etag == tombstone_etag and es_etag is None):
-            continue
 
-        if yield_record:
-            yield r
-        else:
-            yield index_record(ei, rc, typ, r, do_index=False)
+    # Stream in the order we need (no Python-side sort!)
+    if pg_typ == "record":
+        sql += " ORDER BY parent"
+    else:
+        sql += " ORDER BY uuid"
+
+    results = apidbpool.fetchiter(sql, (pg_typ,), named=True, cursor_factory=DictCursor)
+
+    rows = rate_logger(typ + " indexing", results)
+
+    if pg_typ == "record":
+        for parent, group in itertools.groupby(rows, key=lambda x: x["parent"]):
+            logger.info("Indexing recordset: %s", parent)
+            for r in group:
+                es_etag = es_ids.get(r["uuid"])
+                pg_etag = r["etag"]
+                if es_etag == pg_etag or (pg_etag == tombstone_etag and es_etag is None):
+                    continue
+                yield r if yield_record else index_record(ei, rc, typ, r, do_index=False)
+    else:
+        for r in rows:
+            es_etag = es_ids.get(r["uuid"])
+            pg_etag = r["etag"]
+            if es_etag == pg_etag or (pg_etag == tombstone_etag and es_etag is None):
+                continue
+            yield r if yield_record else index_record(ei, rc, typ, r, do_index=False)
 
 
 def queryIter(query, ei, rc, typ, yield_record=False):
@@ -221,21 +243,47 @@ def queryIter(query, ei, rc, typ, yield_record=False):
 
 
 def uuidsIter(uuid_l, ei, rc, typ, yield_record=False, children=False):
+    """
+    Process UUIDs in batches of 10,000 to optimize memory usage.
+    """
+    batch_size = 10000
+    
     for rid in uuid_l:
         if children:
             logger.debug("Selecting children of %s.", rid)
             sql = "SELECT * FROM idigbio_uuids_data WHERE parent=%s and type=%s"
         else:
             sql = "SELECT * FROM idigbio_uuids_data WHERE uuid=%s and type=%s"
+        
         params = (rid.strip(), typ[:-1])
-        results = apidbpool.fetchall(sql, params, cursor_factory=DictCursor)
-        for rec in results:
-            if yield_record:
-                yield rec
-            else:
-                yield index_record(ei, rc, typ, rec, do_index=False)
-
-
+        
+        # Use server-side cursor for memory efficiency
+        record_iterator = apidbpool.fetchiter(sql, params, cursor_factory=DictCursor)
+        
+        try:
+            while True:
+                # Get batch of 200,000 records using islice
+                batch = list(itertools.islice(record_iterator, batch_size))
+                
+                if not batch:
+                    break  # No more records to process
+                
+                # Process each record in the current batch
+                for rec in batch:
+                    if yield_record:
+                        yield rec
+                    else:
+                        yield index_record(ei, rc, typ, rec, do_index=False)
+                
+        except Exception as e:
+            logger.error("Error processing UUID %s: %s", rid, str(e))
+            continue
+        
+        finally:
+            # Ensure cursor is properly closed
+            if hasattr(record_iterator, 'close'):
+                record_iterator.close()
+        
 def delete(ei, rc, no_index=False):
     logger.info("Running deletes")
 
@@ -285,29 +333,34 @@ def uuids(ei, rc, uuid_l, no_index=False, children=False):
     f = functools.partial(uuidsIter, uuid_l, children=children)
     consume(ei, rc, f, no_index=no_index)
     ei.optimize()
+    close_dbd(rc)
 
 def mappings_only(ei):
     ei.optimze()
 
 def consume(ei, rc, iter_func, no_index=False):
     for typ in ei.types:
-        # Construct a version of index record that can be just called with the
-        # record
-        index_func = functools.partial(index_record, ei, rc, typ, do_index=False)
 
-        to_index = iter_func(ei, rc, typ, yield_record=True)
-        index_record_tuples = itertools.imap(index_func, to_index)
+        index_func   = functools.partial(index_record, ei, rc, typ,
+                                         do_index=False)
+        to_index     = iter_func(ei, rc, typ, yield_record=True)
+        idx_tuples   = map(index_func, to_index)
 
-        if no_index:
-            for _ in index_record_tuples:
-                pass
-        else:
-            for ok, item in ei.bulk_index(index_record_tuples):
-                if not ok:
-                    logger.warning('Failed during bulk index index: {0} '.format(item))
-        # We should never need to call gc manually.  Can we drop this?  Especially
-        # since we no longer ever use continuous mode.
-        gc.collect() 
+        if idx_tuples is not None:
+            if no_index:
+                for _ in idx_tuples:      # just exhaust the generator
+                    pass
+            else:
+                for ok, item in ei.bulk_index(idx_tuples):
+                    if not ok:
+                        logger.warning("Failed during bulk-index: %s", item)
+
+        # force a full *major* collection and wait until it is finished
+        #gc.collect()                      # blocks until the major GC is done
+
+        # statistics *after* the collection
+        st = gc.get_stats()            # <GcStats …>
+        logger.info("GC: " + str(st))
 
 def continuous_incremental(ei, rc, no_index=False):
     while True:

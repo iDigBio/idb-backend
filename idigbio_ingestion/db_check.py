@@ -7,14 +7,19 @@ import os
 import re
 import sys
 import traceback
+import multiprocessing
 
 import magic
+
+#This is for PyPy
+#from psycopg2cffi import compat
+#compat.register()
 
 from atomicfile import AtomicFile
 from psycopg2 import DatabaseError
 from psycopg2.extras import DictCursor
 
-from boto.exception import S3ResponseError, S3DataError
+from botocore.exceptions import ClientError
 
 
 from idb import stats
@@ -25,7 +30,7 @@ from idb.helpers import ilen
 from idb.helpers.etags import calcEtag, calcFileHash
 from idb.helpers.logging import idblogger, LoggingContext
 from idb.helpers.storage import IDigBioStorage
-from idb.helpers import gipcpool
+#from idb.helpers import gipcpool
 
 from idigbio_ingestion.lib.dwca import Dwca
 from idigbio_ingestion.lib.delimited import DelimitedFile
@@ -54,6 +59,7 @@ def getrslogger(rsid):
 
 def mungeid(s):
     return bad_char_re.sub('', s).strip()
+
 
 identifier_fields = {
     "dwc:Occurrence": [
@@ -103,15 +109,29 @@ def idFromRR(r, rs=None):
 
 
 def get_file(rsid):
+    """
+    Ensure <rsid>.zip (or whatever) is present locally and return
+    (filename, detected_mime_type).
+
+    * Downloads via RecordSet.fetch_file() if the file is missing.
+    * Uses the new boto3-backed IDigBioStorage helper.
+    * Logs and re-raises on any S3/network/data-integrity problem.
+    """
     fname = rsid
     if not os.path.exists(fname):
         try:
-            RecordSet.fetch_file(rsid, fname, media_store=IDigBioStorage(), logger=logger.getChild(rsid))
-        except (S3ResponseError, S3DataError):
-            getrslogger(rsid).exception("failed fetching archive")
-            raise
+            RecordSet.fetch_file(
+                rsid,
+                fname,
+                media_store=IDigBioStorage(),
+                logger=logger.getChild(rsid),
+            )
+        except (ClientError, ValueError):          # ① network/S3 … ② MD5 mismatch
+            logger.exception("failed fetching archive")
+            raise                                   # propagate to caller
+
     mime = magic.from_file(fname, mime=True)
-    return (fname, mime)
+    return fname, mime
 
 
 def get_db_dicts(rsid):
@@ -147,6 +167,16 @@ def identifyRecord(t, etag, r, rsid):
 unconsumed_extensions = {}
 core_siblings = {}
 
+def strip_nuls(x):
+    if isinstance(x, str):
+        return x.replace("\x00", "")
+    if isinstance(x, dict):
+        return {k: strip_nuls(v) for k, v in x.items()}
+    if isinstance(x, list):
+        return [strip_nuls(v) for v in x]
+    if isinstance(x, tuple):
+        return tuple(strip_nuls(v) for v in x)
+    return x
 
 def process_subfile(
         rf, # type: DwcaRecordFile
@@ -220,6 +250,7 @@ def process_subfile(
     rlogger.info("Beginning row processing, rowtype = {0}".format(rf.rowtype))
     for r in rf:
         # r is a Dict representation of a data row
+        r = strip_nuls(r)
         ids_to_add = {}
         uuids_to_add = {}
         siblings = []
@@ -315,11 +346,11 @@ def process_subfile(
                 else:
                     if config.IDB_EXTRA_SERIOUS_DEBUG == 'yes':
                         rlogger.debug("Setting sibling for '{0}'".format(u))
-                    db.set_record(u, typ[:-1], rsid, r, ids_to_add.keys(), siblings)
+                    db.set_record(u, typ[:-1], rsid, r, list(ids_to_add), siblings)
                     ingestions += 1
             elif ingest and deleted:
                 db.undelete_item(u)
-                db.set_record(u, typ[:-1], rsid, r, ids_to_add.keys(), siblings)
+                db.set_record(u, typ[:-1], rsid, r, list(ids_to_add), siblings)
                 resurrections += 1
 
 
@@ -355,6 +386,7 @@ def process_subfile(
                 ref_uuids_list = uuid_re.findall(r["ac:associatedSpecimenReference"])
                 for ref_uuid in ref_uuids_list:
                     # Check for internal idigbio_uuid reference
+                    ref_uuid = ref_uuid.lower()
                     db_r = db.get_item(ref_uuid)
                     db_uuid = None
                     if db_r is None:
@@ -406,8 +438,8 @@ def process_subfile(
         seen_ids.update(ids_to_add)
         seen_uuids.update(uuids_to_add)
 
-    eu_set = existing_etags.viewkeys()
-    nu_set = seen_uuids.viewkeys()
+    eu_set = existing_etags.keys()
+    nu_set = seen_uuids.keys()
 
     deletes = len(eu_set - nu_set)
 
@@ -529,7 +561,7 @@ def process_file(fname, mime, rsid, existing_etags, existing_ids, ingest=False, 
 
 
 def save_summary_json(rsid, counts):
-    with AtomicFile(rsid + ".summary.json", "wb") as sumf:
+    with AtomicFile(rsid + ".summary.json", "w") as sumf:
         json.dump(counts, sumf, indent=2)
 
 
@@ -556,7 +588,7 @@ def metadataToSummaryJSON(rsid, metadata, writeFile=True, doStats=True):
     if metadata["filemd5"] is None:
         summary["datafile_ok"] = False
         if writeFile:
-            with AtomicFile(rsid + ".summary.json", "wb") as jf:
+            with AtomicFile(rsid + ".summary.json", "w") as jf:
                 json.dump(summary, jf, indent=2)
                 jf.write(os.linesep)
         return summary
@@ -585,10 +617,10 @@ def metadataToSummaryJSON(rsid, metadata, writeFile=True, doStats=True):
     summary["dublicate_occurence_ids"] = duplicate_id_count
 
     if writeFile:
-        with AtomicFile(rsid + ".summary.json", "wb") as jf:
+        with AtomicFile(rsid + ".summary.json", "w") as jf:
             json.dump(summary, jf, indent=2)
             jf.write(os.linesep)
-        with AtomicFile(rsid + ".metadata.json", "wb") as jf:
+        with AtomicFile(rsid + ".metadata.json", "w") as jf:
             json.dump(metadata, jf, indent=2)
             jf.write(os.linesep)
     
@@ -655,9 +687,9 @@ def main(rsid, ingest=False):
         else:
             rlogger.info("Building ids/uuids json")
             db_u_d, db_i_d = get_db_dicts(rsid)
-            with AtomicFile(rsid + "_uuids.json", "wb") as uuidf:
+            with AtomicFile(rsid + "_uuids.json", "w") as uuidf:
                 json.dump(db_u_d, uuidf)
-            with AtomicFile(rsid + "_ids.json", "wb") as idf:
+            with AtomicFile(rsid + "_ids.json", "w") as idf:
                 json.dump(db_i_d, idf)
 
         commit_force = False
@@ -700,19 +732,37 @@ def allrsids(since=None, ingest=False):
     from .db_rsids import get_active_rsids
     rsids = get_active_rsids(since=since)
     logger.info("Checking %s recordsets", len(rsids))
-
     from .db_rsids import get_paused_rsids
     paused_recordsets = get_paused_rsids()
-    logger.info("Paused recordsets: {0}, rsids: {1}".format(len(paused_recordsets),paused_recordsets))
-
-
+    logger.info("Paused recordsets: {0}, rsids: {1}".format(len(paused_recordsets), paused_recordsets))
+    
     # Need to ensure all the connections are closed before multiprocessing forks
     apidbpool.closeall()
-
-    pool = gipcpool.Pool()
-    exitcodes = pool.imap_unordered(functools.partial(launch_child, ingest=ingest), rsids)
-    badcount = ilen(e for e in exitcodes if e != 0)
+    
+    # Create pool explicitly
+    pool = multiprocessing.Pool()  # no 'processes=' → one worker per core
+    try:
+        # Use map_async for true parallel execution
+        result = pool.map_async(
+            functools.partial(launch_child, ingest=ingest),
+            rsids
+        )
+        
+        # Get results (this will block until all are complete, but they run in parallel)
+        exitcodes = result.get()
+        
+        # Make sure to close and join the pool to ensure processes are cleaned up
+        pool.close()
+        pool.join()
+    except Exception as e:
+        # If an exception occurs, terminate the pool and re-raise
+        pool.terminate()
+        pool.join()
+        raise
+    
+    badcount = sum(1 for e in exitcodes if e != 0)  # Replacing ilen with a standard approach
     if badcount:
         logger.critical("%d children failed", badcount)
+    
     from .ds_sum_counts import main as ds_sum_counts
     ds_sum_counts('./', sum_filename='summary.csv', susp_filename="suspects.csv")

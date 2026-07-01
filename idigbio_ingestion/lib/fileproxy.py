@@ -107,7 +107,7 @@ class FileProxy(object):
     softspace = property(lambda me : getattr(me.__file, 'softspace'),lambda me, val : setattr(me.__file, 'softspace', val))
 
 def main():
-    import unicodecsv as csv
+    import csv
     import traceback
 
     with FileProxy(open("test.csv", "rb")) as inf:

@@ -1,6 +1,6 @@
 import requests
 import json
-import unicodecsv as csv
+import csv
 
 search_server = "http://c18node2.acis.ufl.edu:9200"
 index = "idigbio-2.4.0"
@@ -23,7 +23,7 @@ for h in op["hits"]["hits"]:
     try:
         pubs[h["_id"]] = h["_source"]["data"]["name"]
     except:
-        print "skip pub", h["_id"]
+        print("skip pub", h["_id"])
 
 rs_query = {
     "size": 1000,
@@ -40,7 +40,7 @@ for h in os["hits"]["hits"]:
     try:
         rsp[h["_id"]] = { "pub": h["_source"]["publisher"], "pub_name": pubs[h["_source"]["publisher"]], "name": h["_source"]["data"]["collection_name"]}
     except:
-        print "skip rs", h["_id"]
+        print("skip rs", h["_id"])
 
 query = {
     "aggs": {

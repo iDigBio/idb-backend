@@ -11,6 +11,9 @@ that can create databases.
 import gevent
 import gevent.monkey
 import pytest
+#This is for PyPy
+#from psycopg2cffi import compat
+#compat.register()
 import psycopg2
 from functools import partial
 from py.path import local
@@ -157,6 +160,8 @@ def testdbpool(request, testdb, logger):
 @pytest.fixture()
 def testschema(schemapath, testdbpool, logger):
     "Ensure a fresh version of the idb schema, with no data loaded"
+    logger.info("Ensuring public schema exists")
+    testdbpool.execute("CREATE SCHEMA IF NOT EXISTS public;", readonly=False)
     logger.info("Loading schema into testdb")
     testdbpool.execute(schemapath.open('r', encoding='utf-8').read(), readonly=False)
 

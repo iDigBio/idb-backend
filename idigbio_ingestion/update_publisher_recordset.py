@@ -19,6 +19,8 @@ from idb.helpers.logging import idblogger
 from idigbio_ingestion.lib.util import download_file
 from idigbio_ingestion.lib.eml import parseEml
 
+import botocore
+
 #### disabling warnings per https://urllib3.readthedocs.org/en/latest/security.html#disabling-warnings
 ## Would rather have warnings go to log but could not get logging.captureWarnings(True) to work.
 ## There is no urllib3.enable_warnings method. Is it possible to disable_warnings and then re-enable them later?
@@ -31,6 +33,9 @@ from idigbio_ingestion.lib.eml import parseEml
 # uuid '872733a2-67a3-4c54-aa76-862735a5f334' is the idigbio root entity,
 # the parent of all publishers.
 IDIGBIO_ROOT_UUID = "872733a2-67a3-4c54-aa76-862735a5f334"
+
+#created so that feed information does not get overwritten if manual intervention is required
+IDIGBIO_LOCKED_PUBLISHERS = ["0e8eb850-aa63-4a4d-b0b7-2ec820ef808f"]
 
 logger = idblogger.getChild('upr')
 
@@ -81,7 +86,7 @@ def id_func(portal_url, e):
 
     if id is not None:
         # Strip trailing version info from ipt ids
-        m = re.search('^(.*)/v[0-9]*(\.)?[0-9]*$', id)
+        m = re.search(r'^(.*)/v[0-9]*(\.)?[0-9]*$', id)
         if m is not None:
             id = m.group(1)
 
@@ -159,7 +164,7 @@ def update_db_from_rss():
         logger.debug("Gathering existing recordsets...")
         for row in db.fetchall("SELECT * FROM recordsets"):
             recordsets[row["id"]] = row
-            row["file_link"] = row["file_link"].encode('utf-8').strip()
+            row["file_link"] = (row["file_link"] or "").strip()
             file_links[row["file_link"]] = row["id"]
             for recordid in row["recordids"]:
                 logger.debug("id | recordid | file_link : '{0}' | '{1}' | '{2}'".format(
@@ -219,6 +224,17 @@ def _do_rss_entry(entry, portal_url, db, recordsets, existing_recordsets, pub_uu
             if entry[k][0] is not None:
                 entry[k][0] = [v.encode('utf-8').strip() for v in entry[k][0]]
 
+    for k in entry:
+        if k == "link":
+            entry["link"] = (entry["link"] or "").strip()
+        elif k == "links":
+             if isinstance(entry[k], list):
+                for link in entry[k]:
+                    if isinstance(link, dict):
+                        if "href" in link and link["href"]:
+                            link["href"] = str(link["href"]).strip()
+ 
+    
     logger.debug("Dump of this feed entry: '{0}'".format(entry))
 
     # We pass in portal_url even though it is only needeed for Symbiota portals
@@ -367,6 +383,10 @@ def _do_rss(rsscontents, r, db, recordsets, existing_recordsets, file_links):
     
     logger.debug("Found {0} entries in feed to process.".format(len(feed)))  # should this be  'len(feed.entries)' ?
     pub_uuid = r["uuid"]
+
+    if pub_uuid in IDIGBIO_LOCKED_PUBLISHERS:
+        logger.warn("Locked publisher found UUID: '{0}' will not be updated.".format(pub_uuid))
+
     if pub_uuid is None:
         pub_uuid, _, _ = db.get_uuid(r["recordids"])
 
@@ -527,11 +547,30 @@ def upload_recordset(rsid, fname, idbmodel):
     filereference = "http://api.idigbio.org/v1/recordsets/" + rsid
     logger.debug("Starting Upload of %r", rsid)
     stor = IDigBioStorage()
+
     with open(fname, 'rb') as fobj:
         mo = MediaObject.fromobj(
             fobj, url=filereference, type='datasets', owner=config.IDB_UUID)
         k = mo.get_key(stor)
-        if k.exists():
+        fflag = 0
+
+        try:
+            status = k.archive_status       # triggers the HEAD request
+            if k.content_length > 0:
+                fflag += 1
+        except botocore.exceptions.ClientError as e:
+            if "Not Found" in str(e):
+                print("it says not found!")
+            else:
+                print("found!")
+                fflag += 1
+            # or inspect details:
+            code    = e.response['Error']['Code']      # '404'
+            message = e.response['Error']['Message']
+            print(code)
+            print(message)
+
+        if fflag > 0:
             logger.debug("ETAG %s already present in Storage.", mo.etag)
         else:
             mo.upload(stor, fobj)
